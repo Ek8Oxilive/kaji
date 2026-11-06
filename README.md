@@ -26,7 +26,7 @@ npm run dev        # http://localhost:5173 (les appels /api sont relayés vers l
 ```
 Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox, et **dashboard** : résumé du cluster, nœuds (CPU, RAM, disque), machines VM/LXC en cartes avec filtres (recherche, état, type, nœud) et actions démarrer / redémarrer / éteindre / forcer l'arrêt. Les actions destructrices demandent confirmation, l'état attendu s'affiche tout de suite et la tâche Proxmox est suivie jusqu'au bout. Les données se rafraîchissent toutes les 10 s (cadence des statistiques Proxmox).
 
-**Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge, VLAN, firewall, MAC conservée). Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
+**Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
 
 ## Démarrage (backend)
 Prérequis : Python 3.12+.
@@ -60,6 +60,8 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 | `GET /api/connections/{id}/guests/{node}/{type}/{vmid}/config` | Matériel décomposé (CPU, RAM, disques, cartes réseau) et changements en attente |
 | `PATCH …/config` | Modifie CPU (cœurs, sockets, type), RAM, balloon, swap (LXC), réseau (bridge, VLAN, firewall ; la MAC est conservée), ISO monté ou éjecté. Seuls des champs validés sont acceptés. |
 | `POST …/resize` | Agrandit un disque de N Go (irréversible, exige `{"confirm": true}`) |
+| `GET /api/connections/{id}/nodes/{node}/bridges` | Réseaux sélectionnables pour une carte réseau : bridges locaux et VNets SDN (la liste reste utilisable si le SDN est absent ou illisible) |
+| `GET /api/connections/{id}/nodes/{node}/isos` | Images ISO disponibles sur les stockages actifs du nœud |
 | `GET /api/audit` | Journal d'audit des actions (qui, quoi, quand, résultat) |
 
 > **Droits Proxmox (M2).** Les actions demandent plus que la lecture seule. Pour limiter les risques, donne le rôle `PVEVMAdmin` au token **uniquement sur les machines concernées** (`pveum aclmod /vms/<vmid> -user kaji@pve -role PVEVMAdmin`) et garde `PVEAuditor` sur `/`.

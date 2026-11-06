@@ -57,3 +57,6 @@ export type HwUpdate = {
   nets?: Record<string, { bridge?: string; tag?: number; clear_tag?: boolean; firewall?: boolean }>;
   cdroms?: Record<string, { iso: string | null }>;
 };
+
+export type Bridge = { name: string; kind: "bridge" | "vnet"; zone: string | null; detail: string | null; vlan_aware: boolean };
+export type Iso = { volid: string; storage: string; name: string; size: number | null };
