@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { CloneDialog } from "../components/CloneDialog";
 import { CommandPalette, type Command } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CreateVmWizard } from "../components/CreateVmWizard";
@@ -49,6 +50,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const [hw, setHw] = useState<Guest | null>(null);
   const [palette, setPalette] = useState(false);
   const [wizard, setWizard] = useState(false);
+  const [clone, setClone] = useState<Guest | null>(null);
 
   const [q, setQ] = useState(""), [state, setState] = useState("all"), [kind, setKind] = useState("all"), [node, setNode] = useState("all");
   const [now, setNow] = useState(Date.now());
@@ -96,6 +98,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
       const c = (a: string, label: string, run: () => void): Command => ({ id: `${a}-${guestKey(x)}`, group: "Machines", label: `${label} ${name}`, hint, run });
       return [
         c("hw", "Matériel de", () => setHw(x)),
+        c("clone", "Cloner", () => setClone(x)),
         ...(st === "stopped" ? [c("start", "Démarrer", () => run(x, "start"))] : []),
         ...(st === "running" ? [
           c("reboot", "Redémarrer", () => setPending({ guest: x, action: "reboot" })),
@@ -168,12 +171,14 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {guests.isLoading ? <Skeleton n={6} h="h-52" /> : visible.map((x, i) => (
             <GuestCard key={guestKey(x)} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
-              onHardware={() => setHw(x)}
+              onHardware={() => setHw(x)} onClone={() => setClone(x)}
               onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
           ))}
           {!guests.isLoading && visible.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucune machine ne correspond aux filtres.</div>}
         </div>
       </section>
+
+      {clone && id && <CloneDialog connId={id} guest={clone} nodes={n} onClose={() => setClone(null)} />}
 
       {wizard && id && <CreateVmWizard connId={id} nodes={n} onClose={() => setWizard(false)} />}
 

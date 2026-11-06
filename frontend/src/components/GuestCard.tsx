@@ -3,8 +3,8 @@ import { bytes, pct, uptime } from "../lib/format";
 import { Gauge } from "./Gauge";
 import { Button } from "./ui";
 
-export function GuestCard({ guest, status, busyLabel, onAction, onHardware, index }: {
-  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onHardware: () => void; index: number;
+export function GuestCard({ guest, status, busyLabel, onAction, onHardware, onClone, index }: {
+  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onHardware: () => void; onClone: () => void; index: number;
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
@@ -33,17 +33,18 @@ export function GuestCard({ guest, status, busyLabel, onAction, onHardware, inde
 
       <div className="mt-auto space-y-3">
         <p className="text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
-        {!guest.template && (
-          <div className="flex flex-wrap gap-1.5">
-            <Button variant="ghost" onClick={onHardware} className="!px-3 !py-1.5" title="Voir et modifier le matériel">Matériel</Button>
+        <div className="flex flex-wrap gap-1.5">
+          {!guest.template && <Button variant="ghost" onClick={onHardware} className="!px-3 !py-1.5" title="Voir et modifier le matériel">Matériel</Button>}
+          <Button variant="ghost" onClick={onClone} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
+          {!guest.template && <>
             {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
             {running && <>
               <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
               <Button variant="ghost" onClick={() => onAction("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
               <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>
             </>}
-          </div>
-        )}
+          </>}
+        </div>
       </div>
     </article>
   );
