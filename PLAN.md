@@ -60,7 +60,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
   - Garde-fous : liste blanche de paramètres validés côté serveur (aucune clé libre transmise à Proxmox), suppression d'un disque confirmée en retapant le nom de la machine, agrandissement de disque confirmé (irréversible), audit de chaque changement
   - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
-- [ ] **Pages de détail** : un clic sur une machine ou un nœud ouvre une page (adresse propre, bouton retour) ; la page Machine remplace le tiroir « Matériel » et réunit matériel, snapshots, cloud-init et sauvegardes — **lot 1 (routage + page Machine) livré**, lot 2 (page Nœud) en cours
+- [x] **Pages de détail** : un clic sur une machine ou un nœud ouvre une page (adresse propre, bouton retour) ; la page Machine remplace le tiroir « Matériel » et réunit matériel, snapshots, cloud-init et sauvegardes — routage, page Machine et page Nœud livrés ; graphiques d'historique non faits
 - [x] Snapshots : créer, lister, supprimer, restaurer (restauration confirmée en retapant le nom de la machine)
 - [x] Suppression de machine : arrêtée, nom retapé, disques listés, protégeable par `KAJI_PROTECTED_VMIDS`
 - [x] Migration entre nœuds (vérifications préalables, à froid, à chaud pour une VM, redémarrage pour un LXC)
