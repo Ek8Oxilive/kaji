@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GuestCard } from "../components/GuestCard";
+import { HardwarePanel } from "../components/HardwarePanel";
 import { NodeCard } from "../components/NodeCard";
 import { Helm } from "../components/Logo";
 import { Button, Notice } from "../components/ui";
@@ -41,6 +42,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const { status, nodes, guests } = useCluster(id);
   const { run, busy, effectiveStatus } = useGuestActions(id);
   const [pending, setPending] = useState<{ guest: Guest; action: Exclude<GuestAction, "start"> } | null>(null);
+  const [hw, setHw] = useState<Guest | null>(null);
 
   const [q, setQ] = useState(""), [state, setState] = useState("all"), [kind, setKind] = useState("all"), [node, setNode] = useState("all");
   const [now, setNow] = useState(Date.now());
@@ -125,11 +127,14 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {guests.isLoading ? <Skeleton n={6} h="h-52" /> : visible.map((x, i) => (
             <GuestCard key={guestKey(x)} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
+              onHardware={() => setHw(x)}
               onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
           ))}
           {!guests.isLoading && visible.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucune machine ne correspond aux filtres.</div>}
         </div>
       </section>
+
+      {hw && id && <HardwarePanel connId={id} guest={hw} onClose={() => setHw(null)} />}
 
       {pending && (
         <ConfirmDialog title={`${CONFIRM[pending.action].title} « ${pending.guest.name ?? pending.guest.vmid} » ?`} confirmLabel={CONFIRM[pending.action].verb}

@@ -38,3 +38,22 @@ export type Guest = {
 };
 export type GuestAction = "start" | "shutdown" | "reboot" | "stop";
 export type TaskStatus = { status: string | null; exitstatus: string | null; type: string | null; ok: boolean };
+
+export type HwDisk = {
+  key: string; kind: "disk" | "cdrom"; storage: string | null; volume: string | null; empty: boolean;
+  size: string | null; size_bytes: number | null; options: Record<string, string>;
+};
+export type HwNet = {
+  key: string; model: string | null; mac: string | null; bridge: string | null; tag: number | null;
+  firewall: boolean; name: string | null; ip: string | null;
+};
+export type HwPending = { key: string; value: string | number | null; pending: string | number | null; delete: boolean };
+export type HwConfig = {
+  type: "qemu" | "lxc"; settings: Record<string, string | number>; disks: HwDisk[]; nets: HwNet[];
+  pending: HwPending[]; reboot_required: boolean;
+};
+export type HwUpdate = {
+  memory?: number; balloon?: number; cores?: number; sockets?: number; cpu?: string; swap?: number;
+  nets?: Record<string, { bridge?: string; tag?: number; clear_tag?: boolean; firewall?: boolean }>;
+  cdroms?: Record<string, { iso: string | null }>;
+};

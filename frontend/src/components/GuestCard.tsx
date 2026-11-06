@@ -3,8 +3,8 @@ import { bytes, pct, uptime } from "../lib/format";
 import { Gauge } from "./Gauge";
 import { Button } from "./ui";
 
-export function GuestCard({ guest, status, busyLabel, onAction, index }: {
-  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; index: number;
+export function GuestCard({ guest, status, busyLabel, onAction, onHardware, index }: {
+  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onHardware: () => void; index: number;
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
@@ -35,6 +35,7 @@ export function GuestCard({ guest, status, busyLabel, onAction, index }: {
         <p className="text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
         {!guest.template && (
           <div className="flex flex-wrap gap-1.5">
+            <Button variant="ghost" onClick={onHardware} className="!px-3 !py-1.5" title="Voir et modifier le matériel">Matériel</Button>
             {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
             {running && <>
               <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
