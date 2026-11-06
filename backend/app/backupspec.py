@@ -50,6 +50,7 @@ BACKUP_FILE = re.compile(
     r"\.(vma|tar)(\.(zst|gz|lzo))?$")
 
 # Une seule ligne, sans caractère de contrôle ni antislash (Proxmox demande de les échapper : on les refuse).
+# Toujours `fullmatch` (jamais `match`) : en Python, `$` accepte aussi un saut de ligne placé tout à la fin.
 NOTES = re.compile(r"^[^\x00-\x1f\x7f\\]*$")
 
 
@@ -60,18 +61,19 @@ class BackupBody(BaseModel):
     mode: Literal["snapshot", "suspend", "stop"] = "snapshot"
     compress: Literal["zstd", "gzip", "lzo", "none"] = "zstd"
     notes: str | None = Field(default=None, max_length=200)
+    confirm: bool = Field(default=False, description="Exigé pour le mode « stop », qui ARRÊTE la machine pendant la sauvegarde")
 
     @field_validator("storage")
     @classmethod
     def _storage(cls, v):
-        if not STORAGE.match(v):
+        if not STORAGE.fullmatch(v):
             raise ValueError("Nom de stockage invalide")
         return v
 
     @field_validator("notes")
     @classmethod
     def _notes(cls, v):
-        if v is not None and not NOTES.match(v):
+        if v is not None and not NOTES.fullmatch(v):
             raise ValueError("Notes invalides : une seule ligne, sans antislash")
         return v
 
@@ -93,7 +95,7 @@ def shape_backups(data, vmid: int | None = None) -> list[dict]:
         if not isinstance(v, dict) or not isinstance(v.get("volid"), str) or not v["volid"]:
             continue
         name = v["volid"].split(":", 1)[-1].rsplit("/", 1)[-1]
-        m = BACKUP_FILE.match(name)
+        m = BACKUP_FILE.fullmatch(name)
         guest = _int(v.get("vmid")) if _int(v.get("vmid")) is not None else (int(m.group(2)) if m else None)
         if vmid is not None and guest != vmid:
             continue

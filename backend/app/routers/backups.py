@@ -30,10 +30,16 @@ async def list_backups(conn_id: int, node: str = Path(pattern=NODE), storage: st
 async def create_backup(conn_id: int, body: BackupBody, node: str = Path(pattern=NODE),
                         db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
                         user: AdminUser = Depends(current_user)):
-    """Lance une sauvegarde manuelle d'une VM ou d'un conteneur et renvoie l'UPID de la tâche. Ne supprime rien."""
+    """Lance une sauvegarde manuelle d'une VM ou d'un conteneur et renvoie l'UPID de la tâche. Ne supprime rien.
+    Le mode « stop » ARRÊTE la machine pendant la sauvegarde : il exige confirm=true (vérifié côté serveur)."""
     target = f"{body.vmid}@{node}"
     detail = f"stockage={body.storage} mode={body.mode} compression={body.compress}" + \
              (" notes=définies" if body.notes else "")
+    if body.mode == "stop" and not body.confirm:
+        msg = "Le mode « stop » ARRÊTE la machine pendant la sauvegarde : renvoie la requête avec confirm=true"
+        audit.record(db, username=user.username, connection_id=conn_id, action="backup-create", target=target,
+                     status="error", detail=f"{detail} · {msg}")
+        raise HTTPException(400, msg)
     try:
         upid = await _px(db, factory, conn_id, "post", f"/nodes/{node}/vzdump", **vzdump_params(body))
     except HTTPException as e:

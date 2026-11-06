@@ -163,8 +163,45 @@ def test_create_compression_values(api, compress, sent):
 @pytest.mark.parametrize("mode", ["snapshot", "suspend", "stop"])
 def test_create_modes(api, mode):
     c, cid = api
-    assert c.post(post_url(cid), json={**GOOD, "mode": mode}).status_code == 200
+    assert c.post(post_url(cid), json={**GOOD, "mode": mode, "confirm": True}).status_code == 200
     assert writes()[0]["form"]["mode"] == mode
+
+
+@pytest.mark.parametrize("mode", ["snapshot", "suspend"])
+def test_create_non_stop_modes_need_no_confirmation(api, mode):
+    c, cid = api
+    assert c.post(post_url(cid), json={**GOOD, "mode": mode}).status_code == 200
+
+
+@pytest.mark.parametrize("extra", [{}, {"confirm": False}, {"confirm": None}, {"confirm": 0}, {"confirm": "false"}])
+def test_create_stop_mode_without_confirm_refused_and_proxmox_never_called(api, extra):
+    c, cid = api
+    r = c.post(post_url(cid), json={**GOOD, "mode": "stop", **extra})
+    assert r.status_code in (400, 422) and CALLS == []
+    if r.status_code == 400:
+        assert "confirm=true" in r.json()["detail"] and "ARRÊTE" in r.json()["detail"]
+
+
+def test_create_stop_mode_refusal_is_audited(api):
+    c, cid = api
+    assert c.post(post_url(cid), json={**GOOD, "mode": "stop"}).status_code == 400
+    log = audit(c)
+    assert [(e["action"], e["status"], e["target"]) for e in log] == [("backup-create", "error", "100@pve1")]
+    assert "mode=stop" in log[0]["detail"] and log[0]["upid"] is None
+
+
+def test_create_stop_mode_with_confirm_runs_and_confirm_is_never_forwarded(api):
+    c, cid = api
+    r = c.post(post_url(cid), json={**GOOD, "mode": "stop", "confirm": True})
+    assert r.status_code == 200
+    assert writes()[0]["form"] == {"vmid": "100", "storage": "local", "mode": "stop", "compress": "zstd", "remove": "0"}
+    assert "confirm" not in writes()[0]["form"]
+
+
+def test_create_confirm_is_ignored_for_other_modes_and_not_forwarded(api):
+    c, cid = api
+    assert c.post(post_url(cid), json={**GOOD, "confirm": True}).status_code == 200
+    assert "confirm" not in writes()[0]["form"]
 
 
 def test_create_unknown_fields_are_never_forwarded(api):
@@ -182,6 +219,8 @@ def test_create_unknown_fields_are_never_forwarded(api):
     {"mode": "hot"}, {"mode": ""}, {"mode": "STOP"},
     {"compress": "xz"}, {"compress": "0"}, {"compress": "1"}, {"compress": ""},
     {"notes": "a\nb"}, {"notes": "a\rb"}, {"notes": "a\\nb"}, {"notes": "a\x00b"}, {"notes": "n" * 201},
+    # saut de ligne placé tout à la fin : `$` d'une regex Python l'accepterait avec `match`
+    {"notes": "a\n"}, {"notes": "a\r\n"}, {"storage": "local\n"}, {"storage": "local\r"},
 ])
 def test_create_invalid_body_refused_and_nothing_called(api, patch):
     c, cid = api
@@ -203,7 +242,8 @@ def test_create_invalid_node_refused_without_call(api, node):
 
 def test_create_audit_started_with_upid_and_no_notes_text(api):
     c, cid = api
-    c.post(post_url(cid), json={**GOOD, "mode": "stop", "compress": "none", "notes": "texte-libre-de-notes"})
+    c.post(post_url(cid), json={**GOOD, "mode": "stop", "confirm": True, "compress": "none",
+                                "notes": "texte-libre-de-notes"})
     log = audit(c)
     assert [(e["action"], e["status"], e["target"]) for e in log] == [("backup-create", "started", "100@pve1")]
     assert log[0]["upid"] == UPID

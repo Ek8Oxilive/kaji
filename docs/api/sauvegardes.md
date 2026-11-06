@@ -44,14 +44,17 @@ Corps JSON. **Seuls ces champs existent** ; tout autre champ est ignoré et jama
 | `storage` | regex des stockages (40 caractères au plus, lettres, chiffres, `_`, `-`) | obligatoire |
 | `mode` | `snapshot`, `suspend` ou `stop` | `snapshot` |
 | `compress` | `zstd`, `gzip`, `lzo` ou `none` | `zstd` |
-| `notes` | 200 caractères au plus, **une seule ligne, sans antislash** | aucune |
+| `notes` | 200 caractères au plus, **une seule ligne, sans antislash** (saut de ligne final compris) | aucune |
+| `confirm` | booléen. **Exigé à `true` quand `mode` vaut `stop`** ; sans effet pour les autres modes. Jamais transmis à Proxmox | `false` |
 
 Réponse : `{"upid", "node", "vmid", "storage"}`. L'UPID se suit avec `lib/tasks.ts` (`runTask` avec
 `LONG_TASK_SECONDS` : une sauvegarde est longue).
 
 À savoir :
-- **Mode `stop`** : Proxmox arrête la machine pendant la sauvegarde. `suspend` la met en pause. Aucune confirmation
-  n'est exigée par l'API (le ticket ne la demande pas) : l'interface devrait prévenir.
+- **Mode `stop`** : Proxmox **arrête la machine** pendant la sauvegarde. Sans `confirm=true`, l'API répond 400 **avant
+  tout appel à Proxmox** (le refus est audité). L'interface doit prévenir clairement avant d'envoyer `confirm=true`.
+- **Mode `suspend`** : Proxmox met la machine en pause pendant la sauvegarde. **Aucune confirmation n'est exigée**
+  (seul `stop` l'est, sur demande de PC A) : à reconsidérer si une coupure de service pose problème.
 - **Jamais d'élagage** : Kaji envoie toujours `remove=0`. Sans cela, Proxmox applique la rétention du stockage
   après une sauvegarde manuelle et supprime d'anciennes sauvegardes. Écart volontaire avec le comportement par défaut de Proxmox.
 - **`notes`** est transmis à Proxmox sous le nom `notes-template` (c'est le vrai nom de l'option vzdump). Proxmox y
