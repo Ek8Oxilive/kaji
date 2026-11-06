@@ -20,32 +20,32 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ### M0 : Cadrage et socle
 - [x] Repo git (`/backend`, `/frontend`), `.gitignore`, `.env.example`
-- [ ] Environnement de test Proxmox (imbriqué ou mock)
-- [ ] Token API dédié (saisi dans l'UI), droits documentés
+- [x] Environnement de test : cluster Proxmox perso réel, joint via Tailscale, avec des droits limités machine par machine (pas d'environnement jetable)
+- [x] Token API dédié (saisi dans l'UI), droits documentés
 
 ### M1 : Backend lecture + auth
-- [ ] FastAPI, module client Proxmox (httpx async, SSL self-signed), instancié à la demande par connexion
-- [ ] Base SQLite + chiffrement des tokens (clé dérivée de `KAJI_SECRET_KEY`)
-- [ ] Premier lancement : création du compte admin du dashboard (hash en base, plus de variable `.env`)
-- [ ] Gestion des connexions : ajouter / tester / modifier / supprimer un cluster (hôte, utilisateur, token), multi-cluster
-- [ ] Auth du dashboard (login + session/JWT)
-- [ ] Routes : cluster/statut, nœuds, ressources VM/LXC unifiées
+- [x] FastAPI, module client Proxmox (httpx async, SSL self-signed), instancié à la demande par connexion
+- [x] Base SQLite + chiffrement des tokens (clé dérivée de `KAJI_SECRET_KEY`)
+- [x] Premier lancement : création du compte admin du dashboard (hash en base, plus de variable `.env`)
+- [x] Gestion des connexions : ajouter / tester / modifier / supprimer un cluster (hôte, utilisateur, token), multi-cluster
+- [x] Auth du dashboard (login + session/JWT)
+- [x] Routes : cluster/statut, nœuds, ressources VM/LXC unifiées
 - Fin : après création du compte admin et ajout d'une connexion, `curl` authentifié renvoie la liste des VM/LXC
 
 ### M2 : Actions et tâches
-- [ ] Start / stop / shutdown / reboot
-- [ ] Suivi UPID (statut, log), journal d'audit
+- [x] Start / stop / shutdown / reboot
+- [x] Suivi UPID (statut, log), journal d'audit
 - Fin : démarrer/arrêter une VM de test par l'API et suivre la tâche
 
 ### M3 : Frontend de base
-- [ ] Layout, sidebar, login
-- [ ] **Thèmes commutables** : « Sombre moderne » et « Glass » (panneaux translucides), choix mémorisé par utilisateur ; architecture à variables CSS pour en ajouter d'autres (ex. clair minimal) sans toucher aux composants
-- [ ] Écran de première configuration et écran « Connexions » (sélecteur de cluster)
-- [ ] Vue cartes VM/LXC (statut, CPU/RAM), actions rapides, toasts
-- [ ] **Temps réel** : un seul interrogateur Proxmox par connexion côté backend, diffusé aux navigateurs en SSE (repli en polling si besoin). Moins de charge sur Proxmox, mises à jour plus vives.
-- [ ] **Données côté navigateur** : cache et rafraîchissement avec TanStack Query ; une requête agrégée (nœuds + VM/LXC + stockages) au lieu de nombreux petits appels
-- [ ] **Fluidité perçue** : squelettes de chargement, mises à jour optimistes (l'état change au clic, retour arrière si Proxmox refuse), transitions et jauges animées
-- [ ] **Navigation rapide** : palette de commandes (Ctrl+K) pour trouver une VM, un nœud ou une action
+- [x] Layout, sidebar, login
+- [x] **Thèmes commutables** : « Sombre moderne » et « Glass » (panneaux translucides), choix mémorisé dans le navigateur ; architecture à variables CSS pour en ajouter d'autres (ex. clair minimal) sans toucher aux composants
+- [x] Écran de première configuration et écran « Connexions » (sélecteur de cluster)
+- [x] Vue cartes VM/LXC (statut, CPU/RAM), actions rapides, toasts
+- [x] **Temps réel** : un seul interrogateur Proxmox par connexion côté backend, diffusé aux navigateurs en SSE (repli en polling si besoin). Moins de charge sur Proxmox, mises à jour plus vives.
+- [x] **Données côté navigateur** : cache et rafraîchissement avec TanStack Query ; une requête agrégée (nœuds + VM/LXC + stockages) au lieu de nombreux petits appels
+- [x] **Fluidité perçue** : squelettes de chargement, mises à jour optimistes (l'état change au clic, retour arrière si Proxmox refuse), transitions et jauges animées
+- [x] **Navigation rapide** : palette de commandes (Ctrl+K) pour trouver une VM, un nœud ou une action
 - Contrainte connue : Proxmox rafraîchit ses statistiques environ toutes les 10 s ; la fluidité vient des transitions et des actions instantanées, pas d'une résolution à la seconde
 - Fin : dashboard en direct sur l'environnement de test, sans rechargement de page, avec un retour visuel immédiat à chaque action
 
@@ -53,7 +53,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO)
 - [ ] Création LXC depuis template
 - [ ] Clonage depuis template, cloud-init
-- [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis)
+- [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire
   - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
   - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
