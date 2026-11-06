@@ -1,0 +1,35 @@
+# Kaji : backend FastAPI + frontend (nginx). Voir docs/deploiement.md.
+#   cp .env.example .env   # puis renseigner KAJI_SECRET_KEY
+#   docker compose up -d --build
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env                      # KAJI_SECRET_KEY et réglages : jamais dans l'image
+    environment:
+      DATABASE_URL: sqlite:////data/kaji.db
+      # Sûr ici : le backend n'est joignable que par nginx, qui ÉCRASE X-Forwarded-For par l'adresse qu'il voit.
+      # Sans cela, tous les clients auraient la même IP (celle de nginx) et partageraient le même limiteur de connexions.
+      KAJI_TRUST_PROXY: "true"
+    volumes:
+      - kaji-data:/data                 # base SQLite (avec la clé, c'est ce qu'il faut sauvegarder)
+    # Pas de « ports » : le backend n'est joignable que par nginx, sur le réseau interne.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).status == 200 else 1)"]
+      interval: 15s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Par défaut, uniquement cette machine. Pour ouvrir au réseau : KAJI_BIND=0.0.0.0 (et mets HTTPS devant).
+      - "${KAJI_BIND:-127.0.0.1}:${KAJI_PORT:-8080}:80"
+
+volumes:
+  kaji-data:
