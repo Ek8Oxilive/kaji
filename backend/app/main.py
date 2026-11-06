@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .db import init_db
-from .routers import actions, auth, cluster, clone, connections, create, destroy, disks, hardware, live, migrate, nets, resources, snapshots
+from .routers import actions, auth, cluster, clone, cloudinit, connections, create, destroy, disks, hardware, live, migrate, nets, resources, snapshots
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ app.include_router(snapshots.router)
 app.include_router(nets.router)
 app.include_router(disks.router)
 app.include_router(clone.router)
+app.include_router(cloudinit.router)
 app.include_router(destroy.router)
 app.include_router(migrate.router)
 app.include_router(actions.router)

@@ -53,7 +53,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO) — **API et assistant livrés** (4 étapes) ; création réelle à tester dans un pool dédié (bac à sable) pour ne jamais créer hors de celui-ci
 - [x] Création LXC depuis un modèle déjà présent (non privilégié par défaut ; téléchargement de modèle non géré)
 - [x] Clonage (complet ou lié depuis un modèle, vers un autre nœud ou stockage)
-- [ ] Cloud-init
+- [x] Cloud-init (VM) : utilisateur, mot de passe, clés SSH, IP, DNS, lecteur ; `cicustom` (snippets) volontairement non géré
 - [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire
   - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
   - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 et B2 livrés** (cartes réseau, ordre de boot, ajout / détachement / rattachement / suppression / déplacement de disques) ; déplacement de disque et ajout de carte non validés en réel (un seul stockage de disques ; droit SDN.Use manquant)
