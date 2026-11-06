@@ -53,7 +53,13 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO)
 - [ ] Création LXC depuis template
 - [ ] Clonage depuis template, cloud-init
-- [ ] Édition de config, resize disque, snapshots, suppression
+- [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis)
+  - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
+  - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot
+  - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
+  - Garde-fous : liste blanche de paramètres validés côté serveur (aucune clé libre transmise à Proxmox), suppression d'un disque confirmée en retapant le nom de la machine, agrandissement de disque confirmé (irréversible), audit de chaque changement
+  - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
+- [ ] Snapshots, suppression de machine
 - [ ] Migration entre nœuds
 - **Jalon MVP : fin de M4**
 
