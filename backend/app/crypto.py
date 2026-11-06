@@ -5,12 +5,12 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-_INFO = b"pud-token-encryption-v1"
+_INFO = b"kaji-token-encryption-v1"
 
 
 def _fernet(secret_key: str) -> Fernet:
     if not secret_key or secret_key == "changeme":
-        raise ValueError("PUD_SECRET_KEY doit être défini avec une valeur aléatoire")
+        raise ValueError("KAJI_SECRET_KEY doit être défini avec une valeur aléatoire")
     key = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=_INFO).derive(
         secret_key.encode()
     )

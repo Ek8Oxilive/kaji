@@ -1,4 +1,4 @@
-# PUD : Proxmox Unified Dashboard (plan v2)
+# Kaji : plan de développement (v2)
 
 ## Objectif
 Alternative moderne à l'UI Proxmox : supervision, création/gestion des VM et LXC, et paramétrage complet du cluster (stockage, réseau, sauvegardes, utilisateurs/ACL, firewall, HA/réplication). Usage perso homelab.
@@ -7,7 +7,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ## Principes transverses (valables pour toutes les phases)
 - **Auth obligatoire** sur le dashboard (login + session/JWT), HTTPS via reverse proxy. Le token Proxmox a des droits larges : le dashboard est la cible.
-- **Secrets** : seul `PUD_SECRET_KEY` est dans `.env` (hors git, `.env.example` versionné). Les connexions Proxmox (hôte, utilisateur, token) sont saisies dans l'UI et stockées **chiffrées** (Fernet) en SQLite.
+- **Secrets** : seul `KAJI_SECRET_KEY` est dans `.env` (hors git, `.env.example` versionné). Les connexions Proxmox (hôte, utilisateur, token) sont saisies dans l'UI et stockées **chiffrées** (Fernet) en SQLite.
 - **Journal d'audit** de toutes les actions d'écriture (qui, quoi, quand, résultat).
 - **Garde-fous** : confirmation sur toute action destructrice ; sur réseau/firewall, mode « appliquer avec rollback » (annulation auto si la connexion est perdue) ou au minimum aperçu du diff avant application.
 - **Environnement de test** : Proxmox imbriqué (VM de test) ou mock d'API. Rien de risqué n'est testé sur la prod.
@@ -25,7 +25,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ### M1 : Backend lecture + auth
 - [ ] FastAPI, module client Proxmox (httpx async, SSL self-signed), instancié à la demande par connexion
-- [ ] Base SQLite + chiffrement des tokens (clé dérivée de `PUD_SECRET_KEY`)
+- [ ] Base SQLite + chiffrement des tokens (clé dérivée de `KAJI_SECRET_KEY`)
 - [ ] Premier lancement : création du compte admin du dashboard (hash en base, plus de variable `.env`)
 - [ ] Gestion des connexions : ajouter / tester / modifier / supprimer un cluster (hôte, utilisateur, token), multi-cluster
 - [ ] Auth du dashboard (login + session/JWT)
@@ -79,7 +79,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 | Risque | Parade |
 |---|---|
 | Dashboard compromis = cluster compromis | Auth, HTTPS, réseau local/VPN uniquement, audit |
-| Fuite de la base ou de `PUD_SECRET_KEY` = fuite des tokens | Chiffrement des tokens, permissions strictes sur la base, clé séparée de la base, jamais commitée |
+| Fuite de la base ou de `KAJI_SECRET_KEY` = fuite des tokens | Chiffrement des tokens, permissions strictes sur la base, clé séparée de la base, jamais commitée |
 | Config réseau/firewall coupe l'accès | Rollback automatique, tests sur environnement imbriqué |
 | Périmètre énorme | Livraison par jalon, MVP = M4, un bloc de config à la fois |
 | Console web complexe | Isolée en M9, proxy WebSocket dédié |

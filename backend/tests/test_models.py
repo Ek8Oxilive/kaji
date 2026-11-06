@@ -10,7 +10,7 @@ def test_connection_stores_encrypted_secret():
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     with Session(engine) as s:
-        s.add(Connection(name="test", host="10.0.0.1", user="pud@pve", token_id="pud",
+        s.add(Connection(name="test", host="10.0.0.1", user="kaji@pve", token_id="kaji",
                          token_secret_enc=encrypt("k" * 20, "abc123")))
         s.commit()
         row = s.scalars(select(Connection)).one()
