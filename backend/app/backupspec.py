@@ -25,6 +25,12 @@ def _int(v) -> int | None:
     return None
 
 
+def _protected(v) -> bool:
+    """Protégée, sauf si la valeur est CLAIREMENT fausse. Ce drapeau décide si une suppression est permise : toute valeur
+    inattendue (`"true"`, `"oui"`, un type imprévu) doit donc compter comme protégée, jamais l'inverse."""
+    return not (v is None or v is False or v == 0 or (isinstance(v, str) and v.strip().lower() in ("", "0", "false")))
+
+
 def _str(v) -> str | None:
     return v if isinstance(v, str) else None
 
@@ -97,7 +103,7 @@ def shape_backups(data, vmid: int | None = None) -> list[dict]:
             "type": m.group(1) if m else None,                       # qemu | lxc, lu dans le nom du fichier
             "format": _str(v.get("format")), "size": _int(v.get("size")),
             "ctime": ctime, "date": _iso(ctime),
-            "notes": _str(v.get("notes")), "protected": bool(v.get("protected")),
-            "deletable": bool(m) and not v.get("protected"),
+            "notes": _str(v.get("notes")), "protected": _protected(v.get("protected")),
+            "deletable": bool(m) and not _protected(v.get("protected")),
         })
     return sorted(out, key=lambda b: (-(b["ctime"] or 0), b["volid"]))

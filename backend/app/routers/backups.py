@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 from .. import audit
-from ..backupspec import BACKUP_FILE, BackupBody, shape_backups, vzdump_params
+from ..backupspec import BACKUP_FILE, BackupBody, _protected, shape_backups, vzdump_params
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -82,7 +82,7 @@ async def delete_backup(conn_id: int, node: str = Path(pattern=NODE), storage: s
         refuse("Sauvegarde introuvable sur ce stockage", 404)
     if found.get("content") not in (None, "backup"):
         refuse("Ce volume n'est pas une sauvegarde : suppression refusée", 409)
-    if found.get("protected"):
+    if _protected(found.get("protected")):
         refuse("Sauvegarde protégée dans Proxmox : retire d'abord la protection", 409)
 
     upid = await px("delete", f"/nodes/{node}/storage/{storage}/content/{quote(volid, safe='')}")

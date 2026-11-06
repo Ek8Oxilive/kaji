@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from app.backupspec import BackupBody, shape_backups, vzdump_params
+from app.backupspec import BackupBody, _protected, shape_backups, vzdump_params
 from app.deps import get_client_factory
 from app.main import app
 from app.proxmox import ProxmoxClient
@@ -356,3 +356,34 @@ def test_shape_backups_tolerates_unexpected_types():
     assert first["vmid"] == 100                                                     # repris du nom du fichier
     pbs = next(b for b in out if b["volid"].startswith("pbs:"))
     assert pbs["type"] is None and pbs["deletable"] is False                        # forme inconnue : pas supprimable ici
+
+
+@pytest.mark.parametrize("raw", [None, False, 0, "0", "", " ", "false", "FALSE", 0.0])
+def test_protected_flag_false_only_for_clearly_false_values(raw):
+    assert _protected(raw) is False
+
+
+@pytest.mark.parametrize("raw", [1, True, "1", "true", "True", "yes", "oui", 2, "x", [0], {"a": 1}, [], {}])
+def test_protected_flag_fails_closed_for_everything_else(raw):
+    assert _protected(raw) is True
+
+
+@pytest.mark.parametrize("raw", ["true", "oui", 1, "1", True, [], {}])
+def test_delete_refused_for_any_protected_or_unexpected_value(api, raw):
+    c, cid = api
+    STATE["listing"] = [{"volid": f"local:backup/{V_OLD}", "content": "backup", "protected": raw}]
+    assert c.delete(del_url(cid, query=f"?confirm=true&name={V_OLD}")).status_code == 409
+    assert writes() == []
+
+
+@pytest.mark.parametrize("raw", ["0", 0, False, None])
+def test_delete_allowed_when_protection_is_clearly_off(api, raw):
+    c, cid = api
+    STATE["listing"] = [{"volid": f"local:backup/{V_OLD}", "content": "backup", "protected": raw}]
+    assert c.delete(del_url(cid, query=f"?confirm=true&name={V_OLD}")).status_code == 200
+    assert len(writes()) == 1
+
+
+def test_listing_marks_string_zero_as_not_protected_and_deletable():
+    b = shape_backups([{"volid": f"local:backup/{V_OLD}", "protected": "0"}])[0]
+    assert b["protected"] is False and b["deletable"] is True

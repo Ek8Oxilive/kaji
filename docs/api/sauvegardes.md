@@ -29,7 +29,7 @@ Tri : de la plus récente à la plus ancienne. `vmid` (optionnel, 100 à 9999999
 | `vmid` | entier ou `null` | Machine sauvegardée (donnée de Proxmox, sinon lue dans le nom du fichier) |
 | `type` | `qemu`, `lxc` ou `null` | Lu dans le nom du fichier ; `null` si la forme est inconnue |
 | `format`, `size`, `ctime`, `date`, `notes` | | Format, octets, date (secondes depuis 1970 et ISO 8601 UTC), notes ; `null` si absent ou illisible |
-| `protected` | booléen | Sauvegarde protégée contre la suppression |
+| `protected` | booléen | Sauvegarde protégée contre la suppression. **Par prudence, toute valeur inattendue compte comme protégée** : seules `0`, `"0"`, `false`, `"false"`, vide et absente comptent comme non protégée |
 | `deletable` | booléen | `true` seulement si le nom est un fichier vzdump reconnu **et** que la sauvegarde n'est pas protégée |
 
 Une entrée sans `volid` est ignorée.
