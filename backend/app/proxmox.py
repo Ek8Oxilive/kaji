@@ -8,12 +8,14 @@ class ProxmoxClient:
     """
 
     def __init__(self, host: str, user: str, token_id: str, token_secret: str,
-                 port: int = 8006, verify_ssl: bool = False):
+                 port: int = 8006, verify_ssl: bool = False,
+                 transport: httpx.AsyncBaseTransport | None = None):
         self._client = httpx.AsyncClient(
             base_url=f"https://{host}:{port}/api2/json",
             headers={"Authorization": f"PVEAPIToken={user}!{token_id}={token_secret}"},
             verify=verify_ssl,
             timeout=15,
+            transport=transport,
         )
 
     async def get(self, path: str, **params):
