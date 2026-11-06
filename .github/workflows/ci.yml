@@ -10,7 +10,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -24,7 +24,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
@@ -36,7 +36,7 @@ jobs:
     # Test de fumée complet : construit les images, démarre la pile et l'interroge à travers nginx.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Construire et démarrer
         run: |
           printf 'KAJI_SECRET_KEY=%s\nKAJI_COOKIE_SECURE=false\n' "$(openssl rand -base64 36 | tr -d '\n')" > .env
