@@ -1,6 +1,6 @@
-# Kaji (舵)
+# Kaji
 
-Le gouvernail de ton homelab. Interface web moderne pour piloter un cluster Proxmox VE : supervision, création et gestion des VM/LXC, et paramétrage du cluster (stockage, sauvegardes, utilisateurs, réseau, firewall, HA).
+Le gouvernail de ton homelab (« kaji » signifie gouvernail en japonais). Interface web moderne pour piloter un cluster Proxmox VE : supervision, création et gestion des VM/LXC, et paramétrage du cluster (stockage, sauvegardes, utilisateurs, réseau, firewall, HA).
 
 **Statut : en développement (jalon M1).** La feuille de route complète est dans [PLAN.md](PLAN.md).
 
