@@ -28,5 +28,10 @@ class ProxmoxClient:
         r.raise_for_status()
         return r.json()["data"]
 
+    async def put(self, path: str, **data):
+        r = await self._client.put(path, data=data)
+        r.raise_for_status()
+        return r.json()["data"]
+
     async def aclose(self):
         await self._client.aclose()
