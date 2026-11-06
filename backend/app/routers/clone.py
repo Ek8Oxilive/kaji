@@ -33,35 +33,35 @@ class CloneBody(BaseModel):
     @field_validator("name")
     @classmethod
     def _name(cls, v):
-        if not NAME.match(v):
+        if not NAME.fullmatch(v):
             raise ValueError("Nom invalide (lettres, chiffres, - et ., sans espace)")
         return v
 
     @field_validator("target_node")
     @classmethod
     def _node(cls, v):
-        if v is not None and not re.match(NODE, v):
+        if v is not None and not re.fullmatch(NODE, v):
             raise ValueError("Nom de nœud invalide")
         return v
 
     @field_validator("storage")
     @classmethod
     def _storage(cls, v):
-        if v is not None and not STORAGE.match(v):
+        if v is not None and not STORAGE.fullmatch(v):
             raise ValueError("Nom de stockage invalide")
         return v
 
     @field_validator("pool")
     @classmethod
     def _pool(cls, v):
-        if v is not None and not POOL.match(v):
+        if v is not None and not POOL.fullmatch(v):
             raise ValueError("Nom de pool invalide")
         return v
 
     @field_validator("snapshot")
     @classmethod
     def _snap(cls, v):
-        if v is not None and not re.match(SNAPNAME, v):
+        if v is not None and not re.fullmatch(SNAPNAME, v):
             raise ValueError("Nom de snapshot invalide")
         return v
 

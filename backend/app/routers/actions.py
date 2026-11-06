@@ -30,7 +30,7 @@ class ActionBody(BaseModel):
 
 
 def _check_upid(upid: str) -> str:
-    if not UPID.match(upid):
+    if not UPID.fullmatch(upid):
         raise HTTPException(422, "Identifiant de tâche (UPID) invalide")
     return upid
 

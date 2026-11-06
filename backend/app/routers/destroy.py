@@ -21,10 +21,10 @@ def volumes_of(cfg: dict, gtype: str) -> list[str]:
     """Volumes que la suppression détruira : disques attachés (hors CD/DVD) et disques non utilisés."""
     out = []
     for k, v in cfg.items():
-        is_disk = (k == "rootfs" or MP_KEY.match(k)) if gtype == "lxc" else DISK_KEY.match(k)
+        is_disk = (k == "rootfs" or MP_KEY.fullmatch(k)) if gtype == "lxc" else DISK_KEY.fullmatch(k)
         if is_disk and parse_disk(k, v)["kind"] == "disk" and parse_disk(k, v)["volume"]:
             out.append(f"{k}={parse_disk(k, v)['storage']}:{parse_disk(k, v)['volume']}")
-        elif UNUSED_KEY.match(k):
+        elif UNUSED_KEY.fullmatch(k):
             out.append(f"{k}={v}")
     return out
 
