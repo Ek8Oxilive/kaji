@@ -2,13 +2,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
-import { BootDialog, CdromDialog, CpuDialog, MemoryDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { BootDialog, CdromDialog, CpuDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
 
 type Dialog =
   | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
+  | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
+  | { k: "reattach"; item: { key: string; volume: string } } | { k: "destroy"; item: { key: string; volume: string } }
   | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk };
 
 function Row({ label, children, pending, action }: { label: string; children: ReactNode; pending?: string | null; action?: ReactNode }) {
@@ -115,14 +117,24 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
             {!qemu && <Row label="Swap" pending={pend("swap")} action={<Edit onClick={() => setDlg({ k: "swap" })} />}>{mem(s.swap ?? 0)}</Row>}
           </Section>
 
-          <Section title="Disques">
+          <Section title="Disques" action={<Edit label="+ Ajouter" onClick={() => setDlg({ k: "diskadd" })} />}>
             {disks.length === 0 && <p className="py-2 text-sm text-muted">Aucun disque.</p>}
             {disks.map((d) => (
-              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<Edit label="Agrandir" onClick={() => setDlg({ k: "resize", disk: d })} />}>
+              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<div className="flex flex-wrap justify-end gap-1.5"><Edit label="Agrandir" onClick={() => setDlg({ k: "resize", disk: d })} /><Edit label="Déplacer" onClick={() => setDlg({ k: "move", disk: d })} />{d.key !== "rootfs" && <Edit label="Détacher" onClick={() => setDlg({ k: "detach", disk: d })} />}</div>}>
                 {d.storage}:{d.volume} <span className="text-muted">· {d.size ?? "taille inconnue"}</span>
               </Row>
             ))}
           </Section>
+
+          {cfg.unused.length > 0 && (
+            <Section title="Disques non utilisés">
+              {cfg.unused.map((u) => (
+                <Row key={u.key} label={u.key} action={<div className="flex gap-1.5"><Edit label="Rattacher" onClick={() => setDlg({ k: "reattach", item: u })} /><Button variant="danger" onClick={() => setDlg({ k: "destroy", item: u })} className="!px-3 !py-1">Supprimer</Button></div>}>
+                  {u.volume} <span className="text-muted">· données conservées</span>
+                </Row>
+              ))}
+            </Section>
+          )}
 
           {qemu && cdroms.length > 0 && (
             <Section title="CD/DVD">
@@ -145,7 +157,7 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
             ))}
           </Section>
 
-          <p className="text-xs text-muted">L'ajout et la suppression de disques arrivent dans une prochaine étape.</p>
+          <p className="text-xs text-muted">Les ajouts de passthrough PCI/USB et d'autres options avancées ne sont pas gérés.</p>
         </>}
       </aside>
 
@@ -157,6 +169,11 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
       {cfg && dlg?.k === "boot" && <BootDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Carte réseau ajoutée"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", `Carte ${dlg.net.key} retirée`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "diskadd" && <DiskAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Disque ajouté"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "detach" && <DiskDetachDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} détaché (données conservées)`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "move" && <DiskMoveDialog disk={dlg.disk} lxc={!qemu} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} déplacé`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "reattach" && <DiskReattachDialog item={dlg.item} lxc={!qemu} base={base} onDone={async () => { toast("ok", "Disque rattaché"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "destroy" && <DiskDestroyDialog item={dlg.item} machine={guest.name ?? String(guest.vmid)} base={base} onDone={async () => { toast("ok", "Disque détruit"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "resize" && <ResizeDialog disk={dlg.disk} connPath={base} onDone={resized} onClose={() => setDlg(null)} />}
     </div>
   );

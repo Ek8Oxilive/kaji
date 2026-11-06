@@ -50,7 +50,7 @@ export type HwNet = {
 export type HwPending = { key: string; value: string | number | null; pending: string | number | null; delete: boolean };
 export type HwConfig = {
   type: "qemu" | "lxc"; settings: Record<string, string | number>; disks: HwDisk[]; nets: HwNet[];
-  pending: HwPending[]; reboot_required: boolean; boot_order: string[];
+  pending: HwPending[]; reboot_required: boolean; boot_order: string[]; unused: { key: string; volume: string; storage: string | null }[];
 };
 export type HwUpdate = {
   memory?: number; balloon?: number; cores?: number; sockets?: number; cpu?: string; swap?: number;

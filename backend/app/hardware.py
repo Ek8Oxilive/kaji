@@ -94,10 +94,12 @@ def normalize(gtype: str, cfg: dict, pending: list[dict]) -> dict:
             disks.append(parse_disk(k, v))
     nets = [{k2: v2 for k2, v2 in parse_net(k, v, lxc).items() if k2 != "_raw"} for k, v in cfg.items() if NET_KEY.match(k)]
     disks.sort(key=lambda d: d["key"]); nets.sort(key=lambda n: n["key"])
+    unused = sorted(({"key": k, "volume": v, "storage": str(v).partition(":")[0] or None} for k, v in cfg.items() if UNUSED_KEY.match(k)),
+                    key=lambda u: u["key"])
     pend = [{"key": p["key"], "value": p.get("value"), "pending": p.get("pending"), "delete": bool(p.get("delete"))}
             for p in pending if "pending" in p or p.get("delete")]
     return {"type": gtype, "settings": settings, "disks": disks, "nets": nets, "pending": pend,
-            "reboot_required": bool(pend), "boot_order": [] if lxc else parse_boot_order(cfg.get("boot"))}
+            "reboot_required": bool(pend), "unused": unused, "boot_order": [] if lxc else parse_boot_order(cfg.get("boot"))}
 
 
 BOOT_KEY = re.compile(r"^((scsi|virtio|sata|ide)\d+|net\d+)$")
@@ -149,3 +151,34 @@ def build_new_net(lxc: bool, index: int, *, bridge: str, model: str = "virtio", 
     if firewall:
         parts.append("firewall=1")
     return ",".join(parts)
+
+
+UNUSED_KEY = re.compile(r"^unused\d+$")
+BUS_LIMITS = {"scsi": 31, "virtio": 16, "sata": 6, "ide": 4}
+MP_PATH = re.compile(r"^/[A-Za-z0-9_.\-/]{1,200}$")
+
+
+def next_disk_key(cfg: dict, bus: str) -> str:
+    used = {int(k[len(bus):]) for k in cfg if re.fullmatch(rf"{bus}\d+", k)}
+    for n in range(BUS_LIMITS[bus]):
+        if n not in used:
+            return f"{bus}{n}"
+    raise ValueError(f"Plus d'emplacement libre sur le bus {bus}")
+
+
+def next_mp_key(cfg: dict) -> str:
+    used = {int(k[2:]) for k in cfg if MP_KEY.match(k)}
+    for n in range(256):
+        if n not in used:
+            return f"mp{n}"
+    raise ValueError("Nombre maximal de points de montage atteint")
+
+
+def check_mp_path(path: str) -> str:
+    if not MP_PATH.match(path) or ".." in path or "//" in path or path == "/" or path.endswith(","):
+        raise ValueError("Chemin de montage invalide (ex. /srv/data)")
+    return path
+
+
+def build_new_disk(storage: str, size_gb: int, mp: str | None = None) -> str:
+    return f"{storage}:{size_gb}" + (f",mp={check_mp_path(mp)}" if mp else "")

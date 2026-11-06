@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso } from "../lib/api";
+import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso, type StorageInfo } from "../lib/api";
+import { runTask } from "../lib/tasks";
 import { bytes, mem } from "../lib/format";
 import { Modal } from "./Modal";
 import { Field } from "./ui";
@@ -263,6 +264,105 @@ export function BootDialog({ cfg, save, onClose }: Common) {
         ))}
       </ol>
       {result.length === 0 && <p className="text-sm text-danger">Coche au moins un périphérique.</p>}
+    </Modal>
+  );
+}
+
+/** Stockages utilisables pour un disque : « images » pour une VM, « rootdir » pour un LXC. */
+function useStorages(connId: number, node: string, lxc: boolean) {
+  return useQuery({ queryKey: ["storages", connId, node, lxc ? "rootdir" : "images"], retry: false, staleTime: 30_000,
+    queryFn: () => api<StorageInfo[]>(`/api/connections/${connId}/nodes/${node}/storages?content=${lxc ? "rootdir" : "images"}`) });
+}
+const MP = /^\/[A-Za-z0-9_.\-/]{1,200}$/;
+const mpOk = (p: string) => MP.test(p) && !p.includes("..") && !p.includes("//") && p !== "/";
+
+export function DiskAddDialog({ cfg, connId, node, base, onDone, onClose }: { cfg: HwConfig; connId: number; node: string; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const lxc = cfg.type === "lxc";
+  const stores = useStorages(connId, node, lxc);
+  const [storage, setStorage] = useState("");
+  const [size, setSize] = useState("1");
+  const [bus, setBus] = useState("scsi");
+  const [mp, setMp] = useState("");
+  const { busy, error, run } = useSubmit(onClose);
+  const chosen = storage || stores.data?.[0]?.storage || "";
+  const n = num(size);
+  const ok = !!chosen && Number.isInteger(n) && n >= 1 && n <= 65536 && (!lxc || mpOk(mp));
+  return (
+    <Modal title="Ajouter un disque" subtitle="Un nouveau disque vide sera créé sur le stockage choisi." onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Ajouter"
+      onSubmit={() => run(async () => { await api(`${base}/disks`, { method: "POST", body: { storage: chosen, size_gb: n, ...(lxc ? { mp } : { bus }) } }); await onDone(); })}>
+      <label className="block space-y-1.5">
+        <span className="text-sm text-muted">Stockage</span>
+        <select className="field" value={chosen} onChange={(e) => setStorage(e.target.value)} autoFocus>
+          {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
+        </select>
+        {stores.isError && <span className="block text-xs text-danger">Liste des stockages indisponible</span>}
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Taille (Go)" type="number" min={1} max={65536} value={size} onChange={(e) => setSize(e.target.value)} />
+        {!lxc && (
+          <label className="block space-y-1.5"><span className="text-sm text-muted">Bus</span>
+            <select className="field" value={bus} onChange={(e) => setBus(e.target.value)}>{["scsi", "virtio", "sata", "ide"].map((b) => <option key={b}>{b}</option>)}</select>
+          </label>
+        )}
+      </div>
+      {lxc && <Field label="Chemin de montage dans le conteneur" value={mp} onChange={(e) => setMp(e.target.value)} placeholder="/srv/data" hint="Le dossier est créé s'il n'existe pas" />}
+    </Modal>
+  );
+}
+
+export function DiskDetachDialog({ disk, base, onDone, onClose }: { disk: HwDisk; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const { busy, error, run } = useSubmit(onClose);
+  return (
+    <Modal title={`Détacher ${disk.key} ?`} onClose={onClose} busy={busy} error={error} submitLabel="Détacher"
+      onSubmit={() => run(async () => { await api(`${base}/disks/${disk.key}/detach`, { method: "POST" }); await onDone(); })}>
+      <p className="text-sm text-muted">Le disque <strong className="text-fg">{disk.storage}:{disk.volume}</strong> ne sera plus visible par la machine, mais <strong className="text-fg">ses données sont conservées</strong> : il apparaît dans « Disques non utilisés » et peut être rattaché de nouveau.</p>
+    </Modal>
+  );
+}
+
+export function DiskReattachDialog({ item, lxc, base, onDone, onClose }: { item: { key: string; volume: string }; lxc: boolean; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const [bus, setBus] = useState("scsi");
+  const [mp, setMp] = useState("");
+  const { busy, error, run } = useSubmit(onClose);
+  return (
+    <Modal title="Rattacher le disque" subtitle={item.volume} onClose={onClose} busy={busy} error={error} canSubmit={!lxc || mpOk(mp)} submitLabel="Rattacher"
+      onSubmit={() => run(async () => { await api(`${base}/disks/${item.key}/reattach`, { method: "POST", body: lxc ? { mp } : { bus } }); await onDone(); })}>
+      {lxc
+        ? <Field label="Chemin de montage" value={mp} onChange={(e) => setMp(e.target.value)} placeholder="/srv/data" autoFocus />
+        : <label className="block space-y-1.5"><span className="text-sm text-muted">Bus</span><select className="field" value={bus} onChange={(e) => setBus(e.target.value)} autoFocus>{["scsi", "virtio", "sata", "ide"].map((b) => <option key={b}>{b}</option>)}</select></label>}
+    </Modal>
+  );
+}
+
+export function DiskDestroyDialog({ item, machine, base, onDone, onClose }: { item: { key: string; volume: string }; machine: string; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const [typed, setTyped] = useState("");
+  const { busy, error, run } = useSubmit(onClose);
+  return (
+    <Modal title="Supprimer définitivement ce disque ?" subtitle={item.volume} danger onClose={onClose} busy={busy} error={error} canSubmit={typed === machine} submitLabel="Détruire le disque"
+      onSubmit={() => run(async () => { await api(`${base}/disks/${item.key}?confirm=true&name=${encodeURIComponent(machine)}`, { method: "DELETE" }); await onDone(); })}>
+      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm"><strong>Les données seront détruites</strong> et ne pourront pas être récupérées.</div>
+      <Field label={`Pour confirmer, retape le nom de la machine : ${machine}`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
+    </Modal>
+  );
+}
+
+export function DiskMoveDialog({ disk, lxc, connId, node, base, onDone, onClose }: { disk: HwDisk; lxc: boolean; connId: number; node: string; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const stores = useStorages(connId, node, lxc);
+  const targets = stores.data?.filter((s) => s.storage !== disk.storage && s.active) ?? [];
+  const [target, setTarget] = useState("");
+  const [del, setDel] = useState(false);
+  const { busy, error, run } = useSubmit(onClose);
+  const chosen = target || targets[0]?.storage || "";
+  return (
+    <Modal title={`Déplacer ${disk.key}`} subtitle={`Actuellement sur ${disk.storage}`} onClose={onClose} busy={busy} error={error} canSubmit={!!chosen} submitLabel="Déplacer"
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/disks/${disk.key}/move`, { method: "POST", body: { storage: chosen, delete_source: del, confirm: true } }), "Déplacement").then(onDone))}>
+      {stores.isSuccess && targets.length === 0
+        ? <p className="text-sm text-muted">Aucun autre stockage disponible pour ce type de disque sur ce nœud.</p>
+        : <label className="block space-y-1.5"><span className="text-sm text-muted">Stockage de destination</span>
+            <select className="field" value={chosen} onChange={(e) => setTarget(e.target.value)} autoFocus>{targets.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}</select></label>}
+      <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={del} onChange={(e) => setDel(e.target.checked)} />
+        <span>Supprimer l'ancien emplacement après la copie <span className="block text-xs text-muted">Sinon il reste dans « Disques non utilisés ».</span></span></label>
+      <p className="text-sm text-muted">La copie de tout le disque peut être longue ; la fenêtre reste ouverte jusqu'à la fin.</p>
     </Modal>
   );
 }

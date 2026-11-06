@@ -55,7 +55,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Clonage depuis template, cloud-init
 - [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire
   - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
-  - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 livré (cartes réseau, ordre de boot)**, B2 (disques) à faire
+  - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 et B2 livrés** (cartes réseau, ordre de boot, ajout / détachement / rattachement / suppression / déplacement de disques) ; déplacement de disque et ajout de carte non validés en réel (un seul stockage de disques ; droit SDN.Use manquant)
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
   - Garde-fous : liste blanche de paramètres validés côté serveur (aucune clé libre transmise à Proxmox), suppression d'un disque confirmée en retapant le nom de la machine, agrandissement de disque confirmé (irréversible), audit de chaque changement
   - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
