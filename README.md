@@ -15,6 +15,17 @@ Le gouvernail de ton homelab (« kaji » signifie gouvernail en japonais). Inter
 ## Stack
 FastAPI (Python) · SQLAlchemy / SQLite · React + Vite + Tailwind (à venir) · Docker Compose (à venir)
 
+## Interface web
+Deux thèmes commutables depuis l'en-tête (le choix est mémorisé dans le navigateur) : **Sombre** et **Glass**. Pour en ajouter un, il suffit de définir un jeu de variables CSS dans `frontend/src/index.css` et de l'inscrire dans `frontend/src/lib/theme.tsx`.
+
+Pour l'essayer en local (Node 20+), après avoir lancé le backend :
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173 (les appels /api sont relayés vers le backend)
+```
+Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox. Le dashboard des machines arrive à l'étape suivante du jalon M3.
+
 ## Démarrage (backend)
 Prérequis : Python 3.12+.
 

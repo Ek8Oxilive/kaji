@@ -1,0 +1,33 @@
+import type { ReactNode } from "react";
+import { Logo } from "./Logo";
+import { ThemeSwitcher } from "./ThemeSwitcher";
+import { Button } from "./ui";
+
+export type Page = "dashboard" | "connections";
+const NAV: { id: Page; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "connections", label: "Connexions" },
+];
+
+export function Layout({ page, onNavigate, onLogout, children }: { page: Page; onNavigate: (p: Page) => void; onLogout: () => void; children: ReactNode }) {
+  return (
+    <div className="flex min-h-full flex-col md:flex-row">
+      <aside className="panel m-3 flex shrink-0 flex-row items-center gap-4 p-3 md:w-60 md:flex-col md:items-stretch md:gap-6 md:p-5">
+        <Logo />
+        <nav className="flex flex-1 gap-1 md:flex-col" aria-label="Navigation principale">
+          {NAV.map((n) => (
+            <button key={n.id} onClick={() => onNavigate(n.id)} aria-current={page === n.id ? "page" : undefined}
+              className={`rounded-xl px-3 py-2 text-left text-sm transition ${page === n.id ? "bg-accent text-accentfg font-medium" : "text-muted hover:bg-surface2 hover:text-fg"}`}>
+              {n.label}
+            </button>
+          ))}
+        </nav>
+        <Button variant="ghost" onClick={onLogout}>Déconnexion</Button>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex justify-end p-3 md:pr-6"><ThemeSwitcher /></header>
+        <main className="flex-1 p-4 pt-2 md:px-6">{children}</main>
+      </div>
+    </div>
+  );
+}
