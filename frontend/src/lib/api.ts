@@ -72,3 +72,8 @@ export type VmCreateBody = {
   disk?: { storage: string; size_gb: number }; net?: { bridge: string; model: string; tag?: number; firewall: boolean };
   iso?: string; pool?: string; agent: boolean; start: boolean; description: string;
 };
+
+export type MigratePreflight = {
+  preflight: boolean; running: boolean | null; allowed_nodes: string[]; not_allowed: { node: string; reasons: string[] }[];
+  local_disks: { volid: string | null; size: number | null }[]; local_resources: string[];
+};

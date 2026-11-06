@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso, type StorageInfo } from "../lib/api";
+import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso, type MigratePreflight, type StorageInfo } from "../lib/api";
 import { runTask } from "../lib/tasks";
 import { bytes, mem } from "../lib/format";
 import { Modal } from "./Modal";
@@ -269,7 +269,7 @@ export function BootDialog({ cfg, save, onClose }: Common) {
 }
 
 /** Stockages utilisables pour un disque : « images » pour une VM, « rootdir » pour un LXC. */
-function useStorages(connId: number, node: string, lxc: boolean) {
+export function useStorages(connId: number, node: string, lxc: boolean) {
   return useQuery({ queryKey: ["storages", connId, node, lxc ? "rootdir" : "images"], retry: false, staleTime: 30_000,
     queryFn: () => api<StorageInfo[]>(`/api/connections/${connId}/nodes/${node}/storages?content=${lxc ? "rootdir" : "images"}`) });
 }
@@ -395,6 +395,58 @@ export function DeleteGuestDialog({ cfg, name, node, connId, base, onDeleted, on
         <span>Détruire aussi les disques orphelins portant cet identifiant <span className="block text-xs text-muted">Volumes du stockage qui ne figurent plus dans la configuration.</span></span></label>
       <Field label={`Pour confirmer, retape le nom de la machine : ${name}`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
       {busy && <p className="text-sm text-muted">Suppression en cours…</p>}
+    </Modal>
+  );
+}
+
+export function MigrateDialog({ connId, node, gtype, vmid, name, running, base, onDone, onClose }: {
+  connId: number; node: string; gtype: "qemu" | "lxc"; vmid: number; name: string; running: boolean; base: string; onDone: (target: string) => Promise<void>; onClose: () => void;
+}) {
+  const lxc = gtype === "lxc";
+  const pre = useQuery({ queryKey: ["migrate", connId, node, vmid], retry: false, staleTime: 0, queryFn: () => api<MigratePreflight>(`${base}/migrate`) });
+  const [target, setTarget] = useState("");
+  const [localDisks, setLocalDisks] = useState(true);
+  const [storage, setStorage] = useState("");
+  const [sure, setSure] = useState(false);
+  const { busy, error, run } = useSubmit(onClose);
+  const allowed = pre.data?.allowed_nodes ?? [];
+  const chosen = target || allowed[0] || "";
+  const stores = useStorages(connId, chosen || node, lxc);
+  const hasLocal = (pre.data?.local_disks.length ?? 0) > 0;
+  const blocked = (pre.data?.local_resources.length ?? 0) > 0;
+  const canSubmit = !!chosen && (!running || sure) && !(blocked && running && !lxc);
+  const body = { target_node: chosen, online: running && !lxc, with_local_disks: running && !lxc && hasLocal && localDisks,
+    ...(!lxc && storage ? { target_storage: storage } : {}), confirm: running };
+  return (
+    <Modal title={`Migrer « ${name} »`} subtitle={`Depuis ${node}`} onClose={onClose} busy={busy} error={error} canSubmit={canSubmit} submitLabel="Migrer"
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/migrate`, { method: "POST", body }), "Migration").then(() => onDone(chosen)))}>
+      {pre.isLoading && <p className="text-sm text-muted">Vérifications de Proxmox en cours…</p>}
+      {pre.isError && <p className="text-sm text-danger">{(pre.error as Error).message}</p>}
+      {pre.data && <>
+        {!pre.data.preflight && <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">Les vérifications préalables de Proxmox sont indisponibles : tous les nœuds en ligne sont proposés, sans garantie que la migration aboutisse.</p>}
+        {allowed.length === 0
+          ? <p className="text-sm text-muted">Aucun nœud ne peut accueillir cette machine.</p>
+          : <label className="block space-y-1.5"><span className="text-sm text-muted">Nœud de destination</span>
+              <select className="field" value={chosen} onChange={(e) => setTarget(e.target.value)} autoFocus>{allowed.map((n) => <option key={n}>{n}</option>)}</select></label>}
+        {pre.data.not_allowed.length > 0 && <div className="space-y-1 text-xs text-muted">
+          {pre.data.not_allowed.map((n) => <p key={n.node}><strong className="text-fg">{n.node}</strong> indisponible{n.reasons.length ? ` : ${n.reasons.join(", ")}` : ""}</p>)}</div>}
+        {blocked && <p className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">Cette machine utilise des ressources locales ({pre.data.local_resources.join(", ")}) qui ne peuvent pas suivre à chaud : arrête-la avant de migrer.</p>}
+        {hasLocal && <div className="space-y-1 text-sm"><p className="text-muted">Disques locaux, copiés vers le nœud de destination (peut être long) :</p>
+          <ul className="list-inside list-disc font-mono text-xs">{pre.data.local_disks.map((d) => <li key={d.volid}>{d.volid}{d.size ? ` · ${bytes(d.size)}` : ""}</li>)}</ul></div>}
+        {!lxc && hasLocal && (
+          <label className="block space-y-1.5"><span className="text-sm text-muted">Stockage de destination des disques locaux</span>
+            <select className="field" value={storage} onChange={(e) => setStorage(e.target.value)}><option value="">Même nom que sur la source</option>
+              {stores.data?.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}</select></label>
+        )}
+        {running && (
+          <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
+            <p>{lxc ? "Le conteneur sera arrêté, migré, puis redémarré : coupure de service pendant l'opération." : "Migration à chaud : la VM continue de tourner, avec une très courte interruption à la fin."}</p>
+            {!lxc && hasLocal && <label className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} /> Copier aussi les disques locaux</label>}
+            <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={sure} onChange={(e) => setSure(e.target.checked)} /> Je confirme la migration de cette machine en marche.</label>
+          </div>
+        )}
+        {busy && <p className="text-sm text-muted">Migration en cours, la fenêtre reste ouverte jusqu'à la fin…</p>}
+      </>}
     </Modal>
   );
 }

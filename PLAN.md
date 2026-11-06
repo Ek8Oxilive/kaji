@@ -62,7 +62,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
   - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
 - [x] Snapshots : créer, lister, supprimer, restaurer (restauration confirmée en retapant le nom de la machine)
 - [x] Suppression de machine : arrêtée, nom retapé, disques listés, protégeable par `KAJI_PROTECTED_VMIDS`
-- [ ] Migration entre nœuds
+- [x] Migration entre nœuds (vérifications préalables, à froid, à chaud pour une VM, redémarrage pour un LXC)
 - **Jalon MVP : fin de M4**
 
 ### M5 : Stockage et sauvegardes
