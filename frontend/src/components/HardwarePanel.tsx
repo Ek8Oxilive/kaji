@@ -138,8 +138,8 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
       {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "cpu" && <CpuDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "swap" && <SwapDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
-      {cfg && dlg?.k === "net" && <NetDialog net={dlg.net} save={save} onClose={() => setDlg(null)} />}
-      {cfg && dlg?.k === "cdrom" && <CdromDialog disk={dlg.disk} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "net" && <NetDialog net={dlg.net} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "cdrom" && <CdromDialog disk={dlg.disk} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
       {dlg?.k === "resize" && <ResizeDialog disk={dlg.disk} connPath={base} onDone={resized} onClose={() => setDlg(null)} />}
     </div>
   );

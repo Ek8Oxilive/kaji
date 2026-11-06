@@ -1,6 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { api, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
-import { mem } from "../lib/format";
+import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso } from "../lib/api";
+import { bytes, mem } from "../lib/format";
 import { Modal } from "./Modal";
 import { Field } from "./ui";
 
@@ -76,7 +77,8 @@ export function SwapDialog({ cfg, save, onClose }: Common) {
   );
 }
 
-export function NetDialog({ net, save, onClose }: Omit<Common, "cfg"> & { net: HwNet }) {
+export function NetDialog({ net, connId, node, save, onClose }: Omit<Common, "cfg"> & { net: HwNet; connId: number; node: string }) {
+  const nets = useQuery({ queryKey: ["bridges", connId, node], queryFn: () => api<Bridge[]>(`/api/connections/${connId}/nodes/${node}/bridges`), staleTime: 60_000, retry: false });
   const [bridge, setBridge] = useState(net.bridge ?? "");
   const [tag, setTag] = useState(net.tag?.toString() ?? "");
   const [firewall, setFirewall] = useState(net.firewall);
@@ -88,9 +90,29 @@ export function NetDialog({ net, save, onClose }: Omit<Common, "cfg"> & { net: H
   else if (!Number.isNaN(t) && t !== net.tag) edit.tag = t;
   if (firewall !== net.firewall) edit.firewall = firewall;
   const ok = Object.keys(edit).length > 0 && /^[A-Za-z0-9_.-]{1,15}$/.test(bridge) && (tag.trim() === "" || (Number.isInteger(t) && t >= 1 && t <= 4094));
+
+  const list = nets.data;
+  const known = list?.find((b) => b.name === bridge);
+  const bridges = list?.filter((b) => b.kind === "bridge") ?? [];
+  const vnets = list?.filter((b) => b.kind === "vnet") ?? [];
+  const label = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
   return (
     <Modal title={`Carte réseau ${net.key}`} subtitle={net.mac ? `MAC ${net.mac} (conservée)` : undefined} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save({ nets: { [net.key]: edit } }))}>
-      <Field label="Bridge" value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="vmbr0" hint="Un bridge inexistant coupe le réseau de la machine" autoFocus />
+      {list ? (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-muted">Réseau (bridge ou VNet SDN)</span>
+          <select className="field" value={bridge} onChange={(e) => setBridge(e.target.value)} autoFocus>
+            {bridge && !known && <option value={bridge}>{bridge} (actuel, introuvable sur ce nœud)</option>}
+            <optgroup label="Bridges">{bridges.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
+            {vnets.length > 0 && <optgroup label="VNets SDN">{vnets.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
+          </select>
+          {known?.kind === "bridge" && !known.vlan_aware && tag && <span className="block text-xs text-warn">Ce bridge n'est pas « VLAN aware » : l'étiquette VLAN sera ignorée.</span>}
+          {known?.kind === "vnet" && <span className="block text-xs text-muted">VNet SDN : le VLAN est géré par la zone, laisse l'étiquette vide.</span>}
+        </label>
+      ) : (
+        <Field label="Bridge" value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="vmbr0"
+          hint={nets.isLoading ? "Chargement de la liste…" : "Liste indisponible : saisie manuelle. Un nom inexistant coupe le réseau de la machine."} autoFocus />
+      )}
       <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="aucun" hint="Laisse vide pour retirer le VLAN" />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} /> Firewall Proxmox activé
@@ -99,14 +121,33 @@ export function NetDialog({ net, save, onClose }: Omit<Common, "cfg"> & { net: H
   );
 }
 
-export function CdromDialog({ disk, save, onClose }: Omit<Common, "cfg"> & { disk: HwDisk }) {
+export function CdromDialog({ disk, connId, node, save, onClose }: Omit<Common, "cfg"> & { disk: HwDisk; connId: number; node: string }) {
+  const isos = useQuery({ queryKey: ["isos", connId, node], queryFn: () => api<Iso[]>(`/api/connections/${connId}/nodes/${node}/isos`), staleTime: 60_000, retry: false });
   const current = disk.empty ? "" : `${disk.storage}:${disk.volume}`;
   const [iso, setIso] = useState(current);
   const { busy, error, run } = useSubmit(onClose);
   const ok = /^[A-Za-z0-9_.-]+:iso\/[A-Za-z0-9_.+ -]+\.iso$/.test(iso);
+  const list = isos.data;
+  const storages = [...new Set(list?.map((i) => i.storage))];
   return (
     <Modal title={`Lecteur ${disk.key}`} subtitle={disk.empty ? "Aucun média" : `Monté : ${current}`} onClose={onClose} busy={busy} error={error} canSubmit={ok && iso !== current} submitLabel="Monter" onSubmit={() => run(() => save({ cdroms: { [disk.key]: { iso } } }))}>
-      <Field label="Image ISO" value={iso} onChange={(e) => setIso(e.target.value)} placeholder="local:iso/debian-12.iso" hint="Format stockage:iso/nom.iso" autoFocus />
+      {list && list.length > 0 ? (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-muted">Image ISO</span>
+          <select className="field" value={iso} onChange={(e) => setIso(e.target.value)} autoFocus>
+            <option value="" disabled>Choisir une image…</option>
+            {iso && !list.some((i) => i.volid === iso) && <option value={iso}>{iso} (actuel)</option>}
+            {storages.map((st) => (
+              <optgroup key={st} label={st}>
+                {list.filter((i) => i.storage === st).map((i) => <option key={i.volid} value={i.volid}>{i.name}{i.size ? ` · ${bytes(i.size)}` : ""}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <Field label="Image ISO" value={iso} onChange={(e) => setIso(e.target.value)} placeholder="local:iso/debian-12.iso"
+          hint={isos.isLoading ? "Chargement de la liste…" : list ? "Aucune image ISO trouvée sur ce nœud. Saisie manuelle : stockage:iso/nom.iso" : "Liste indisponible : saisie manuelle (stockage:iso/nom.iso)"} autoFocus />
+      )}
       {!disk.empty && (
         <button type="button" disabled={busy} className="text-sm text-accent underline" onClick={() => run(() => save({ cdroms: { [disk.key]: { iso: null } } }))}>Éjecter le média</button>
       )}
