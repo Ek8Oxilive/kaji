@@ -1,6 +1,6 @@
-# PUD : Proxmox Unified Dashboard
+# Kaji (舵)
 
-Interface web moderne pour piloter un cluster Proxmox VE : supervision, création et gestion des VM/LXC, et paramétrage du cluster (stockage, sauvegardes, utilisateurs, réseau, firewall, HA).
+Le gouvernail de ton homelab. Interface web moderne pour piloter un cluster Proxmox VE : supervision, création et gestion des VM/LXC, et paramétrage du cluster (stockage, sauvegardes, utilisateurs, réseau, firewall, HA).
 
 **Statut : en développement (M1).** Voir [PLAN.md](PLAN.md) pour la feuille de route.
 
@@ -9,7 +9,7 @@ FastAPI (Python) · React + Vite + Tailwind · SQLite · Docker Compose
 
 ## Démarrage (backend)
 ```bash
-cp .env.example .env        # puis renseigner PUD_SECRET_KEY
+cp .env.example .env        # puis renseigner KAJI_SECRET_KEY
 cd backend
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/uvicorn app.main:app --reload
