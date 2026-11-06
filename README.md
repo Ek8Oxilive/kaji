@@ -38,6 +38,10 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 | `GET/PATCH/DELETE /api/connections/{id}` | Voir / modifier / supprimer (le token n'est jamais renvoyé) |
 | `POST /api/connections/test` | Tester des identifiants avant de les enregistrer |
 | `POST /api/connections/{id}/test` | Tester une connexion enregistrée |
+| `GET /api/connections/{id}/cluster/status` | Nom du cluster, quorum, nœuds en ligne ou non |
+| `GET /api/connections/{id}/nodes` | Nœuds : CPU, RAM, disque, uptime |
+| `GET /api/connections/{id}/guests` | Liste unifiée des VM (qemu) et LXC, filtrable par `?node=` |
+| `GET /api/connections/{id}/storages` | Stockages et usage |
 
 Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add kaji@pve kaji --privsep 0`), puis saisis l'hôte, `kaji@pve`, l'ID `kaji` et le secret dans Kaji.
 
