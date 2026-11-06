@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { CommandPalette, type Command } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { GuestCard } from "../components/GuestCard";
 import { HardwarePanel } from "../components/HardwarePanel";
@@ -8,6 +9,7 @@ import { Helm } from "../components/Logo";
 import { Button, Notice } from "../components/ui";
 import { api, type Connection, type Guest, type GuestAction } from "../lib/api";
 import { bytes } from "../lib/format";
+import { THEMES, useTheme } from "../lib/theme";
 import { guestKey, useCluster, useGuestActions } from "../lib/useCluster";
 
 const CONN_KEY = "kaji-connection";
@@ -39,14 +41,24 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const id = active?.id ?? null;
   useEffect(() => { try { if (id) localStorage.setItem(CONN_KEY, String(id)); } catch { /* ignoré */ } }, [id]);
 
-  const { status, nodes, guests } = useCluster(id);
+  const { status, nodes, guests, live, problem } = useCluster(id);
+  const { setTheme } = useTheme();
   const { run, busy, effectiveStatus } = useGuestActions(id);
   const [pending, setPending] = useState<{ guest: Guest; action: Exclude<GuestAction, "start"> } | null>(null);
   const [hw, setHw] = useState<Guest | null>(null);
+  const [palette, setPalette] = useState(false);
 
   const [q, setQ] = useState(""), [state, setState] = useState("all"), [kind, setKind] = useState("all"), [node, setNode] = useState("all");
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => !p); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const visible = useMemo(() => (guests.data ?? []).filter((g) =>
     (state === "all" || effectiveStatus(g) === state) && (kind === "all" || g.type === kind) && (node === "all" || g.node === node) &&
@@ -75,6 +87,25 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const age = guests.dataUpdatedAt ? Math.max(0, Math.round((now - guests.dataUpdatedAt) / 1000)) : null;
   const refreshing = guests.isFetching || nodes.isFetching;
   const sel = "field !w-auto !py-1.5 text-sm";
+  const commands: Command[] = [
+    ...real.flatMap((x): Command[] => {
+      const name = x.name ?? String(x.vmid), st = effectiveStatus(x);
+      const hint = `#${x.vmid} · ${x.type === "qemu" ? "VM" : "LXC"} · ${x.node}`;
+      const c = (a: string, label: string, run: () => void): Command => ({ id: `${a}-${guestKey(x)}`, group: "Machines", label: `${label} ${name}`, hint, run });
+      return [
+        c("hw", "Matériel de", () => setHw(x)),
+        ...(st === "stopped" ? [c("start", "Démarrer", () => run(x, "start"))] : []),
+        ...(st === "running" ? [
+          c("reboot", "Redémarrer", () => setPending({ guest: x, action: "reboot" })),
+          c("shutdown", "Éteindre", () => setPending({ guest: x, action: "shutdown" })),
+          c("stop", "Forcer l'arrêt de", () => setPending({ guest: x, action: "stop" })),
+        ] : []),
+      ];
+    }),
+    { id: "go-conn", group: "Navigation", label: "Aller aux connexions", keywords: "cluster token", run: onGoConnections },
+    { id: "refresh", group: "Navigation", label: "Actualiser les données", run: () => { status.refetch(); nodes.refetch(); guests.refetch(); } },
+    ...THEMES.map((t): Command => ({ id: `theme-${t.id}`, group: "Thème", label: `Thème ${t.label}`, keywords: "apparence couleur", run: () => setTheme(t.id) })),
+  ];
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -89,14 +120,20 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
               {list!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <span className="text-xs text-muted" aria-live="off">{age === null ? "" : age < 2 ? "À l'instant" : `Mis à jour il y a ${age} s`}</span>
+          <button onClick={() => setPalette(true)} className="hidden items-center gap-2 rounded-xl border border-line bg-surface2 px-3 py-1.5 text-sm text-muted transition hover:text-fg sm:flex" aria-label="Ouvrir la palette de commandes">
+            Rechercher <kbd className="rounded border border-line px-1.5 text-xs">Ctrl K</kbd>
+          </button>
+          {live
+            ? <span className="flex items-center gap-1.5 text-xs text-ok" title="Mises à jour en temps réel"><span className="size-2 rounded-full bg-ok dot-live" />En direct</span>
+            : <span className="text-xs text-muted" aria-live="off" title="Flux temps réel indisponible : rafraîchissement toutes les 10 s">{age === null ? "" : age < 2 ? "À l'instant" : `Mis à jour il y a ${age} s`}</span>}
           <Button variant="ghost" onClick={() => { status.refetch(); nodes.refetch(); guests.refetch(); }} disabled={refreshing} className="!px-3 !py-1.5">
             <span className={refreshing ? "inline-block animate-spin" : ""}>↻</span> Actualiser
           </Button>
         </div>
       </header>
 
-      {err && <Notice kind="error">{(err as Error).message} — <button className="underline" onClick={() => { status.refetch(); nodes.refetch(); guests.refetch(); }}>réessayer</button></Notice>}
+      {problem && <Notice kind="error">Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées ; la reprise est automatique.</Notice>}
+      {err && !problem && <Notice kind="error">{(err as Error).message} — <button className="underline" onClick={() => { status.refetch(); nodes.refetch(); guests.refetch(); }}>réessayer</button></Notice>}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Résumé">
         {status.isLoading || guests.isLoading ? <Skeleton n={4} h="h-24" /> : <>
@@ -133,6 +170,8 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
           {!guests.isLoading && visible.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucune machine ne correspond aux filtres.</div>}
         </div>
       </section>
+
+      {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
 
       {hw && id && <HardwarePanel connId={id} guest={hw} onClose={() => setHw(null)} />}
 

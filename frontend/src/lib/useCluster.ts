@@ -1,17 +1,45 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useToast } from "../components/Toast";
 import { api, type ClusterStatus, type Guest, type GuestAction, type NodeInfo, type TaskStatus } from "./api";
 
 const POLL_MS = 10_000; // Proxmox rafraîchit ses statistiques environ toutes les 10 s
 
+type Snapshot = { status: ClusterStatus; nodes: NodeInfo[]; guests: Guest[] };
+
+/**
+ * Données du cluster. Le flux temps réel (SSE) alimente le cache dès qu'il est connecté ; sinon (connexion
+ * perdue, serveur sans SSE) on retombe automatiquement sur un rafraîchissement toutes les 10 s.
+ */
 export function useCluster(connId: number | null) {
-  const opts = { enabled: connId !== null, refetchInterval: POLL_MS, refetchIntervalInBackground: false } as const;
+  const qc = useQueryClient();
+  const [live, setLive] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLive(false); setProblem(null);
+    if (connId === null || typeof EventSource === "undefined") return;
+    const es = new EventSource(`/api/connections/${connId}/events`);
+    es.addEventListener("snapshot", (e) => {
+      const d = JSON.parse((e as MessageEvent).data) as Snapshot;
+      qc.setQueryData(["cluster", connId, "status"], d.status);
+      qc.setQueryData(["cluster", connId, "nodes"], d.nodes);
+      qc.setQueryData(["cluster", connId, "guests"], d.guests);
+      setLive(true); setProblem(null);
+    });
+    // Erreur renvoyée par le serveur (Proxmox injoignable…) : les données affichées restent les dernières connues.
+    es.addEventListener("problem", (e) => setProblem(JSON.parse((e as MessageEvent).data) as string));
+    // Perte de connexion : EventSource retente seul ; en attendant, le rafraîchissement périodique prend le relais.
+    es.onerror = () => setLive(false);
+    return () => es.close();
+  }, [connId, qc]);
+
+  const opts = { enabled: connId !== null, refetchInterval: live ? false : POLL_MS, refetchIntervalInBackground: false } as const;
   const base = `/api/connections/${connId}`;
   const status = useQuery({ queryKey: ["cluster", connId, "status"], queryFn: () => api<ClusterStatus>(`${base}/cluster/status`), ...opts });
   const nodes = useQuery({ queryKey: ["cluster", connId, "nodes"], queryFn: () => api<NodeInfo[]>(`${base}/nodes`), ...opts });
   const guests = useQuery({ queryKey: ["cluster", connId, "guests"], queryFn: () => api<Guest[]>(`${base}/guests`), ...opts });
-  return { status, nodes, guests };
+  return { status, nodes, guests, live, problem };
 }
 
 export const LABELS: Record<GuestAction, { busy: string; done: string; expect: "running" | "stopped" }> = {
