@@ -51,7 +51,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ### M4 : Cycle de vie des VM/LXC
 - [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO) — **API et assistant livrés** (4 étapes) ; création réelle à tester dans un pool dédié (bac à sable) pour ne jamais créer hors de celui-ci
-- [ ] Création LXC depuis template
+- [x] Création LXC depuis un modèle déjà présent (non privilégié par défaut ; téléchargement de modèle non géré)
 - [x] Clonage (complet ou lié depuis un modèle, vers un autre nœud ou stockage)
 - [ ] Cloud-init
 - [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire

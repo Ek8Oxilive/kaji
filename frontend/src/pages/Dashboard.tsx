@@ -3,9 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { CloneDialog } from "../components/CloneDialog";
 import { CommandPalette, type Command } from "../components/CommandPalette";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { CreateLxcWizard } from "../components/CreateLxcWizard";
 import { CreateVmWizard } from "../components/CreateVmWizard";
 import { GuestCard } from "../components/GuestCard";
 import { HardwarePanel } from "../components/HardwarePanel";
+import { NewMachineChooser } from "../components/NewMachineChooser";
 import { NodeCard } from "../components/NodeCard";
 import { Helm } from "../components/Logo";
 import { Button, Notice } from "../components/ui";
@@ -49,7 +51,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const [pending, setPending] = useState<{ guest: Guest; action: Exclude<GuestAction, "start"> } | null>(null);
   const [hw, setHw] = useState<Guest | null>(null);
   const [palette, setPalette] = useState(false);
-  const [wizard, setWizard] = useState(false);
+  const [wizard, setWizard] = useState<null | "choose" | "vm" | "lxc">(null);
   const [clone, setClone] = useState<Guest | null>(null);
 
   const [q, setQ] = useState(""), [state, setState] = useState("all"), [kind, setKind] = useState("all"), [node, setNode] = useState("all");
@@ -107,7 +109,8 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
         ] : []),
       ];
     }),
-    { id: "new-vm", group: "Machines", label: "Créer une machine virtuelle", keywords: "nouvelle vm ajouter", run: () => setWizard(true) },
+    { id: "new-vm", group: "Machines", label: "Créer une machine virtuelle", keywords: "nouvelle vm ajouter", run: () => setWizard("vm") },
+    { id: "new-lxc", group: "Machines", label: "Créer un conteneur LXC", keywords: "nouveau conteneur lxc ct ajouter", run: () => setWizard("lxc") },
     { id: "go-conn", group: "Navigation", label: "Aller aux connexions", keywords: "cluster token", run: onGoConnections },
     { id: "refresh", group: "Navigation", label: "Actualiser les données", run: () => { status.refetch(); nodes.refetch(); guests.refetch(); } },
     ...THEMES.map((t): Command => ({ id: `theme-${t.id}`, group: "Thème", label: `Thème ${t.label}`, keywords: "apparence couleur", run: () => setTheme(t.id) })),
@@ -126,7 +129,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
               {list!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <Button onClick={() => setWizard(true)} className="!px-3 !py-1.5">+ Nouvelle machine</Button>
+          <Button onClick={() => setWizard("choose")} className="!px-3 !py-1.5">+ Nouvelle machine</Button>
           <button onClick={() => setPalette(true)} className="hidden items-center gap-2 rounded-xl border border-line bg-surface2 px-3 py-1.5 text-sm text-muted transition hover:text-fg sm:flex" aria-label="Ouvrir la palette de commandes">
             Rechercher <kbd className="rounded border border-line px-1.5 text-xs">Ctrl K</kbd>
           </button>
@@ -180,7 +183,9 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
 
       {clone && id && <CloneDialog connId={id} guest={clone} nodes={n} onClose={() => setClone(null)} />}
 
-      {wizard && id && <CreateVmWizard connId={id} nodes={n} onClose={() => setWizard(false)} />}
+      {wizard === "choose" && <NewMachineChooser onPick={(k) => setWizard(k)} onClose={() => setWizard(null)} />}
+      {wizard === "vm" && id && <CreateVmWizard connId={id} nodes={n} onClose={() => setWizard(null)} />}
+      {wizard === "lxc" && id && <CreateLxcWizard connId={id} nodes={n} onClose={() => setWizard(null)} />}
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
 

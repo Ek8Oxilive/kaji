@@ -71,7 +71,10 @@ async def task_status(conn_id: int, upid: str, node: str = Path(pattern=NODE),
     d = await _px(db, factory, conn_id, "get", f"/nodes/{node}/tasks/{_check_upid(upid)}/status")
     return {"status": d.get("status"), "exitstatus": d.get("exitstatus"), "type": d.get("type"),
             "id": d.get("id"), "user": d.get("user"), "starttime": d.get("starttime"),
-            "ok": d.get("status") == "stopped" and d.get("exitstatus") == "OK"}
+            # « WARNINGS: n » = tâche réussie avec n avertissements (ex. « Systemd détecté, activer l'imbrication ») :
+            # ce n'est pas un échec, mais l'interface doit pouvoir le signaler.
+            "ok": d.get("status") == "stopped" and (d.get("exitstatus") == "OK" or str(d.get("exitstatus", "")).startswith("WARNINGS")),
+            "warnings": str(d.get("exitstatus", "")).startswith("WARNINGS")}
 
 
 @router.get("/api/connections/{conn_id}/tasks/{node}/{upid}/log")

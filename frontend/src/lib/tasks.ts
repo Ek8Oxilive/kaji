@@ -21,4 +21,7 @@ export async function runTask(connId: number, node: string, start: () => Promise
   const t = await waitTask(connId, node, upid, seconds);
   if (!t) throw new Error(`${what} : la tâche prend trop de temps`);
   if (!t.ok) throw new Error(`${what} : la tâche a échoué (${t.exitstatus ?? "erreur"})`);
+  return t;                       // t.warnings : réussie avec avertissements (consulter le journal de la tâche)
 }
+
+export const WARN_SUFFIX = " — avec un avertissement Proxmox (voir le journal de la tâche)";
