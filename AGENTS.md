@@ -48,6 +48,9 @@ Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer
   garde l'ordre par défaut : `actions` (`ORDER = 90`) passe en dernier. Un test vérifie qu'aucune route n'est masquée.
 - Appels Proxmox : `routers/cluster.py::_px(...)` (erreurs traduites en 502/504, sans secret).
 - Paramètres de création/édition : modules `vmspec.py`, `lxcspec.py`, `hardware.py` (validation + construction).
+- **Schéma de base de données** (`app/migrations.py`) : une **nouvelle table** s'ajoute dans `models.py` seulement.
+  **Modifier une table existante** (colonne, index…) exige une **migration** numérotée dans `MIGRATIONS`, en plus de
+  `models.py`. Sans elle, une base déjà déployée casserait au prochain démarrage. Teste-la depuis une base de l'ancienne version.
 - Frontend : `frontend/src/pages`, `components`, `lib`. Données : TanStack Query ; attente d'une tâche Proxmox :
   `lib/tasks.ts` (`runTask`, `LONG_TASK_SECONDS` pour les opérations longues).
 - **Types frontend** : crée un fichier par domaine (`frontend/src/lib/types/<domaine>.ts`) au lieu d'ajouter à `api.ts`.

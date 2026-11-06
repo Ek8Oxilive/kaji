@@ -128,7 +128,8 @@ Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour *
 - **Audit purgé** au-delà de `KAJI_AUDIT_RETENTION_DAYS`.
 - **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
 - Dépendances **à version fixée**, mises à jour par Dependabot.
-- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions), les migrations de schéma de base.
+- **Migrations de schéma** : versionnées, **sauvegardées** (copie `kaji.db.bak-vN-…` en `600` avant toute migration, les 5 dernières sont gardées), **atomiques** (une transaction par migration, schéma compris) ; Kaji refuse de démarrer sur une base plus récente que le code. `python -m app.migrations status` (ou `upgrade`) depuis `backend/`.
+- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions).
 
 ## Sécurité des secrets
 Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.
