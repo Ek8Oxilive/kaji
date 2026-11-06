@@ -2,6 +2,7 @@ from collections.abc import Iterator
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from .config import get_settings
 
@@ -18,8 +19,12 @@ def get_engine():
     global _engine, _SessionLocal
     if _engine is None:
         url = get_settings().database_url
-        args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-        _engine = create_engine(url, connect_args=args)
+        kwargs = {}
+        if url.startswith("sqlite"):
+            kwargs["connect_args"] = {"check_same_thread": False}
+            if url in ("sqlite://", "sqlite:///:memory:"):
+                kwargs["poolclass"] = StaticPool  # une seule connexion pour la base en mémoire
+        _engine = create_engine(url, **kwargs)
         _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
 

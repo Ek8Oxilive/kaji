@@ -24,3 +24,14 @@ class Connection(Base):
     token_secret_enc: Mapped[str] = mapped_column(String)
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AdminUser(Base):
+    """Compte du dashboard. Mot de passe stocké haché (argon2id)."""
+
+    __tablename__ = "admin_users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
+    password_hash: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

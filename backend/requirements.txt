@@ -4,3 +4,5 @@ httpx
 pydantic-settings
 cryptography
 sqlalchemy>=2
+argon2-cffi
+PyJWT
