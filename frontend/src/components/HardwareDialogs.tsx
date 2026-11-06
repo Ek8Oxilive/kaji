@@ -366,3 +366,35 @@ export function DiskMoveDialog({ disk, lxc, connId, node, base, onDone, onClose 
     </Modal>
   );
 }
+
+export function DeleteGuestDialog({ cfg, name, node, connId, base, onDeleted, onClose }: { cfg: HwConfig; name: string; node: string; connId: number; base: string; onDeleted: () => Promise<void>; onClose: () => void }) {
+  const [typed, setTyped] = useState("");
+  const [purge, setPurge] = useState(true);
+  const [orphans, setOrphans] = useState(false);
+  const { busy, error, run } = useSubmit(onClose);
+  const disks = cfg.disks.filter((d) => d.kind === "disk" && !d.empty);
+  const total = disks.length + cfg.unused.length;
+  return (
+    <Modal title={`Supprimer « ${name} » ?`} subtitle="Cette action est définitive." danger onClose={onClose} busy={busy} error={error} canSubmit={typed === name} submitLabel="Supprimer la machine"
+      onSubmit={() => run(async () => {
+        const q = `confirm=true&name=${encodeURIComponent(name)}&purge=${purge}&destroy_unreferenced=${orphans}`;
+        await runTask(connId, node, () => api(`${base}?${q}`, { method: "DELETE" }), "Suppression");
+        await onDeleted();
+      })}>
+      <div className="space-y-2 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">
+        <p><strong>La machine et {total > 0 ? `${total} disque${total > 1 ? "s" : ""}` : "ses données"} seront détruits</strong>, sans retour possible :</p>
+        {total > 0 && <ul className="list-inside list-disc font-mono text-xs">
+          {disks.map((d) => <li key={d.key}>{d.key} · {d.storage}:{d.volume} · {d.size ?? "?"}</li>)}
+          {cfg.unused.map((u) => <li key={u.key}>{u.key} · {u.volume} <span className="font-sans">(non utilisé)</span></li>)}
+        </ul>}
+        <p className="text-xs">Les snapshots de la machine sont supprimés avec elle. Les sauvegardes déjà faites ne sont pas touchées.</p>
+      </div>
+      <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={purge} onChange={(e) => setPurge(e.target.checked)} />
+        <span>Retirer des tâches de sauvegarde, de la haute disponibilité et de la réplication</span></label>
+      <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={orphans} onChange={(e) => setOrphans(e.target.checked)} />
+        <span>Détruire aussi les disques orphelins portant cet identifiant <span className="block text-xs text-muted">Volumes du stockage qui ne figurent plus dans la configuration.</span></span></label>
+      <Field label={`Pour confirmer, retape le nom de la machine : ${name}`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
+      {busy && <p className="text-sm text-muted">Suppression en cours…</p>}
+    </Modal>
+  );
+}

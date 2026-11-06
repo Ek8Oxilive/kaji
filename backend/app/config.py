@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     # Cookie de session « Secure » : mettre false uniquement en HTTP non-localhost
     kaji_cookie_secure: bool = True
     kaji_session_hours: int = 12
+    # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")
+    kaji_protected_vmids: str = ""
+
+    @property
+    def protected_vmids(self) -> set[int]:
+        return {int(x) for x in self.kaji_protected_vmids.replace(" ", "").split(",") if x.isdigit()}
 
 
 @lru_cache

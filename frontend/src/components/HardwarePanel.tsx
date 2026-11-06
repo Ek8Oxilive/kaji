@@ -2,14 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
-import { BootDialog, CdromDialog, CpuDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
 
 type Dialog =
   | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
-  | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
+  | { k: "delete" } | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
   | { k: "reattach"; item: { key: string; volume: string } } | { k: "destroy"; item: { key: string; volume: string } }
   | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk };
 
@@ -157,6 +157,12 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
             ))}
           </Section>
 
+          <Section title="Zone dangereuse">
+            <Row label="Supprimer" action={<Button variant="danger" disabled={guest.status !== "stopped"} onClick={() => setDlg({ k: "delete" })} className="!px-3 !py-1">Supprimer la machine</Button>}>
+              <span className="text-muted">{guest.status === "stopped" ? "Détruit la machine et tous ses disques, sans retour possible." : "La machine doit d'abord être arrêtée."}</span>
+            </Row>
+          </Section>
+
           <p className="text-xs text-muted">Les ajouts de passthrough PCI/USB et d'autres options avancées ne sont pas gérés.</p>
         </>}
       </aside>
@@ -169,6 +175,8 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
       {cfg && dlg?.k === "boot" && <BootDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Carte réseau ajoutée"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", `Carte ${dlg.net.key} retirée`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "delete" && <DeleteGuestDialog cfg={cfg} name={guest.name ?? String(guest.vmid)} node={guest.node} connId={connId} base={base}
+        onDeleted={async () => { toast("ok", `Machine « ${guest.name ?? guest.vmid} » supprimée`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onClose(); }} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "diskadd" && <DiskAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Disque ajouté"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "detach" && <DiskDetachDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} détaché (données conservées)`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "move" && <DiskMoveDialog disk={dlg.disk} lxc={!qemu} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} déplacé`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
