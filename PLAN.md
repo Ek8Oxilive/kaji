@@ -38,7 +38,8 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - Fin : démarrer/arrêter une VM de test par l'API et suivre la tâche
 
 ### M3 : Frontend de base
-- [ ] Layout, sidebar, mode sombre, login
+- [ ] Layout, sidebar, login
+- [ ] **Thèmes commutables** : « Sombre moderne » et « Glass » (panneaux translucides), choix mémorisé par utilisateur ; architecture à variables CSS pour en ajouter d'autres (ex. clair minimal) sans toucher aux composants
 - [ ] Écran de première configuration et écran « Connexions » (sélecteur de cluster)
 - [ ] Vue cartes VM/LXC (statut, CPU/RAM), actions rapides, toasts
 - [ ] **Temps réel** : un seul interrogateur Proxmox par connexion côté backend, diffusé aux navigateurs en SSE (repli en polling si besoin). Moins de charge sur Proxmox, mises à jour plus vives.
