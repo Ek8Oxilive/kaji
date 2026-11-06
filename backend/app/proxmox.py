@@ -18,22 +18,22 @@ class ProxmoxClient:
             transport=transport,
         )
 
-    async def get(self, path: str, **params):
+    async def get(self, path: str, /, **params):
         r = await self._client.get(path, params=params)
         r.raise_for_status()
         return r.json()["data"]
 
-    async def post(self, path: str, **data):
+    async def post(self, path: str, /, **data):
         r = await self._client.post(path, data=data)
         r.raise_for_status()
         return r.json()["data"]
 
-    async def put(self, path: str, **data):
+    async def put(self, path: str, /, **data):
         r = await self._client.put(path, data=data)
         r.raise_for_status()
         return r.json()["data"]
 
-    async def delete(self, path: str, **params):
+    async def delete(self, path: str, /, **params):
         r = await self._client.delete(path, params=params)
         r.raise_for_status()
         return r.json()["data"]

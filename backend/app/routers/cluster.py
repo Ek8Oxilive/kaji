@@ -30,7 +30,8 @@ def http_error(e: Exception) -> HTTPException:
     return HTTPException(status.HTTP_502_BAD_GATEWAY, "Proxmox injoignable")
 
 
-async def _px(db: Session, factory: Factory, conn_id: int, method: str, path: str, **params):
+async def _px(db: Session, factory: Factory, conn_id: int, method: str, path: str, /, **params):
+    # `path` est positionnel : un paramètre Proxmox nommé `path` (ex. /access/permissions) passe donc par `**params`.
     client = factory(**_params(_get_or_404(db, conn_id)))
     try:
         return await getattr(client, method)(path, **params)
@@ -40,7 +41,7 @@ async def _px(db: Session, factory: Factory, conn_id: int, method: str, path: st
         await client.aclose()
 
 
-async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, **params):
+async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, /, **params):
     return await _px(db, factory, conn_id, "get", path, **params)
 
 
