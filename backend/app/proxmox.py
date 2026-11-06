@@ -33,5 +33,10 @@ class ProxmoxClient:
         r.raise_for_status()
         return r.json()["data"]
 
+    async def delete(self, path: str, **params):
+        r = await self._client.delete(path, params=params)
+        r.raise_for_status()
+        return r.json()["data"]
+
     async def aclose(self):
         await self._client.aclose()
