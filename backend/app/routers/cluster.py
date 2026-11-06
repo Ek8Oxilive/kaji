@@ -17,19 +17,24 @@ router = APIRouter(prefix="/api/connections/{conn_id}", tags=["cluster"],
 Factory = Callable[..., ProxmoxClient]
 
 
+def http_error(e: Exception) -> HTTPException:
+    """Traduit une erreur d'appel Proxmox en erreur HTTP lisible (sans jamais exposer de secret)."""
+    if isinstance(e, httpx.HTTPStatusError):
+        code = e.response.status_code
+        detail = {401: "Token refusé par Proxmox", 403: "Droits insuffisants pour cette opération"}.get(
+            code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
+    if isinstance(e, httpx.TimeoutException):
+        return HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
+    return HTTPException(status.HTTP_502_BAD_GATEWAY, "Proxmox injoignable")
+
+
 async def _px(db: Session, factory: Factory, conn_id: int, method: str, path: str, **params):
     client = factory(**_params(_get_or_404(db, conn_id)))
     try:
         return await getattr(client, method)(path, **params)
-    except httpx.HTTPStatusError as e:
-        code = e.response.status_code
-        detail = {401: "Token refusé par Proxmox", 403: "Droits insuffisants pour cette opération"}.get(
-            code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
-    except httpx.TimeoutException:
-        raise HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
-    except httpx.HTTPError:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Proxmox injoignable")
+    except httpx.HTTPError as e:
+        raise http_error(e)
     finally:
         await client.aclose()
 
@@ -49,10 +54,7 @@ def _guest(r: dict) -> dict:
     }
 
 
-@router.get("/cluster/status")
-async def cluster_status(conn_id: int, db: Session = Depends(get_db),
-                         factory: Factory = Depends(get_client_factory)):
-    items = await _px_get(db, factory, conn_id, "/cluster/status")
+def shape_status(items: list[dict]) -> dict:
     cluster = next((i for i in items if i.get("type") == "cluster"), None)
     nodes = [i for i in items if i.get("type") == "node"]
     return {
@@ -62,10 +64,7 @@ async def cluster_status(conn_id: int, db: Session = Depends(get_db),
     }
 
 
-@router.get("/nodes")
-async def nodes(conn_id: int, db: Session = Depends(get_db),
-                factory: Factory = Depends(get_client_factory)):
-    data = await _px_get(db, factory, conn_id, "/nodes")
+def shape_nodes(data: list[dict]) -> list[dict]:
     return sorted(
         ({k: n.get(k) for k in ("node", "status", "cpu", "maxcpu", "mem", "maxmem", "disk", "maxdisk", "uptime")}
          for n in data),
@@ -73,15 +72,30 @@ async def nodes(conn_id: int, db: Session = Depends(get_db),
     )
 
 
-@router.get("/guests")
-async def guests(conn_id: int, node: str | None = Query(default=None),
-                 db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
-    """Liste unifiée des VM (qemu) et conteneurs (lxc) du cluster."""
-    data = await _px_get(db, factory, conn_id, "/cluster/resources", type="vm")
+def shape_guests(data: list[dict], node: str | None = None) -> list[dict]:
     out = [_guest(r) for r in data if r.get("type") in ("qemu", "lxc")]
     if node:
         out = [g for g in out if g["node"] == node]
     return sorted(out, key=lambda g: g["vmid"] or 0)
+
+
+@router.get("/cluster/status")
+async def cluster_status(conn_id: int, db: Session = Depends(get_db),
+                         factory: Factory = Depends(get_client_factory)):
+    return shape_status(await _px_get(db, factory, conn_id, "/cluster/status"))
+
+
+@router.get("/nodes")
+async def nodes(conn_id: int, db: Session = Depends(get_db),
+                factory: Factory = Depends(get_client_factory)):
+    return shape_nodes(await _px_get(db, factory, conn_id, "/nodes"))
+
+
+@router.get("/guests")
+async def guests(conn_id: int, node: str | None = Query(default=None),
+                 db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
+    """Liste unifiée des VM (qemu) et conteneurs (lxc) du cluster."""
+    return shape_guests(await _px_get(db, factory, conn_id, "/cluster/resources", type="vm"), node)
 
 
 @router.get("/storages")

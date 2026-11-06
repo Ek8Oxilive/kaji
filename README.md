@@ -55,6 +55,7 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 | `GET /api/connections/{id}/nodes` | Nœuds : CPU, RAM, disque, uptime |
 | `GET /api/connections/{id}/guests` | Liste unifiée des VM (qemu) et LXC, filtrable par `?node=` |
 | `GET /api/connections/{id}/storages` | Stockages et usage |
+| `GET /api/connections/{id}/events` | Flux temps réel (SSE) : un instantané de l'état du cluster (statut, nœuds, machines) à chaque changement. Un seul interrogateur Proxmox par cluster, partagé par tous les navigateurs ; il s'arrête quand le dernier part. |
 | `POST /api/connections/{id}/guests/{node}/{qemu\|lxc}/{vmid}/{action}` | `start`, `shutdown`, `reboot`, `stop`. Renvoie l'UPID de la tâche. `stop` (coupure brutale) exige `{"confirm": true}`. |
 | `GET /api/connections/{id}/tasks/{node}/{upid}` | État d'une tâche (`ok` si terminée avec succès) ; `/log` pour son journal |
 | `GET /api/connections/{id}/guests/{node}/{type}/{vmid}/config` | Matériel décomposé (CPU, RAM, disques, cartes réseau) et changements en attente |
