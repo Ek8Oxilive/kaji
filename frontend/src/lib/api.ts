@@ -63,3 +63,11 @@ export type Iso = { volid: string; storage: string; name: string; size: number |
 
 export type Snapshot = { name: string; description: string; time: number | null; vmstate: boolean; parent: string | null };
 export type SnapshotList = { snapshots: Snapshot[]; current_parent: string | null };
+
+export type Pool = { poolid: string; comment: string | null };
+export type StorageInfo = { storage: string; type: string | null; avail: number | null; total: number | null; shared: boolean; active: boolean };
+export type VmCreateBody = {
+  name: string; vmid?: number; memory: number; cores: number; sockets: number; cpu: string; ostype: string;
+  disk?: { storage: string; size_gb: number }; net?: { bridge: string; model: string; tag?: number; firewall: boolean };
+  iso?: string; pool?: string; agent: boolean; start: boolean; description: string;
+};
