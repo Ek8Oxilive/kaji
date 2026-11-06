@@ -29,3 +29,12 @@ export type Connection = {
   id: number; name: string; host: string; port: number; user: string; token_id: string; verify_ssl: boolean;
 };
 export type ProbeResult = { ok: boolean; version?: string; release?: string; error?: string };
+
+export type ClusterStatus = { name: string | null; quorate: boolean | null; nodes: { name: string; online: boolean; ip: string | null }[] };
+export type NodeInfo = { node: string; status: string | null; cpu: number | null; maxcpu: number | null; mem: number | null; maxmem: number | null; disk: number | null; maxdisk: number | null; uptime: number | null };
+export type Guest = {
+  vmid: number; name: string | null; type: "qemu" | "lxc"; node: string; status: string | null; template: boolean;
+  cpu: number; maxcpu: number | null; mem: number; maxmem: number | null; uptime: number;
+};
+export type GuestAction = "start" | "shutdown" | "reboot" | "stop";
+export type TaskStatus = { status: string | null; exitstatus: string | null; type: string | null; ok: boolean };
