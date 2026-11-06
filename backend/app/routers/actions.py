@@ -14,6 +14,7 @@ from ..models import AdminUser, AuditLog
 from .auth import current_user
 from .cluster import Factory, _px
 
+ORDER = 90        # en dernier : la route générique {action} intercepterait toute route plus spécifique (voir routers/__init__.py)
 router = APIRouter(tags=["actions"], dependencies=[Depends(current_user)])
 
 NODE = r"^[A-Za-z0-9]([A-Za-z0-9\-]{0,62})$"

@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .db import init_db
-from .routers import actions, auth, cluster, clone, cloudinit, connections, create, destroy, disks, hardware, live, migrate, nets, resources, snapshots
+from .routers import load_routers
 
 
 @asynccontextmanager
@@ -21,22 +21,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Kaji", lifespan=lifespan)
-app.include_router(auth.router)
-app.include_router(connections.router)
-app.include_router(cluster.router)
-# hardware, snapshots, nets, disks et clone avant actions : la route générique .../{vmid}/{action} les intercepterait sinon
-app.include_router(hardware.router)
-app.include_router(snapshots.router)
-app.include_router(nets.router)
-app.include_router(disks.router)
-app.include_router(clone.router)
-app.include_router(cloudinit.router)
-app.include_router(destroy.router)
-app.include_router(migrate.router)
-app.include_router(actions.router)
-app.include_router(resources.router)
-app.include_router(create.router)
-app.include_router(live.router)
+for _router in load_routers():           # ordre déclaré par chaque module (voir routers/__init__.py)
+    app.include_router(_router)
 
 
 @app.middleware("http")
