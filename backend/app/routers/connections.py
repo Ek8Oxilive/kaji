@@ -33,7 +33,7 @@ class ConnectionBase(BaseModel):
     @classmethod
     def _valid_host(cls, v: str) -> str:
         v = v.strip()
-        if not _HOST.match(v):
+        if not _HOST.fullmatch(v):
             raise ValueError("Hôte invalide : indique seulement une IP ou un nom d'hôte")
         return v
 

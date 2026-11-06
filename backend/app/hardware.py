@@ -20,7 +20,7 @@ LXC_SETTINGS = ("hostname", "memory", "swap", "cores", "cpulimit", "cpuunits", "
 
 
 def parse_size(s: str | None) -> int | None:
-    m = SIZE.match(s or "")
+    m = SIZE.fullmatch(s or "")
     if not m:
         return None
     return int(float(m.group(1)) * {"": 1, "K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}[m.group(2)])
@@ -86,15 +86,15 @@ def normalize(gtype: str, cfg: dict, pending: list[dict]) -> dict:
     settings = {k: cfg[k] for k in (LXC_SETTINGS if lxc else QEMU_SETTINGS) if k in cfg}
     disks = []
     for k, v in cfg.items():
-        if lxc and (k == "rootfs" or MP_KEY.match(k)):
+        if lxc and (k == "rootfs" or MP_KEY.fullmatch(k)):
             d = parse_disk(k, v)
             d["kind"] = "disk"
             disks.append(d)
-        elif not lxc and DISK_KEY.match(k):
+        elif not lxc and DISK_KEY.fullmatch(k):
             disks.append(parse_disk(k, v))
-    nets = [{k2: v2 for k2, v2 in parse_net(k, v, lxc).items() if k2 != "_raw"} for k, v in cfg.items() if NET_KEY.match(k)]
+    nets = [{k2: v2 for k2, v2 in parse_net(k, v, lxc).items() if k2 != "_raw"} for k, v in cfg.items() if NET_KEY.fullmatch(k)]
     disks.sort(key=lambda d: d["key"]); nets.sort(key=lambda n: n["key"])
-    unused = sorted(({"key": k, "volume": v, "storage": str(v).partition(":")[0] or None} for k, v in cfg.items() if UNUSED_KEY.match(k)),
+    unused = sorted(({"key": k, "volume": v, "storage": str(v).partition(":")[0] or None} for k, v in cfg.items() if UNUSED_KEY.fullmatch(k)),
                     key=lambda u: u["key"])
     pend = [{"key": p["key"], "value": p.get("value"), "pending": p.get("pending"), "delete": bool(p.get("delete"))}
             for p in pending if "pending" in p or p.get("delete")]
@@ -110,12 +110,12 @@ def parse_boot_order(value: str | None) -> list[str]:
     for part in str(value or "").split(","):
         k, _, v = part.partition("=")
         if k == "order":
-            return [x for x in v.split(";") if BOOT_KEY.match(x)]
+            return [x for x in v.split(";") if BOOT_KEY.fullmatch(x)]
     return []
 
 
 def next_net_index(cfg: dict) -> int:
-    used = {int(k[3:]) for k in cfg if NET_KEY.match(k)}
+    used = {int(k[3:]) for k in cfg if NET_KEY.fullmatch(k)}
     for n in range(32):
         if n not in used:
             return n
@@ -167,7 +167,7 @@ def next_disk_key(cfg: dict, bus: str) -> str:
 
 
 def next_mp_key(cfg: dict) -> str:
-    used = {int(k[2:]) for k in cfg if MP_KEY.match(k)}
+    used = {int(k[2:]) for k in cfg if MP_KEY.fullmatch(k)}
     for n in range(256):
         if n not in used:
             return f"mp{n}"
@@ -175,7 +175,7 @@ def next_mp_key(cfg: dict) -> str:
 
 
 def check_mp_path(path: str) -> str:
-    if not MP_PATH.match(path) or ".." in path or "//" in path or path == "/" or path.endswith(","):
+    if not MP_PATH.fullmatch(path) or ".." in path or "//" in path or path == "/" or path.endswith(","):
         raise ValueError("Chemin de montage invalide (ex. /srv/data)")
     return path
 
@@ -187,6 +187,6 @@ def build_new_disk(storage: str, size_gb: int, mp: str | None = None) -> str:
 def find_cloudinit_key(cfg: dict) -> str | None:
     """Clé du lecteur cloud-init d'une VM (ex. ide2), s'il existe."""
     for k, v in cfg.items():
-        if DISK_KEY.match(k) and "cloudinit" in str(v).partition(",")[0]:
+        if DISK_KEY.fullmatch(k) and "cloudinit" in str(v).partition(",")[0]:
             return k
     return None
