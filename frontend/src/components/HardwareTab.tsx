@@ -1,10 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
 import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, MigrateDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
-import { CloudInitTab } from "./CloudInitTab";
-import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
 
@@ -40,22 +38,14 @@ const Edit = ({ onClick, label = "Modifier" }: { onClick: () => void; label?: st
   <Button variant="ghost" onClick={onClick} className="!px-3 !py-1">{label}</Button>
 );
 
-export function HardwarePanel({ connId, guest, onClose }: { connId: number; guest: Guest; onClose: () => void }) {
+/** Onglet « Matériel » de la page Machine. `onDeleted` / `onMigrated` : la machine n'existe plus ici, la page doit changer. */
+export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: number; guest: Guest; onDeleted: () => void; onMigrated: (target: string) => void }) {
   const qc = useQueryClient();
   const toast = useToast();
   const base = `/api/connections/${connId}/guests/${guest.node}/${guest.type}/${guest.vmid}`;
   const qk = ["hw", connId, guest.node, guest.type, guest.vmid];
   const { data: cfg, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<HwConfig>(`${base}/config`), staleTime: 0 });
   const [dlg, setDlg] = useState<Dialog | null>(null);
-  type Tab = "hardware" | "snapshots" | "cloudinit";
-  const [tab, setTab] = useState<Tab>("hardware");
-
-  useEffect(() => {
-    if (dlg) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [dlg, onClose]);
 
   const save = async (body: HwUpdate) => {
     await api(`${base}/config`, { method: "PATCH", body });
@@ -74,32 +64,11 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
   const cdroms = cfg?.disks.filter((d) => d.kind === "cdrom") ?? [];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
-      <aside role="dialog" aria-modal="true" aria-label={`Matériel de ${guest.name}`} onClick={(e) => e.stopPropagation()}
-        className="panel rise h-full w-[min(36rem,100vw)] space-y-6 overflow-y-auto !rounded-none !rounded-l-2xl p-6">
-        <header className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">{guest.name ?? guest.vmid}</h2>
-            <p className="text-sm text-muted">#{guest.vmid} · {guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
-          </div>
-          <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
-        </header>
+    <div className="space-y-6">
+        {isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
+        {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
 
-        <div role="tablist" className="flex gap-1 border-b border-line">
-          {([["hardware", "Matériel"], ["snapshots", "Snapshots"], ...(guest.type === "qemu" ? [["cloudinit", "Cloud-init"]] : [])] as [Tab, string][]).map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-              className={`-mb-px border-b-2 px-4 py-2 text-sm transition ${tab === id ? "border-accent font-medium text-fg" : "border-transparent text-muted hover:text-fg"}`}>{label}</button>
-          ))}
-        </div>
-
-        {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
-
-        {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={guest.status === "running"} />}
-
-        {tab === "hardware" && isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
-        {tab === "hardware" && error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
-
-        {tab === "hardware" && cfg && <>
+        {cfg && <>
           {cfg.reboot_required && (
             <Notice kind="error">
               Changements en attente : ils s'appliqueront au prochain redémarrage de la machine ({cfg.pending.map((p) => p.key).join(", ")}).
@@ -175,7 +144,6 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
 
           <p className="text-xs text-muted">Les ajouts de passthrough PCI/USB et d'autres options avancées ne sont pas gérés.</p>
         </>}
-      </aside>
 
       {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "cpu" && <CpuDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
@@ -187,9 +155,9 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
       {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", `Carte ${dlg.net.key} retirée`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "migrate" && <MigrateDialog connId={connId} node={guest.node} gtype={guest.type} vmid={guest.vmid} name={guest.name ?? String(guest.vmid)}
         running={guest.status === "running"} base={base}
-        onDone={async (target) => { toast("ok", `« ${guest.name ?? guest.vmid} » migrée vers ${target}`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onClose(); }} onClose={() => setDlg(null)} />}
+        onDone={async (target) => { toast("ok", `« ${guest.name ?? guest.vmid} » migrée vers ${target}`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onMigrated(target); }} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "delete" && <DeleteGuestDialog cfg={cfg} name={guest.name ?? String(guest.vmid)} node={guest.node} connId={connId} base={base}
-        onDeleted={async () => { toast("ok", `Machine « ${guest.name ?? guest.vmid} » supprimée`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onClose(); }} onClose={() => setDlg(null)} />}
+        onDeleted={async () => { toast("ok", `Machine « ${guest.name ?? guest.vmid} » supprimée`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onDeleted(); }} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "diskadd" && <DiskAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Disque ajouté"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "detach" && <DiskDetachDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} détaché (données conservées)`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "move" && <DiskMoveDialog disk={dlg.disk} lxc={!qemu} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} déplacé`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}

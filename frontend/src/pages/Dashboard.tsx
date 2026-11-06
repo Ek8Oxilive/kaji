@@ -6,7 +6,6 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CreateLxcWizard } from "../components/CreateLxcWizard";
 import { CreateVmWizard } from "../components/CreateVmWizard";
 import { GuestCard } from "../components/GuestCard";
-import { HardwarePanel } from "../components/HardwarePanel";
 import { NewMachineChooser } from "../components/NewMachineChooser";
 import { NodeCard } from "../components/NodeCard";
 import { Helm } from "../components/Logo";
@@ -14,6 +13,7 @@ import { Button, Notice } from "../components/ui";
 import { api, type Connection, type Guest, type GuestAction } from "../lib/api";
 import { bytes } from "../lib/format";
 import { THEMES, useTheme } from "../lib/theme";
+import { CONFIRM } from "../lib/guestConfirm";
 import { guestKey, useCluster, useGuestActions } from "../lib/useCluster";
 
 const CONN_KEY = "kaji-connection";
@@ -31,13 +31,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 
 const Skeleton = ({ n, h = "h-40" }: { n: number; h?: string }) => <>{Array.from({ length: n }, (_, i) => <div key={i} className={`panel animate-pulse ${h}`} />)}</>;
 
-const CONFIRM: Record<Exclude<GuestAction, "start">, { title: string; verb: string; text: string; danger?: boolean }> = {
-  reboot: { title: "Redémarrer", verb: "Redémarrer", text: "La machine va redémarrer proprement. Ses services seront indisponibles quelques instants." },
-  shutdown: { title: "Éteindre", verb: "Éteindre", text: "Arrêt propre du système invité. Il faudra la redémarrer pour la remettre en service." },
-  stop: { title: "Forcer l'arrêt", verb: "Forcer l'arrêt", danger: true, text: "Coupure brutale, comme débrancher l'alimentation. Risque de perte de données non enregistrées." },
-};
-
-export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) {
+export function Dashboard({ onGoConnections, onOpenGuest }: { onGoConnections: () => void; onOpenGuest: (g: Guest) => void }) {
   const conns = useQuery({ queryKey: ["connections"], queryFn: () => api<Connection[]>("/api/connections") });
   const [connId, setConnId] = useState<number | null>(readConn);
   const list = conns.data;
@@ -49,7 +43,6 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
   const { setTheme } = useTheme();
   const { run, busy, effectiveStatus } = useGuestActions(id);
   const [pending, setPending] = useState<{ guest: Guest; action: Exclude<GuestAction, "start"> } | null>(null);
-  const [hw, setHw] = useState<Guest | null>(null);
   const [palette, setPalette] = useState(false);
   const [wizard, setWizard] = useState<null | "choose" | "vm" | "lxc">(null);
   const [clone, setClone] = useState<Guest | null>(null);
@@ -99,7 +92,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
       const hint = `#${x.vmid} · ${x.type === "qemu" ? "VM" : "LXC"} · ${x.node}`;
       const c = (a: string, label: string, run: () => void): Command => ({ id: `${a}-${guestKey(x)}`, group: "Machines", label: `${label} ${name}`, hint, run });
       return [
-        c("hw", "Matériel de", () => setHw(x)),
+        c("open", "Ouvrir", () => onOpenGuest(x)),
         c("clone", "Cloner", () => setClone(x)),
         ...(st === "stopped" ? [c("start", "Démarrer", () => run(x, "start"))] : []),
         ...(st === "running" ? [
@@ -174,7 +167,7 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {guests.isLoading ? <Skeleton n={6} h="h-52" /> : visible.map((x, i) => (
             <GuestCard key={guestKey(x)} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
-              onHardware={() => setHw(x)} onClone={() => setClone(x)}
+              onOpen={() => onOpenGuest(x)} onClone={() => setClone(x)}
               onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
           ))}
           {!guests.isLoading && visible.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucune machine ne correspond aux filtres.</div>}
@@ -188,8 +181,6 @@ export function Dashboard({ onGoConnections }: { onGoConnections: () => void }) 
       {wizard === "lxc" && id && <CreateLxcWizard connId={id} nodes={n} onClose={() => setWizard(null)} />}
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
-
-      {hw && id && <HardwarePanel connId={id} guest={hw} onClose={() => setHw(null)} />}
 
       {pending && (
         <ConfirmDialog title={`${CONFIRM[pending.action].title} « ${pending.guest.name ?? pending.guest.vmid} » ?`} confirmLabel={CONFIRM[pending.action].verb}

@@ -1,10 +1,11 @@
 import type { Guest, GuestAction } from "../lib/api";
 import { bytes, pct, uptime } from "../lib/format";
+import { guestHash } from "../lib/route";
 import { Gauge } from "./Gauge";
 import { Button } from "./ui";
 
-export function GuestCard({ guest, status, busyLabel, onAction, onHardware, onClone, index }: {
-  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onHardware: () => void; onClone: () => void; index: number;
+export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone, index }: {
+  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onOpen: () => void; onClone: () => void; index: number;
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
@@ -12,10 +13,12 @@ export function GuestCard({ guest, status, busyLabel, onAction, onHardware, onCl
   const text = busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
   const off = !!busyLabel;
   return (
-    <article className="panel card-hover rise flex flex-col gap-4 p-5" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}>
+    // Un clic n'importe où sur la carte (hors boutons et liens) ouvre la page de la machine ; le nom est un vrai lien, pour le clavier.
+    <article className="panel card-hover rise flex cursor-pointer flex-col gap-4 p-5" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
+      onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) onOpen(); }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold">{guest.name ?? `#${guest.vmid}`}</h3>
+          <h3 className="truncate font-semibold"><a href={guestHash(guest)} className="hover:underline focus-visible:underline">{guest.name ?? `#${guest.vmid}`}</a></h3>
           <p className="text-xs text-muted">#{guest.vmid} · {guest.node}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -34,7 +37,6 @@ export function GuestCard({ guest, status, busyLabel, onAction, onHardware, onCl
       <div className="mt-auto space-y-3">
         <p className="text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
         <div className="flex flex-wrap gap-1.5">
-          {!guest.template && <Button variant="ghost" onClick={onHardware} className="!px-3 !py-1.5" title="Voir et modifier le matériel">Matériel</Button>}
           <Button variant="ghost" onClick={onClone} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
             {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}

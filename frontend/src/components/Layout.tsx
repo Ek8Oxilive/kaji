@@ -6,13 +6,13 @@ import { Button } from "./ui";
 
 export type Page = "dashboard" | "connections" | "storage";
 type NavItem = { id: Page; label: string };
-// Pages d'usage courant (en haut). Les nouvelles pages s'ajoutent à la fin de cette liste.
-const NAV: NavItem[] = [
+// Pages d'usage courant (en haut). Les nouvelles pages s'ajoutent à la fin de cette liste : leur adresse (`#/<id>`) en découle.
+export const NAV: NavItem[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "storage", label: "Stockage" },
 ];
 // Réglages rarement utilisés : en bas de la barre, au-dessus de « Compte » et « Déconnexion ».
-const NAV_BOTTOM: NavItem[] = [
+export const NAV_BOTTOM: NavItem[] = [
   { id: "connections", label: "Connexions" },
 ];
 
