@@ -88,3 +88,60 @@ def test_isos_skip_a_failing_storage(api):
 def test_invalid_node_rejected(api, node):
     c, cid = api
     assert c.get(f"/api/connections/{cid}/nodes/{node}/bridges").status_code in (404, 422) and CALLS == []
+
+
+# ---------- modèles LXC ----------
+
+def _tpl_handler(request: httpx.Request) -> httpx.Response:
+    p = request.url.path.removeprefix(BASE)
+    CALLS.append(p)
+    if p in FAIL:
+        return httpx.Response(403, json={"data": None})
+    data = {
+        "/nodes/enzo/storage": [{"storage": "local", "active": 1}, {"storage": "nfs", "active": 1}, {"storage": "off", "active": 0}],
+        "/nodes/enzo/storage/local/content": [{"volid": "local:vztmpl/debian-12.tar.zst", "size": 5, "content": "vztmpl"},
+                                              {"volid": "local:vztmpl/alpine-3.20.tar.zst", "size": 3, "content": "vztmpl"}],
+        "/nodes/enzo/storage/nfs/content": [],
+        "/nodes/enzo/aplinfo": [{"template": "ubuntu-24.04-standard_24.04-2_amd64.tar.zst", "type": "lxc", "os": "ubuntu", "version": "24.04", "section": "system", "architecture": "amd64", "headline": "Ubuntu 24.04"},
+                                {"template": "turnkey-core.tar.gz", "type": "lxc", "section": "turnkeylinux"}, {"template": "x", "type": "openvz"}, {"type": "lxc"}],
+    }.get(p)
+    return httpx.Response(200 if data is not None else 404, json={"data": data})
+
+
+@pytest.fixture
+def tpl(client):
+    CALLS.clear(); FAIL.clear()
+    app.dependency_overrides[get_client_factory] = lambda: (
+        lambda **kw: ProxmoxClient(**kw, transport=httpx.MockTransport(_tpl_handler)))
+    client.post("/api/auth/setup", json={"username": "admin", "password": PWD})
+    cid = client.post("/api/connections", json=BODY).json()["id"]
+    yield client, cid
+    app.dependency_overrides.clear()
+
+
+def test_templates_require_auth(client):
+    assert client.get("/api/connections/1/nodes/enzo/templates").status_code == 401
+
+
+def test_templates_local_sorted_and_downloadable_filtered(tpl):
+    c, cid = tpl
+    r = c.get(f"/api/connections/{cid}/nodes/enzo/templates").json()
+    assert r["storages"] == ["local", "nfs", "off"]
+    assert [t["volid"] for t in r["local"]] == ["local:vztmpl/alpine-3.20.tar.zst", "local:vztmpl/debian-12.tar.zst"]
+    assert "/nodes/enzo/storage/off/content" not in CALLS                       # stockage inactif ignoré
+    assert [d["template"] for d in r["downloadable"]] == ["ubuntu-24.04-standard_24.04-2_amd64.tar.zst", "turnkey-core.tar.gz"]
+    assert r["downloadable"][0]["architecture"] == "amd64" and r["downloadable"][1]["architecture"] is None
+    assert r["downloadable"][0]["description"] == "Ubuntu 24.04"                  # openvz et entrées sans nom écartés
+
+
+def test_templates_survive_missing_catalogue_or_failing_storage(tpl):
+    c, cid = tpl
+    FAIL.update({"/nodes/enzo/aplinfo": 1, "/nodes/enzo/storage/nfs/content": 1})
+    r = c.get(f"/api/connections/{cid}/nodes/enzo/templates").json()
+    assert r["downloadable"] is None and len(r["local"]) == 2
+
+
+@pytest.mark.parametrize("node", ["a;b", "-x"])
+def test_templates_invalid_node_rejected(tpl, node):
+    c, cid = tpl
+    assert c.get(f"/api/connections/{cid}/nodes/{node}/templates").status_code in (404, 422) and CALLS == []
