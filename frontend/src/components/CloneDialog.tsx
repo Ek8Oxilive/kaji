@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Guest, type NodeInfo, type StorageInfo } from "../lib/api";
 import { bytes } from "../lib/format";
-import { runTask } from "../lib/tasks";
+import { LONG_TASK_SECONDS, runTask } from "../lib/tasks";
 import { useSubmit } from "./HardwareDialogs";
 import { Modal } from "./Modal";
 import { PoolField } from "./PoolField";
@@ -36,7 +36,7 @@ export function CloneDialog({ connId, guest, nodes, onClose }: { connId: number;
     <Modal title={guest.template ? `Créer depuis le modèle « ${guest.name} »` : `Cloner « ${guest.name ?? guest.vmid} »`} subtitle={`Source : #${guest.vmid} · ${lxc ? "LXC" : "VM"} · ${guest.node}`}
       onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Cloner"
       onSubmit={() => run(async () => {
-        await runTask(connId, guest.node, () => api(`${base}/guests/${guest.node}/${guest.type}/${guest.vmid}/clone`, { method: "POST", body }), "Clonage");
+        await runTask(connId, guest.node, () => api(`${base}/guests/${guest.node}/${guest.type}/${guest.vmid}/clone`, { method: "POST", body }), "Clonage", LONG_TASK_SECONDS);
         toast("ok", `« ${name} » créée (#${id})`);
         await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
       })}>

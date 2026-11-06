@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, type Bridge, type HwConfig, type HwDisk, type HwNet, type HwUpdate, type Iso, type MigratePreflight, type StorageInfo } from "../lib/api";
-import { runTask } from "../lib/tasks";
+import { LONG_TASK_SECONDS, runTask } from "../lib/tasks";
 import { bytes, mem } from "../lib/format";
 import { Modal } from "./Modal";
 import { Field } from "./ui";
@@ -355,7 +355,7 @@ export function DiskMoveDialog({ disk, lxc, connId, node, base, onDone, onClose 
   const chosen = target || targets[0]?.storage || "";
   return (
     <Modal title={`Déplacer ${disk.key}`} subtitle={`Actuellement sur ${disk.storage}`} onClose={onClose} busy={busy} error={error} canSubmit={!!chosen} submitLabel="Déplacer"
-      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/disks/${disk.key}/move`, { method: "POST", body: { storage: chosen, delete_source: del, confirm: true } }), "Déplacement").then(onDone))}>
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/disks/${disk.key}/move`, { method: "POST", body: { storage: chosen, delete_source: del, confirm: true } }), "Déplacement", LONG_TASK_SECONDS).then(onDone))}>
       {stores.isSuccess && targets.length === 0
         ? <p className="text-sm text-muted">Aucun autre stockage disponible pour ce type de disque sur ce nœud.</p>
         : <label className="block space-y-1.5"><span className="text-sm text-muted">Stockage de destination</span>
@@ -419,7 +419,7 @@ export function MigrateDialog({ connId, node, gtype, vmid, name, running, base, 
     ...(!lxc && storage ? { target_storage: storage } : {}), confirm: running };
   return (
     <Modal title={`Migrer « ${name} »`} subtitle={`Depuis ${node}`} onClose={onClose} busy={busy} error={error} canSubmit={canSubmit} submitLabel="Migrer"
-      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/migrate`, { method: "POST", body }), "Migration").then(() => onDone(chosen)))}>
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/migrate`, { method: "POST", body }), "Migration", LONG_TASK_SECONDS).then(() => onDone(chosen)))}>
       {pre.isLoading && <p className="text-sm text-muted">Vérifications de Proxmox en cours…</p>}
       {pre.isError && <p className="text-sm text-danger">{(pre.error as Error).message}</p>}
       {pre.data && <>
