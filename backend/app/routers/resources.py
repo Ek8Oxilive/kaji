@@ -58,3 +58,27 @@ async def isos(conn_id: int, node: str = Path(pattern=NODE), db: Session = Depen
     names = [s["storage"] for s in storages or [] if s.get("storage") and s.get("active", 1)]
     groups = await asyncio.gather(*(one(n) for n in names))
     return sorted((i for g in groups for i in g), key=lambda i: (i["storage"], i["name"].lower()))
+
+
+@router.get("/api/connections/{conn_id}/nodes/{node}/templates")
+async def lxc_templates(conn_id: int, node: str = Path(pattern=NODE), db: Session = Depends(get_db),
+                        factory: Factory = Depends(get_client_factory)):
+    """Modèles de conteneur (LXC) : ceux déjà présents sur les stockages du nœud, et ceux proposés au téléchargement."""
+    storages = await _px(db, factory, conn_id, "get", f"/nodes/{node}/storage", content="vztmpl")
+
+    async def one(name: str):
+        items = await _optional(_px(db, factory, conn_id, "get", f"/nodes/{node}/storage/{name}/content", content="vztmpl"))
+        return [{"volid": i["volid"], "storage": name, "name": i["volid"].split("/", 1)[-1], "size": i.get("size")}
+                for i in items or [] if i.get("volid") and i.get("content", "vztmpl") == "vztmpl"]
+
+    names = [s["storage"] for s in storages or [] if s.get("storage") and s.get("active", 1)]
+    groups = await asyncio.gather(*(one(n) for n in names))
+    local = sorted((i for g in groups for i in g), key=lambda i: (i["storage"], i["name"].lower()))
+
+    apl = await _optional(_px(db, factory, conn_id, "get", f"/nodes/{node}/aplinfo"))
+    downloadable = None if apl is None else sorted(
+        ({"template": a["template"], "os": a.get("os"), "version": a.get("version"), "section": a.get("section"),
+          "architecture": a.get("architecture"), "description": a.get("headline") or a.get("description")}
+         for a in apl if a.get("type") == "lxc" and a.get("template")),
+        key=lambda a: (a["section"] or "", a["template"]))[:300]
+    return {"storages": [s["storage"] for s in storages or [] if s.get("storage")], "local": local, "downloadable": downloadable}
