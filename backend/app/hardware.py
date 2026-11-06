@@ -77,7 +77,7 @@ def parse_disk(key: str, value: str) -> dict:
     cdrom = opts.get("media") == "cdrom"
     storage, _, volume = spec.partition(":")
     return {"key": key, "kind": "cdrom" if cdrom else "disk", "storage": storage or None,
-            "volume": volume or None, "empty": spec in ("", "none"), "size": opts.get("size"),
+            "volume": volume or None, "empty": spec in ("", "none"), "cloudinit": "cloudinit" in volume, "size": opts.get("size"),
             "size_bytes": parse_size(opts.get("size")), "options": {k: v for k, v in opts.items() if k not in ("size", "media")}}
 
 
@@ -182,3 +182,11 @@ def check_mp_path(path: str) -> str:
 
 def build_new_disk(storage: str, size_gb: int, mp: str | None = None) -> str:
     return f"{storage}:{size_gb}" + (f",mp={check_mp_path(mp)}" if mp else "")
+
+
+def find_cloudinit_key(cfg: dict) -> str | None:
+    """Clé du lecteur cloud-init d'une VM (ex. ide2), s'il existe."""
+    for k, v in cfg.items():
+        if DISK_KEY.match(k) and "cloudinit" in str(v).partition(",")[0]:
+            return k
+    return None

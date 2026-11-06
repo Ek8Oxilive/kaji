@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
 import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, MigrateDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { CloudInitTab } from "./CloudInitTab";
 import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
@@ -46,7 +47,8 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
   const qk = ["hw", connId, guest.node, guest.type, guest.vmid];
   const { data: cfg, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<HwConfig>(`${base}/config`), staleTime: 0 });
   const [dlg, setDlg] = useState<Dialog | null>(null);
-  const [tab, setTab] = useState<"hardware" | "snapshots">("hardware");
+  type Tab = "hardware" | "snapshots" | "cloudinit";
+  const [tab, setTab] = useState<Tab>("hardware");
 
   useEffect(() => {
     if (dlg) return;
@@ -84,11 +86,13 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
         </header>
 
         <div role="tablist" className="flex gap-1 border-b border-line">
-          {([["hardware", "Matériel"], ["snapshots", "Snapshots"]] as const).map(([id, label]) => (
+          {([["hardware", "Matériel"], ["snapshots", "Snapshots"], ...(guest.type === "qemu" ? [["cloudinit", "Cloud-init"]] : [])] as [Tab, string][]).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
               className={`-mb-px border-b-2 px-4 py-2 text-sm transition ${tab === id ? "border-accent font-medium text-fg" : "border-transparent text-muted hover:text-fg"}`}>{label}</button>
           ))}
         </div>
+
+        {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
 
         {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={guest.status === "running"} />}
 
@@ -139,8 +143,8 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
           {qemu && cdroms.length > 0 && (
             <Section title="CD/DVD">
               {cdroms.map((d) => (
-                <Row key={d.key} label={d.key} pending={pend(d.key)} action={<Edit onClick={() => setDlg({ k: "cdrom", disk: d })} />}>
-                  {d.empty ? <span className="text-muted">Aucun média</span> : `${d.storage}:${d.volume}`}
+                <Row key={d.key} label={d.key} pending={pend(d.key)} action={d.cloudinit ? undefined : <Edit onClick={() => setDlg({ k: "cdrom", disk: d })} />}>
+                  {d.cloudinit ? <>Lecteur cloud-init <span className="text-muted">· géré dans l'onglet Cloud-init</span></> : d.empty ? <span className="text-muted">Aucun média</span> : `${d.storage}:${d.volume}`}
                 </Row>
               ))}
             </Section>

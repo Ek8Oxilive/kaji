@@ -41,7 +41,7 @@ export type TaskStatus = { status: string | null; exitstatus: string | null; typ
 
 export type HwDisk = {
   key: string; kind: "disk" | "cdrom"; storage: string | null; volume: string | null; empty: boolean;
-  size: string | null; size_bytes: number | null; options: Record<string, string>;
+  size: string | null; size_bytes: number | null; options: Record<string, string>; cloudinit?: boolean;
 };
 export type HwNet = {
   key: string; model: string | null; mac: string | null; bridge: string | null; tag: number | null;
@@ -87,4 +87,10 @@ export type LxcCreateBody = {
   disk: { storage: string; size_gb: number };
   net?: { bridge: string; tag?: number; firewall: boolean; ip?: string; gateway?: string };
   password?: string; ssh_public_keys?: string; unprivileged: boolean; nesting: boolean; pool?: string; start: boolean; description: string;
+};
+
+export type CiIpConf = { mode: "dhcp" | "static" | "none"; ip: string | null; gateway: string | null };
+export type CloudInit = {
+  has_drive: boolean; drive: string | null; user: string | null; password_set: boolean; ssh_keys: string | null;
+  ipconfig: Record<string, CiIpConf>; nameserver: string | null; searchdomain: string | null; upgrade: boolean | null;
 };
