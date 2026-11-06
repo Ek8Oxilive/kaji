@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AccountDialog } from "./AccountDialog";
 import { Logo } from "./Logo";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui";
@@ -10,6 +11,7 @@ const NAV: { id: Page; label: string }[] = [
 ];
 
 export function Layout({ page, onNavigate, onLogout, children }: { page: Page; onNavigate: (p: Page) => void; onLogout: () => void; children: ReactNode }) {
+  const [account, setAccount] = useState(false);
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       <aside className="panel m-3 flex shrink-0 flex-row items-center gap-4 p-3 md:w-60 md:flex-col md:items-stretch md:gap-6 md:p-5">
@@ -22,12 +24,16 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
             </button>
           ))}
         </nav>
-        <Button variant="ghost" onClick={onLogout}>Déconnexion</Button>
+        <div className="flex gap-2 md:flex-col">
+          <Button variant="ghost" onClick={() => setAccount(true)}>Compte</Button>
+          <Button variant="ghost" onClick={onLogout}>Déconnexion</Button>
+        </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex justify-end p-3 md:pr-6"><ThemeSwitcher /></header>
         <main className="flex-1 p-4 pt-2 md:px-6">{children}</main>
       </div>
+      {account && <AccountDialog onClose={() => setAccount(false)} onLoggedOut={onLogout} />}
     </div>
   );
 }
