@@ -155,3 +155,15 @@ def test_events_route_requires_auth_and_known_connection(client):
     assert client.get("/api/connections/1/events").status_code == 401
     client.post("/api/auth/setup", json={"username": "admin", "password": PWD})
     assert client.get("/api/connections/999/events").status_code == 404
+
+
+def test_stream_renames_error_to_problem():
+    async def go():
+        hub = Hub(interval=5, error_interval=5)
+        fetch, _ = counting_fetch([RuntimeError("Proxmox injoignable")])
+        s = stream(hub, 1, fetch, heartbeat=5)
+        await nxt(s)                                  # retry
+        chunk = await nxt(s)
+        await s.aclose()
+        return chunk
+    assert run(go()) == 'event: problem\ndata: "Proxmox injoignable"\n\n'

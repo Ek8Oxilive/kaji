@@ -46,7 +46,8 @@ async def stream(h: Hub, conn_id: int, fetch, heartbeat: float = HEARTBEAT) -> A
                 yield ": ping\n\n"                # maintient la connexion ouverte à travers les proxys
                 continue
             event, data = nxt.result()
-            yield sse(event, data)
+            # « error » est déjà pris par EventSource (perte de connexion) : on émet « problem »
+            yield sse("problem" if event == "error" else event, data)
             nxt = asyncio.ensure_future(agen.__anext__())
     finally:
         if nxt is not None and not nxt.done():
