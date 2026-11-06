@@ -20,7 +20,7 @@ export default function App() {
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
   return (
     <Layout page={page} onNavigate={setPage} onLogout={logout}>
-      {page === "connections" ? <Connections /> : <Dashboard />}
+      {page === "connections" ? <Connections /> : <Dashboard onGoConnections={() => setPage("connections")} />}
     </Layout>
   );
 }

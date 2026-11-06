@@ -24,7 +24,7 @@ cd frontend
 npm install
 npm run dev        # http://localhost:5173 (les appels /api sont relayés vers le backend)
 ```
-Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox. Le dashboard des machines arrive à l'étape suivante du jalon M3.
+Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox, et **dashboard** : résumé du cluster, nœuds (CPU, RAM, disque), machines VM/LXC en cartes avec filtres (recherche, état, type, nœud) et actions démarrer / redémarrer / éteindre / forcer l'arrêt. Les actions destructrices demandent confirmation, l'état attendu s'affiche tout de suite et la tâche Proxmox est suivie jusqu'au bout. Les données se rafraîchissent toutes les 10 s (cadence des statistiques Proxmox).
 
 ## Démarrage (backend)
 Prérequis : Python 3.12+.

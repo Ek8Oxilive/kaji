@@ -11,6 +11,7 @@
   --color-accent: var(--accent);
   --color-accentfg: var(--accentfg);
   --color-ok: var(--ok);
+  --color-warn: var(--warn);
   --color-danger: var(--danger);
 }
 
@@ -26,6 +27,7 @@
   --accent: #38bdf8;
   --accentfg: #04121c;
   --ok: #34d399;
+  --warn: #fbbf24;
   --danger: #f87171;
   --blur: 0px;
   --radius: 0.875rem;
@@ -44,6 +46,7 @@
   --accent: #a78bfa;
   --accentfg: #14072e;
   --ok: #5eead4;
+  --warn: #fcd34d;
   --danger: #fda4af;
   --blur: 18px;
   --radius: 1.25rem;
@@ -88,6 +91,13 @@ body {
 }
 .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .field::placeholder { color: var(--muted); opacity: 0.7; }
+
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.dot-live { animation: pulse-ring 2s ease-out infinite; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.35s ease-out both; }
+.card-hover { transition: transform 0.2s, border-color 0.2s; }
+.card-hover:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
