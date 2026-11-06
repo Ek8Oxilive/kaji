@@ -32,3 +32,39 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+  docker:
+    # Test de fumée complet : construit les images, démarre la pile et l'interroge à travers nginx.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire et démarrer
+        run: |
+          printf 'KAJI_SECRET_KEY=%s\nKAJI_COOKIE_SECURE=false\n' "$(openssl rand -base64 36 | tr -d '\n')" > .env
+          docker compose up -d --build --wait --wait-timeout 240
+      - name: Test de fumée à travers nginx
+        run: |
+          set -euo pipefail
+          B=http://127.0.0.1:8080
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          test "$(code $B/api/health)" = 200
+          curl -s $B/ | grep -q '<div id="root">'
+          curl -s $B/une/route/inconnue | grep -q '<div id="root">'                       # repli de l'application
+          curl -sI $B/ | grep -i '^content-security-policy:' | grep -q "script-src 'self'"
+          curl -sI $B/ | grep -iq '^x-frame-options: DENY'
+          curl -sI $B/api/health | grep -iq '^cache-control: no-store'
+          JS=$(curl -s $B/ | grep -o '/assets/[^"]*\.js' | head -1); test "$(code $B$JS)" = 200
+          test "$(code $B/api/connections)" = 401                                          # API protégée
+          if curl -s --max-time 3 http://127.0.0.1:8000/api/health; then echo "le backend est joignable directement"; exit 1; fi
+          test "$(curl -s -c jar -X POST $B/api/auth/setup -H 'content-type: application/json' -d '{"username":"admin","password":"un-mot-de-passe-de-ci-12"}' -o /dev/null -w '%{http_code}')" = 201
+          test "$(code -b jar $B/api/auth/me)" = 200
+          docker compose restart backend && docker compose up -d --wait --wait-timeout 120
+          test "$(code -b jar $B/api/auth/me)" = 200                                       # la base survit au redémarrage
+          docker compose exec -T backend sh -c 'test "$(stat -c %a /data/kaji.db)" = 600'
+          test "$(docker compose exec -T backend id -u | tr -d '\r')" != 0                 # pas root
+          docker compose exec -T backend python -m app.migrations status | grep -q "'pending': \[\]"
+      - name: Journaux en cas d'échec
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Nettoyer
+        if: always()
+        run: docker compose down -v

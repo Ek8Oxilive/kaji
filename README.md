@@ -28,6 +28,9 @@ npm run dev        # http://localhost:5173 (les appels /api sont relayés vers l
 
 **Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Le bouton **« + Nouvelle machine »** (ou la palette Ctrl+K) propose une **VM** ou un **conteneur LXC** ; l'**assistant de création de VM** compte 4 étapes : général (nœud, nom, identifiant proposé, pool, système), matériel (cœurs, mémoire, disque et stockage, ISO), réseau (bridge ou VNet, VLAN, firewall) et récapitulatif. Windows 11 reçoit automatiquement UEFI, TPM et disque EFI. L'assistant prévient quand aucun pool n'est choisi. Un onglet **Snapshots** permet de créer, supprimer et restaurer des points de restauration (la restauration exige de retaper le nom de la machine). Le bouton **« Cloner »** (sur chaque carte, y compris les modèles) copie une machine : clone complet ou lié, vers le même nœud ou un autre. Une ligne **« Emplacement »** permet de **migrer** la machine vers un autre nœud, après les vérifications préalables de Proxmox. Une **zone dangereuse** en bas du panneau Matériel permet de supprimer une machine arrêtée : la fenêtre liste les disques détruits et exige de retaper le nom. Pour une VM, un onglet **Cloud-init** règle l'utilisateur, le mot de passe, les clés SSH, l'IP et le DNS, et ajoute ou retire le lecteur cloud-init. Les disques s'**ajoutent, se détachent (données conservées), se rattachent, se déplacent et se suppriment définitivement** (en retapant le nom de la machine). On peut aussi **ajouter ou retirer une carte réseau** et régler l'**ordre de démarrage** d'une VM. Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
 
+## Déploiement
+`docker compose up -d --build` lance le backend et le frontend (nginx). Guide complet, HTTPS, sauvegarde, mise à jour et mot de passe perdu : [docs/deploiement.md](docs/deploiement.md).
+
 ## Démarrage (backend)
 Prérequis : Python 3.12+.
 
@@ -128,7 +131,8 @@ Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour *
 - **Audit purgé** au-delà de `KAJI_AUDIT_RETENTION_DAYS`.
 - **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
 - Dépendances **à version fixée**, mises à jour par Dependabot.
-- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions), les migrations de schéma de base.
+- **Migrations de schéma** : versionnées, **sauvegardées** (copie `kaji.db.bak-vN-…` en `600` avant toute migration, les 5 dernières sont gardées), **atomiques** (une transaction par migration, schéma compris) ; Kaji refuse de démarrer sur une base plus récente que le code. `python -m app.migrations status` (ou `upgrade`) depuis `backend/`.
+- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions).
 
 ## Sécurité des secrets
 Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.
