@@ -14,7 +14,7 @@ export function Modal({ title, subtitle, onClose, onSubmit, submitLabel, busy, e
   const submit = (e: FormEvent) => { e.preventDefault(); if (canSubmit && !busy) onSubmit(); };
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4" onClick={onClose}>
-      <form role="dialog" aria-modal="true" aria-label={title} onSubmit={submit} onClick={(e) => e.stopPropagation()} className="panel rise w-full max-w-md space-y-4 p-6">
+      <form role="dialog" aria-modal="true" aria-label={title} onSubmit={submit} onClick={(e) => e.stopPropagation()} className="panel rise max-h-[92vh] w-full max-w-md space-y-4 overflow-y-auto p-6">
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
           {subtitle && <p className="text-sm text-muted">{subtitle}</p>}

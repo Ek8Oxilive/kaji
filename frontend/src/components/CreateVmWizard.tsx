@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
-import { api, type Bridge, type Iso, type NodeInfo, type Pool, type StorageInfo, type VmCreateBody } from "../lib/api";
+import { api, type Bridge, type Iso, type NodeInfo, type StorageInfo, type VmCreateBody } from "../lib/api";
 import { bytes } from "../lib/format";
 import { runTask } from "../lib/tasks";
 import { useSubmit } from "./HardwareDialogs";
+import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
@@ -46,7 +47,6 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
   const q = { staleTime: 30_000, retry: false } as const;
 
   const nextId = useQuery({ queryKey: ["nextid", connId], queryFn: () => api<{ vmid: number }>(`${base}/nextid`), ...q, staleTime: 0 });
-  const pools = useQuery({ queryKey: ["pools", connId], queryFn: () => api<Pool[]>(`${base}/pools`), ...q });
   const stores = useQuery({ queryKey: ["storages", connId, f.node, "images"], queryFn: () => api<StorageInfo[]>(`${base}/nodes/${f.node}/storages?content=images`), enabled: !!f.node, ...q });
   const isos = useQuery({ queryKey: ["isos", connId, f.node], queryFn: () => api<Iso[]>(`${base}/nodes/${f.node}/isos`), enabled: !!f.node, ...q });
   const bridges = useQuery({ queryKey: ["bridges", connId, f.node], queryFn: () => api<Bridge[]>(`${base}/nodes/${f.node}/bridges`), enabled: !!f.node, ...q });
@@ -85,7 +85,6 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
     await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
   });
 
-  const poolsEmpty = pools.isSuccess && pools.data.length === 0;
   const lbl = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
 
   return (
@@ -109,10 +108,8 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
               <Field label="Nom" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="ma-vm" hint="Lettres, chiffres, - et . (sans espace)" autoFocus />
               <Field label="Identifiant" type="number" min={100} value={f.vmid} onChange={(e) => set("vmid", e.target.value)} hint={nextId.data ? `Libre : ${nextId.data.vmid}` : undefined} />
             </div>
-            <Select label="Pool" value={f.pool} onChange={(e) => set("pool", e.target.value)} hint="Un pool regroupe les machines et leurs droits.">
-              <option value="">Aucun pool</option>{pools.data?.map((p) => <option key={p.poolid} value={p.poolid}>{p.poolid}{p.comment ? ` · ${p.comment}` : ""}</option>)}
-            </Select>
-            {poolsEmpty && <Notice kind="error">Aucun pool visible : la machine sera créée hors de tout pool.</Notice>}
+            <PoolField connId={connId} value={f.pool} onChange={(v) => set("pool", v)} />
+            {!f.pool && <Notice kind="error">Aucun pool choisi : la machine sera créée hors de tout pool.</Notice>}
             <Select label="Système d'exploitation" value={f.ostype} onChange={(e) => set("ostype", e.target.value)}>{OS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
             <Field label="Description (facultatif)" value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={200} />
           </>}
