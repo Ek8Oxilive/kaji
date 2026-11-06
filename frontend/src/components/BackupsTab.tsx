@@ -53,7 +53,7 @@ export function BackupsTab({ connId, guest }: { connId: number; guest: Guest }) 
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted">Sauvegardes des stockages du nœud {guest.node} uniquement. Pour lancer, restaurer ou supprimer une sauvegarde, la page « Sauvegardes » arrive avec le jalon M5.</p>
+      <p className="text-xs text-muted">Sauvegardes des stockages du nœud {guest.node} uniquement. Pour lancer, restaurer ou supprimer une sauvegarde : <a href="#/backups" className="underline">page « Sauvegardes »</a>.</p>
     </div>
   );
 }
