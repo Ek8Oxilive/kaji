@@ -13,7 +13,7 @@ services:
       KAJI_TRUST_PROXY: "true"
     volumes:
       - kaji-data:/data                 # base SQLite (avec la clé, c'est ce qu'il faut sauvegarder)
-    # Pas de « ports » : le backend n'est joignable que par nginx, sur le réseau interne.
+    ports: ["127.0.0.1:8000:8000"]   # MUTATION VOLONTAIRE (test de la CI)
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).status == 200 else 1)"]
       interval: 15s
