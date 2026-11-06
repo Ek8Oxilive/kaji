@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from .db import init_db
-from .routers import actions, auth, cluster, connections
+from .routers import actions, auth, cluster, connections, hardware
 
 
 @asynccontextmanager
@@ -16,6 +16,8 @@ app = FastAPI(title="Kaji", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(connections.router)
 app.include_router(cluster.router)
+# hardware avant actions : la route générique .../{vmid}/{action} intercepterait sinon .../resize
+app.include_router(hardware.router)
 app.include_router(actions.router)
 
 
