@@ -1,4 +1,5 @@
 """Hachage des mots de passe, jetons de session et limitation des tentatives."""
+import ipaddress
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -31,18 +32,34 @@ def _signing_key(secret_key: str) -> bytes:
     )
 
 
-def create_session_token(secret_key: str, user_id: int, hours: int) -> str:
+def create_session_token(secret_key: str, user_id: int, hours: int, jti: str) -> str:
     now = datetime.now(timezone.utc)
-    payload = {"sub": str(user_id), "iat": now, "exp": now + timedelta(hours=hours)}
+    payload = {"sub": str(user_id), "jti": jti, "iat": now, "exp": now + timedelta(hours=hours)}
     return jwt.encode(payload, _signing_key(secret_key), algorithm="HS256")
 
 
-def decode_session_token(secret_key: str, token: str) -> int | None:
+def decode_session(secret_key: str, token: str) -> tuple[int, str] | None:
+    """(identifiant utilisateur, identifiant de session), ou None. Un jeton sans jti est refusé."""
     try:
         data = jwt.decode(token, _signing_key(secret_key), algorithms=["HS256"])
-        return int(data["sub"])
+        jti = data["jti"]
+        if not isinstance(jti, str) or not jti:
+            return None
+        return int(data["sub"]), jti
     except (jwt.PyJWTError, KeyError, ValueError):
         return None
+
+
+def client_ip(request, trust_proxy: bool = False) -> str:
+    """IP du client. Derrière un proxy de confiance : la dernière valeur de X-Forwarded-For (celle qu'il a ajoutée)."""
+    if trust_proxy:
+        last = request.headers.get("x-forwarded-for", "").split(",")[-1].strip()
+        try:
+            ipaddress.ip_address(last)
+            return last
+        except ValueError:
+            pass
+    return request.client.host if request.client else "unknown"
 
 
 class LoginThrottle:

@@ -1,4 +1,4 @@
-from app.security import create_session_token, decode_session_token, hash_password, verify_password
+from app.security import create_session_token, decode_session, hash_password, verify_password
 
 KEY = "cle-de-test-suffisamment-longue"
 
@@ -15,10 +15,10 @@ def test_verify_without_hash_is_false():
 
 
 def test_session_token_roundtrip_and_wrong_key():
-    t = create_session_token(KEY, 7, 1)
-    assert decode_session_token(KEY, t) == 7
-    assert decode_session_token("autre-cle-de-test-longue", t) is None
+    t = create_session_token(KEY, 7, 1, "abc")
+    assert decode_session(KEY, t) == (7, "abc")
+    assert decode_session("autre-cle-de-test-longue", t) is None
 
 
 def test_expired_token_rejected():
-    assert decode_session_token(KEY, create_session_token(KEY, 7, -1)) is None
+    assert decode_session(KEY, create_session_token(KEY, 7, -1, "abc")) is None

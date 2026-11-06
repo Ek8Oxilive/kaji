@@ -46,7 +46,9 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 
 | Route | Rôle |
 |---|---|
-| `POST /api/auth/setup` · `login` · `logout` · `GET /api/auth/me` | Compte admin et session |
+| `POST /api/auth/setup` · `login` · `logout` · `GET /api/auth/me` | Compte admin et session. `logout` **révoque** la session côté serveur. |
+| `POST /api/auth/logout-all` | Révoque toutes les sessions du compte |
+| `POST /api/auth/password` | Change le mot de passe (l'actuel est exigé) ; révoque les autres sessions |
 | `GET/POST /api/connections` | Lister / ajouter un cluster Proxmox |
 | `GET/PATCH/DELETE /api/connections/{id}` | Voir / modifier / supprimer (le token n'est jamais renvoyé) |
 | `POST /api/connections/test` | Tester des identifiants avant de les enregistrer |
@@ -94,6 +96,8 @@ Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add
 |---|---|---|
 | `KAJI_SECRET_KEY` | Chiffrement des tokens et signature des sessions. **Obligatoire**, à garder secrète. Si tu la perds, les connexions enregistrées sont à ressaisir. | – |
 | `KAJI_COOKIE_SECURE` | Cookie de session en `Secure`. Mettre `false` seulement en HTTP sur le réseau local. | `true` |
+| `KAJI_TRUST_PROXY` | Derrière un reverse proxy **de confiance** uniquement : le limiteur de connexions utilise l'IP ajoutée par le proxy (`X-Forwarded-For`). Sinon l'en-tête est ignoré, car falsifiable. | `false` |
+| `KAJI_AUDIT_RETENTION_DAYS` | Durée de conservation de l'audit ; les entrées plus anciennes sont supprimées (0 = indéfiniment) | `365` |
 | `KAJI_PROTECTED_VMIDS` | Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. `105,108`). **Recommandé** pour tes machines importantes. | vide |
 | `DATABASE_URL` | Base de données | `sqlite:///./kaji.db` |
 | `KAJI_SESSION_HOURS` | Durée de session | `12` |
@@ -115,6 +119,14 @@ cd backend
 
 ## Licence
 [MIT](LICENSE)
+
+## Durcissement
+- **Sessions révocables** : chaque jeton renvoie à une session enregistrée en base ; la déconnexion, le changement de mot de passe et `logout-all` les suppriment, un jeton copié devient donc inutilisable.
+- **Base SQLite en `600`** (hash du mot de passe, tokens chiffrés, audit) : créée ainsi, ou resserrée au démarrage.
+- **Audit purgé** au-delà de `KAJI_AUDIT_RETENTION_DAYS`.
+- **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
+- Dépendances **à version fixée**, mises à jour par Dependabot.
+- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions), les migrations de schéma de base.
 
 ## Sécurité des secrets
 Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.
