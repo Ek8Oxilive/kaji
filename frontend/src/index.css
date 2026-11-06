@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+/* Les composants n'utilisent que ces jetons : un thème = un jeu de variables. */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accentfg: var(--accentfg);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+}
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0a0e16;
+  --surface: #111826;
+  --surface2: #182133;
+  --fg: #e6edf7;
+  --muted: #8b98ad;
+  --line: #243049;
+  --accent: #38bdf8;
+  --accentfg: #04121c;
+  --ok: #34d399;
+  --danger: #f87171;
+  --blur: 0px;
+  --radius: 0.875rem;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --page-bg: var(--canvas);
+}
+
+:root[data-theme="glass"] {
+  color-scheme: dark;
+  --canvas: #0b0a1f;
+  --surface: rgb(255 255 255 / 0.07);
+  --surface2: rgb(255 255 255 / 0.12);
+  --fg: #f4f1ff;
+  --muted: #b3acd6;
+  --line: rgb(255 255 255 / 0.18);
+  --accent: #a78bfa;
+  --accentfg: #14072e;
+  --ok: #5eead4;
+  --danger: #fda4af;
+  --blur: 18px;
+  --radius: 1.25rem;
+  --shadow: 0 8px 32px rgb(5 0 30 / 0.45);
+  --page-bg:
+    radial-gradient(60rem 40rem at 10% -10%, rgb(124 58 237 / 0.55), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 10%, rgb(14 165 233 / 0.45), transparent 60%),
+    radial-gradient(50rem 40rem at 50% 110%, rgb(236 72 153 / 0.35), transparent 60%),
+    var(--canvas);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page-bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Carte / panneau : plat et net en « dark », translucide avec flou en « glass ». */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+}
+
+.field {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 0.4rem);
+  padding: 0.55rem 0.75rem;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.field::placeholder { color: var(--muted); opacity: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
