@@ -79,8 +79,12 @@ Garde-fous, **vérifiés côté serveur**, dans cet ordre. Chacun refuse **avant
 | 5 | La sauvegarde n'est pas protégée | 409 sinon |
 
 Une seule sauvegarde à la fois : il n'existe aucune route de suppression en masse.
-Réponse : `{"upid", "deleted"}`. Le volume est envoyé à Proxmox en un seul segment encodé
-(`local%3Abackup%2Fvzdump-…`).
+Réponse : `{"upid", "deleted"}`.
+
+Deux formes à ne pas confondre :
+- **Dans l'URL de Kaji**, `{volume}` est le **nom du fichier** seul (`vzdump-qemu-100-….vma.zst`), jamais un `volid`.
+- **Dans l'appel de Kaji à Proxmox**, c'est le `volid` complet (`local:backup/vzdump-…`) envoyé en **un seul segment
+  encodé** (`local%3Abackup%2Fvzdump-…`). Le client de Kaji n'a pas à s'en occuper.
 
 ## Restaurer vers une nouvelle machine
 
@@ -124,17 +128,30 @@ Réponse : `{"upid", "node", "vmid", "type", "archive"}`. La tâche est longue :
   alors pas un écrasement.
 - Audit `backup-restore` pour le succès (avec l'UPID, la sauvegarde source, le stockage et le pool), pour chaque refus et
   pour chaque erreur, sans secret.
+- **Droits Proxmox** : avec le token de test actuel, créer une machine hors du pool `kaji-test` est refusé par Proxmox
+  (« Droits insuffisants », traduit en 502 par Kaji). Dans cette configuration, **`pool` est de fait obligatoire**. Ce
+  n'est pas un défaut du code : cela dépend des droits accordés au token.
 
-## Non vérifié sur un vrai cluster
+## Ce qui a été validé en réel, et ce qui ne l'a pas été
 
-Tout ce qui précède a été testé avec un **faux Proxmox**, écrit d'après la documentation officielle de `vzdump`.
-À valider en réel, dans le bac à sable :
-- `DELETE …/content/local%3Abackup%2F<fichier>` (volid complet encodé en un segment) est accepté par Proxmox et renvoie un UPID ;
-- `POST /nodes/{node}/vzdump` accepte exactement ces paramètres, et `remove=0` empêche bien tout élagage ;
-- une sauvegarde protégée apparaît avec `protected: 1` dans `content=backup` ;
-- **restauration** : `POST /nodes/{node}/qemu` avec `archive=<volid>`, `vmid`, `storage`, `unique=1` (et `POST …/lxc`
-  avec `ostemplate=<volid>`, `restore=1`) crée bien une machine **arrêtée** à partir de la sauvegarde, sans toucher à
-  l'originale. Les paramètres viennent de la documentation de `qm create` et `pct restore`, pas d'un essai réel ;
-- **`/cluster/resources?type=vm`** liste bien les machines de **tous** les nœuds, y compris un nœud hors ligne (c'est
-  ce qui protège contre la réutilisation d'un identifiant). Si un nœud hors ligne n'y figurait pas, Proxmox refuserait
-  quand même sans `force`, mais Kaji ne le verrait pas avant.
+Le code a été écrit et testé avec un **faux Proxmox**. Un second agent (PC A) a ensuite validé une partie en réel, dans le
+bac à sable (pool `kaji-test`, machines jetables supprimées après coup).
+
+**Validé en réel**
+- **Restauration d'une VM** : `POST …/restore` renvoie 202 ; la nouvelle VM est créée, **arrêtée**, avec le même disque ; la
+  VM d'origine est intacte. Les paramètres `archive`, `vmid`, `storage` et `pool` sont acceptés.
+- **Restauration d'un conteneur** (`ostemplate` et `restore=1`) : 202, nouveau conteneur créé et arrêté, original intact.
+  Le type est bien lu dans le nom du fichier.
+- **`unique=1` (défaut)** : sur une VM à deux cartes réseau, les deux adresses MAC changent ; avec `unique: false`, elles
+  restent identiques à l'original.
+- **Identifiant déjà utilisé**, avec `force: true` dans le corps : 409, rien n'est écrit, `force` n'est pas transmis.
+- **`/cluster/resources?type=vm`** renvoie les machines des deux nœuds du cluster ; **`/cluster/nextid`** donne bien l'id suivant.
+- **Sauvegarde** : lancement `vzdump` (notes conservées, 200) ; suppression refusée sans confirmation (400) ou avec un
+  mauvais nom (400) ; suppression confirmée (200, avec un UPID) ; la liste est ensuite vide.
+
+**Non validé en réel**
+- **`protected: 1`** : une sauvegarde protégée apparaît-elle ainsi dans `content=backup` ? Kaji ne sait pas protéger une
+  sauvegarde, il faut passer par Proxmox directement pour produire ce cas.
+- **`remove=0`** : empêche-t-il bien tout élagage par la rétention du stockage ?
+- **`/cluster/resources?type=vm` pour un nœud hors ligne** : y figure-t-il ? S'il n'y figurait pas, Proxmox refuserait
+  quand même sans `force`, mais Kaji ne verrait pas l'identifiant pris avant l'appel.

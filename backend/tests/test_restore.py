@@ -33,11 +33,17 @@ def _handler(request: httpx.Request) -> httpx.Response:
     key = f"{request.method} {path}"
     if STATE.get("fail") and STATE["fail"] in key:
         return httpx.Response(STATE.get("code", 500), json={"data": None})
+    # Le faux doit se comporter comme Proxmox sur les paramètres qui comptent : s'il répondait pareil quoi qu'on demande,
+    # un test passerait même si le code demandait la mauvaise chose (mutation relevée à la relecture).
     if request.method == "GET" and path.endswith("/content"):
+        if request.url.params.get("content") != "backup":
+            return httpx.Response(200, json={"data": []})            # sans `content=backup` : pas les sauvegardes
         return httpx.Response(200, json={"data": STATE.get("listing", LISTING)})
     if request.method == "GET" and path == "/cluster/nextid":
         return httpx.Response(200, json={"data": STATE.get("nextid", "120")})
     if request.method == "GET" and path == "/cluster/resources":
+        if request.url.params.get("type") != "vm":                   # `type=storage` : des stockages, aucun `vmid`
+            return httpx.Response(200, json={"data": [{"type": "storage", "storage": "local", "node": "pve1"}]})
         return httpx.Response(200, json={"data": STATE.get("vms", VMS)})
     if request.method == "POST":
         return httpx.Response(200, json={"data": UPID})
@@ -168,6 +174,16 @@ def test_used_id_is_refused_and_nothing_is_written(api, used):
 def test_used_id_is_refused_for_a_container_backup_too(api):
     c, cid = api
     assert c.post(url(cid), json={**GOOD_CT, "vmid": 100}).status_code == 409 and writes() == []
+
+
+def test_used_ids_are_read_from_vm_resources_only(api):
+    """Garde-fou « identifiant déjà utilisé » : il lit `/cluster/resources?type=vm`. Avec un autre `type`, Proxmox ne
+    renverrait aucun `vmid` et la protection ne protégerait plus rien sans qu'aucun test ne s'en aperçoive."""
+    c, cid = api
+    c.post(url(cid), json={**GOOD_VM, "vmid": 101})
+    reads = [x for x in CALLS if x["path"] == "/cluster/resources"]
+    assert len(reads) == 1 and reads[0]["params"] == {"type": "vm"}
+    assert c.post(url(cid), json={**GOOD_VM, "vmid": 100}).status_code == 409      # et le résultat protège bel et bien
 
 
 def test_force_cannot_be_used_to_overwrite(api):
