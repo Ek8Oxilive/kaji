@@ -28,6 +28,19 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 La documentation interactive de l'API est sur http://127.0.0.1:8000/docs.
 
+### API (jalon M1)
+Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
+
+| Route | Rôle |
+|---|---|
+| `POST /api/auth/setup` · `login` · `logout` · `GET /api/auth/me` | Compte admin et session |
+| `GET/POST /api/connections` | Lister / ajouter un cluster Proxmox |
+| `GET/PATCH/DELETE /api/connections/{id}` | Voir / modifier / supprimer (le token n'est jamais renvoyé) |
+| `POST /api/connections/test` | Tester des identifiants avant de les enregistrer |
+| `POST /api/connections/{id}/test` | Tester une connexion enregistrée |
+
+Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add kaji@pve kaji --privsep 0`), puis saisis l'hôte, `kaji@pve`, l'ID `kaji` et le secret dans Kaji.
+
 ### Configuration (`.env`)
 | Variable | Rôle | Défaut |
 |---|---|---|
