@@ -59,7 +59,8 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
   - Garde-fous : liste blanche de paramètres validés côté serveur (aucune clé libre transmise à Proxmox), suppression d'un disque confirmée en retapant le nom de la machine, agrandissement de disque confirmé (irréversible), audit de chaque changement
   - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
-- [ ] Snapshots, suppression de machine
+- [x] Snapshots : créer, lister, supprimer, restaurer (restauration confirmée en retapant le nom de la machine)
+- [ ] Suppression de machine
 - [ ] Migration entre nœuds
 - **Jalon MVP : fin de M4**
 
