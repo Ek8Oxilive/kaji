@@ -1,0 +1,14 @@
+# Mises à jour automatiques des dépendances : une PR groupée par semaine et par écosystème.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    groups: { backend: { patterns: ["*"] } }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    groups: { frontend: { patterns: ["*"] } }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

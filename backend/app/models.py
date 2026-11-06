@@ -51,3 +51,14 @@ class AuditLog(Base):
     status: Mapped[str] = mapped_column(String(20))  # started | error
     upid: Mapped[str | None] = mapped_column(String(300), nullable=True)
     detail: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class UserSession(Base):
+    """Session ouverte. Un jeton n'est valable que si sa ligne existe ici : la déconnexion la supprime."""
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

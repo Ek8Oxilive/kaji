@@ -11,6 +11,12 @@ from .routers import actions, auth, cluster, clone, cloudinit, connections, crea
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    from . import audit
+    from .config import get_settings
+    from .db import get_engine
+    from sqlalchemy.orm import Session
+    with Session(get_engine()) as db:
+        audit.purge_old(db, get_settings().kaji_audit_retention_days)
     yield
 
 
@@ -31,6 +37,18 @@ app.include_router(actions.router)
 app.include_router(resources.router)
 app.include_router(create.router)
 app.include_router(live.router)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """En-têtes défensifs sur toutes les réponses ; l'API n'est jamais mise en cache (état du cluster, sessions)."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 @app.exception_handler(RequestValidationError)
