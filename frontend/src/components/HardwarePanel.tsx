@@ -2,13 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
-import { CdromDialog, CpuDialog, MemoryDialog, NetDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { BootDialog, CdromDialog, CpuDialog, MemoryDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
 
 type Dialog =
-  | { k: "memory" } | { k: "cpu" } | { k: "swap" }
+  | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
   | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk };
 
 function Row({ label, children, pending, action }: { label: string; children: ReactNode; pending?: string | null; action?: ReactNode }) {
@@ -24,9 +24,9 @@ function Row({ label, children, pending, action }: { label: string; children: Re
   );
 }
 
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+const Section = ({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) => (
   <section className="space-y-1">
-    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{title}</h3>
+    <div className="flex items-center justify-between"><h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{title}</h3>{action}</div>
     <div>{children}</div>
   </section>
 );
@@ -109,6 +109,9 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
                 ? <>{Number(s.cores ?? 1) * Number(s.sockets ?? 1)} vCPU <span className="text-muted">({s.sockets ?? 1} socket{Number(s.sockets ?? 1) > 1 ? "s" : ""} × {cores(s.cores ?? 1)}) · {String(s.cpu ?? "kvm64")}</span></>
                 : <>{s.cores ? cores(s.cores) : "illimité"}</>}
             </Row>
+            {qemu && <Row label="Démarrage" pending={pend("boot")} action={<Edit onClick={() => setDlg({ k: "boot" })} />}>
+              {cfg.boot_order.length ? cfg.boot_order.join(" → ") : <span className="text-muted">ordre par défaut</span>}
+            </Row>}
             {!qemu && <Row label="Swap" pending={pend("swap")} action={<Edit onClick={() => setDlg({ k: "swap" })} />}>{mem(s.swap ?? 0)}</Row>}
           </Section>
 
@@ -131,10 +134,10 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
             </Section>
           )}
 
-          <Section title="Cartes réseau">
+          <Section title="Cartes réseau" action={<Edit label="+ Ajouter" onClick={() => setDlg({ k: "netadd" })} />}>
             {cfg.nets.length === 0 && <p className="py-2 text-sm text-muted">Aucune carte réseau.</p>}
             {cfg.nets.map((n) => (
-              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<Edit onClick={() => setDlg({ k: "net", net: n })} />}>
+              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "net", net: n })} /><Button variant="danger" onClick={() => setDlg({ k: "netdel", net: n })} className="!px-3 !py-1" aria-label={`Retirer ${n.key}`}>Retirer</Button></div>}>
                 <span>{n.bridge ?? "?"}</span>
                 <span className="text-muted">{n.tag ? ` · VLAN ${n.tag}` : ""}{n.firewall ? " · firewall" : ""}{n.model ? ` · ${n.model}` : ""}{n.ip ? ` · ${n.ip}` : ""}</span>
                 {n.mac && <div className="font-mono text-xs text-muted">{n.mac}</div>}
@@ -142,7 +145,7 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
             ))}
           </Section>
 
-          <p className="text-xs text-muted">L'ajout et la suppression de disques et de cartes réseau arrivent dans une prochaine étape.</p>
+          <p className="text-xs text-muted">L'ajout et la suppression de disques arrivent dans une prochaine étape.</p>
         </>}
       </aside>
 
@@ -151,6 +154,9 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
       {cfg && dlg?.k === "swap" && <SwapDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "net" && <NetDialog net={dlg.net} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "cdrom" && <CdromDialog disk={dlg.disk} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "boot" && <BootDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Carte réseau ajoutée"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", `Carte ${dlg.net.key} retirée`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "resize" && <ResizeDialog disk={dlg.disk} connPath={base} onDone={resized} onClose={() => setDlg(null)} />}
     </div>
   );

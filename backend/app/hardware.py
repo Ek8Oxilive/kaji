@@ -3,6 +3,7 @@
 Proxmox stocke chaque périphérique dans une chaîne (« virtio=AA:BB:..,bridge=vmbr0,tag=10 »).
 On la décompose en champs structurés, et on ne réécrit que des champs validés : jamais de clé libre.
 """
+import ipaddress
 import re
 
 NET_MODELS = {"virtio", "e1000", "e1000e", "rtl8139", "vmxnet3"}
@@ -96,4 +97,55 @@ def normalize(gtype: str, cfg: dict, pending: list[dict]) -> dict:
     pend = [{"key": p["key"], "value": p.get("value"), "pending": p.get("pending"), "delete": bool(p.get("delete"))}
             for p in pending if "pending" in p or p.get("delete")]
     return {"type": gtype, "settings": settings, "disks": disks, "nets": nets, "pending": pend,
-            "reboot_required": bool(pend)}
+            "reboot_required": bool(pend), "boot_order": [] if lxc else parse_boot_order(cfg.get("boot"))}
+
+
+BOOT_KEY = re.compile(r"^((scsi|virtio|sata|ide)\d+|net\d+)$")
+
+
+def parse_boot_order(value: str | None) -> list[str]:
+    """« order=scsi0;ide2;net0 » -> ['scsi0', 'ide2', 'net0']. Les formats anciens (c, dn…) ne sont pas interprétés."""
+    for part in str(value or "").split(","):
+        k, _, v = part.partition("=")
+        if k == "order":
+            return [x for x in v.split(";") if BOOT_KEY.match(x)]
+    return []
+
+
+def next_net_index(cfg: dict) -> int:
+    used = {int(k[3:]) for k in cfg if NET_KEY.match(k)}
+    for n in range(32):
+        if n not in used:
+            return n
+    raise ValueError("Nombre maximal de cartes réseau atteint (32)")
+
+
+def validate_ip(ip: str | None, gateway: str | None) -> None:
+    if ip in (None, "", "dhcp", "manual"):
+        if gateway:
+            raise ValueError("Une passerelle n'a de sens qu'avec une adresse IP statique")
+        return
+    try:
+        if "/" not in ip:
+            raise ValueError("masque manquant")      # Proxmox exige la notation CIDR (192.168.1.50/24)
+        ipaddress.ip_interface(ip)
+        if gateway:
+            ipaddress.ip_address(gateway)
+    except ValueError:
+        raise ValueError("Adresse IP (CIDR, ex. 192.168.1.50/24) ou passerelle invalide") from None
+
+
+def build_new_net(lxc: bool, index: int, *, bridge: str, model: str = "virtio", tag: int | None = None,
+                  firewall: bool = False, ip: str | None = None, gateway: str | None = None) -> str:
+    """Chaîne d'une nouvelle carte réseau. La MAC est attribuée par Proxmox."""
+    validate_ip(ip, gateway)
+    parts = [f"name=eth{index}", f"bridge={bridge}", "type=veth"] if lxc else [model, f"bridge={bridge}"]
+    if lxc and ip:
+        parts.append(f"ip={ip}")
+        if gateway:
+            parts.append(f"gw={gateway}")
+    if tag:
+        parts.append(f"tag={tag}")
+    if firewall:
+        parts.append("firewall=1")
+    return ",".join(parts)

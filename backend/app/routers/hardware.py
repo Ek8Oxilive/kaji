@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import audit
 from ..db import get_db
 from ..deps import get_client_factory
-from ..hardware import BRIDGE, DISK_KEY, ISO, MP_KEY, NET_KEY, normalize, parse_disk, rebuild_net
+from ..hardware import BOOT_KEY, BRIDGE, DISK_KEY, ISO, MP_KEY, NET_KEY, normalize, parse_disk, rebuild_net
 from ..models import AdminUser
 from .actions import NODE
 from .auth import current_user
@@ -52,6 +52,14 @@ class ConfigUpdate(BaseModel):
     swap: int | None = Field(default=None, ge=0, le=4_194_304, description="Mo (LXC)")
     nets: dict[str, NetEdit] = {}
     cdroms: dict[str, CdromEdit] = {}
+    boot: list[str] | None = Field(default=None, min_length=1, max_length=40, description="Ordre de démarrage (VM) : scsi0, ide2, net0…")
+
+    @field_validator("boot")
+    @classmethod
+    def _boot(cls, v):
+        if v is not None and (len(set(v)) != len(v) or not all(BOOT_KEY.match(x) for x in v)):
+            raise ValueError("Ordre de démarrage invalide (périphériques uniques : scsi0, ide2, net0…)")
+        return v
 
 
 class ResizeBody(BaseModel):
@@ -97,8 +105,8 @@ async def update_config(body: ConfigUpdate, conn_id: int, node: str = Path(patte
                          status="error", detail=str(e.detail))
             raise
 
-    if lxc and (body.balloon is not None or body.sockets is not None or body.cpu is not None or body.cdroms):
-        refuse("Option réservée aux VM (balloon, sockets, cpu, cdroms)")
+    if lxc and (body.balloon is not None or body.sockets is not None or body.cpu is not None or body.cdroms or body.boot):
+        refuse("Option réservée aux VM (balloon, sockets, cpu, cdroms, boot)")
     if not lxc and body.swap is not None:
         refuse("Le swap ne concerne que les LXC")
 
@@ -114,6 +122,12 @@ async def update_config(body: ConfigUpdate, conn_id: int, node: str = Path(patte
         if key not in cfg or not DISK_KEY.match(key) or parse_disk(key, cfg[key])["kind"] != "cdrom":
             refuse(f"Lecteur CD/DVD inconnu : {key}", 404)
         params[key] = f"{edit.iso},media=cdrom" if edit.iso else "none,media=cdrom"
+
+    if body.boot is not None:
+        missing = [k for k in body.boot if k not in cfg]
+        if missing:
+            refuse(f"Périphérique de démarrage inconnu : {', '.join(missing)}", 404)
+        params["boot"] = "order=" + ";".join(body.boot)
 
     if not params:
         refuse("Aucune modification demandée", 400)
