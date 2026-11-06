@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "../components/Toast";
-import { api, type ClusterStatus, type Guest, type GuestAction, type NodeInfo, type TaskStatus } from "./api";
+import { api, type ClusterStatus, type Guest, type GuestAction, type NodeInfo } from "./api";
+import { waitTask } from "./tasks";
 
 const POLL_MS = 10_000; // Proxmox rafraîchit ses statistiques environ toutes les 10 s
 
@@ -50,7 +51,6 @@ export const LABELS: Record<GuestAction, { busy: string; done: string; expect: "
 };
 
 export const guestKey = (g: Pick<Guest, "node" | "type" | "vmid">) => `${g.node}/${g.type}/${g.vmid}`;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Lance une action, suit la tâche Proxmox jusqu'au bout, et affiche l'état attendu tout de suite
@@ -70,12 +70,7 @@ export function useGuestActions(connId: number | null) {
       const { upid } = await api<{ upid: string }>(`/api/connections/${connId}/guests/${g.node}/${g.type}/${g.vmid}/${action}`, {
         method: "POST", body: action === "stop" ? { confirm: true } : {},
       });
-      let task: TaskStatus | null = null;
-      for (let i = 0; i < 90 && !task; i++) {
-        await sleep(1000);
-        const t = await api<TaskStatus>(`/api/connections/${connId}/tasks/${g.node}/${encodeURIComponent(upid)}`);
-        if (t.status === "stopped") task = t;
-      }
+      const task = await waitTask(connId!, g.node, upid);
       if (task?.ok) {
         toast("ok", `${label} ${LABELS[action].done}`);
         setOverrides((o) => ({ ...o, [key]: { status: LABELS[action].expect, until: Date.now() + 22_000 } }));
