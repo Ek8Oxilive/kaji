@@ -35,3 +35,19 @@ class AdminUser(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AuditLog(Base):
+    """Journal des actions d'écriture. Ne contient jamais de secret."""
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+    username: Mapped[str] = mapped_column(String(64))
+    connection_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    action: Mapped[str] = mapped_column(String(50))
+    target: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20))  # started | error
+    upid: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(500), nullable=True)

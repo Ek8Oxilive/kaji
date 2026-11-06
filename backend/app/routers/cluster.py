@@ -17,14 +17,14 @@ router = APIRouter(prefix="/api/connections/{conn_id}", tags=["cluster"],
 Factory = Callable[..., ProxmoxClient]
 
 
-async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, **params):
+async def _px(db: Session, factory: Factory, conn_id: int, method: str, path: str, **params):
     client = factory(**_params(_get_or_404(db, conn_id)))
     try:
-        return await client.get(path, **params)
+        return await getattr(client, method)(path, **params)
     except httpx.HTTPStatusError as e:
         code = e.response.status_code
         detail = {401: "Token refusé par Proxmox", 403: "Droits insuffisants pour cette opération"}.get(
-            code, f"Proxmox a répondu {code}")
+            code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
     except httpx.TimeoutException:
         raise HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
@@ -32,6 +32,10 @@ async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, **para
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Proxmox injoignable")
     finally:
         await client.aclose()
+
+
+async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, **params):
+    return await _px(db, factory, conn_id, "get", path, **params)
 
 
 def _guest(r: dict) -> dict:
