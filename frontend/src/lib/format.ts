@@ -16,3 +16,9 @@ export function uptime(s: number | null | undefined): string {
 
 export const pct = (used: number | null | undefined, max: number | null | undefined) =>
   used != null && max ? Math.min(100, (used / max) * 100) : 0;
+
+export function mem(mb: number | string | null | undefined): string {
+  const n = Number(mb);
+  if (!n) return "–";
+  return n >= 1024 ? `${(n / 1024).toFixed(n % 1024 ? 1 : 0)} Go` : `${n} Mo`;
+}

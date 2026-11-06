@@ -1,0 +1,146 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
+import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
+import { mem } from "../lib/format";
+import { CdromDialog, CpuDialog, MemoryDialog, NetDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { useToast } from "./Toast";
+import { Button, Notice } from "./ui";
+
+type Dialog =
+  | { k: "memory" } | { k: "cpu" } | { k: "swap" }
+  | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk };
+
+function Row({ label, children, pending, action }: { label: string; children: ReactNode; pending?: string | null; action?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-line/60 py-3 last:border-0">
+      <div className="w-32 shrink-0 text-sm text-muted">{label}</div>
+      <div className="min-w-0 flex-1 text-sm">
+        <div className="break-words">{children}</div>
+        {pending && <div className="mt-1 inline-block rounded-md bg-warn/15 px-2 py-0.5 text-xs text-warn">En attente : {pending}</div>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="space-y-1">
+    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{title}</h3>
+    <div>{children}</div>
+  </section>
+);
+
+const cores = (n: unknown) => `${n} ${Number(n) > 1 ? "cœurs" : "cœur"}`;
+
+const Edit = ({ onClick, label = "Modifier" }: { onClick: () => void; label?: string }) => (
+  <Button variant="ghost" onClick={onClick} className="!px-3 !py-1">{label}</Button>
+);
+
+export function HardwarePanel({ connId, guest, onClose }: { connId: number; guest: Guest; onClose: () => void }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const base = `/api/connections/${connId}/guests/${guest.node}/${guest.type}/${guest.vmid}`;
+  const qk = ["hw", connId, guest.node, guest.type, guest.vmid];
+  const { data: cfg, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<HwConfig>(`${base}/config`), staleTime: 0 });
+  const [dlg, setDlg] = useState<Dialog | null>(null);
+
+  useEffect(() => {
+    if (dlg) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dlg, onClose]);
+
+  const save = async (body: HwUpdate) => {
+    await api(`${base}/config`, { method: "PATCH", body });
+    toast("ok", "Configuration enregistrée");
+    await qc.invalidateQueries({ queryKey: qk });
+  };
+  const resized = async () => { toast("ok", "Disque agrandi"); await qc.invalidateQueries({ queryKey: qk }); };
+
+  const pend = (key: string) => {
+    const p = cfg?.pending.find((x) => x.key === key);
+    return !p ? null : p.delete ? "suppression" : String(p.pending);
+  };
+  const qemu = guest.type === "qemu";
+  const s = cfg?.settings ?? {};
+  const disks = cfg?.disks.filter((d) => d.kind === "disk") ?? [];
+  const cdroms = cfg?.disks.filter((d) => d.kind === "cdrom") ?? [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+      <aside role="dialog" aria-modal="true" aria-label={`Matériel de ${guest.name}`} onClick={(e) => e.stopPropagation()}
+        className="panel rise h-full w-[min(36rem,100vw)] space-y-6 overflow-y-auto !rounded-none !rounded-l-2xl p-6">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Matériel · {guest.name ?? guest.vmid}</h2>
+            <p className="text-sm text-muted">#{guest.vmid} · {guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
+        </header>
+
+        {isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
+        {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
+
+        {cfg && <>
+          {cfg.reboot_required && (
+            <Notice kind="error">
+              Changements en attente : ils s'appliqueront au prochain redémarrage de la machine ({cfg.pending.map((p) => p.key).join(", ")}).
+            </Notice>
+          )}
+
+          <Section title="Ressources">
+            <Row label="Mémoire" pending={pend("memory")} action={<Edit onClick={() => setDlg({ k: "memory" })} />}>
+              {mem(s.memory)}{qemu && s.balloon !== undefined && <span className="text-muted"> · minimum {Number(s.balloon) === 0 ? "ballooning désactivé" : mem(s.balloon)}</span>}
+            </Row>
+            <Row label="Processeurs" pending={pend("cores") ?? pend("sockets") ?? pend("cpu")} action={<Edit onClick={() => setDlg({ k: "cpu" })} />}>
+              {qemu
+                ? <>{Number(s.cores ?? 1) * Number(s.sockets ?? 1)} vCPU <span className="text-muted">({s.sockets ?? 1} socket{Number(s.sockets ?? 1) > 1 ? "s" : ""} × {cores(s.cores ?? 1)}) · {String(s.cpu ?? "kvm64")}</span></>
+                : <>{s.cores ? cores(s.cores) : "illimité"}</>}
+            </Row>
+            {!qemu && <Row label="Swap" pending={pend("swap")} action={<Edit onClick={() => setDlg({ k: "swap" })} />}>{mem(s.swap ?? 0)}</Row>}
+          </Section>
+
+          <Section title="Disques">
+            {disks.length === 0 && <p className="py-2 text-sm text-muted">Aucun disque.</p>}
+            {disks.map((d) => (
+              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<Edit label="Agrandir" onClick={() => setDlg({ k: "resize", disk: d })} />}>
+                {d.storage}:{d.volume} <span className="text-muted">· {d.size ?? "taille inconnue"}</span>
+              </Row>
+            ))}
+          </Section>
+
+          {qemu && cdroms.length > 0 && (
+            <Section title="CD/DVD">
+              {cdroms.map((d) => (
+                <Row key={d.key} label={d.key} pending={pend(d.key)} action={<Edit onClick={() => setDlg({ k: "cdrom", disk: d })} />}>
+                  {d.empty ? <span className="text-muted">Aucun média</span> : `${d.storage}:${d.volume}`}
+                </Row>
+              ))}
+            </Section>
+          )}
+
+          <Section title="Cartes réseau">
+            {cfg.nets.length === 0 && <p className="py-2 text-sm text-muted">Aucune carte réseau.</p>}
+            {cfg.nets.map((n) => (
+              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<Edit onClick={() => setDlg({ k: "net", net: n })} />}>
+                <span>{n.bridge ?? "?"}</span>
+                <span className="text-muted">{n.tag ? ` · VLAN ${n.tag}` : ""}{n.firewall ? " · firewall" : ""}{n.model ? ` · ${n.model}` : ""}{n.ip ? ` · ${n.ip}` : ""}</span>
+                {n.mac && <div className="font-mono text-xs text-muted">{n.mac}</div>}
+              </Row>
+            ))}
+          </Section>
+
+          <p className="text-xs text-muted">L'ajout et la suppression de disques et de cartes réseau arrivent dans une prochaine étape.</p>
+        </>}
+      </aside>
+
+      {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "cpu" && <CpuDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "swap" && <SwapDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "net" && <NetDialog net={dlg.net} save={save} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "cdrom" && <CdromDialog disk={dlg.disk} save={save} onClose={() => setDlg(null)} />}
+      {dlg?.k === "resize" && <ResizeDialog disk={dlg.disk} connPath={base} onDone={resized} onClose={() => setDlg(null)} />}
+    </div>
+  );
+}
