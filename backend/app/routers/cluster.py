@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_client_factory
 from ..proxmox import ProxmoxClient
+from ..storagespec import shape_storages
 from .auth import current_user
 from .connections import _get_or_404, _params
 
@@ -101,11 +102,6 @@ async def guests(conn_id: int, node: str | None = Query(default=None),
 @router.get("/storages")
 async def storages(conn_id: int, db: Session = Depends(get_db),
                    factory: Factory = Depends(get_client_factory)):
-    data = await _px_get(db, factory, conn_id, "/cluster/resources", type="storage")
-    return sorted(
-        ({"storage": r.get("storage"), "node": r.get("node"), "type": r.get("plugintype"),
-          "status": r.get("status"), "shared": bool(r.get("shared")),
-          "disk": r.get("disk", 0), "maxdisk": r.get("maxdisk"), "content": r.get("content")}
-         for r in data),
-        key=lambda s: (s["storage"] or "", s["node"] or ""),
-    )
+    """Un stockage par nœud. Les champs historiques sont conservés ; `contents`, `used`, `total`, `free`,
+    `active` et `nodes` s'y ajoutent (voir `docs/api/stockage.md`)."""
+    return shape_storages(await _px_get(db, factory, conn_id, "/cluster/resources", type="storage"))
