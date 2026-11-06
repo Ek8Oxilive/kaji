@@ -37,7 +37,7 @@ export type Guest = {
   cpu: number; maxcpu: number | null; mem: number; maxmem: number | null; uptime: number;
 };
 export type GuestAction = "start" | "shutdown" | "reboot" | "stop";
-export type TaskStatus = { status: string | null; exitstatus: string | null; type: string | null; ok: boolean };
+export type TaskStatus = { status: string | null; exitstatus: string | null; type: string | null; ok: boolean; warnings?: boolean };
 
 export type HwDisk = {
   key: string; kind: "disk" | "cdrom"; storage: string | null; volume: string | null; empty: boolean;
@@ -76,4 +76,15 @@ export type VmCreateBody = {
 export type MigratePreflight = {
   preflight: boolean; running: boolean | null; allowed_nodes: string[]; not_allowed: { node: string; reasons: string[] }[];
   local_disks: { volid: string | null; size: number | null }[]; local_resources: string[];
+};
+
+export type LxcTemplates = {
+  storages: string[]; local: { volid: string; storage: string; name: string; size: number | null }[];
+  downloadable: { template: string; os: string | null; version: string | null; section: string | null; architecture: string | null; description: string | null }[] | null;
+};
+export type LxcCreateBody = {
+  hostname: string; vmid?: number; template: string; memory: number; swap: number; cores: number;
+  disk: { storage: string; size_gb: number };
+  net?: { bridge: string; tag?: number; firewall: boolean; ip?: string; gateway?: string };
+  password?: string; ssh_public_keys?: string; unprivileged: boolean; nesting: boolean; pool?: string; start: boolean; description: string;
 };

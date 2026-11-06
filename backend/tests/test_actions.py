@@ -11,6 +11,7 @@ BODY = {"name": "lab", "host": "10.0.0.5", "user": "kaji@pve", "token_id": "kaji
 UPID = "UPID:enzo:0001A2B3:00C4D5E6:67890ABC:vzstart:105:kaji@pve!kaji:"
 CALLS = []
 FAIL = {}
+EXIT = {"v": "OK"}
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
@@ -21,7 +22,7 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if request.method == "POST" and "/status/" in path:
         return httpx.Response(200, json={"data": UPID})
     if path.endswith("/status"):
-        return httpx.Response(200, json={"data": {"status": "stopped", "exitstatus": "OK", "type": "vzstart",
+        return httpx.Response(200, json={"data": {"status": "stopped", "exitstatus": EXIT["v"], "type": "vzstart",
                                                   "id": "105", "user": "kaji@pve!kaji", "starttime": 1}})
     if path.endswith("/log"):
         return httpx.Response(200, json={"data": [{"n": 1, "t": "starting"}, {"n": 2, "t": "TASK OK"}]})
@@ -32,6 +33,7 @@ def _handler(request: httpx.Request) -> httpx.Response:
 def api(client):
     CALLS.clear()
     FAIL.clear()
+    EXIT["v"] = "OK"
     app.dependency_overrides[get_client_factory] = lambda: (
         lambda **kw: ProxmoxClient(**kw, transport=httpx.MockTransport(_handler))
     )
@@ -115,3 +117,12 @@ def test_invalid_upid_rejected(api, bad):
     c, cid = api
     assert c.get(f"/api/connections/{cid}/tasks/enzo/{bad}").status_code in (404, 422)
     assert CALLS == []
+
+
+@pytest.mark.parametrize("status,ok,warnings", [("OK", True, False), ("WARNINGS: 1", True, True), ("WARNINGS: 12", True, True),
+                                                ("command 'x' failed: exit code 1", False, False), ("ERROR", False, False)])
+def test_task_exit_status_ok_and_warnings(api, status, ok, warnings):
+    c, cid = api
+    EXIT["v"] = status
+    r = c.get(f"/api/connections/{cid}/tasks/enzo/{UPID}").json()
+    assert (r["ok"], r["warnings"]) == (ok, warnings) and r["exitstatus"] == status

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type Bridge, type Iso, type NodeInfo, type StorageInfo, type VmCreateBody } from "../lib/api";
 import { bytes } from "../lib/format";
-import { runTask } from "../lib/tasks";
+import { runTask, WARN_SUFFIX } from "../lib/tasks";
 import { useSubmit } from "./HardwareDialogs";
 import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
@@ -80,8 +80,8 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
   });
 
   const create = () => run(async () => {
-    await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/qemu`, { method: "POST", body: body() }), "Création");
-    toast("ok", `Machine « ${f.name} » créée (#${f.vmid})`);
+    const t = await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/qemu`, { method: "POST", body: body() }), "Création");
+    toast("ok", `Machine « ${f.name} » créée (#${f.vmid})${t.warnings ? WARN_SUFFIX : ""}`);
     await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
   });
 

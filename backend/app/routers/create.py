@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from .. import audit
 from ..db import get_db
 from ..deps import get_client_factory
+from ..lxcspec import LxcCreate, build_lxc_params
 from ..models import AdminUser
 from ..vmspec import VmCreate, build_params
 from .actions import NODE
@@ -68,4 +69,35 @@ async def create_vm(body: VmCreate, conn_id: int, node: str = Path(pattern=NODE)
     audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target, status="started",
                  upid=upid if isinstance(upid, str) else None,
                  detail=f"{body.name}" + (f" · pool {body.pool}" if body.pool else ""))
+    return {"upid": upid, "node": node, "vmid": vmid}
+
+
+@router.post("/api/connections/{conn_id}/nodes/{node}/lxc", status_code=status.HTTP_202_ACCEPTED)
+async def create_lxc(body: LxcCreate, conn_id: int, node: str = Path(pattern=NODE), db: Session = Depends(get_db),
+                     factory: Factory = Depends(get_client_factory), user: AdminUser = Depends(current_user)):
+    """Crée un conteneur LXC à partir d'un modèle déjà présent. Le mot de passe n'est jamais journalisé."""
+    action, target = "create-lxc", f"lxc/{body.vmid or '?'}@{node}"
+
+    def log(st, detail=None, upid=None):
+        audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target, status=st, detail=detail, upid=upid)
+
+    async def px(method: str, path: str, **kw):
+        try:
+            return await _px(db, factory, conn_id, method, path, **kw)
+        except HTTPException as e:
+            log("error", str(e.detail))
+            raise
+
+    vmid = body.vmid if body.vmid is not None else int(await px("get", "/cluster/nextid"))
+    target = f"lxc/{vmid}@{node}"
+    try:
+        params = build_lxc_params(body, vmid)
+    except ValueError as e:
+        log("error", str(e))
+        raise HTTPException(422, str(e))
+    upid = await px("post", f"/nodes/{node}/lxc", **params)
+    access = [x for x, on in (("mot de passe", body.password), ("clé SSH", body.ssh_public_keys)) if on]
+    log("started", f"{body.hostname} · {body.template.split('/')[-1]}" + (f" · pool {body.pool}" if body.pool else "")
+        + (f" · accès : {', '.join(access)}" if access else " · aucun accès configuré")
+        + ("" if body.unprivileged else " · PRIVILÉGIÉ"), upid=upid if isinstance(upid, str) else None)
     return {"upid": upid, "node": node, "vmid": vmid}
