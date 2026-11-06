@@ -9,7 +9,7 @@ export type Save = (body: HwUpdate) => Promise<void>;
 type Common = { onClose: () => void; save: Save; cfg: HwConfig };
 
 /** Exécute une action, affiche l'erreur dans la fenêtre, ferme en cas de succès. */
-function useSubmit(onClose: () => void) {
+export function useSubmit(onClose: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const run = async (fn: () => Promise<void>) => {

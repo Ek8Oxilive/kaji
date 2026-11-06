@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate } from "../lib/api";
 import { mem } from "../lib/format";
 import { CdromDialog, CpuDialog, MemoryDialog, NetDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
+import { SnapshotsTab } from "./SnapshotsTab";
 import { useToast } from "./Toast";
 import { Button, Notice } from "./ui";
 
@@ -43,6 +44,7 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
   const qk = ["hw", connId, guest.node, guest.type, guest.vmid];
   const { data: cfg, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<HwConfig>(`${base}/config`), staleTime: 0 });
   const [dlg, setDlg] = useState<Dialog | null>(null);
+  const [tab, setTab] = useState<"hardware" | "snapshots">("hardware");
 
   useEffect(() => {
     if (dlg) return;
@@ -73,16 +75,25 @@ export function HardwarePanel({ connId, guest, onClose }: { connId: number; gues
         className="panel rise h-full w-[min(36rem,100vw)] space-y-6 overflow-y-auto !rounded-none !rounded-l-2xl p-6">
         <header className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Matériel · {guest.name ?? guest.vmid}</h2>
+            <h2 className="text-xl font-semibold tracking-tight">{guest.name ?? guest.vmid}</h2>
             <p className="text-sm text-muted">#{guest.vmid} · {guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
           </div>
           <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
         </header>
 
-        {isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
-        {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
+        <div role="tablist" className="flex gap-1 border-b border-line">
+          {([["hardware", "Matériel"], ["snapshots", "Snapshots"]] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm transition ${tab === id ? "border-accent font-medium text-fg" : "border-transparent text-muted hover:text-fg"}`}>{label}</button>
+          ))}
+        </div>
 
-        {cfg && <>
+        {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={guest.status === "running"} />}
+
+        {tab === "hardware" && isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
+        {tab === "hardware" && error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
+
+        {tab === "hardware" && cfg && <>
           {cfg.reboot_required && (
             <Notice kind="error">
               Changements en attente : ils s'appliqueront au prochain redémarrage de la machine ({cfg.pending.map((p) => p.key).join(", ")}).

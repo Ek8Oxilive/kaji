@@ -26,7 +26,7 @@ npm run dev        # http://localhost:5173 (les appels /api sont relayés vers l
 ```
 Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox, et **dashboard** : résumé du cluster, nœuds (CPU, RAM, disque), machines VM/LXC en cartes avec filtres (recherche, état, type, nœud) et actions démarrer / redémarrer / éteindre / forcer l'arrêt. Les actions destructrices demandent confirmation, l'état attendu s'affiche tout de suite et la tâche Proxmox est suivie jusqu'au bout. Les données arrivent **en temps réel** (flux SSE, indicateur « En direct ») ; si le flux est indisponible, l'interface se rabat seule sur un rafraîchissement toutes les 10 s (cadence des statistiques Proxmox). **Ctrl+K** ouvre une palette de commandes : retrouver une machine et lui appliquer une action (les actions destructrices demandent toujours confirmation), changer de thème, aller aux connexions.
 
-**Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
+**Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Un onglet **Snapshots** permet de créer, supprimer et restaurer des points de restauration (la restauration exige de retaper le nom de la machine). Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
 
 ## Démarrage (backend)
 Prérequis : Python 3.12+.
@@ -61,6 +61,9 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 | `GET /api/connections/{id}/guests/{node}/{type}/{vmid}/config` | Matériel décomposé (CPU, RAM, disques, cartes réseau) et changements en attente |
 | `PATCH …/config` | Modifie CPU (cœurs, sockets, type), RAM, balloon, swap (LXC), réseau (bridge, VLAN, firewall ; la MAC est conservée), ISO monté ou éjecté. Seuls des champs validés sont acceptés. |
 | `POST …/resize` | Agrandit un disque de N Go (irréversible, exige `{"confirm": true}`) |
+| `GET\|POST …/guests/{node}/{type}/{vmid}/snapshots` | Lister / créer un snapshot (avec la mémoire pour une VM en marche) |
+| `DELETE …/snapshots/{name}?confirm=true` | Supprimer un snapshot (confirmation exigée) |
+| `POST …/snapshots/{name}/rollback` | Restaurer la machine à ce snapshot, exige `{"confirm": true}` (tout ce qui a changé depuis est perdu) |
 | `GET /api/connections/{id}/nodes/{node}/bridges` | Réseaux sélectionnables pour une carte réseau : bridges locaux et VNets SDN (la liste reste utilisable si le SDN est absent ou illisible) |
 | `GET /api/connections/{id}/nodes/{node}/isos` | Images ISO disponibles sur les stockages actifs du nœud |
 | `GET /api/audit` | Journal d'audit des actions (qui, quoi, quand, résultat) |

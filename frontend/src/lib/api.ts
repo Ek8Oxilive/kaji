@@ -60,3 +60,6 @@ export type HwUpdate = {
 
 export type Bridge = { name: string; kind: "bridge" | "vnet"; zone: string | null; detail: string | null; vlan_aware: boolean };
 export type Iso = { volid: string; storage: string; name: string; size: number | null };
+
+export type Snapshot = { name: string; description: string; time: number | null; vmstate: boolean; parent: string | null };
+export type SnapshotList = { snapshots: Snapshot[]; current_parent: string | null };
