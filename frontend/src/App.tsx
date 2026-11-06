@@ -4,6 +4,7 @@ import { api, type AuthStatus } from "./lib/api";
 import { AuthScreen } from "./pages/AuthScreen";
 import { Connections } from "./pages/Connections";
 import { Dashboard } from "./pages/Dashboard";
+import { Stockage } from "./pages/Stockage";
 
 export default function App() {
   const [status, setStatus] = useState<AuthStatus | null>(null);
@@ -20,7 +21,9 @@ export default function App() {
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
   return (
     <Layout page={page} onNavigate={setPage} onLogout={logout}>
-      {page === "connections" ? <Connections /> : <Dashboard onGoConnections={() => setPage("connections")} />}
+      {page === "connections" ? <Connections />
+        : page === "storage" ? <Stockage onGoConnections={() => setPage("connections")} />
+        : <Dashboard onGoConnections={() => setPage("connections")} />}
     </Layout>
   );
 }

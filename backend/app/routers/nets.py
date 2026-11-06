@@ -29,7 +29,7 @@ class NetAdd(BaseModel):
     @field_validator("bridge")
     @classmethod
     def _bridge(cls, v):
-        if not BRIDGE.match(v):
+        if not BRIDGE.fullmatch(v):
             raise ValueError("Nom de bridge invalide")
         return v
 
@@ -91,7 +91,7 @@ async def remove_net(conn_id: int, key: str = Path(pattern=r"^net\d+$"), node: s
         audit_err("confirmation manquante")
         raise HTTPException(400, "Retirer une carte réseau perd son adresse MAC : renvoie la requête avec ?confirm=true")
     cfg = await px("get", path, current=1)
-    if key not in cfg or not NET_KEY.match(key):
+    if key not in cfg or not NET_KEY.fullmatch(key):
         audit_err("carte inconnue")
         raise HTTPException(404, f"Carte réseau inconnue : {key}")
     mac = parse_net(key, cfg[key], gtype == "lxc")["mac"]

@@ -20,10 +20,12 @@ Dans `.env`, pense aussi à `KAJI_PROTECTED_VMIDS` (machines que Kaji refuse de 
 
 ## Accès depuis un autre poste, HTTPS
 Le cookie de session est `Secure` : il n'est accepté par le navigateur qu'en **HTTPS** ou sur `localhost`. En HTTP sur ton réseau
-local (`http://192.168.x.x:8080`), la connexion échoue. Deux solutions :
+local (`http://192.168.x.x:8080`), la connexion échoue **sans message d'erreur** : le formulaire se revalide puis revient
+à l'écran de connexion (les journaux montrent `POST /api/auth/login 200` suivi d'un état « non connecté »). Deux solutions :
 1. **HTTPS** devant `web` (recommandé) : Tailscale (`tailscale serve`, vérifie la syntaxe de ta version), ou un reverse proxy
    (Caddy, Traefik, nginx) qui termine le TLS et relaie vers `127.0.0.1:8080`.
-2. En dernier recours, sur un réseau de confiance : `KAJI_COOKIE_SECURE=false` dans `.env` (le cookie circule alors en clair).
+2. En dernier recours, sur un réseau de confiance : `KAJI_COOKIE_SECURE=false` dans `.env` (le cookie circule alors en clair). Puis `docker compose up -d --force-recreate backend` : un simple `restart`
+   ne relit pas `.env`.
 
 Pour écouter sur le réseau : `KAJI_BIND=0.0.0.0` dans `.env`, puis `docker compose up -d`.
 

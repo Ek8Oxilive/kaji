@@ -4,10 +4,11 @@ import { Logo } from "./Logo";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui";
 
-export type Page = "dashboard" | "connections";
+export type Page = "dashboard" | "connections" | "storage";
 const NAV: { id: Page; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "connections", label: "Connexions" },
+  { id: "storage", label: "Stockage" },
 ];
 
 export function Layout({ page, onNavigate, onLogout, children }: { page: Page; onNavigate: (p: Page) => void; onLogout: () => void; children: ReactNode }) {
