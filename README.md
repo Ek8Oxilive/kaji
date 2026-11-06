@@ -65,6 +65,8 @@ Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
 | `DELETE …/snapshots/{name}?confirm=true` | Supprimer un snapshot (confirmation exigée) |
 | `POST …/snapshots/{name}/rollback` | Restaurer la machine à ce snapshot, exige `{"confirm": true}` (tout ce qui a changé depuis est perdu) |
 | `GET /api/connections/{id}/nodes/{node}/bridges` | Réseaux sélectionnables pour une carte réseau : bridges locaux et VNets SDN (la liste reste utilisable si le SDN est absent ou illisible) |
+| `POST /api/connections/{id}/nodes/{node}/qemu` | Crée une VM (nom, mémoire, CPU, disque, réseau, ISO, pool, type d'OS ; Windows 11 reçoit UEFI, TPM et disque EFI). Chaque champ est validé ; l'identifiant est choisi automatiquement si absent. |
+| `GET /api/connections/{id}/nextid` · `/pools` · `/nodes/{node}/storages?content=` | Prochain identifiant libre, pools, stockages d'un nœud acceptant un type de contenu |
 | `GET /api/connections/{id}/nodes/{node}/isos` | Images ISO disponibles sur les stockages actifs du nœud |
 | `GET /api/audit` | Journal d'audit des actions (qui, quoi, quand, résultat) |
 

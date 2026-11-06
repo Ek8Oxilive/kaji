@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from .db import init_db
-from .routers import actions, auth, cluster, connections, hardware, live, resources, snapshots
+from .routers import actions, auth, cluster, connections, create, hardware, live, resources, snapshots
 
 
 @asynccontextmanager
@@ -21,6 +21,7 @@ app.include_router(hardware.router)
 app.include_router(snapshots.router)
 app.include_router(actions.router)
 app.include_router(resources.router)
+app.include_router(create.router)
 app.include_router(live.router)
 
 
