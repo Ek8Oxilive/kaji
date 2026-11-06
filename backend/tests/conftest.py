@@ -3,6 +3,10 @@ import os
 os.environ.setdefault("KAJI_SECRET_KEY", "test-secret-key-not-for-production")
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("KAJI_COOKIE_SECURE", "false")
+# Les tests ne doivent jamais dépendre du .env de la machine (il prime sur les valeurs par défaut) :
+# toute variable de configuration utilisée par un test est fixée ici explicitement.
+os.environ["KAJI_PROTECTED_VMIDS"] = ""
+os.environ["KAJI_SESSION_HOURS"] = "12"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
