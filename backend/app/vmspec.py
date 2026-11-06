@@ -18,7 +18,7 @@ class DiskSpec(BaseModel):
     @field_validator("storage")
     @classmethod
     def _storage(cls, v):
-        if not STORAGE.match(v):
+        if not STORAGE.fullmatch(v):
             raise ValueError("Nom de stockage invalide")
         return v
 
@@ -32,7 +32,7 @@ class NetSpec(BaseModel):
     @field_validator("bridge")
     @classmethod
     def _bridge(cls, v):
-        if not BRIDGE.match(v):
+        if not BRIDGE.fullmatch(v):
             raise ValueError("Nom de bridge invalide")
         return v
 
@@ -56,14 +56,14 @@ class VmCreate(BaseModel):
     @field_validator("iso")
     @classmethod
     def _iso(cls, v):
-        if v is not None and not ISO.match(v):
+        if v is not None and not ISO.fullmatch(v):
             raise ValueError("Volume ISO invalide (attendu : stockage:iso/nom.iso)")
         return v
 
     @field_validator("pool")
     @classmethod
     def _pool(cls, v):
-        if v is not None and not POOL.match(v):
+        if v is not None and not POOL.fullmatch(v):
             raise ValueError("Nom de pool invalide")
         return v
 

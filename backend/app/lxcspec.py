@@ -21,7 +21,7 @@ class LxcNet(BaseModel):
     @field_validator("bridge")
     @classmethod
     def _bridge(cls, v):
-        if not BRIDGE.match(v):
+        if not BRIDGE.fullmatch(v):
             raise ValueError("Nom de bridge invalide")
         return v
 
@@ -46,14 +46,14 @@ class LxcCreate(BaseModel):
     @field_validator("template")
     @classmethod
     def _template(cls, v):
-        if not TEMPLATE.match(v):
+        if not TEMPLATE.fullmatch(v):
             raise ValueError("Modèle invalide (attendu : stockage:vztmpl/nom.tar.zst)")
         return v
 
     @field_validator("pool")
     @classmethod
     def _pool(cls, v):
-        if v is not None and not POOL.match(v):
+        if v is not None and not POOL.fullmatch(v):
             raise ValueError("Nom de pool invalide")
         return v
 
@@ -63,7 +63,7 @@ class LxcCreate(BaseModel):
         if v is None or not v.strip():
             return None
         lines = [l.strip() for l in v.strip().splitlines() if l.strip()]
-        if len(lines) > 8 or not all(SSH_KEY.match(l) for l in lines):
+        if len(lines) > 8 or not all(SSH_KEY.fullmatch(l) for l in lines):
             raise ValueError("Clé SSH publique invalide (8 clés au plus, une par ligne : ssh-ed25519 AAAA… commentaire)")
         return "\n".join(lines)
 

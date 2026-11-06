@@ -27,7 +27,7 @@ class NetEdit(BaseModel):
     @field_validator("bridge")
     @classmethod
     def _bridge(cls, v):
-        if v is not None and not BRIDGE.match(v):
+        if v is not None and not BRIDGE.fullmatch(v):
             raise ValueError("Nom de bridge invalide")
         return v
 
@@ -38,7 +38,7 @@ class CdromEdit(BaseModel):
     @field_validator("iso")
     @classmethod
     def _iso(cls, v):
-        if v is not None and not ISO.match(v):
+        if v is not None and not ISO.fullmatch(v):
             raise ValueError("Volume ISO invalide (attendu : stockage:iso/nom.iso)")
         return v
 
@@ -57,7 +57,7 @@ class ConfigUpdate(BaseModel):
     @field_validator("boot")
     @classmethod
     def _boot(cls, v):
-        if v is not None and (len(set(v)) != len(v) or not all(BOOT_KEY.match(x) for x in v)):
+        if v is not None and (len(set(v)) != len(v) or not all(BOOT_KEY.fullmatch(x) for x in v)):
             raise ValueError("Ordre de démarrage invalide (périphériques uniques : scsi0, ide2, net0…)")
         return v
 
@@ -114,12 +114,12 @@ async def update_config(body: ConfigUpdate, conn_id: int, node: str = Path(patte
     cfg = await px("get", f"{path}/config", current=1)
 
     for key, edit in body.nets.items():
-        if not NET_KEY.match(key) or key not in cfg:
+        if not NET_KEY.fullmatch(key) or key not in cfg:
             refuse(f"Carte réseau inconnue : {key}", 404)
         tag = None if edit.clear_tag else (edit.tag if edit.tag is not None else False)
         params[key] = rebuild_net(cfg[key], lxc, bridge=edit.bridge, tag=tag, firewall=edit.firewall)
     for key, edit in body.cdroms.items():
-        if key not in cfg or not DISK_KEY.match(key) or parse_disk(key, cfg[key])["kind"] != "cdrom":
+        if key not in cfg or not DISK_KEY.fullmatch(key) or parse_disk(key, cfg[key])["kind"] != "cdrom":
             refuse(f"Lecteur CD/DVD inconnu : {key}", 404)
         params[key] = f"{edit.iso},media=cdrom" if edit.iso else "none,media=cdrom"
 
@@ -161,7 +161,7 @@ async def resize_disk(body: ResizeBody, conn_id: int, node: str = Path(pattern=N
     if not body.confirm:
         refuse("L'agrandissement d'un disque est irréversible : renvoie la requête avec {\"confirm\": true}", 400)
     cfg = await px("get", f"{path}/config", current=1)
-    is_disk = (body.disk == "rootfs" or bool(MP_KEY.match(body.disk))) if gtype == "lxc" else bool(DISK_KEY.match(body.disk))
+    is_disk = (body.disk == "rootfs" or bool(MP_KEY.fullmatch(body.disk))) if gtype == "lxc" else bool(DISK_KEY.fullmatch(body.disk))
     if not is_disk or body.disk not in cfg or parse_disk(body.disk, cfg[body.disk])["kind"] != "disk":
         refuse(f"Disque inconnu : {body.disk}", 404)
     await px("put", f"{path}/resize", disk=body.disk, size=f"+{body.add_gb}G")

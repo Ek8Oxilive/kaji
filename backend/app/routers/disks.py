@@ -20,7 +20,7 @@ BASE = "/api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/disks"
 
 
 def _storage(v: str) -> str:
-    if not STORAGE.match(v):
+    if not STORAGE.fullmatch(v):
         raise ValueError("Nom de stockage invalide")
     return v
 
@@ -46,7 +46,7 @@ class Move(BaseModel):
 
 
 def _is_disk_key(gtype: str, key: str) -> bool:
-    return (key == "rootfs" or bool(MP_KEY.match(key))) if gtype == "lxc" else bool(DISK_KEY.match(key))
+    return (key == "rootfs" or bool(MP_KEY.fullmatch(key))) if gtype == "lxc" else bool(DISK_KEY.fullmatch(key))
 
 
 class Ctx:
@@ -136,7 +136,7 @@ async def reattach_disk(body: Reattach, conn_id: int, key: str = Path(pattern=r"
     if lxc and not body.mp:
         c.refuse("Un chemin de montage est obligatoire pour un LXC", 422)
     cfg = await c.config()
-    if key not in cfg or not UNUSED_KEY.match(key):
+    if key not in cfg or not UNUSED_KEY.fullmatch(key):
         c.refuse(f"Disque non utilisé inconnu : {key}", 404)
     try:
         new = next_mp_key(cfg) if lxc else next_disk_key(cfg, body.bus)

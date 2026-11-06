@@ -29,14 +29,14 @@ class MigrateBody(BaseModel):
     @field_validator("target_node")
     @classmethod
     def _node(cls, v):
-        if not re.match(NODE, v):
+        if not re.fullmatch(NODE, v):
             raise ValueError("Nom de nœud invalide")
         return v
 
     @field_validator("target_storage")
     @classmethod
     def _storage(cls, v):
-        if v is not None and not STORAGE.match(v):
+        if v is not None and not STORAGE.fullmatch(v):
             raise ValueError("Nom de stockage invalide")
         return v
 

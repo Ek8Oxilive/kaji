@@ -50,14 +50,14 @@ class CloudInitUpdate(BaseModel):
         if v is None:
             return None
         lines = [l.strip() for l in v.strip().splitlines() if l.strip()]
-        if not lines or len(lines) > 8 or not all(SSH_KEY.match(l) for l in lines):
+        if not lines or len(lines) > 8 or not all(SSH_KEY.fullmatch(l) for l in lines):
             raise ValueError("Clé SSH publique invalide (8 au plus, une par ligne ; utilise « clear » pour tout retirer)")
         return "\n".join(lines)
 
     @field_validator("ipconfig")
     @classmethod
     def _ipconf(cls, v):
-        if not all(IPCONF.match(k) for k in v):
+        if not all(IPCONF.fullmatch(k) for k in v):
             raise ValueError("Clé ipconfigN invalide")
         return v
 
@@ -78,7 +78,7 @@ class CloudInitUpdate(BaseModel):
     @field_validator("searchdomain")
     @classmethod
     def _domain(cls, v):
-        if v is not None and not DOMAIN.match(v):
+        if v is not None and not DOMAIN.fullmatch(v):
             raise ValueError("Domaine de recherche invalide")
         return v
 
@@ -89,7 +89,7 @@ class DriveAdd(BaseModel):
     @field_validator("storage")
     @classmethod
     def _s(cls, v):
-        if not STORAGE.match(v):
+        if not STORAGE.fullmatch(v):
             raise ValueError("Nom de stockage invalide")
         return v
 
@@ -143,7 +143,7 @@ def shape(cfg: dict) -> dict:
         "has_drive": find_cloudinit_key(cfg) is not None, "drive": find_cloudinit_key(cfg),
         "user": cfg.get("ciuser"), "password_set": "cipassword" in cfg,          # la valeur n'est jamais lue ni renvoyée
         "ssh_keys": unquote(cfg["sshkeys"]).strip() if cfg.get("sshkeys") else None,
-        "ipconfig": {k: parse_ipconfig(v) for k, v in sorted(cfg.items()) if IPCONF.match(k)},
+        "ipconfig": {k: parse_ipconfig(v) for k, v in sorted(cfg.items()) if IPCONF.fullmatch(k)},
         "nameserver": cfg.get("nameserver"), "searchdomain": cfg.get("searchdomain"),
         "upgrade": None if "ciupgrade" not in cfg else str(cfg["ciupgrade"]) == "1",
     }
