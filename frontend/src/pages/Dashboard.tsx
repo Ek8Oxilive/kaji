@@ -31,7 +31,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 
 const Skeleton = ({ n, h = "h-40" }: { n: number; h?: string }) => <>{Array.from({ length: n }, (_, i) => <div key={i} className={`panel animate-pulse ${h}`} />)}</>;
 
-export function Dashboard({ onGoConnections, onOpenGuest }: { onGoConnections: () => void; onOpenGuest: (g: Guest) => void }) {
+export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoConnections: () => void; onOpenGuest: (g: Guest) => void; onOpenNode: (node: string) => void }) {
   const conns = useQuery({ queryKey: ["connections"], queryFn: () => api<Connection[]>("/api/connections") });
   const [connId, setConnId] = useState<number | null>(readConn);
   const list = conns.data;
@@ -102,6 +102,7 @@ export function Dashboard({ onGoConnections, onOpenGuest }: { onGoConnections: (
         ] : []),
       ];
     }),
+    ...n.map((x): Command => ({ id: `node-${x.node}`, group: "Navigation", label: `Ouvrir le nœud ${x.node}`, keywords: "serveur hôte", run: () => onOpenNode(x.node) })),
     { id: "new-vm", group: "Machines", label: "Créer une machine virtuelle", keywords: "nouvelle vm ajouter", run: () => setWizard("vm") },
     { id: "new-lxc", group: "Machines", label: "Créer un conteneur LXC", keywords: "nouveau conteneur lxc ct ajouter", run: () => setWizard("lxc") },
     { id: "go-conn", group: "Navigation", label: "Aller aux connexions", keywords: "cluster token", run: onGoConnections },
@@ -150,7 +151,7 @@ export function Dashboard({ onGoConnections, onOpenGuest }: { onGoConnections: (
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Nœuds</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {nodes.isLoading ? <Skeleton n={2} h="h-52" /> : n.map((x, i) => <NodeCard key={x.node} node={x} index={i} ip={status.data?.nodes.find((s) => s.name === x.node)?.ip} />)}
+          {nodes.isLoading ? <Skeleton n={2} h="h-52" /> : n.map((x, i) => <NodeCard key={x.node} node={x} index={i} onOpen={() => onOpenNode(x.node)} ip={status.data?.nodes.find((s) => s.name === x.node)?.ip} />)}
         </div>
       </section>
 

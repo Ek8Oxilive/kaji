@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Layout, NAV, NAV_BOTTOM, type Page } from "./components/Layout";
 import { api, type AuthStatus } from "./lib/api";
-import { guestHash, pageHash, useRoute } from "./lib/route";
+import { guestHash, nodeHash, pageHash, useRoute } from "./lib/route";
 import { AuthScreen } from "./pages/AuthScreen";
 import { Connections } from "./pages/Connections";
 import { Dashboard } from "./pages/Dashboard";
 import { Machine } from "./pages/Machine";
+import { NodePage } from "./pages/Node";
 import { Sauvegardes } from "./pages/Sauvegardes";
 import { Stockage } from "./pages/Stockage";
 
@@ -24,16 +25,17 @@ export default function App() {
   if (!status.authenticated) return <AuthScreen setup={status.setup_required} onDone={refresh} />;
 
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
-  // La page Machine n'est pas dans la barre latérale : elle garde « Dashboard » allumé. Adresse inconnue : tableau de bord.
+  // Les pages Machine et Nœud ne sont pas dans la barre latérale : elles gardent « Dashboard » allumé. Adresse inconnue : tableau de bord.
   const page = (PAGES.includes(route.page) ? route.page : "dashboard") as Page;
   const goConnections = () => go(pageHash("connections"));
   return (
     <Layout page={page} onNavigate={(p) => go(pageHash(p))} onLogout={logout}>
       {route.page === "machine" ? <Machine params={route.params} go={go} onGoConnections={goConnections} />
+        : route.page === "node" ? <NodePage params={route.params} go={go} onGoConnections={goConnections} />
         : page === "connections" ? <Connections />
         : page === "storage" ? <Stockage onGoConnections={goConnections} />
         : page === "backups" ? <Sauvegardes onGoConnections={goConnections} />
-        : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} />}
+        : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );
 }

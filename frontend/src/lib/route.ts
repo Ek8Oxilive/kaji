@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
  *   #/                                  tableau de bord
  *   #/storage                           une page de la barre latérale : `#/<id de la page>`
  *   #/machine/enzo/qemu/100/snapshots   page d'une machine (nœud / type / identifiant / onglet)
+ *   #/node/enzo                         page d'un nœud
  *
  * Tout ce qui vient de l'adresse est une saisie non fiable : on ne garde que des segments simples, et la page Machine
  * ne s'en sert que pour retrouver une machine dans la liste du cluster (jamais directement dans un appel d'API).
@@ -25,6 +26,7 @@ export function parseHash(hash: string): Route {
 export const pageHash = (page: string) => (page === "dashboard" ? "#/" : `#/${page}`);
 
 export type GuestRef = { node: string; type: "qemu" | "lxc"; vmid: number };
+export const nodeHash = (node: string) => `#/node/${node}`;
 export const guestHash = (g: GuestRef, tab?: string) => `#/machine/${g.node}/${g.type}/${g.vmid}${tab ? `/${tab}` : ""}`;
 
 export function useRoute() {
