@@ -47,9 +47,10 @@ def get_engine():
 
 
 def init_db() -> None:
-    from . import models  # noqa: F401  (enregistre les tables)
+    """Crée ou met à jour le schéma (voir migrations.py) ; refuse de démarrer sur une base plus récente que le code."""
+    from .migrations import run_migrations
 
-    Base.metadata.create_all(get_engine())
+    run_migrations(get_engine())
 
 
 def get_db() -> Iterator[Session]:
