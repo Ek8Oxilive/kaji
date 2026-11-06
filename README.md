@@ -120,6 +120,8 @@ cd backend
 ## Licence
 [MIT](LICENSE)
 
+Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour **changer le mot de passe** (l'actuel est exigé, 12 caractères minimum) et **déconnecter toutes les sessions**.
+
 ## Durcissement
 - **Sessions révocables** : chaque jeton renvoie à une session enregistrée en base ; la déconnexion, le changement de mot de passe et `logout-all` les suppriment, un jeton copié devient donc inutilisable.
 - **Base SQLite en `600`** (hash du mot de passe, tokens chiffrés, audit) : créée ainsi, ou resserrée au démarrage.
