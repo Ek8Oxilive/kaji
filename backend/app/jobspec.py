@@ -14,7 +14,7 @@ JOB_ID = r"^[A-Za-z][A-Za-z0-9_\-]{1,63}$"
 # Planification : `HH:MM`, éventuellement précédée de jours (`mon`, `mon,wed`, `mon..fri`). Rien d'autre : ni `*`, ni
 # intervalles (`*:0/5`), ni secondes, ni dates. Un format libre permettrait une sauvegarde toutes les minutes.
 _DOW = r"(?:mon|tue|wed|thu|fri|sat|sun)"
-SCHEDULE = re.compile(rf"(?:{_DOW}(?:(?:,|\.\.){_DOW})*\s)?(?:[01][0-9]|2[0-3]):[0-5][0-9]")
+SCHEDULE = re.compile(rf"(?:{_DOW}(?:(?:,|\.\.){_DOW})*\x20)?(?:[01][0-9]|2[0-3]):[0-5][0-9]")  # \x20 : UN espace, jamais `\s`
 
 KEEP = ("keep_last", "keep_hourly", "keep_daily", "keep_weekly", "keep_monthly", "keep_yearly")  # ordre de la doc
 MAX_KEEP = 999

@@ -16,6 +16,19 @@ renvoient pas la valeur saisie. Chaque création, modification et suppression es
 (`backup-job-create`, `backup-job-update`, `backup-job-delete`), y compris les refus et les erreurs, sans secret. Le texte
 des notes n'est jamais copié dans l'audit (« notes=définies »).
 
+## Droit Proxmox nécessaire pour écrire : `Sys.Modify` sur `/`
+
+Dans la version de Proxmox testée, **créer, modifier ou supprimer un job de sauvegarde exige `Sys.Modify` sur `/`**, un
+droit très large (il couvre aussi la configuration des nœuds). Sans lui, Proxmox répond « Permission check failed
+(/, Sys.Modify) », même pour un job minimal et désactivé. **La lecture (`GET`) ne l'exige pas.**
+
+Kaji traduit ce refus en 502 avec un message qui nomme le droit manquant : « Droits insuffisants pour cette opération :
+Proxmox exige le droit Sys.Modify sur « / » pour créer, modifier ou supprimer un job de sauvegarde ». Le même texte est
+écrit dans l'audit. Les autres erreurs de Proxmox ne sont pas commentées ainsi.
+
+Ce droit n'est **pas** accordé au token de test actuel. L'accorder à `kaji@pve` est une décision du propriétaire :
+sans lui, cette fonction reste **en lecture seule** en pratique.
+
 ## Pourquoi tant de garde-fous
 
 Une rétention trop courte **détruit des sauvegardes**, et un job s'exécute sans personne devant. Ce que Proxmox applique :
@@ -41,7 +54,9 @@ augmenter une valeur ou ajouter une règle garde un sur-ensemble ; en diminuer u
 | `notes` | 200 caractères au plus, une seule ligne, sans antislash ; transmis sous le nom Proxmox `notes-template` | aucune | `null` le retire |
 | `confirm` | booléen, voir plus bas ; jamais transmis à Proxmox | `false` | `false` |
 
-Les jours sont `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`. Le saut de ligne final est refusé partout.
+Les jours sont `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`. Dans `schedule`, les jours et l'heure sont séparés par
+**un seul espace** (jamais une tabulation, un saut de ligne ni une espace insécable) et cet espace est obligatoire
+(`mon02:00` est refusé). Le saut de ligne final est refusé partout.
 
 **`selection`** : exactement l'une de ces trois formes.
 - `{"type": "vmids", "vmids": [100, 101]}` : 1 à 100 identifiants distincts, de 100 à 999999999.
@@ -86,14 +101,23 @@ l'identique ou passer à `keep_all` ne demande aucune confirmation.
 
 Une entrée sans `id` lisible est ignorée. Une valeur du mauvais type devient `null`.
 
-## Non vérifié sur un vrai cluster
+## Ce qui a été validé en réel, et ce qui ne l'a pas été
 
-Tout a été testé avec un **faux Proxmox**, écrit d'après la documentation de `vzdump` (la page de manuel ne décrit pas les
-options propres aux jobs). À valider en réel, dans le bac à sable :
+Le code a été écrit et testé avec un **faux Proxmox**, d'après la documentation de `vzdump` (la page de manuel ne décrit
+pas les options propres aux jobs). Un second agent (PC A) a ensuite essayé en réel, dans le bac à sable.
+
+**Validé en réel**
+- **Lecture** : `GET …/backup-jobs` renvoie 200. Le cluster n'avait **aucun job**, donc la liste était vide.
+- **Refus de confirmation** : la création sans `confirm=true` (400) et la suppression sans `confirm=true` (400) sont
+  refusées sans rien écrire.
+
+**Non validé en réel : création, modification, suppression.** Proxmox les refuse avec « Permission check failed
+(/, Sys.Modify) » tant que le droit décrit plus haut n'est pas accordé. Tout ce qui suit reste donc une hypothèse :
 - `POST /cluster/backup` accepte exactement ces paramètres (`id` choisi par Kaji sous la forme `kaji-<10 hexa>`, `vmid`
   en liste séparée par des virgules, `all`, `pool`, `prune-backups`, `notes-template`, `enabled`, `node`) ;
-- `PUT /cluster/backup/{id}` accepte `delete` avec une liste séparée par des virgules, et `GET /cluster/backup` renvoie
-  `prune-backups` sous la forme `keep-last=3,keep-daily=7`, `enabled` en 0 ou 1 et `next-run` en secondes ;
+- `PUT /cluster/backup/{id}` accepte `delete` avec une liste séparée par des virgules ;
+- **la forme des jobs en lecture** : `prune-backups` sous la forme `keep-last=3,keep-daily=7`, `enabled` en 0 ou 1,
+  `next-run` en secondes. Faute de job existant, la mise en forme d'un vrai job n'a **jamais été vue** ;
 - **la rétention d'un job supprime bien les sauvegardes plus anciennes faites hors du job** (c'est ce qui justifie la
   confirmation à la création) ;
 - `DELETE /cluster/backup/{id}` ne touche à aucune sauvegarde.

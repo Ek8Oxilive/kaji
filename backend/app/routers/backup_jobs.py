@@ -16,6 +16,16 @@ from .cluster import Factory, _px
 router = APIRouter(prefix="/api/connections/{conn_id}/backup-jobs", tags=["backup-jobs"],
                    dependencies=[Depends(current_user)])
 
+SYS_MODIFY = "Proxmox exige le droit Sys.Modify sur « / » pour créer, modifier ou supprimer un job de sauvegarde"
+
+
+def _rights(e: HTTPException) -> HTTPException:
+    """Un « Droits insuffisants » seul est incompréhensible ici : on dit quel droit manque. Réservé aux écritures (la
+    lecture des jobs n'exige pas ce droit) ; toute autre erreur est renvoyée telle quelle."""
+    if str(e.detail).startswith("Droits insuffisants"):
+        return HTTPException(e.status_code, f"{e.detail} : {SYS_MODIFY}")
+    return e
+
 
 def _describe(b, sel=None) -> str:
     """Résumé pour l'audit : jamais le texte des notes."""
@@ -80,8 +90,9 @@ async def create_job(body: JobCreate, conn_id: int, db: Session = Depends(get_db
     try:
         await _px(db, factory, conn_id, "post", "/cluster/backup", **create_params(body, job_id))
     except HTTPException as e:
+        e = _rights(e)
         log("error", f"{detail} · {e.detail}")
-        raise
+        raise e
     log("started", detail)
     return {"id": job_id}
 
@@ -114,8 +125,9 @@ async def update_job(body: JobUpdate, conn_id: int, job_id: str = Path(pattern=J
     try:
         await _px(db, factory, conn_id, "put", f"/cluster/backup/{job_id}", **params)
     except HTTPException as e:
+        e = _rights(e)
         log("error", f"{detail} · {e.detail}")
-        raise
+        raise e
     log("started", detail)
     return {"id": job_id, "updated": sorted(body.model_fields_set - {"confirm"})}
 
@@ -133,8 +145,9 @@ async def delete_job(conn_id: int, job_id: str = Path(pattern=JOB_ID), confirm: 
     try:
         await _px(db, factory, conn_id, "delete", f"/cluster/backup/{job_id}")
     except HTTPException as e:
+        e = _rights(e)
         log("error", str(e.detail))
-        raise
+        raise e
     log("started", f"job SUPPRIMÉ (planification={shaped.get('schedule')} stockage={shaped.get('storage')}) ; "
                    "les sauvegardes déjà faites sont conservées")
     return {"deleted": job_id, "note": "Les sauvegardes déjà faites n'ont pas été supprimées."}

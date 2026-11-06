@@ -185,7 +185,12 @@ def test_create_unknown_fields_are_never_forwarded(api):
 
 BAD_SCHEDULES = ["", "*:0/5", "* * * * *", "*-*-* *:*:*", "daily", "hourly", "02:00:00", "2:00", "24:00", "02:60",
                  "mon", "mon 2:00", "funday 02:00", "mon-fri 02:00", "mon.fri 02:00", "mon..  02:00", "02:00\n",
-                 "02:00 mon", "mon  02:00", " 02:00", "02:00 ", "mon,,tue 02:00", "*-*-01 02:00", "02:00,03:00", 7, None]
+                 "02:00 mon", "mon  02:00", " 02:00", "02:00 ", "mon,,tue 02:00", "*-*-01 02:00", "02:00,03:00", 7, None,
+                 # séparateur autre qu'un espace : `\s` les acceptait tous (même famille que le piège du `$`)
+                 "mon\n02:00", "mon\t02:00", "mon\r02:00", "mon\x0b02:00", "mon\x0c02:00", "mon 02:00",
+                 "mon 02:00", "mon 02:00", "mon,tue\n02:00", "mon..fri\t02:00",
+                 # séparateur absent : les jours collés à l'heure
+                 "mon02:00", "mon,tue02:00", "mon..fri02:00", "sun23:59"]
 
 
 @pytest.mark.parametrize("sched", BAD_SCHEDULES)
@@ -541,6 +546,55 @@ def test_delete_audit_records_success_every_refusal_and_error(api):
     assert [(e["action"], e["status"]) for e in log] == [("backup-job-delete", "error")] * 2 + \
         [("backup-job-delete", "started"), ("backup-job-delete", "error")]
     assert "conservées" in log[2]["detail"] and SECRET not in c.get("/api/audit").text
+
+
+# ============================== droits Proxmox (Sys.Modify) =========================================================
+
+def _assert_names_sys_modify(r):
+    assert r.status_code == 502
+    assert "Droits insuffisants" in r.json()["detail"] and "Sys.Modify" in r.json()["detail"]
+    assert SECRET not in r.text
+
+
+def test_create_forbidden_by_proxmox_says_which_right_is_missing(api):
+    c, cid = api
+    STATE.update(fail="POST", code=403)
+    _assert_names_sys_modify(c.post(base(cid), json=NEW))
+    log = audit(c)
+    assert [(e["action"], e["status"]) for e in log] == [("backup-job-create", "error")] and "Sys.Modify" in log[0]["detail"]
+
+
+def test_update_forbidden_by_proxmox_says_which_right_is_missing(api):
+    c, cid = api
+    STATE.update(fail="PUT", code=403)
+    _assert_names_sys_modify(put(c, cid, schedule="03:15"))
+    assert "Sys.Modify" in audit(c)[0]["detail"]
+
+
+def test_delete_forbidden_by_proxmox_says_which_right_is_missing(api):
+    c, cid = api
+    STATE.update(fail="DELETE", code=403)
+    _assert_names_sys_modify(delete(c, cid))
+    assert "Sys.Modify" in audit(c)[0]["detail"]
+
+
+@pytest.mark.parametrize("code", [500, 401])
+def test_other_proxmox_errors_do_not_claim_a_missing_right(api, code):
+    c, cid = api
+    STATE.update(fail="POST", code=code)
+    assert "Sys.Modify" not in c.post(base(cid), json=NEW).text
+    STATE.update(fail="PUT", code=code)
+    assert "Sys.Modify" not in put(c, cid, schedule="03:15").text
+    STATE.update(fail="DELETE", code=code)
+    assert "Sys.Modify" not in delete(c, cid).text
+
+
+def test_reading_jobs_forbidden_does_not_blame_sys_modify(api):
+    """La lecture n'exige pas ce droit : on ne doit pas faire croire le contraire."""
+    c, cid = api
+    STATE.update(fail="GET", code=403)
+    r = c.get(base(cid))
+    assert r.status_code == 502 and "Sys.Modify" not in r.text
 
 
 # ============================== unitaire ============================================================================
