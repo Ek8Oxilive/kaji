@@ -3,6 +3,15 @@
 Kaji est une interface web pour piloter un cluster Proxmox VE (backend FastAPI, frontend React). Plusieurs agents
 peuvent travailler en parallèle ; **le dépôt est le seul canal de coordination**. Lis ce fichier en entier avant de coder.
 
+## 0. Qui est qui
+| Agent | Étiquette | Rôle |
+|---|---|---|
+| **PC A** | `agent:pc-a` | Valide en réel sur le cluster (bac à sable seulement) et vérifie les PR des autres. Lots : compte, Docker, migrations. |
+| **PC B** | `agent:pc-b` | Développe **avec le faux Proxmox uniquement**, aucun accès au cluster réel. Lots : M5 (stockage et sauvegardes). |
+
+Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent **PC B** ne prend jamais un ticket
+`agent:pc-a`, et ne fait jamais de test réel.
+
 ## 1. Comment on travaille
 - **Un ticket = un lot de travail** (GitHub Issues, rattaché à un milestone). Avant de commencer : commente « je prends »
   et pose ton label `agent:…`. Ne touche pas à un ticket pris par un autre agent.
