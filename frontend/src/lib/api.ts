@@ -50,12 +50,13 @@ export type HwNet = {
 export type HwPending = { key: string; value: string | number | null; pending: string | number | null; delete: boolean };
 export type HwConfig = {
   type: "qemu" | "lxc"; settings: Record<string, string | number>; disks: HwDisk[]; nets: HwNet[];
-  pending: HwPending[]; reboot_required: boolean;
+  pending: HwPending[]; reboot_required: boolean; boot_order: string[];
 };
 export type HwUpdate = {
   memory?: number; balloon?: number; cores?: number; sockets?: number; cpu?: string; swap?: number;
   nets?: Record<string, { bridge?: string; tag?: number; clear_tag?: boolean; firewall?: boolean }>;
   cdroms?: Record<string, { iso: string | null }>;
+  boot?: string[];
 };
 
 export type Bridge = { name: string; kind: "bridge" | "vnet"; zone: string | null; detail: string | null; vlan_aware: boolean };

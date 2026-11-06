@@ -172,3 +172,97 @@ export function ResizeDialog({ disk, connPath, onDone, onClose }: { disk: HwDisk
     </Modal>
   );
 }
+
+export function NetAddDialog({ cfg, connId, node, base, onDone, onClose }: { cfg: HwConfig; connId: number; node: string; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const lxc = cfg.type === "lxc";
+  const nets = useQuery({ queryKey: ["bridges", connId, node], queryFn: () => api<Bridge[]>(`/api/connections/${connId}/nodes/${node}/bridges`), staleTime: 60_000, retry: false });
+  const [bridge, setBridge] = useState("");
+  const [model, setModel] = useState("virtio");
+  const [tag, setTag] = useState("");
+  const [firewall, setFirewall] = useState(false);
+  const [ipMode, setIpMode] = useState<"dhcp" | "static" | "none">("dhcp");
+  const [ip, setIp] = useState("");
+  const [gw, setGw] = useState("");
+  const { busy, error, run } = useSubmit(onClose);
+  const list = nets.data;
+  const chosen = bridge || list?.[0]?.name || "";
+  const t = num(tag);
+  const tagOk = tag.trim() === "" || (Number.isInteger(t) && t >= 1 && t <= 4094);
+  const ipOk = !lxc || ipMode !== "static" || (/^[0-9a-fA-F:.]+\/\d{1,3}$/.test(ip) && (gw === "" || /^[0-9a-fA-F:.]+$/.test(gw)));
+  const ok = /^[A-Za-z0-9_.-]{1,15}$/.test(chosen) && tagOk && ipOk;
+  const body = { bridge: chosen, tag: tag.trim() ? t : undefined, firewall, ...(lxc ? { ip: ipMode === "dhcp" ? "dhcp" : ipMode === "static" ? ip : undefined, gateway: ipMode === "static" && gw ? gw : undefined } : { model }) };
+  const label = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
+  return (
+    <Modal title="Ajouter une carte réseau" subtitle="L'adresse MAC est attribuée par Proxmox." onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Ajouter"
+      onSubmit={() => run(async () => { await api(`${base}/nets`, { method: "POST", body }); await onDone(); })}>
+      {list ? (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-muted">Réseau (bridge ou VNet SDN)</span>
+          <select className="field" value={chosen} onChange={(e) => setBridge(e.target.value)} autoFocus>
+            <optgroup label="Bridges">{list.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
+            {list.some((b) => b.kind === "vnet") && <optgroup label="VNets SDN">{list.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
+          </select>
+        </label>
+      ) : <Field label="Bridge" value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="vmbr0" hint={nets.isLoading ? "Chargement…" : "Liste indisponible : saisie manuelle"} autoFocus />}
+      {!lxc && (
+        <label className="block space-y-1.5">
+          <span className="text-sm text-muted">Modèle</span>
+          <select className="field" value={model} onChange={(e) => setModel(e.target.value)}>{["virtio", "e1000", "e1000e", "rtl8139", "vmxnet3"].map((m) => <option key={m}>{m}</option>)}</select>
+        </label>
+      )}
+      <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="aucun" />
+      {lxc && <>
+        <label className="block space-y-1.5">
+          <span className="text-sm text-muted">Adresse IP</span>
+          <select className="field" value={ipMode} onChange={(e) => setIpMode(e.target.value as typeof ipMode)}><option value="dhcp">DHCP</option><option value="static">Statique</option><option value="none">Aucune (à configurer dans le conteneur)</option></select>
+        </label>
+        {ipMode === "static" && <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Adresse (CIDR)" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.1.50/24" hint="Avec le masque" />
+          <Field label="Passerelle (facultatif)" value={gw} onChange={(e) => setGw(e.target.value)} placeholder="192.168.1.1" />
+        </div>}
+      </>}
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} /> Firewall Proxmox activé</label>
+    </Modal>
+  );
+}
+
+export function NetRemoveDialog({ net, base, onDone, onClose }: { net: HwNet; base: string; onDone: () => Promise<void>; onClose: () => void }) {
+  const { busy, error, run } = useSubmit(onClose);
+  return (
+    <Modal title={`Retirer la carte ${net.key} ?`} danger onClose={onClose} busy={busy} error={error} submitLabel="Retirer"
+      onSubmit={() => run(async () => { await api(`${base}/nets/${net.key}?confirm=true`, { method: "DELETE" }); await onDone(); })}>
+      <p className="text-sm text-muted">La machine perdra l'accès au réseau <strong className="text-fg">{net.bridge}</strong> par cette carte.</p>
+      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">L'adresse MAC{net.mac ? <> <span className="font-mono">{net.mac}</span></> : ""} sera perdue : une carte ajoutée plus tard en recevra une autre (réservations DHCP à refaire).</div>
+    </Modal>
+  );
+}
+
+export function BootDialog({ cfg, save, onClose }: Common) {
+  const devices = [...cfg.disks.map((d) => ({ key: d.key, label: d.kind === "cdrom" ? `${d.key} · CD/DVD ${d.empty ? "(vide)" : `${d.storage}:${d.volume}`}` : `${d.key} · disque ${d.size ?? ""}` })),
+    ...cfg.nets.map((n) => ({ key: n.key, label: `${n.key} · réseau ${n.bridge ?? ""}` }))];
+  const known = new Map(devices.map((d) => [d.key, d.label]));
+  const initial = cfg.boot_order.filter((k) => known.has(k));
+  const [order, setOrder] = useState<string[]>([...initial, ...devices.map((d) => d.key).filter((k) => !initial.includes(k))]);
+  const [enabled, setEnabled] = useState<Set<string>>(new Set(initial));
+  const { busy, error, run } = useSubmit(onClose);
+  const move = (i: number, d: number) => setOrder((o) => { const n = [...o]; [n[i], n[i + d]] = [n[i + d], n[i]]; return n; });
+  const result = order.filter((k) => enabled.has(k));
+  const changed = result.join(";") !== initial.join(";");
+  return (
+    <Modal title="Ordre de démarrage" subtitle="La machine essaie les périphériques cochés, de haut en bas." onClose={onClose} busy={busy} error={error}
+      canSubmit={result.length > 0 && changed} submitLabel="Enregistrer" onSubmit={() => run(() => save({ boot: result }))}>
+      <ol className="space-y-1.5">
+        {order.map((k, i) => (
+          <li key={k} className="flex items-center gap-2 rounded-xl border border-line bg-surface2 px-3 py-2 text-sm">
+            <input type="checkbox" aria-label={`Démarrer sur ${k}`} className="size-4 accent-[var(--accent)]" checked={enabled.has(k)}
+              onChange={(e) => setEnabled((s) => { const n = new Set(s); if (e.target.checked) n.add(k); else n.delete(k); return n; })} />
+            <span className={`flex-1 truncate ${enabled.has(k) ? "" : "text-muted"}`}>{known.get(k)}</span>
+            <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => move(i, -1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↑</button>
+            <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => move(i, 1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↓</button>
+          </li>
+        ))}
+      </ol>
+      {result.length === 0 && <p className="text-sm text-danger">Coche au moins un périphérique.</p>}
+    </Modal>
+  );
+}
