@@ -41,8 +41,12 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Layout, sidebar, mode sombre, login
 - [ ] Écran de première configuration et écran « Connexions » (sélecteur de cluster)
 - [ ] Vue cartes VM/LXC (statut, CPU/RAM), actions rapides, toasts
-- [ ] Polling (WebSocket/SSE plus tard si nécessaire)
-- Fin : dashboard en direct sur l'environnement de test
+- [ ] **Temps réel** : un seul interrogateur Proxmox par connexion côté backend, diffusé aux navigateurs en SSE (repli en polling si besoin). Moins de charge sur Proxmox, mises à jour plus vives.
+- [ ] **Données côté navigateur** : cache et rafraîchissement avec TanStack Query ; une requête agrégée (nœuds + VM/LXC + stockages) au lieu de nombreux petits appels
+- [ ] **Fluidité perçue** : squelettes de chargement, mises à jour optimistes (l'état change au clic, retour arrière si Proxmox refuse), transitions et jauges animées
+- [ ] **Navigation rapide** : palette de commandes (Ctrl+K) pour trouver une VM, un nœud ou une action
+- Contrainte connue : Proxmox rafraîchit ses statistiques environ toutes les 10 s ; la fluidité vient des transitions et des actions instantanées, pas d'une résolution à la seconde
+- Fin : dashboard en direct sur l'environnement de test, sans rechargement de page, avec un retour visuel immédiat à chaque action
 
 ### M4 : Cycle de vie des VM/LXC
 - [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO)
