@@ -46,7 +46,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
-| Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | 🟡 (jauges, sans historique) | M13 |
+| Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | ✅ (jauges et historique heure à année) | M13 |
 | Notes du nœud | ⬜ | M15 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
@@ -87,7 +87,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
 | Historique des tâches de la machine | 🟡 (filtre par machine dans l'API, pas encore sur sa page) | M13 |
 | Étiquettes (tags), notes | ⬜ | M13 |
-| Résumé avec graphiques d'historique | 🟡 (jauges, sans historique) | M13 |
+| Résumé avec graphiques d'historique | ✅ (onglet « Performances ») | M13 |
 | Supprimer | ✅ | M4 |
 
 ## Conteneur (LXC)
