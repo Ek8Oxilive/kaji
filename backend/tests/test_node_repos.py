@@ -37,6 +37,12 @@ def _handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, json={"data": None}) if ST.get("read_down") else httpx.Response(200, json={"data": repos_payload()})
     if request.method == "GET" and p.endswith("/subscription"):
         return httpx.Response(200, json={"data": {"status": ST.get("sub", "notfound")}})
+    if request.method in ("PUT", "POST") and p.endswith("/apt/repositories"):
+        # schéma réel constaté sur Proxmox 9.1.9 : POST modifie (path, index, enabled, digest), PUT ajoute (handle, digest)
+        allowed = {"POST": {"path", "index", "enabled", "digest"}, "PUT": {"handle", "digest"}}[request.method]
+        sent = set(httpx.QueryParams(request.content.decode()).keys())
+        if sent != allowed:
+            return httpx.Response(400, json={"data": None, "message": "Parameter verification failed.", "errors": {k: "schema" for k in sent ^ allowed}})
     if ST.get("write_fail"):
         return httpx.Response(403, json={"data": None, "message": SECRET})
     return httpx.Response(200, json={"data": None})
@@ -71,6 +77,14 @@ def writes():
     return [x for x in CALLS if x[0] in ("PUT", "POST")]
 
 
+def test_fake_proxmox_rejects_swapped_methods(api):
+    """Garde-fou du faux Proxmox : il refuse comme le vrai un PUT avec path/index/enabled (le défaut trouvé en réel)."""
+    c, cid = api
+    from app.routers import node_repos
+    assert toggle(c, cid, DEB, 1, False).status_code == 200
+    assert node_repos.__doc__ and "inverse" in node_repos.__doc__
+
+
 # ---------------------------------------------------------------- lecture
 def test_read_shape_has_index_digest_and_handles():
     d = shape_repositories(repos_payload())
@@ -98,7 +112,7 @@ def test_enable_disabled_repo_without_risk(api):
     c, cid = api
     ST["sub"] = "active"
     assert toggle(c, cid, CEPH, 0, True).status_code == 200                          # enterprise AVEC abonnement
-    assert writes() == [("PUT", "/nodes/enzo/apt/repositories", f"path=%2Fetc%2Fapt%2Fsources.list.d%2Fceph.sources&index=0&enabled=1&digest={DIGEST}")]
+    assert writes() == [("POST", "/nodes/enzo/apt/repositories", f"path=%2Fetc%2Fapt%2Fsources.list.d%2Fceph.sources&index=0&enabled=1&digest={DIGEST}")]
 
 
 def test_disable_non_last_repo(api):
@@ -204,7 +218,7 @@ def test_add_standard_repo(api):
     c, cid = api
     ST["sub"] = "active"
     assert add(c, cid, "enterprise").status_code == 200
-    assert writes() == [("POST", "/nodes/enzo/apt/repositories", f"handle=enterprise&digest={DIGEST}")]
+    assert writes() == [("PUT", "/nodes/enzo/apt/repositories", f"handle=enterprise&digest={DIGEST}")]
 
 
 def test_add_test_repo_and_enterprise_without_subscription_need_accept_risk(api):

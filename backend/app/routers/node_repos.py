@@ -1,4 +1,9 @@
-"""Dépôts apt d'un nœud : activer / désactiver, ajouter un dépôt standard (droit `Sys.Modify`). Garde-fous : `repospec`."""
+"""Dépôts apt d'un nœud : activer / désactiver, ajouter un dépôt standard (droit `Sys.Modify`). Garde-fous : `repospec`.
+
+Attention, côté Proxmox les méthodes sont à l'inverse de l'intuition (constaté en réel, 400 « handle manquant ») :
+`POST /nodes/{n}/apt/repositories` modifie un dépôt (`path`, `index`, `enabled`, `digest`) ;
+`PUT /nodes/{n}/apt/repositories` ajoute un dépôt standard (`handle`, `digest`). Les routes de Kaji gardent PUT (modifier) et POST (ajouter).
+"""
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
@@ -59,7 +64,7 @@ async def toggle_repo(body: RepoToggle, conn_id: int, node: str = Path(pattern=N
             return 409, "Le dépôt est déjà dans cet état"
         risks = risks_toggle(fresh["files"], body.path, body.index, body.enabled, await _subscribed(db, factory, conn_id, node))
         return verdict(body.digest, fresh, body.confirm, body.accept_risk, risks)
-    return await _apply(db, factory, user, conn_id, node, "apt-repo-toggle", f"node/{node}:{body.path}#{body.index}", plan, "put",
+    return await _apply(db, factory, user, conn_id, node, "apt-repo-toggle", f"node/{node}:{body.path}#{body.index}", plan, "post",
                         {"path": body.path, "index": body.index, "enabled": int(body.enabled), "digest": body.digest})
 
 
@@ -74,5 +79,5 @@ async def add_repo(body: RepoAdd, conn_id: int, node: str = Path(pattern=NODE), 
         if std["status"] is not None:
             return 409, "Ce dépôt est déjà configuré : active-le au lieu de l'ajouter"
         return verdict(body.digest, fresh, body.confirm, body.accept_risk, risks_add(body.handle, await _subscribed(db, factory, conn_id, node)))
-    return await _apply(db, factory, user, conn_id, node, "apt-repo-add", f"node/{node}:{body.handle}", plan, "post",
+    return await _apply(db, factory, user, conn_id, node, "apt-repo-add", f"node/{node}:{body.handle}", plan, "put",
                         {"handle": body.handle, "digest": body.digest})
