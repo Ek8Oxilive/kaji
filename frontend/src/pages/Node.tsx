@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { NodeCharts } from "../components/charts/MetricsPanels";
 import { NodeConsole } from "../components/ConsoleTab";
+import { NodeSystem } from "../components/NodeSystem";
 import { Gauge } from "../components/Gauge";
 import { Button, Notice } from "../components/ui";
 import { api, type Bridge } from "../lib/api";
@@ -81,6 +82,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
 
       <Section title="Console du nœud">
         <NodeConsole connId={active.id} node={node} online={online} />
+      </Section>
+
+      <Section title="Système">
+        <NodeSystem connId={active.id} node={node} online={online} />
       </Section>
 
       <Section title="Machines" count={mine.length}>
