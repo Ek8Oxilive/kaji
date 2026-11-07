@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { NodeCharts } from "../components/charts/MetricsPanels";
 import { NodeConsole } from "../components/ConsoleTab";
 import { Gauge } from "../components/Gauge";
 import { Button, Notice } from "../components/ui";
@@ -73,6 +74,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
           <Gauge label="Disque" value={pct(info.disk, info.maxdisk)} detail={`${bytes(info.disk)} / ${bytes(info.maxdisk)}`} />
         </div>
       </header>
+
+      <Section title="Historique">
+        <NodeCharts connId={active.id} node={node} />
+      </Section>
 
       <Section title="Console du nœud">
         <NodeConsole connId={active.id} node={node} online={online} />

@@ -106,7 +106,7 @@ la lecture seule se développe avec le faux Proxmox ; l'écriture exige un Ceph 
 - [ ] C2 à C5 : pools, moniteurs / OSD / MDS, destruction (barrières de sécurité), installation
 
 ### M13 : Supervision
-- [ ] Graphiques d'historique (CPU, RAM, réseau, disque) pour nœuds et machines
+- [x] **Graphiques d'historique** (CPU, RAM, réseau, disque ; heure, jour, semaine, mois, année) pour nœuds et machines
 - [x] **Journal des tâches** (liste de tous les nœuds, filtres, journal d'une tâche suivi en direct) ; reste : barre de tâches permanente, onglet « Tâches » par machine
 - [ ] Étiquettes (tags), notes, vues par dossier / pool / stockage
 - [ ] Notifications (cibles, règles), serveurs de métriques (InfluxDB, Graphite)
