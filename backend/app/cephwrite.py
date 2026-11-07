@@ -55,6 +55,7 @@ class PoolCreate(_PoolFields):
     application: Application = "rbd"
     crush_rule: str | None = None
     add_storage: bool = False          # crée aussi le stockage RBD (cluster entier) : seulement pour l'application `rbd`
+    confirm: bool = False              # jamais transmis à Proxmox : le serveur décide quand il est exigé (create_risks)
 
     @field_validator("name")
     @classmethod
@@ -115,6 +116,17 @@ def changes_of(b: PoolUpdate, current: dict) -> dict:
            "autoscale": current.get("autoscale"), "crush_rule": current.get("crush_rule"),
            "application": (current.get("applications") or [None])[0] if len(current.get("applications") or []) == 1 else None}
     return {k: getattr(b, k) for k in b.model_fields_set - {"confirm"} if getattr(b, k) != cur.get(k)}
+
+
+def create_risks(b: PoolCreate) -> list[str]:
+    """Pourquoi la CRÉATION demande une confirmation (le serveur décide, l'interface ne fait que relayer)."""
+    risks = []
+    if b.size == MIN_COPIES:
+        risks.append(f"ce pool n'aura que {MIN_COPIES} copies des données : la perte de deux disques (ou d'un nœud et d'un disque) fera perdre des données, "
+                     "surtout sur un cluster de 3 nœuds ou plus")
+    if b.add_storage:
+        risks.append("le stockage RBD associé sera créé pour TOUT le cluster (visible sur tous les nœuds)")
+    return risks
 
 
 def update_risks(changes: dict, current: dict) -> list[str]:

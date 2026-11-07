@@ -130,7 +130,7 @@ def test_create_sends_exact_whitelisted_params_with_safe_defaults(api):
 
 def test_create_with_every_option(api):
     c, cid = api
-    r = post(c, cid, size=4, min_size=3, pg_num=256, autoscale="on", application="rbd", crush_rule="ssd_rule", add_storage=True)
+    r = post(c, cid, size=4, min_size=3, pg_num=256, autoscale="on", application="rbd", crush_rule="ssd_rule", add_storage=True, confirm=True)
     assert r.status_code == 202
     assert writes()[0]["form"] == {"name": "nouveau", "size": "4", "min_size": "3", "pg_num": "256", "pg_autoscale_mode": "on",
                                    "application": "rbd", "add_storages": "1", "crush_rule": "ssd_rule"}
@@ -166,8 +166,46 @@ def test_create_refuses_min_size_above_size(api):
     assert post(c, cid, size=2, min_size=3).status_code == 422 and CALLS == []
 
 
-def test_create_size_two_min_size_two_is_allowed(api):
-    assert post(api[0], api[1], size=2, min_size=2).status_code == 202
+def test_create_size_two_min_size_two_is_allowed_with_confirmation(api):
+    assert post(api[0], api[1], size=2, min_size=2, confirm=True).status_code == 202
+
+
+def test_create_size_two_needs_confirmation_and_writes_nothing(api):
+    """Un pool à 2 copies est autorisé (cadrage : au moins 2) mais risqué : le SERVEUR exige confirm=true et dit pourquoi."""
+    c, cid = api
+    r = post(c, cid, size=2, min_size=2)
+    assert r.status_code == 400 and r.json()["detail"].startswith("Confirmation requise (renvoie la requête avec confirm=true) : ")
+    assert "2 copies" in r.json()["detail"] and writes() == [] and not _BUSY
+    assert post(c, cid, size=2, min_size=2, confirm=True).status_code == 202
+
+
+def test_create_add_storage_needs_confirmation_and_writes_nothing(api):
+    c, cid = api
+    r = post(c, cid, add_storage=True)
+    assert r.status_code == 400 and "TOUT le cluster" in r.json()["detail"] and writes() == []
+    assert post(c, cid, add_storage=True, confirm=True).status_code == 202 and writes()[0]["form"]["add_storages"] == "1"
+
+
+def test_create_both_risks_are_listed_together(api):
+    d = post(api[0], api[1], size=2, min_size=2, add_storage=True).json()["detail"]
+    assert "2 copies" in d and "TOUT le cluster" in d and " ; " in d
+
+
+def test_create_default_and_three_copies_need_no_confirmation(api):
+    assert post(api[0], api[1]).status_code == 202 and post(api[0], api[1], name="p2", size=3).status_code == 202
+
+
+def test_create_confirm_is_never_forwarded_to_proxmox(api):
+    post(api[0], api[1], size=2, min_size=2, confirm=True)
+    assert "confirm" not in writes()[0]["form"]
+
+
+def test_create_confirmation_does_not_bypass_other_refusals(api):
+    """confirm=true ne remplace NI la barrière de santé NI les contrôles d'existence."""
+    c, cid = api
+    assert post(c, cid, name="vm-pool", size=2, min_size=2, confirm=True).status_code == 409
+    STATE["health"] = "HEALTH_ERR"
+    assert post(c, cid, size=2, min_size=2, confirm=True).status_code == 409 and writes() == []
 
 
 def test_create_defaults_are_size_3_min_size_2(api):
@@ -315,7 +353,7 @@ def test_create_audit_records_success_every_refusal_and_error(api):
     post(c, cid)                                                                      # santé
     STATE["health"] = "HEALTH_OK"
     post(c, cid, crush_rule="inexistante")                                           # règle inconnue
-    post(c, cid, size=4, min_size=3, crush_rule="ssd_rule", add_storage=True)        # succès
+    post(c, cid, size=4, min_size=3, crush_rule="ssd_rule", add_storage=True, confirm=True)        # succès
     STATE["fail"] = {"POST /nodes/pve1/ceph/pool": (500, "boom", {"data": None})}
     post(c, cid, name="p5")                                                           # erreur Proxmox
     log = audit(c)
