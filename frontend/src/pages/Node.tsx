@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { NodeCharts } from "../components/charts/MetricsPanels";
 import { NodeConsole } from "../components/ConsoleTab";
+import { NodeDisks } from "../components/NodeDisks";
 import { NodePower } from "../components/NodePower";
 import { NodeSystem } from "../components/NodeSystem";
 import { Gauge } from "../components/Gauge";
@@ -88,6 +89,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
       <Section title="Système">
         <NodePower connId={active.id} node={node} online={online} />
         <NodeSystem connId={active.id} node={node} online={online} />
+      </Section>
+
+      <Section title="Disques et volumes">
+        <NodeDisks connId={active.id} node={node} online={online} />
       </Section>
 
       <Section title="Machines" count={mine.length}>
