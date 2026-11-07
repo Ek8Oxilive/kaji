@@ -5,6 +5,7 @@ import { uptime } from "../lib/format";
 import { runTask } from "../lib/tasks";
 import type { NodeSystem as Sys, Section, Service, ServiceAction, SyslogLines } from "../lib/types/systeme";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { NodeConfig } from "./NodeConfig";
 import { Button, Notice } from "./ui";
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR") : "–");
@@ -41,6 +42,8 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
           <div className="space-y-1 text-sm"><div>{t.timezone ?? "–"} · {when(t.localtime)}</div>
             {d?.dns.state === "ok" && d.dns.data && <div className="text-muted">DNS {d.dns.data.servers.join(", ") || "–"} · domaine {d.dns.data.search ?? "–"}</div>}</div>)}</Block>
       </div>
+
+      <NodeConfig key={`${d?.dns.data?.search}|${d?.time.data?.timezone}`} connId={connId} node={node} dns={d?.dns.data ?? null} timezone={d?.time.data?.timezone ?? null} />
 
       <Block title={`Mises à jour disponibles${d?.updates.data ? ` (${d.updates.data.length})` : ""}`} section={d?.updates} hint="Sys.Modify">{(u) => <Updates connId={connId} node={node} list={u} />}</Block>
 

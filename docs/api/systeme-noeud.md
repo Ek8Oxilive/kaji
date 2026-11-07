@@ -60,3 +60,15 @@ Lance `apt update` sur le nœud (actualise la liste des paquets) : `202 {upid, n
 **L'installation des mises à jour n'est pas faite par Kaji** : l'API de Proxmox n'a pas de route d'installation (l'interface native
 ouvre un terminal qui lance `apt dist-upgrade`). Kaji affiche la commande à copier dans la console du nœud. Une route `…/apt/upgrade`
 n'existe volontairement pas (test).
+
+## DNS, fichier hosts, fuseau horaire (écriture)
+Droit `Sys.Modify` (fonction `node-config` de la page Accès). Audités (`node-dns`, `node-hosts`, `node-timezone`) ; le contenu du fichier hosts n'entre jamais dans l'audit ni dans une erreur.
+
+| Route | Corps | Garde-fous |
+|---|---|---|
+| `PUT …/nodes/{n}/dns` | `{search, servers: [1 à 3 IP], confirm}` | `confirm` ; domaine valide ; adresses IP valides, sans doublon ; au moins un serveur |
+| `GET …/nodes/{n}/hosts` | — | `{content, digest}` (lecture seule) |
+| `PUT …/nodes/{n}/hosts` | `{content, digest, confirm}` | `confirm` ; **digest** de 40 hexa lu juste avant (sinon Proxmox refuse une modification concurrente) ; 8 Ko au plus ; ni octet nul ni retour chariot ; chaque ligne = IP valide + noms valides ; **`localhost` conservé** ; **une ligne non locale pour le nœud lui-même** (sinon `pve-cluster` ne démarre plus) |
+| `PUT …/nodes/{n}/time` | `{timezone}` | forme `Zone/Ville` contrôlée (Proxmox valide ensuite l'existence) |
+
+Le firmware n'a pas de route dans l'API de Proxmox 9.1.9 (`GET /nodes/{n}/firmware` → 501) : il ne peut pas être géré par Kaji.
