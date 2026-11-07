@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
-import { bytes, uptime } from "../lib/format";
+import { uptime } from "../lib/format";
 import { runTask } from "../lib/tasks";
 import type { NodeSystem as Sys, Section, Service, ServiceAction, SyslogLines } from "../lib/types/systeme";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -54,9 +54,6 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
           <div className="space-y-2 text-sm">{c.map((x) => { const left = daysLeft(x.not_after); return (
             <div key={x.file ?? x.fingerprint}><div className="font-medium">{x.file}</div><div className="truncate text-xs text-muted" title={x.subject ?? ""}>{x.subject}</div>
               <div className={`text-xs ${left != null && left < 30 ? "text-danger" : "text-muted"}`}>Expire le {when(x.not_after)}{left != null && ` (${left} j)`}</div></div>); })}</div>)}</Block>
-        <Block title="Disques" section={d?.disks}>{(ds) => ds.length === 0 ? <p className="text-sm text-muted">Aucun disque.</p> : (
-          <div className="space-y-1 text-sm">{ds.map((x) => (<div key={x.device} className="flex justify-between gap-2"><span>{x.device} <span className="text-muted">{x.model ?? ""} · {x.type ?? "?"} · {x.size != null ? bytes(x.size) : "–"}</span></span>
-            <span className={x.health && x.health !== "PASSED" && x.health !== "OK" ? "text-danger" : "text-muted"}>{x.health ?? "?"}{x.wearout != null ? ` · usure ${100 - x.wearout} %` : ""}</span></div>))}</div>)}</Block>
       </div>
 
       <Block title="Services" section={d?.services}>{(list) => <Services connId={connId} node={node} list={list} />}</Block>
