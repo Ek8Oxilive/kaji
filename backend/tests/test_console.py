@@ -85,6 +85,14 @@ CALLS: list[tuple[str, str, dict]] = []
 def _handler(request: httpx.Request) -> httpx.Response:
     p = request.url.path.removeprefix("/api2/json")
     CALLS.append((request.method, p, dict(httpx.QueryParams(request.content.decode())) if request.content else {}))
+    if p == "/nodes/pve1/status":
+        return httpx.Response(200, json={"data": STATE.get("node_status", {"uptime": 1})})
+    if p == "/nodes/pve1/termproxy":
+        if STATE.get("node_denied"):
+            return httpx.Response(403, json={"data": None, "message": "Permission check failed (/nodes/pve1, Sys.Console)"})
+        if STATE.get("reply") is not None:
+            return httpx.Response(200, json={"data": STATE["reply"]})
+        return httpx.Response(200, json={"data": {"port": UP.port, "ticket": TICKET, "user": "kaji@pve!kaji", "upid": "UPID:x"}})
     if p.endswith("/status/current"):
         return httpx.Response(200, json={"data": {"status": STATE.get("status", "running"), "template": STATE.get("template", 0)}})
     if p.endswith("/vncproxy") or p.endswith("/termproxy"):
@@ -123,6 +131,17 @@ def opened(api, kind="vnc", **kw):
 def audit_rows():
     with Session(get_engine()) as db:
         return list(db.scalars(select(AuditLog).where(AuditLog.action.like("console-%")).order_by(AuditLog.id)))
+
+
+def wait_close(timeout=5.0):
+    """Attend que la ligne d'audit de fermeture soit écrite (elle l'est après la fermeture de la connexion : le délai dépend de la
+    charge de la machine, une pause fixe rendait les tests fragiles)."""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        rows = audit_rows()
+        if rows and rows[-1].action == "console-close":
+            return
+        time.sleep(0.05)
 
 
 # ---------- demande d'une console -----------------------------------------------------------------------------------
@@ -338,7 +357,7 @@ def test_proxmox_closing_ends_the_console_and_is_audited(api):
         ws.send_text("fermer")
         with pytest.raises(WebSocketDisconnect):
             ws.receive_bytes()
-    time.sleep(0.3)
+    wait_close()
     rows = audit_rows()
     assert [r.action for r in rows] == ["console-open", "console-close"]
     assert rows[1].status == "ok" and "proxmox" in rows[1].detail and TICKET not in str(rows[1].detail)
@@ -368,7 +387,7 @@ def test_oversized_message_closes_the_console(api, monkeypatch):
             ws.receive_bytes()
             ws.send_bytes(b"x" * 101)
             ws.receive_bytes()
-    time.sleep(0.3)
+    wait_close()
     assert UP.received == []                                           # le message trop gros n'a jamais été transmis à Proxmox
 
 
@@ -381,7 +400,7 @@ def test_idle_console_is_closed(api, monkeypatch):
         with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
             ws.receive_bytes()
             ws.receive_bytes()                                         # rien n'arrive : le garde-fou ferme
-    time.sleep(0.3)
+    wait_close()
     assert "inactivité" in audit_rows()[-1].detail
 
 
@@ -394,7 +413,7 @@ def test_maximum_duration_closes_the_console(api, monkeypatch):
         with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
             ws.receive_bytes()
             ws.receive_bytes()
-    time.sleep(0.3)
+    wait_close()
     assert "durée maximale" in audit_rows()[-1].detail
 
 
@@ -408,7 +427,7 @@ def test_concurrent_console_limit(api, monkeypatch):
         with pytest.raises(WebSocketDisconnect):
             with c.websocket_connect(f"/api/console/{second}", headers=ORIGIN, subprotocols=["binary"]):
                 pass
-    time.sleep(0.3)
+    wait_close()
     third = opened(api)["session"]                                     # la place est libérée à la fermeture
     with c.websocket_connect(f"/api/console/{third}", headers=ORIGIN, subprotocols=["binary"]) as ws:
         assert ws.receive_bytes() == b"RFB 003.008\n"
@@ -465,6 +484,127 @@ def test_term_not_acknowledged_by_proxmox_is_refused(api):
         with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
             ws.send_text("0:1:a")
             ws.receive_bytes()
-    time.sleep(0.3)
+    wait_close()
     assert UP.received == [UP.received[0]]                              # seule l'identification est partie : rien de ce que tape l'utilisateur
     assert audit_rows()[-1].status == "error"
+
+
+# ---------- console d'un nœud ---------------------------------------------------------------------------------------
+
+def node_url(cid, node="pve1"):
+    return f"/api/connections/{cid}/nodes/{node}/console"
+
+
+def node_opened(api):
+    c, cid = api
+    r = c.post(node_url(cid), json={"confirm": True})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_node_console_requires_auth(client):
+    assert client.post("/api/connections/1/nodes/pve1/console", json={"confirm": True}).status_code == 401
+
+
+@pytest.mark.parametrize("body", [{}, {"confirm": False}, {"confirm": None}, {"confirm": "oui"}, {"kind": "term"}])
+def test_node_console_requires_explicit_confirmation(api, body):
+    c, cid = api
+    r = c.post(node_url(cid), json=body)
+    assert r.status_code in (400, 422)
+    assert not [x for x in CALLS if x[1].endswith("termproxy")]         # rien n'est demandé à Proxmox sans confirmation
+    if r.status_code == 400:                                           # refus du serveur : audité
+        assert audit_rows()[-1].status == "error"
+
+
+def test_node_console_returns_session_without_ticket(api):
+    r = node_opened(api)
+    assert set(r) == {"session", "kind", "expires_in"} and r["kind"] == "term" and TICKET not in str(r)
+    assert [x for x in CALLS if x[0] == "POST"] == [("POST", "/nodes/pve1/termproxy", {})]
+
+
+def test_node_console_is_audited_without_ticket(api):
+    node_opened(api)
+    rows = audit_rows()
+    assert [(r.action, r.status, r.target) for r in rows] == [("console-open", "started", "node/pve1 (term)")]
+    assert TICKET not in str(rows[0].detail)
+
+
+def test_node_console_refused_when_node_does_not_answer(api):
+    c, cid = api
+    STATE["node_status"] = None
+    assert c.post(node_url(cid), json={"confirm": True}).status_code == 409
+    assert not [x for x in CALLS if x[1].endswith("termproxy")]
+
+
+def test_node_console_missing_right_is_reported_and_audited(api):
+    c, cid = api
+    STATE["node_denied"] = True
+    r = c.post(node_url(cid), json={"confirm": True})
+    assert r.status_code in (403, 502) and SECRET not in r.text and TICKET not in r.text
+    assert audit_rows()[-1].status == "error"
+
+
+@pytest.mark.parametrize("node", ["pve1;id", "a b", "../x"])
+def test_node_console_rejects_bad_node_name(api, node):
+    c, cid = api
+    assert c.post(node_url(cid, node), json={"confirm": True}).status_code in (404, 422)
+    assert not [x for x in CALLS if x[0] == "POST"]
+
+
+def test_node_console_is_relayed_to_the_node_websocket_with_server_side_login(api):
+    c, _ = api
+    UP.kind = "term"
+    s = node_opened(api)["session"]
+    with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
+        ws.send_text("0:1:\n")
+        assert ws.receive_bytes() == b"echo:0:1:\n"                      # le « OK » n'est pas transmis
+    assert UP.paths == [f"/api2/json/nodes/pve1/vncwebsocket?port={UP.port}&vncticket={TICKET}"]
+    assert UP.received[0] == "kaji@pve!kaji:" + TICKET + "\n"           # identification faite par le serveur
+    wait_close()
+    rows = audit_rows()
+    assert [r.action for r in rows] == ["console-open", "console-close"] and rows[1].target == "node/pve1 (term)"
+    assert TICKET not in str(rows[1].detail)
+
+
+def test_node_console_has_shorter_limits_than_machine_consoles(api, monkeypatch):
+    c, _ = api
+    monkeypatch.setattr(console_router, "IDLE_TIMEOUT", 3600.0)         # machines : large
+    monkeypatch.setattr(console_router, "NODE_IDLE_TIMEOUT", 0.2)       # nœud : court
+    monkeypatch.setattr(console_router, "WATCHDOG_EVERY", 0.1)
+    UP.kind = "term"
+    s = node_opened(api)["session"]
+    with pytest.raises(WebSocketDisconnect):
+        with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
+            ws.send_text("0:1:a")
+            ws.receive_bytes()
+            ws.receive_bytes()                                         # rien n'arrive : le garde-fou du nœud ferme
+    wait_close()
+    assert "inactivité" in audit_rows()[-1].detail
+
+
+def test_node_console_maximum_duration_is_the_node_one(api, monkeypatch):
+    c, _ = api
+    monkeypatch.setattr(console_router, "MAX_DURATION", 3600.0)
+    monkeypatch.setattr(console_router, "NODE_MAX_DURATION", 0.2)
+    monkeypatch.setattr(console_router, "WATCHDOG_EVERY", 0.1)
+    UP.kind = "term"
+    s = node_opened(api)["session"]
+    with pytest.raises(WebSocketDisconnect):
+        with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
+            ws.send_text("0:1:a")
+            ws.receive_bytes()
+            ws.receive_bytes()
+    wait_close()
+    assert "durée maximale" in audit_rows()[-1].detail
+
+
+def test_node_and_machine_consoles_share_the_concurrent_limit(api, monkeypatch):
+    c, _ = api
+    monkeypatch.setattr(consolespec, "MAX_ACTIVE", 1)
+    first = opened(api)["session"]                                    # console d'une machine
+    second = node_opened(api)["session"]                              # puis d'un nœud : même plafond
+    with c.websocket_connect(f"/api/console/{first}", headers=ORIGIN, subprotocols=["binary"]) as ws:
+        ws.receive_bytes()
+        with pytest.raises(WebSocketDisconnect):
+            with c.websocket_connect(f"/api/console/{second}", headers=ORIGIN, subprotocols=["binary"]):
+                pass

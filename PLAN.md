@@ -88,7 +88,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Jobs de réplication (ZFS)
 
 ### M9 : Console et déploiement
-- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; le shell du nœud exige `root@pam` : prévu avec la session administrateur (M6-6)
+- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : validation en réel à faire une fois le droit accordé
 - [ ] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement
 
 ### M10 : Gestion du cluster (banc d'essai imbriqué obligatoire)

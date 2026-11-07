@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { NodeConsole } from "../components/ConsoleTab";
 import { Gauge } from "../components/Gauge";
 import { Button, Notice } from "../components/ui";
 import { api, type Bridge } from "../lib/api";
@@ -72,6 +73,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
           <Gauge label="Disque" value={pct(info.disk, info.maxdisk)} detail={`${bytes(info.disk)} / ${bytes(info.maxdisk)}`} />
         </div>
       </header>
+
+      <Section title="Console du nœud">
+        <NodeConsole connId={active.id} node={node} online={online} />
+      </Section>
 
       <Section title="Machines" count={mine.length}>
         {guests.isLoading ? <div className="panel h-24 animate-pulse" />

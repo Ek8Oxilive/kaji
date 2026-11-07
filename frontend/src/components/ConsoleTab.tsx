@@ -1,24 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { api, type Guest } from "../lib/api";
 import { Button, Notice } from "./ui";
 
-type Mode = "vnc" | "term";
+export type ConsoleMode = "vnc" | "term";
 type State = "idle" | "connecting" | "open" | "closed" | "error";
 
 const utf8Length = (s: string) => new TextEncoder().encode(s).length;
 
 /**
- * Onglet « Console » : noVNC (écran, VM et conteneur) ou xterm.js (terminal, conteneur). Le navigateur ne parle qu'à Kaji (WebSocket
- * `/api/console/{session}`), qui relaie vers Proxmox : ni le token, ni l'adresse de Proxmox n'arrivent ici. La console se ferme dès
- * qu'on quitte l'onglet ou la page.
+ * Moteur d'une console : noVNC (écran) ou xterm.js (terminal). Le navigateur ne parle qu'à Kaji (WebSocket `/api/console/{session}`), qui
+ * relaie vers Proxmox : ni le token, ni l'adresse de Proxmox n'arrivent ici. La console se ferme dès qu'on quitte la page ou l'onglet.
+ * `openPath` : route qui demande la console ; `bodyFor` : corps de la demande.
  */
-export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) {
-  const running = guest.status === "running";
+function useConsole(openPath: string, bodyFor: (m: ConsoleMode) => object) {
   const holder = useRef<HTMLDivElement>(null);
   const closer = useRef<(() => void) | null>(null);
   const rfbRef = useRef<{ sendCtrlAltDel: () => void } | null>(null);
   const [state, setState] = useState<State>("idle");
-  const [mode, setMode] = useState<Mode | null>(null);
+  const [mode, setMode] = useState<ConsoleMode | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const stop = useCallback(() => {
@@ -27,9 +26,9 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
     rfbRef.current = null;
     try { c?.(); } catch { /* déjà fermée */ }
   }, []);
-  useEffect(() => stop, [stop]);                       // quitter l'onglet ou la page ferme la console
+  useEffect(() => stop, [stop]);
 
-  const start = async (m: Mode) => {
+  const start = async (m: ConsoleMode) => {
     stop();
     setMode(m); setState("connecting"); setMessage(null);
     const el = holder.current;
@@ -37,8 +36,7 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
     el.replaceChildren();
     let session: { session: string; ticket?: string };
     try {
-      session = await api<{ session: string; ticket?: string }>(
-        `/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/console`, { method: "POST", body: { kind: m } });
+      session = await api<{ session: string; ticket?: string }>(openPath, { method: "POST", body: bodyFor(m) });
     } catch (e) {
       setState("error"); setMessage((e as Error).message); return;
     }
@@ -92,30 +90,74 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
     }
   };
 
-  const busy = state === "connecting";
-  const live = state === "open" || busy;
+  const disconnect = () => { stop(); setState("closed"); setMessage("Console fermée."); };
+  return { holder, rfbRef, state, mode, message, start, disconnect };
+}
+
+/** Barre d'état et zone d'affichage communes. */
+function Screen({ c, children }: { c: ReturnType<typeof useConsole>; children: ReactNode }) {
+  const busy = c.state === "connecting";
+  const live = c.state === "open" || busy;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {!live && children}
+        {live && <Button variant="danger" onClick={c.disconnect} className="!px-3 !py-1.5">Déconnecter</Button>}
+        {c.state === "open" && c.mode === "vnc" && <Button variant="ghost" onClick={() => c.rfbRef.current?.sendCtrlAltDel()} className="!px-3 !py-1.5">Ctrl+Alt+Suppr</Button>}
+        {c.state === "open" && <Button variant="ghost" onClick={() => c.holder.current?.requestFullscreen?.().catch(() => undefined)} className="!px-3 !py-1.5">Plein écran</Button>}
+        {busy && <span className="text-sm text-muted">Connexion à la console…</span>}
+        {c.state === "open" && <span className="flex items-center gap-1.5 text-sm text-ok"><span className="size-2 rounded-full bg-ok" />Connecté</span>}
+      </div>
+      {c.message && <Notice kind={c.state === "error" ? "error" : "ok"}>{c.message}</Notice>}
+      <div ref={c.holder} className={`min-h-[24rem] w-full overflow-hidden rounded-xl border border-line bg-black ${live ? "h-[60vh]" : "hidden"}`} aria-label="Console" />
+    </div>
+  );
+}
+
+/** Onglet « Console » d'une machine : noVNC (VM et conteneur) ou xterm.js (conteneur). */
+export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) {
+  const running = guest.status === "running";
+  const c = useConsole(`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/console`, (m) => ({ kind: m }));
+  const live = c.state === "open" || c.state === "connecting";
   return (
     <div className="space-y-4">
       {!running && <Notice kind="error">La machine doit être en marche pour ouvrir sa console.</Notice>}
-      <div className="flex flex-wrap items-center gap-2">
-        {!live && <>
-          <Button onClick={() => start(guest.type === "lxc" ? "term" : "vnc")} disabled={!running} className="!px-3 !py-1.5">
-            {guest.type === "lxc" ? "Ouvrir le terminal" : "Ouvrir la console"}
-          </Button>
-          {guest.type === "lxc" && <Button variant="ghost" onClick={() => start("vnc")} disabled={!running} className="!px-3 !py-1.5">Écran (noVNC)</Button>}
-        </>}
-        {live && <Button variant="danger" onClick={() => { stop(); setState("closed"); setMessage("Console fermée."); }} className="!px-3 !py-1.5">Déconnecter</Button>}
-        {state === "open" && mode === "vnc" && <Button variant="ghost" onClick={() => rfbRef.current?.sendCtrlAltDel()} className="!px-3 !py-1.5">Ctrl+Alt+Suppr</Button>}
-        {state === "open" && <Button variant="ghost" onClick={() => holder.current?.requestFullscreen?.().catch(() => undefined)} className="!px-3 !py-1.5">Plein écran</Button>}
-        {busy && <span className="text-sm text-muted">Connexion à la console…</span>}
-        {state === "open" && <span className="flex items-center gap-1.5 text-sm text-ok"><span className="size-2 rounded-full bg-ok" />Connecté</span>}
-      </div>
-      {message && <Notice kind={state === "error" ? "error" : "ok"}>{message}</Notice>}
-      <div ref={holder} className={`min-h-[24rem] w-full overflow-hidden rounded-xl border border-line bg-black ${live ? "h-[60vh]" : "hidden"}`} aria-label="Console" />
+      <Screen c={c}>
+        <Button onClick={() => c.start(guest.type === "lxc" ? "term" : "vnc")} disabled={!running || live} className="!px-3 !py-1.5">
+          {guest.type === "lxc" ? "Ouvrir le terminal" : "Ouvrir la console"}
+        </Button>
+        {guest.type === "lxc" && <Button variant="ghost" onClick={() => c.start("vnc")} disabled={!running} className="!px-3 !py-1.5">Écran (noVNC)</Button>}
+      </Screen>
       <p className="text-xs text-muted">
         Une console donne un accès complet à la machine. Elle est journalisée (ouverture et fermeture, jamais ce que tu tapes ni ce qui s'affiche),
         se ferme après 30 min d'inactivité ou 8 h, et au plus 4 sont ouvertes en même temps.
       </p>
+    </div>
+  );
+}
+
+/** Console (shell) d'un nœud : accès au système de l'hôte, donc case à cocher et droit `Sys.Console` côté Proxmox. */
+export function NodeConsole({ connId, node, online }: { connId: number; node: string; online: boolean }) {
+  const [ok, setOk] = useState(false);
+  const c = useConsole(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/console`, () => ({ confirm: true }));
+  const live = c.state === "open" || c.state === "connecting";
+  const noRight = c.state === "error" && /Droits insuffisants|Sys\.Console/i.test(c.message ?? "");
+  return (
+    <div className="space-y-4">
+      {!online && <Notice kind="error">Le nœud est hors ligne : sa console n'est pas disponible.</Notice>}
+      {!live && (
+        <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
+          <p>Cette console est une session <strong>sur le nœud lui-même</strong> : accès au système de l'hôte Proxmox. Elle demande <code>login:</code>, avec un compte du nœud
+            (Kaji ne stocke ni ne transmet aucun identifiant). Elle se ferme après 10 min d'inactivité ou 1 h.</p>
+          <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={ok} onChange={(e) => setOk(e.target.checked)} />
+            <span>Je comprends que cette console donne accès au système de « {node} ».</span></label>
+        </div>
+      )}
+      <Screen c={c}>
+        <Button onClick={() => c.start("term")} disabled={!online || !ok} className="!px-3 !py-1.5">Ouvrir le shell du nœud</Button>
+      </Screen>
+      {noRight && <p className="text-xs text-muted">Il manque le droit <code>Sys.Console</code> sur <code>/nodes</code> : la page « Accès » propose la commande à copier.</p>}
+      {live && <p className="text-xs text-muted">Journalisée (ouverture et fermeture, jamais le contenu).</p>}
     </div>
   );
 }
