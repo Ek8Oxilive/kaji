@@ -56,7 +56,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Firmware | ➖ (aucune route dans l'API de Proxmox 9.1.9 : `GET /nodes/{n}/firmware` → 501) | — |
 | Journal système (syslog) | 🟡 (lecture, droit `Sys.Syslog`) | M11 |
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
-| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer LVM / LVM-thin / répertoire / ZFS codés, jamais exécutés en réel ; supprimer un volume ⬜) | M11 |
+| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer et supprimer (volume vide) LVM / LVM-thin / répertoire / ZFS, codés et jamais exécutés en réel) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | ⬜ | M7 |
 | Réplication du nœud | ⬜ | M8 |

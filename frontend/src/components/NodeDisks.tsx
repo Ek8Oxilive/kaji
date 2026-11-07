@@ -5,6 +5,7 @@ import { bytes, pct } from "../lib/format";
 import type { Disk, NodeDisks as Disks, Smart } from "../lib/types/disques";
 import type { Section } from "../lib/types/systeme";
 import { Gauge } from "./Gauge";
+import { DiskDeleteDialog, type VolumeKind } from "./DiskDeleteDialog";
 import { DiskWriteDialog, type DiskMode } from "./DiskWriteDialog";
 import { Button, Notice } from "./ui";
 
@@ -47,6 +48,8 @@ export function NodeDisks({ connId, node, online }: { connId: number; node: stri
   const q = useQuery({ queryKey: ["node-disks", connId, node], enabled: online, staleTime: 30_000, queryFn: () => api<Disks>(base) });
   const [smart, setSmart] = useState<string | null>(null);
   const [dlg, setDlg] = useState<{ mode: DiskMode; disk?: Disk } | null>(null);
+  const [del, setDel] = useState<{ kind: VolumeKind; name: string; vg?: string } | null>(null);
+  const rm = (kind: VolumeKind, name: string, vg?: string) => <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => setDel({ kind, name, vg })}>Supprimer</Button>;
   if (!online) return <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">Nœud hors ligne : disques indisponibles.</div>;
   if (q.error) return <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>réessayer</button></Notice>;
   const d = q.data;
@@ -72,17 +75,18 @@ export function NodeDisks({ connId, node, online }: { connId: number; node: stri
           </div>))}</div>)}</Block>
       <div className="grid gap-3 sm:grid-cols-2">
         <Block title="Groupes LVM" section={d?.lvm}>{(v) => v.length === 0 ? <p className="text-sm text-muted">Aucun groupe.</p> : (
-          <div className="space-y-2">{v.map((g) => (<Gauge key={g.name} label={`${g.name} · ${g.volumes ?? "?"} volumes`} value={g.size && g.free != null ? pct(g.size - g.free, g.size) : 0} detail={g.size ? `${bytes(g.size - (g.free ?? 0))} / ${bytes(g.size)}` : "–"} />))}</div>)}</Block>
+          <div className="space-y-2">{v.map((g) => (<div key={g.name} className="space-y-1"><Gauge label={`${g.name} · ${g.volumes ?? "?"} volumes`} value={g.size && g.free != null ? pct(g.size - g.free, g.size) : 0} detail={g.size ? `${bytes(g.size - (g.free ?? 0))} / ${bytes(g.size)}` : "–"} />{g.volumes === 0 && rm("lvm", g.name)}</div>))}</div>)}</Block>
         <Block title="Pools LVM-thin" section={d?.lvmthin}>{(v) => v.length === 0 ? <p className="text-sm text-muted">Aucun pool.</p> : (
-          <div className="space-y-2">{v.map((p) => (<Gauge key={`${p.vg}/${p.name}`} label={`${p.vg ?? "?"}/${p.name}`} value={p.size && p.used != null ? pct(p.used, p.size) : 0} detail={p.size ? `${bytes(p.used ?? 0)} / ${bytes(p.size)}` : "–"} />))}</div>)}</Block>
+          <div className="space-y-2">{v.map((p) => (<div key={`${p.vg}/${p.name}`} className="space-y-1"><Gauge label={`${p.vg ?? "?"}/${p.name}`} value={p.size && p.used != null ? pct(p.used, p.size) : 0} detail={p.size ? `${bytes(p.used ?? 0)} / ${bytes(p.size)}` : "–"} />{p.used === 0 && p.vg && rm("lvmthin", p.name, p.vg)}</div>))}</div>)}</Block>
         <Block title="Répertoires" section={d?.directory}>{(v) => v.length === 0 ? <p className="text-sm text-muted">Aucun répertoire monté par Proxmox.</p> : (
-          <ul className="space-y-1 text-sm">{v.map((r) => <li key={r.path}>{r.path} <span className="text-muted">{r.device} · {r.type}</span></li>)}</ul>)}</Block>
+          <ul className="space-y-1 text-sm">{v.map((r) => <li key={r.path} className="flex flex-wrap items-center justify-between gap-2"><span>{r.path} <span className="text-muted">{r.device} · {r.type}</span></span>{rm("directory", r.path.replace(/\/+$/, "").split("/").pop() ?? "")}</li>)}</ul>)}</Block>
         <Block title="ZFS" section={d?.zfs}>{(v) => v.length === 0 ? <p className="text-sm text-muted">Aucun pool ZFS.</p> : (
-          <div className="space-y-2">{v.map((z) => (<Gauge key={z.name} label={`${z.name} · ${z.health ?? "?"}`} value={z.size && z.alloc != null ? pct(z.alloc, z.size) : 0} detail={z.size ? `${bytes(z.alloc ?? 0)} / ${bytes(z.size)}` : "–"} />))}</div>)}</Block>
+          <div className="space-y-2">{v.map((z) => (<div key={z.name} className="space-y-1"><Gauge label={`${z.name} · ${z.health ?? "?"}`} value={z.size && z.alloc != null ? pct(z.alloc, z.size) : 0} detail={z.size ? `${bytes(z.alloc ?? 0)} / ${bytes(z.size)}` : "–"} />{rm("zfs", z.name)}</div>))}</div>)}</Block>
       </div>
       {d?.disks.data && d.disks.data.some((x) => stateOf(x) === "free") && (
         <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setDlg({ mode: "zfs" })}>Créer un pool ZFS…</Button>)}
-      <p className="text-xs text-muted">La suppression d'un volume existant se fait pour l'instant dans Proxmox.</p>
+      <p className="text-xs text-muted">Kaji ne supprime qu'un volume vide (le bouton « Supprimer » n'apparaît que sur un groupe LVM sans volume ou un pool LVM-thin vide ; le serveur revérifie tout).</p>
+      {del && <DiskDeleteDialog connId={connId} node={node} kind={del.kind} name={del.name} vg={del.vg} onClose={() => setDel(null)} />}
       {dlg && <DiskWriteDialog connId={connId} node={node} mode={dlg.mode} disk={dlg.disk} free={(d?.disks.data ?? []).filter((x) => stateOf(x) === "free")} onClose={() => setDlg(null)} />}
     </div>
   );

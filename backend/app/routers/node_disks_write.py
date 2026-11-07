@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from .. import audit, diskspec as D
 from ..db import get_db
 from ..deps import get_client_factory
+from ..diskdelete import DeleteBody, Kind, NAME as DNAME, delete_params, verdict as delete_verdict
 from ..diskwrite import (DirectoryCreate, DiskOnly, LvmCreate, ZfsCreate, verdict_gpt, verdict_lvm, verdict_wipe, verdict_zfs)
 from ..models import AdminUser
 from .actions import NODE
@@ -108,3 +109,42 @@ async def create_zfs(body: ZfsCreate, conn_id: int, node: str = Path(pattern=NOD
                       path=f"/nodes/{node}/disks/zfs",
                       params={"name": body.name, "devices": ",".join(body.devices), "raidlevel": body.raidlevel, "compression": body.compression,
                               "ashift": body.ashift, "add_storage": int(body.add_storage)})
+
+
+# ---------------------------------------------------------------- supprimer un volume (vide)
+
+def _storages(raw) -> list[dict] | None:
+    """Configuration des stockages réduite aux champs utiles ; `None` si illisible."""
+    if not isinstance(raw, list):
+        return None
+    keys = ("storage", "type", "vgname", "thinpool", "pool", "path")
+    out = []
+    for r in raw:
+        if isinstance(r, dict) and isinstance(r.get("storage"), str):
+            nodes = r.get("nodes")
+            out.append({**{k: r.get(k) for k in keys}, "nodes": [n for n in nodes.split(",") if n] if isinstance(nodes, str) else None})
+    return out
+
+
+@router.post("/nodes/{node}/disks/{kind}/{name}/delete", status_code=status.HTTP_202_ACCEPTED)
+async def delete_volume(body: DeleteBody, conn_id: int, node: str = Path(pattern=NODE), kind: Kind = Path(), name: str = Path(pattern=DNAME),
+                        db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory), user: AdminUser = Depends(current_user)):
+    """Supprime un groupe LVM, un pool LVM-thin, un répertoire ou un pool ZFS **vide**. Route POST (et non DELETE) parce qu'elle porte un corps."""
+    async def check():
+        st: dict = {"node": node, "disks": await _disks(db, factory, conn_id, node)}
+        for k, shape in (("lvm", D.shape_lvm), ("lvmthin", D.shape_lvmthin), ("directory", D.shape_directories), ("zfs", D.shape_zfs)):
+            st[k] = shape(await _px(db, factory, conn_id, "get", f"/nodes/{node}/disks/{k}"))
+        st["storages"] = _storages(await _px(db, factory, conn_id, "get", "/storage"))
+        st["contents"] = {}
+        from ..diskdelete import matching_storages
+        for s in matching_storages(kind, name, body.vg, st["storages"] or []):
+            if s["nodes"] and node not in s["nodes"]:
+                continue
+            try:
+                rows = await _px(db, factory, conn_id, "get", f"/nodes/{node}/storage/{s['storage']}/content")
+                st["contents"][s["storage"]] = len(rows) if isinstance(rows, list) else None
+            except HTTPException:
+                st["contents"][s["storage"]] = None
+        return delete_verdict(kind, name, body, st)
+    return await _run(db, factory, user, conn_id, node, f"disk-{kind}-delete", f"{kind}/{node}:{name}", check=check, method="delete",
+                      path=f"/nodes/{node}/disks/{kind}/{name}", params=delete_params(kind, body))
