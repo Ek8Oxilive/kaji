@@ -240,3 +240,16 @@ def shape_log(data) -> list[dict]:
             continue
         out.append({"n": _int(e.get("n")), "text": redact(text)[:MAX_LINE]})
     return out
+
+
+# ------------------------------------------------------------------ règles CRUSH
+
+def shape_rules(data) -> list[dict]:
+    """Règles de placement (`/nodes/{n}/ceph/rules`) : sert à proposer et à VALIDER `crush_rule` à la création d'un pool."""
+    out: dict[str, dict] = {}
+    for r in _list(data):
+        r = _dict(r)
+        name = _str(r.get("name")) or _str(r.get("rule_name"))
+        if name:
+            out[name] = {"name": name, "id": _int(r.get("rule_id") if r.get("rule_id") is not None else r.get("id"))}
+    return sorted(out.values(), key=lambda x: x["name"])

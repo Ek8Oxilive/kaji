@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { CephPoolDialog, UnvalidatedBanner } from "../components/CephPoolDialog";
 import { Gauge } from "../components/Gauge";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
 import { bytes } from "../lib/format";
-import type { Ceph, CephFilesystems, CephHealth, CephManagers, CephMonitors, CephOsds, CephPools, CephStatus } from "../lib/types/ceph";
+import type { Ceph, CephFilesystems, CephHealth, CephManagers, CephMonitors, CephOsds, CephPool, CephPools, CephStatus } from "../lib/types/ceph";
 
 const num = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString("fr-FR"));
 const rate = (n: number | null | undefined) => (n == null ? "–" : `${bytes(n)}/s`);
@@ -18,9 +19,12 @@ const HEALTH: Record<CephHealth, { label: string; tone: string; dot: string }> =
   UNKNOWN: { label: "État inconnu", tone: "text-muted", dot: "bg-muted" },
 };
 
-const Section = ({ title, count, children }: { title: string; count?: number; children: ReactNode }) => (
+const Section = ({ title, count, action, children }: { title: string; count?: number; action?: ReactNode; children: ReactNode }) => (
   <section className="space-y-3" aria-label={title}>
-    <h2 className="text-lg font-semibold">{title}{count !== undefined && <span className="ml-2 text-sm font-normal text-muted">({count})</span>}</h2>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold">{title}{count !== undefined && <span className="ml-2 text-sm font-normal text-muted">({count})</span>}</h2>
+      {action}
+    </div>
     {children}
   </section>
 );
@@ -42,6 +46,7 @@ const Flag = ({ ok, yes, no }: { ok: boolean | null; yes: string; no: string }) 
 /** Lecture seule : aucune action sur Ceph n'existe dans Kaji pour l'instant (docs/m12-ceph.md, lot C1). */
 export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
   const { conns, active, id } = useActiveConnection();
+  const [poolDialog, setPoolDialog] = useState<CephPool | "new" | null>(null);
   const base = `/api/connections/${id}/ceph`;
   const status = useQuery({ queryKey: ["ceph", id, "status"], queryFn: () => api<Ceph<CephStatus>>(`${base}/status`), enabled: id !== null, staleTime: 15_000 });
   const present = status.data?.installed === true;       // inutile d'interroger le reste si Ceph n'est pas installé
@@ -164,9 +169,11 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
           </>)}
         </Section>
 
-        <Section title="Pools" count={pools.data?.installed ? pools.data.pools.length : undefined}>
+        <Section title="Pools" count={pools.data?.installed ? pools.data.pools.length : undefined}
+          action={<Button onClick={() => setPoolDialog("new")} className="!px-3 !py-1.5">Nouveau pool</Button>}>
+          <UnvalidatedBanner />
           {part(pools, "Pools", (d) => d.pools.length === 0 ? <div className="panel p-6 text-muted">Aucun pool.</div> : (
-            <Table min="min-w-[48rem]" head={["Pool", "Type", "Copies", "PG", "Règle CRUSH", "Usage", "Applications"]}>
+            <Table min="min-w-[48rem]" head={["Pool", "Type", "Copies", "PG", "Règle CRUSH", "Usage", "Applications", ""]}>
               {d.pools.map((p) => (
                 <tr key={p.name} className="border-b border-line/60 align-top last:border-0">
                   <td className="px-4 py-2 font-medium">{p.name}{p.warnings.map((w) => <span key={w} className="mt-1 block text-xs font-normal text-warn">⚠ {w}</span>)}</td>
@@ -175,6 +182,8 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
                   <td className="px-4 py-2 tabular-nums text-muted">{num(p.pg_num)}</td><td className="px-4 py-2 text-muted">{p.crush_rule ?? "–"}</td>
                   <td className="px-4 py-2 tabular-nums">{bytes(p.used)}</td>
                   <td className="px-4 py-2 text-muted">{p.applications.join(", ") || "–"}</td>
+                  <td className="px-4 py-2 text-right"><Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={() => setPoolDialog(p)} aria-label={`Modifier le pool ${p.name}`}
+                    disabled={p.name.startsWith(".")} title={p.name.startsWith(".") ? "Pool interne de Ceph : non modifiable ici" : undefined}>Modifier</Button></td>
                 </tr>
               ))}
             </Table>
@@ -213,6 +222,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
           </div>
         </Section>
       </>}
+      {poolDialog && <CephPoolDialog connId={id} pool={poolDialog === "new" ? null : poolDialog} onClose={() => setPoolDialog(null)} />}
     </div>
   );
 }
