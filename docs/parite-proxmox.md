@@ -50,7 +50,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Notes du nœud | ⬜ | M15 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
-| Certificats (personnalisés, ACME) | 🟡 (lecture) | M11 |
+| Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME ⬜) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (codé, jamais exécuté en réel ; synchronisation NTP ⬜) | M11 |
 | Mises à jour (apt) et dépôts | 🟡 (liste, actualiser ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation) | M11 |
 | Firmware | ➖ (aucune route dans l'API de Proxmox 9.1.9 : `GET /nodes/{n}/firmware` → 501) | — |

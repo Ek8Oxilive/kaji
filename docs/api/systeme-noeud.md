@@ -72,3 +72,14 @@ Droit `Sys.Modify` (fonction `node-config` de la page Accès). Audités (`node-d
 | `PUT …/nodes/{n}/time` | `{timezone}` | forme `Zone/Ville` contrôlée (Proxmox valide ensuite l'existence) |
 
 Le firmware n'a pas de route dans l'API de Proxmox 9.1.9 (`GET /nodes/{n}/firmware` → 501) : il ne peut pas être géré par Kaji.
+
+## Certificat personnalisé (écriture)
+Droit `Sys.Modify` (fonction `node-certs` de la page Accès). Audités (`node-cert-install`, `node-cert-remove`). **La clé privée n'est jamais stockée, journalisée, auditée, renvoyée ni reprise dans une erreur** (`SecretStr`, messages fixes, testé sur les réponses, l'audit et les erreurs de validation).
+
+| Route | Corps | Garde-fous |
+|---|---|---|
+| `POST …/nodes/{n}/certificates/custom/check` | `{certificates, key}` | contrôle **local**, aucun appel à Proxmox : résumé (sujet, émetteur, expiration, SAN, empreinte SHA-256, type de clé) |
+| `PUT …/nodes/{n}/certificates/custom` | `{certificates, key, confirm, restart (défaut oui), replace_existing}` | `confirm` ; 1 à 6 blocs `CERTIFICATE` seulement (32 Ko), clé non chiffrée RSA ≥ 2048 ou EC (8 Ko) **qui correspond au premier certificat** ; ni expiré ni pas encore valide ; un certificat personnalisé déjà présent n'est écrasé qu'avec `replace_existing` ; **auto-signé refusé si la connexion vérifie le TLS** (Kaji perdrait l'accès) ; état des certificats illisible → 502 |
+| `DELETE …/nodes/{n}/certificates/custom?confirm=true&restart=` | — | `confirm` ; 409 s'il n'y a pas de certificat personnalisé ; refusé si la connexion vérifie le TLS (retour à l'auto-signé de Proxmox) |
+
+ACME (compte, plugin, commande) : lot suivant.
