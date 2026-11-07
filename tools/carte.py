@@ -56,11 +56,11 @@ def section(title: str, files: list[Path], base: Path, doc, extra=None) -> list[
             continue
         d = doc(f)
         e = extra(f) if extra else ""
-        lines.append(f"- `{f.relative_to(base)}` — {d}" + (f" — {e}" if e else ""))
+        lines.append(f"- `{f.relative_to(base).as_posix()}` — {d}" + (f" — {e}" if e else ""))
     return lines
 
 
-def main() -> None:
+def build() -> str:
     out = ["# Carte du projet (générée : `python3 tools/carte.py > docs/CARTE.md`)", "",
            "Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test par module (`backend/tests/test_<module>.py`) ; "
            "un doc d'API par fonction (`docs/api/<fonction>.md`) ; types front par domaine (`frontend/src/lib/types/<domaine>.ts`). "
@@ -75,10 +75,16 @@ def main() -> None:
     docs = ROOT / "docs"
     lines = ["\n## Documentation"]
     for f in sorted(docs.glob("*.md")) + sorted((docs / "api").glob("*.md")):
+        if f.name == "CARTE.md":
+            continue                      # la carte ne se décrit pas elle-même (son contenu changerait à chaque génération)
         m = re.search(r"^#\s+(.+)$", f.read_text(encoding="utf-8"), re.M)
-        lines.append(f"- `{f.relative_to(ROOT)}` — {clip(m.group(1)) if m else ''}")
+        lines.append(f"- `{f.relative_to(ROOT).as_posix()}` — {clip(m.group(1)) if m else ''}")
     out += lines
-    print("\n".join(out))
+    return "\n".join(out)
+
+
+def main() -> None:
+    print(build())
 
 
 if __name__ == "__main__":
