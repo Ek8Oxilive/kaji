@@ -117,11 +117,19 @@ chacun avec un test qui échoue si on le retire.
 | `autoscale` | `on`, `off` ou `warn` | `warn` |
 | `application` | `rbd`, `cephfs` ou `rgw` | `rbd` |
 | `crush_rule` | une règle que **Proxmox connaît** (lue chez lui) ; illisible : 502, jamais ignorée | règle par défaut |
-| `add_storage` | booléen ; crée aussi le stockage RBD du pool (**définition de stockage pour tout le cluster**) ; seulement avec `rbd` | `false` |
+| `add_storage` | booléen ; crée aussi le stockage RBD du pool (**définition de stockage pour tout le cluster**) ; seulement avec `rbd` ; **exige `confirm`** | `false` |
+| `confirm` | booléen, **jamais transmis à Proxmox** ; voir « Confirmation à la création » | `false` |
 
 Tout autre champ (`erasure-coding`, `target_size`, `force`, un `node` dans le corps…) est **ignoré et jamais transmis**. Refus avant tout
 appel d'écriture : santé **`HEALTH_ERR` ou inconnue** (409), pool **déjà existant** (409), règle CRUSH **inconnue** (422), Ceph **non
 installé** (409, jamais un 200 : ce n'est pas une lecture). La création est acceptée en `HEALTH_OK` et `HEALTH_WARN`.
+
+**Confirmation à la création** (décidée par le **serveur**, après tous les refus ci-dessus et avant l'écriture) : sans `confirm: true`, 400
+« Confirmation requise (…) : raison ; raison » et rien n'est écrit, dans deux cas :
+- **`size` à 2** : seulement deux copies, la perte de deux disques (ou d'un nœud et d'un disque) fait perdre des données ;
+- **`add_storage`** : la définition de stockage créée vaut pour **tout le cluster**.
+
+Un pool à 3 copies sans `add_storage` n'en demande pas.
 
 **`PUT /ceph/pools/{name}`** : mise à jour partielle. Seuls les champs fournis **et différents de l'existant** sont envoyés ; si rien
 ne diffère, 400 « Aucun changement ».
@@ -131,6 +139,8 @@ ne diffère, 400 « Aucun changement ».
   raison », avec ce que Ceph va faire (par exemple « RÉDUIT le nombre de copies (de 3 à 2) »). `confirm` n'est **jamais** transmis à
   Proxmox. L'interface affiche ces raisons puis renvoie avec `confirm: true`.
 - Les valeurs **effectives** sont vérifiées : `min_size` ne peut pas dépasser `size`, même si seul l'un des deux est modifié.
+  **Choix assumé** : si le `size` actuel du pool est **illisible** (absent de la réponse de Proxmox), cette vérification est sautée et
+  c'est Proxmox qui refuse une valeur incohérente ; Kaji ne devine pas.
 - **Pool à effacement** : `size` et `crush_rule` sont refusés (409), comme le dit la documentation de Proxmox ; `min_size` est permis.
 - Pool inconnu : 404.
 

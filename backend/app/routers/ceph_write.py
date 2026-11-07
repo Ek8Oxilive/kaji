@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..cephspec import shape_pools, shape_rules, shape_status
-from ..cephwrite import (POOL_NAME, RISKY, PoolCreate, PoolUpdate, changes_of, create_params, update_params, update_risks,
+from ..cephwrite import (POOL_NAME, RISKY, PoolCreate, PoolUpdate, changes_of, create_params, create_risks, update_params, update_risks,
                          write_slot)
 from ..db import get_db
 from ..deps import get_client_factory
@@ -69,6 +69,9 @@ async def create_pool(body: PoolCreate, conn_id: int, node: str | None = NodeQ, 
             refuse(f"Le pool « {body.name} » existe déjà", 409)
         if body.crush_rule and body.crush_rule not in await read(lambda: _rules(db, factory, conn_id, n)):
             refuse("Règle CRUSH inconnue pour ce cluster", 422)
+        risks = create_risks(body)
+        if risks and not body.confirm:
+            refuse("Confirmation requise (renvoie la requête avec confirm=true) : " + " ; ".join(risks), 400)
         try:
             upid = await _px(db, factory, conn_id, "post", f"/nodes/{n}/ceph/pool", **create_params(body))
         except HTTPException as e:
