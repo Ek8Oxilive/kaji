@@ -26,7 +26,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Cluster : créer, joindre, liens corosync, retirer un nœud | ⬜ | M10 |
 | Options du datacenter (clavier, langue, console, proxy HTTP, préfixe MAC, migration, HA, tâches parallèles) | ⬜ | M15 |
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
-| Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, Proxmox Backup Server…) | ⬜ | M5 |
+| Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD) | 🟡 (écriture non validée en réel ; PBS : ⬜) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
 | Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protéger : ⬜) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | ⬜ | M5 |
