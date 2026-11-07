@@ -17,7 +17,7 @@ export type CephWrite = {
   title: string; subtitle?: string; submitLabel: string; done: string;
   tail: string;                      // sous /ceph/nodes/{node}/
   node?: string; nodes?: string[];
-  extra?: "mds" | "osd";
+  extra?: "mds" | "osd" | "init";
 };
 
 /**
@@ -33,13 +33,22 @@ export function CephWriteDialog({ connId, spec, onClose }: { connId: number; spe
   const [encrypted, setEncrypted] = useState(false);
   const [cls, setCls] = useState("");
   const [typed, setTyped] = useState("");
+  const [network, setNetwork] = useState("");
+  const [clusterNet, setClusterNet] = useState("");
+  const [size, setSize] = useState("3");
+  const [minSize, setMinSize] = useState("2");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [risk, setRisk] = useState<string[] | null>(null);
 
   const osd = spec.extra === "osd";
+  const init = spec.extra === "init";
+  const cidr = /^[0-9A-Fa-f:.]{2,45}\/[0-9]{1,3}$/;
+  const sz = Number(size), ms = Number(minSize);
+  const initOk = !init || (cidr.test(network) && (clusterNet === "" || cidr.test(clusterNet)) && Number.isInteger(sz) && sz >= 2 && sz <= 7 && Number.isInteger(ms) && ms >= 2 && ms <= sz);
   const devOk = !osd || /^\/dev\/[A-Za-z0-9][A-Za-z0-9/_-]{0,63}$/.test(dev);
   const body: Record<string, unknown> = spec.extra === "mds" ? { hotstandby: hot }
+    : init ? { network, size: sz, min_size: ms, ...(clusterNet ? { cluster_network: clusterNet } : {}) }
     : osd ? { dev, encrypted, ...(cls ? { device_class: cls } : {}) } : {};
 
   // Une confirmation ne vaut que pour la demande qui l'a provoquée : si un champ change, les raisons ne sont plus celles-là.
@@ -64,12 +73,32 @@ export function CephWriteDialog({ connId, spec, onClose }: { connId: number; spe
 
   const retypeOk = !osd || !risk || typed === dev;
   return (
-    <Modal title={spec.title} subtitle={spec.subtitle} onClose={onClose} busy={busy} error={error} canSubmit={!!node && devOk && retypeOk}
+    <Modal title={spec.title} subtitle={spec.subtitle} onClose={onClose} busy={busy} error={error} canSubmit={!!node && devOk && initOk && retypeOk}
       submitLabel={risk ? "Confirmer" : spec.submitLabel} danger={!!risk || osd} onSubmit={() => send(!!risk)}>
       <UnvalidatedBanner />
       {spec.nodes && (
         <label className="block space-y-1.5"><span className="text-sm text-muted">Nœud</span>
           <select className="field" value={node} onChange={(e) => setNode(e.target.value)}>{spec.nodes.map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+      )}
+      {init && (
+        <>
+          <div className="space-y-2 rounded-xl border border-line p-3 text-sm">
+            <p className="font-medium">Étape 1 : installer les paquets Ceph (si ce n'est pas fait)</p>
+            <p className="text-xs text-muted">Proxmox n'a pas d'API pour l'installation : elle se lance dans le shell du nœud (page du nœud, « Console du nœud »).</p>
+            <code className="block select-all rounded-lg bg-surface2 px-3 py-2 text-xs">pveceph install --repository no-subscription</code>
+            <p className="text-xs text-muted">Le dépôt « enterprise » exige un abonnement Proxmox ; « no-subscription » convient à un banc d'essai. {node && <a className="underline" href={`#/node/${node}`}>Ouvrir la page du nœud {node}</a>}</p>
+          </div>
+          <p className="text-sm font-medium">Étape 2 : initialiser (cette fenêtre)</p>
+          <Field label="Réseau Ceph (CIDR)" value={network} onChange={(e) => setNetwork(e.target.value)} placeholder="10.10.10.0/24" autoFocus aria-invalid={network !== "" && !cidr.test(network)}
+            hint="Le réseau par lequel passe le trafic Ceph (de préférence un réseau privé dédié). Préfixe de /8 à /30." />
+          <Field label="Réseau de cluster (facultatif)" value={clusterNet} onChange={(e) => setClusterNet(e.target.value)} placeholder="10.20.20.0/24" aria-invalid={clusterNet !== "" && !cidr.test(clusterNet)}
+            hint="Réseau séparé pour la réplication entre OSD. Laisse vide pour n'en utiliser qu'un." />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Copies par défaut (size)" type="number" min={2} max={7} value={size} onChange={(e) => setSize(e.target.value)} />
+            <Field label="Copies minimales (min_size)" type="number" min={2} max={7} value={minSize} onChange={(e) => setMinSize(e.target.value)} hint="Au moins 2, et pas plus que size." />
+          </div>
+          <p className="text-xs text-muted">Étape 3, après l'initialisation : créer le premier moniteur et le premier gestionnaire, puis des OSD et un pool.</p>
+        </>
       )}
       {spec.extra === "mds" && (
         <label className="flex items-start gap-2 text-sm">
