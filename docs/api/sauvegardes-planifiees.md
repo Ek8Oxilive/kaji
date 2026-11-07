@@ -26,8 +26,9 @@ Kaji traduit ce refus en 502 avec un message qui nomme le droit manquant : « Dr
 Proxmox exige le droit Sys.Modify sur « / » pour créer, modifier ou supprimer un job de sauvegarde ». Le même texte est
 écrit dans l'audit. Les autres erreurs de Proxmox ne sont pas commentées ainsi.
 
-Ce droit n'est **pas** accordé au token de test actuel. L'accorder à `kaji@pve` est une décision du propriétaire :
-sans lui, cette fonction reste **en lecture seule** en pratique.
+Ce droit a été **accordé par le propriétaire** au token de test, ce qui a permis la validation en réel décrite plus bas.
+L'accorder à `kaji@pve` reste une décision du propriétaire, révocable à tout moment : sans lui, cette fonction est **en
+lecture seule** en pratique.
 
 ## Pourquoi tant de garde-fous
 
@@ -104,20 +105,28 @@ Une entrée sans `id` lisible est ignorée. Une valeur du mauvais type devient `
 ## Ce qui a été validé en réel, et ce qui ne l'a pas été
 
 Le code a été écrit et testé avec un **faux Proxmox**, d'après la documentation de `vzdump` (la page de manuel ne décrit
-pas les options propres aux jobs). Un second agent (PC A) a ensuite essayé en réel, dans le bac à sable.
+pas les options propres aux jobs). Un second agent (PC A) a ensuite validé le cycle complet en réel, dans le bac à sable,
+avec un job **désactivé** visant une machine jetable (supprimée ensuite ; le cluster d'origine a été retrouvé).
 
 **Validé en réel**
-- **Lecture** : `GET …/backup-jobs` renvoie 200. Le cluster n'avait **aucun job**, donc la liste était vide.
-- **Refus de confirmation** : la création sans `confirm=true` (400) et la suppression sans `confirm=true` (400) sont
-  refusées sans rien écrire.
+- **Création** : 201, avec les paramètres décrits plus haut. **Lecture** : tous les champs sont conformes (planification,
+  stockage, mode, compression, sélection, rétention, notes, prochaine exécution).
+- **Réduction de rétention** : 400 sans `confirm`, 200 avec ; le refus n'écrit rien.
+- **Changement de sélection** (identifiants vers pool) : 200 ; la réponse brute de Proxmox montre que `vmid` a disparu et
+  que `pool` est posé, donc **la suppression des anciennes clés (`delete`) fonctionne**.
+- **`notes: null`** : `notes-template` est bien supprimé côté Proxmox.
+- **Suppression** : 400 sans `confirm`, 200 avec ; le job est supprimé.
+- **Audit** : création, mises à jour, refus (confirmation, job introuvable) et suppression sont présents, sans le texte des
+  notes.
+- **Forme de `prune-backups` en lecture** : Proxmox renvoie un **objet** (par exemple `{"keep-all": 1}`), et non la chaîne
+  `keep-last=3,keep-daily=7` qu'on avait supposée. Kaji accepte les deux formes.
+- **Droit requis** : `Sys.Modify` sur `/`, comme décrit plus haut.
 
-**Non validé en réel : création, modification, suppression.** Proxmox les refuse avec « Permission check failed
-(/, Sys.Modify) » tant que le droit décrit plus haut n'est pas accordé. Tout ce qui suit reste donc une hypothèse :
-- `POST /cluster/backup` accepte exactement ces paramètres (`id` choisi par Kaji sous la forme `kaji-<10 hexa>`, `vmid`
-  en liste séparée par des virgules, `all`, `pool`, `prune-backups`, `notes-template`, `enabled`, `node`) ;
-- `PUT /cluster/backup/{id}` accepte `delete` avec une liste séparée par des virgules ;
-- **la forme des jobs en lecture** : `prune-backups` sous la forme `keep-last=3,keep-daily=7`, `enabled` en 0 ou 1,
-  `next-run` en secondes. Faute de job existant, la mise en forme d'un vrai job n'a **jamais été vue** ;
-- **la rétention d'un job supprime bien les sauvegardes plus anciennes faites hors du job** (c'est ce qui justifie la
-  confirmation à la création) ;
-- `DELETE /cluster/backup/{id}` ne touche à aucune sauvegarde.
+**Non validé en réel**
+- **La rétention d'un job supprime-t-elle des sauvegardes plus anciennes faites hors du job ?** Cela demanderait
+  d'**exécuter** un job, ce qui n'a volontairement pas été fait. Les deux extensions de confirmation (création avec une
+  rétention finie, changement de stockage ou de sélection) restent donc justifiées par la documentation de Proxmox, pas par
+  un essai.
+- **Un job en mode `stop`, activé**, et **`notes-template` avec des variables `{{…}}`** (`{{guestname}}`, `{{vmid}}`…).
+- **`DELETE /cluster/backup/{id}` ne touche à aucune sauvegarde déjà faite** : la suppression du job a été constatée,
+  mais pas l'état des sauvegardes après coup.
