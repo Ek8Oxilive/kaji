@@ -52,17 +52,17 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (lecture : DNS, fuseau, heure) | M11 |
-| Mises à jour (apt) et dépôts | 🟡 (lecture ; la liste des mises à jour exige `Sys.Modify`) | M11 |
+| Mises à jour (apt) et dépôts | 🟡 (liste, actualiser ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation) | M11 |
 | Firmware | ⬜ | M11 |
 | Journal système (syslog) | 🟡 (lecture, droit `Sys.Syslog`) | M11 |
-| Services (démarrer, arrêter, redémarrer) | 🟡 (lecture) | M11 |
-| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (liste et santé) | M11 |
+| Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
+| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer LVM / LVM-thin / répertoire / ZFS codés, jamais exécutés en réel ; supprimer un volume ⬜) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | ⬜ | M7 |
 | Réplication du nœud | ⬜ | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
-| Redémarrer / éteindre le nœud | ⬜ | M11 |
+| Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
 
 ## Machine virtuelle (QEMU)
 
