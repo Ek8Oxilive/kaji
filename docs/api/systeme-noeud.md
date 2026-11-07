@@ -16,7 +16,7 @@ Garde-fous : champs en liste blanche, textes bornés, noms de service et de disq
 l'abonnement ne montre que son état (ni clé, ni identifiant de serveur) ; les numéros de série des disques ne sont pas repris.
 
 ## `GET /api/connections/{id}/nodes/{node}/syslog?limit=100&since=AAAA-MM-JJ`
-Dernières lignes du journal système : `{ "lines": [{ "n": 1, "text": "…" }] }`. `limit` de 1 à 500, `since` ancré `^AAAA-MM-JJ$`.
+Fin du journal système (Proxmox le lit depuis son début : Kaji demande d’abord le `total`, puis les dernières lignes) : `{ "lines": [{ "n": 1, "text": "…" }], "total": 586900 }`. `limit` de 1 à 500, `since` ancré `^AAAA-MM-JJ$`.
 Droit `Sys.Syslog` ; sans lui : `502 « Droits insuffisants pour cette opération »`.
 
 ## Droits de Kaji (page Accès)

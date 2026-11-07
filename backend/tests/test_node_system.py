@@ -37,6 +37,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if p.endswith("/syslog"):
         if "syslog" in STATE.get("forbid", ()):
             return httpx.Response(403, json={"data": None, "message": "Permission check failed"})
+        q = request.url.params
+        if "total" in STATE:
+            lines = [{"n": i + 1, "t": f"ligne {i + 1}"} for i in range(STATE["total"])][int(q.get("start", 0)):][:int(q["limit"])]
+            return httpx.Response(200, json={"data": lines, "total": STATE["total"]})
         return httpx.Response(200, json={"data": STATE.get("syslog", [{"n": 1, "t": "ligne un"}, {"n": 2, "t": "ligne deux"}, {"t": "sans numéro"}, "x"])})
     for key, val in DATA.items():
         if p.endswith("/" + key):
@@ -123,6 +127,15 @@ def test_syslog(api):
     assert r.status_code == 200 and r.json()["lines"] == [{"n": 1, "text": "ligne un"}, {"n": 2, "text": "ligne deux"}]
     q = SEEN[-1].url.params
     assert q["limit"] == "50" and q["since"] == "2026-11-01"
+
+
+def test_syslog_returns_the_end_not_the_start(api):
+    c, cid = api
+    STATE["total"] = 1000
+    r = c.get(f"/api/connections/{cid}/nodes/pve1/syslog?limit=3").json()
+    assert [l["text"] for l in r["lines"]] == ["ligne 998", "ligne 999", "ligne 1000"] and r["total"] == 1000
+    STATE["total"] = 2                                           # journal plus court que la demande : tout
+    assert [l["n"] for l in c.get(f"/api/connections/{cid}/nodes/pve1/syslog?limit=50").json()["lines"]] == [1, 2]
 
 
 @pytest.mark.parametrize("qs", ["limit=0", "limit=501", "limit=x", "since=2026-11-01;x", "since=x2026-11-01", "since=2026-11-01x"])
