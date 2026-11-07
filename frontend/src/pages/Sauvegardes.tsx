@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { DeleteBackupDialog, LaunchBackupDialog, RestoreDialog } from "../components/BackupDialogs";
+import { JobsPanel } from "../components/BackupJobs";
 import { Button, Notice } from "../components/ui";
 import { useActiveConnection } from "../lib/connection";
 import { bytes } from "../lib/format";
@@ -13,6 +14,7 @@ export function Sauvegardes({ onGoConnections }: { onGoConnections: () => void }
   const { conns, active, id } = useActiveConnection();
   const { nodes, guests, backups } = useBackupData(id);
   const [q, setQ] = useState(""), [machine, setMachine] = useState("all"), [storage, setStorage] = useState("all"), [kind, setKind] = useState("all");
+  const [tab, setTab] = useState<"list" | "jobs">("list");
   const [launch, setLaunch] = useState(false);
   const [restore, setRestore] = useState<BackupRow | null>(null);
   const [del, setDel] = useState<BackupRow | null>(null);
@@ -49,14 +51,26 @@ export function Sauvegardes({ onGoConnections }: { onGoConnections: () => void }
           <h1 className="text-2xl font-semibold tracking-tight">Sauvegardes</h1>
           <p className="text-muted">{active.name} · {active.host}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setLaunch(true)} disabled={loading || launchable.length === 0 || stores.length === 0} className="!px-3 !py-1.5"
-            title={stores.length === 0 && !loading ? "Aucun stockage n'accepte les sauvegardes" : undefined}>Lancer une sauvegarde</Button>
-          <Button variant="ghost" onClick={refetch} disabled={backups.isFetching} className="!px-3 !py-1.5">
-            <span className={backups.isFetching ? "inline-block animate-spin" : ""}>↻</span> Actualiser
-          </Button>
-        </div>
+        {tab === "list" && (
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setLaunch(true)} disabled={loading || launchable.length === 0 || stores.length === 0} className="!px-3 !py-1.5"
+              title={stores.length === 0 && !loading ? "Aucun stockage n'accepte les sauvegardes" : undefined}>Lancer une sauvegarde</Button>
+            <Button variant="ghost" onClick={refetch} disabled={backups.isFetching} className="!px-3 !py-1.5">
+              <span className={backups.isFetching ? "inline-block animate-spin" : ""}>↻</span> Actualiser
+            </Button>
+          </div>
+        )}
       </header>
+
+      <div className="flex gap-2" role="tablist" aria-label="Affichage">
+        {([["list", "Sauvegardes"], ["jobs", "Planifiées"]] as const).map(([t, label]) => (
+          <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+            className={`rounded-full border px-4 py-1.5 text-sm transition ${tab === t ? "border-accent bg-accent text-accentfg" : "border-line bg-surface2 text-muted hover:text-fg"}`}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "jobs" && <JobsPanel connId={id} nodes={nodes.data ?? []} guests={launchable} stores={stores} />}
+      {tab === "list" && <>
 
       {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={refetch}>réessayer</button></Notice>}
       {backups.data?.failed.map((f) => <Notice key={`${f.node}/${f.storage}`} kind="error">Stockage « {f.storage} » (nœud {f.node}) illisible : {f.message}. Les autres stockages sont affichés.</Notice>)}
@@ -121,6 +135,7 @@ export function Sauvegardes({ onGoConnections }: { onGoConnections: () => void }
           )}
         <p className="text-xs text-muted">Un stockage partagé n'est lu qu'une fois. Les stockages hors ligne ou inactifs ne sont pas affichés.</p>
       </section>
+      </>}
 
       {launch && <LaunchBackupDialog connId={id} guests={launchable} stores={stores} onClose={() => setLaunch(false)} />}
       {restore && <RestoreDialog connId={id} backup={restore} nodes={nodes.data ?? []} guestName={restore.vmid != null ? names.get(restore.vmid) ?? null : null} onClose={() => setRestore(null)} />}
