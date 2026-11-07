@@ -34,7 +34,7 @@ def shape_disks(raw) -> list[dict]:
         dev = _str(r.get("devpath"))
         if not dev or not DEVICE.fullmatch(dev):
             continue
-        row = {"device": dev, "size": _int(r.get("size")), "used": _t(r.get("used"), 40), "gpt": bool(r.get("gpt")),
+        row = {"device": dev, "size": _int(r.get("size")), "used": _t(r.get("used"), 40), "gpt": bool(r.get("gpt")), "osd": _int(r.get("osdid")) not in (None, -1),
                "model": _t(r.get("model"), 80), "type": _t(r.get("type"), 20), "health": _t(r.get("health"), 40), "wearout": _pct(r.get("wearout"))}
         (parts if row["type"] == "partition" else disks).append(row)
     out = []
