@@ -16,5 +16,8 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
 4. Suite complète en arrière-plan (≈ 4 min) sortie dans un fichier, `tail -2` seulement ; `npm run build` ; doc `docs/api/<fonction>.md` + tableau de parité.
 5. Commit (`type(Mx/zone): …` + `Closes #N`), PR avec liste honnête « non testé ». Essai réel d'écriture : seulement réversible et avec l'accord d'Enzo.
 
+## Retrouver le code sans tout lire
+`grep -i mot docs/CARTE.md` (carte générée : rôle et routes de chaque fichier), puis ouvrir seulement le fichier trouvé (son `*spec.py` pour la validation, son routeur, `tests/test_<module>.py`). Fin de lot : `python3 tools/carte.py > docs/CARTE.md`.
+
 ## Pièges connus
 Ne pas changer de branche pendant une suite ou des mutations · `pgrep -f` se reconnaît lui-même · ancrer les motifs `^…$`, `fullmatch` · droits du token via `docs/api/acces.md` · Brave + extension Claude (reconnecter si « not connected ») · économiser les tokens : pas de relecture de README/PLAN/docs d'API entiers.
