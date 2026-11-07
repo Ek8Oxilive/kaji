@@ -62,7 +62,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réplication du nœud | ⬜ | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
-| Redémarrer / éteindre le nœud | ⬜ | M11 |
+| Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
 
 ## Machine virtuelle (QEMU)
 
