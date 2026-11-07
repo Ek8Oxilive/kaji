@@ -71,7 +71,8 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Sauvegardes : jobs vzdump, planification, rétention, lancement manuel, restauration
 
 ### M6 : Utilisateurs et ACL
-- [ ] Users, groupes, rôles, permissions par chemin, realms
+- [ ] **Accès en lecture seule** : « droits de Kaji » (chaque fonction a-t-elle son droit ?), utilisateurs, rôles, ACL visibles, realms — **en cours**
+- [ ] Users, groupes, rôles, permissions par chemin, realms (écriture)
 - [ ] Tokens API (création, révocation)
 
 ### M7 : Réseau et firewall (risque élevé)
