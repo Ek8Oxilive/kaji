@@ -83,3 +83,13 @@ Droit `Sys.Modify` (fonction `node-certs` de la page Accès). Audités (`node-ce
 | `DELETE …/nodes/{n}/certificates/custom?confirm=true&restart=` | — | `confirm` ; 409 s'il n'y a pas de certificat personnalisé ; refusé si la connexion vérifie le TLS (retour à l'auto-signé de Proxmox) |
 
 ACME (compte, plugin, commande) : lot suivant.
+
+## Dépôts apt (écriture)
+Droit `Sys.Modify` (fonction `node-repos` de la page Accès). Audités (`apt-repo-toggle`, `apt-repo-add`). `GET …/system` donne maintenant, par dépôt, sa position `index` **dans le fichier chez Proxmox**, et `digest` (empreinte commune des fichiers, 64 hexadécimaux) ; chaque `standard` porte `handle`, `description` et `status` (`null` : pas configuré, `0` : configuré mais désactivé, `1` : actif).
+
+| Route | Corps | Garde-fous |
+|---|---|---|
+| `PUT …/nodes/{n}/apt/repositories` | `{path, index, enabled, digest, confirm, accept_risk}` | `confirm` ; `digest` égal à celui relu chez Proxmox au moment de l'action (409 si la configuration a changé) ; `path` sous `/etc/apt/` sans `..` ni `//`, **présent dans les fichiers lus** ; dépôt déjà dans cet état : 409 |
+| `POST …/nodes/{n}/apt/repositories` | `{handle, digest, confirm, accept_risk}` | idem ; `handle` parmi les dépôts standard **non encore configurés** (déjà configuré : 409, il faut l'activer) |
+
+`accept_risk` est exigé (409 avec la liste des raisons) pour : activer ou ajouter un dépôt *enterprise* **sans abonnement actif** (apt répondrait 401 et les mises à jour échoueraient) ; ajouter un dépôt de **test** ; **désactiver le dernier** dépôt Proxmox ou le dernier dépôt Debian actif. Abonnement illisible = « sans abonnement » ; dépôts illisibles : 502, rien n'est écrit.

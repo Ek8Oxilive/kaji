@@ -52,7 +52,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME ⬜) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (codé, jamais exécuté en réel ; synchronisation NTP ⬜) | M11 |
-| Mises à jour (apt) et dépôts | 🟡 (liste, actualiser ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation) | M11 |
+| Mises à jour (apt) et dépôts | 🟡 (liste, actualiser, dépôts : activer / désactiver / ajouter un standard, codés et jamais exécutés en réel ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation ; dépôt personnalisé ⬜) | M11 |
 | Firmware | ➖ (aucune route dans l'API de Proxmox 9.1.9 : `GET /nodes/{n}/firmware` → 501) | — |
 | Journal système (syslog) | 🟡 (lecture, droit `Sys.Syslog`) | M11 |
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
