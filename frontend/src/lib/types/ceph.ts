@@ -50,4 +50,5 @@ export type PoolFields = { size?: number; min_size?: number; pg_num?: number; au
 export type PoolCreateBody = PoolFields & { name: string; add_storage?: boolean };
 /** `PUT /ceph/pools/{name}` : seuls les champs qui changent ; `confirm: true` seulement après avoir montré les raisons du serveur. */
 export type PoolPatchBody = PoolFields & { confirm?: boolean };
+export type CephWriteResult = { upid: string | null; node: string };
 export type PoolWriteResult = { upid: string | null; node: string; pool: string; changes?: PoolFields };
