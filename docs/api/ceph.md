@@ -3,7 +3,8 @@
 Lots C1, C2 et C3 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **La lecture** (toutes les routes `GET`)
 n'envoie que des lectures à Proxmox. **L'écriture** : créer et modifier un pool (« Écriture des pools »), puis créer, démarrer, arrêter
 des moniteurs, gestionnaires, MDS et OSD, et mettre un OSD dedans ou dehors (« Écriture des services »). Il n'existe **aucune
-suppression** et aucune installation (lots C4 et C5). Aucune réponse ne contient de secret.
+suppression** (lot C4) ; l'**initialisation** est décrite plus bas (lot C5), l'installation des paquets n'a pas d'API chez Proxmox. Aucune
+réponse ne contient de secret.
 
 > **Rien de ce document n'a été validé en réel, sauf un point** (voir plus bas). Le cluster de test n'a pas de Ceph : un disque
 > par nœud et deux nœuds seulement. Tout a été écrit et testé avec un **faux Proxmox**, d'après la connaissance de l'API de
@@ -29,6 +30,7 @@ suppression** et aucune installation (lots C4 et C5). Aucune réponse ne contien
 | `POST …/ceph/nodes/{node}/osds` | **Écriture, non validée en réel** : créer un OSD (**efface le disque**) |
 | `POST …/ceph/nodes/{node}/osds/{id}/out` · `/in` | **Écriture, non validée en réel** : mettre un OSD dehors, dedans |
 | `POST …/ceph/nodes/{node}/services/{osd\|mon\|mgr\|mds}/{name}/start` · `/stop` | **Écriture, non validée en réel** : démarrer, arrêter un service |
+| `POST …/ceph/nodes/{node}/init` | **Écriture, non validée en réel** : initialiser Ceph (`pveceph init`) |
 
 ## Ceph non installé
 
@@ -202,6 +204,31 @@ renvoie `devpath`, `size`, `model` et un `used` vide pour un disque libre (un di
 `quorum` et `host` des moniteurs sont bien présents (sinon l'arrêt est **refusé**, par prudence) ; les valeurs de `state` des
 gestionnaires (`active`, `standby`) et des MDS (`up:…`) ; que la santé reflète une redistribution en cours ; le **comportement réel** de
 Ceph (durée, charge) à l'arrêt ou à la mise dehors d'un OSD. Si l'hôte d'un OSD est illisible, toute action dessus est refusée.
+
+## Initialisation (lot C5) : NON VALIDÉE EN RÉEL
+
+> **Jamais essayée sur un vrai Ceph.** `POST /nodes/{node}/ceph/init` et ses paramètres (`network`, `cluster-network`, `size`, `min_size`)
+> viennent de l'API de Proxmox (documentation générée), pas d'un essai. **L'installation des paquets n'a pas d'API chez Proxmox** : elle
+> se fait avec `pveceph install` dans le shell du nœud ; Kaji ne l'automatise pas, l'assistant affiche seulement la commande.
+
+`POST …/ceph/nodes/{node}/init` — corps : `network` (CIDR, obligatoire), `cluster_network` (CIDR, facultatif), `size` (2 à 7, défaut 3),
+`min_size` (2 à 7, défaut 2, jamais supérieur à `size`), `confirm`. Réponse `202 {"upid", "node", "initialized": true}` (`upid` vaut
+`null` : Proxmox ne renvoie sans doute pas de tâche, non vérifié).
+
+- **Réseaux** : format CIDR strict (pas de nom d'hôte, pas de masque `255.255.255.0`, pas d'espace). Le réseau est **normalisé** à son
+  adresse de réseau (`10.10.10.77/24` devient `10.10.10.0/24`). Refusés : adresse nulle, boucle locale, multicast, lien local, préfixe
+  hors de /8 à /30 (IPv4) ou /32 à /120 (IPv6), réseau de cluster identique au réseau public.
+- **Refus avant l'écriture** : nœud inconnu ou hors ligne (404) ; Ceph **non installé** (409, avec le rappel `pveceph install`) ; Ceph
+  **déjà initialisé** (409) quand `ceph.conf` est lisible et non vide. Une configuration illisible est considérée comme « pas encore
+  initialisé » : **c'est une hypothèse**, Kaji ne sait pas distinguer cet état de « non installé » autrement.
+- **Confirmation décidée par le serveur** : toujours (« initialise Ceph pour TOUT le cluster… »), avec en plus un avertissement si un
+  réseau n'est **pas privé** ou si `size` vaut 2. `confirm` doit être le booléen JSON `true`, il n'est jamais transmis à Proxmox.
+- **`disable_cephx` et `pg_bits` n'existent pas ici** : la sécurité de Ceph reste active, ces champs sont ignorés et jamais transmis.
+- Une seule écriture Ceph à la fois par connexion. **Audit** : `ceph-init` (succès, refus, erreur), sans secret ni contenu de `ceph.conf`.
+
+**Après l'initialisation** : créer le premier moniteur et le premier gestionnaire (lot C3), puis des OSD et un pool. **Non validé** : que
+Kaji puisse lire l'état de Ceph, et donc créer un moniteur, **avant** que le premier moniteur existe. Si Proxmox refuse de répondre à
+ces lectures, la création du premier moniteur est refusée par Kaji (502) ; il faut alors utiliser `pveceph mon create` dans le shell.
 
 ## Ce qui a été validé en réel, et ce qui ne l'a pas été
 

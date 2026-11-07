@@ -44,7 +44,7 @@ const Skeleton = ({ n, h }: { n: number; h: string }) => <>{Array.from({ length:
 const Flag = ({ ok, yes, no }: { ok: boolean | null; yes: string; no: string }) =>
   ok === null ? <span className="text-muted">?</span> : <span className={ok ? "text-ok" : "text-danger"}>{ok ? yes : no}</span>;
 
-/** Lecture, plus l'écriture des lots C2 (pools) et C3 (moniteurs, gestionnaires, MDS, OSD) : NON validée en réel. Aucune suppression (lot C4). */
+/** Lecture, plus l'écriture des lots C2 (pools), C3 (moniteurs, gestionnaires, MDS, OSD) et C5 (initialisation) : NON validée en réel. Aucune suppression (lot C4). */
 export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
   const { conns, active, id } = useActiveConnection();
   const [poolDialog, setPoolDialog] = useState<CephPool | "new" | null>(null);
@@ -113,7 +113,15 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
           <div className="panel space-y-3 p-10" role="status">
             <h2 className="text-xl font-semibold">Ceph n'est pas installé sur ce cluster</h2>
             <p className="text-muted">Il n'y a rien à afficher ici. Cette page se remplira dès que Ceph sera installé et initialisé sur le cluster.</p>
-            <p className="text-xs text-muted">Kaji ne permet pas encore d'installer ni de modifier Ceph : cette page est en lecture seule.</p>
+            <UnvalidatedBanner />
+            <p className="text-sm">Pour le mettre en place depuis Kaji : installer les paquets (shell du nœud), initialiser, puis créer un moniteur, un gestionnaire, des OSD et un pool.</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={() => setWrite({ title: "Installer et initialiser Ceph", subtitle: "Choisis le nœud depuis lequel initialiser.", submitLabel: "Initialiser", done: "Ceph initialisé", tail: "init", nodes: online, extra: "init" })}
+                disabled={online.length === 0}>Installer / initialiser Ceph</Button>
+              <Button variant="ghost" onClick={create("Créer un moniteur", "monitors", "Moniteur créé")} disabled={online.length === 0}>Créer un moniteur</Button>
+              <Button variant="ghost" onClick={create("Créer un gestionnaire", "managers", "Gestionnaire créé")} disabled={online.length === 0}>Créer un gestionnaire</Button>
+            </div>
+            <p className="text-xs text-muted">Les boutons « moniteur » et « gestionnaire » ne servent qu'une fois Ceph initialisé. Si Kaji ne peut pas encore lire Ceph, utilise « pveceph mon create » dans le shell.</p>
           </div>
         </div>
       )}
