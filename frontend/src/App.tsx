@@ -3,6 +3,7 @@ import { Layout, NAV, NAV_BOTTOM, type Page } from "./components/Layout";
 import { api, type AuthStatus } from "./lib/api";
 import { guestHash, nodeHash, pageHash, useRoute } from "./lib/route";
 import { Acces } from "./pages/Acces";
+import { CephPage } from "./pages/Ceph";
 import { AuthScreen } from "./pages/AuthScreen";
 import { Connections } from "./pages/Connections";
 import { Dashboard } from "./pages/Dashboard";
@@ -37,6 +38,7 @@ export default function App() {
         : page === "storage" ? <Stockage onGoConnections={goConnections} />
         : page === "backups" ? <Sauvegardes onGoConnections={goConnections} />
         : page === "access" ? <Acces onGoConnections={goConnections} />
+        : page === "ceph" ? <CephPage onGoConnections={goConnections} />
         : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );
