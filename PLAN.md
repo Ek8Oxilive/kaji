@@ -99,8 +99,11 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Journal système, services, redémarrer / éteindre un nœud
 - [ ] Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS
 
-### M12 : Ceph (banc d'essai imbriqué obligatoire)
-- [ ] État, configuration, moniteurs, gestionnaires, OSD, pools, CephFS, journaux
+### M12 : Ceph (Ceph jetable obligatoire pour valider l'écriture)
+Cadré dans `docs/m12-ceph.md`. **Le cluster de test ne peut pas faire tourner Ceph** (2 nœuds, un seul disque par nœud, peu de mémoire) :
+la lecture seule se développe avec le faux Proxmox ; l'écriture exige un Ceph jetable.
+- [ ] C1 : lecture seule (santé, moniteurs, gestionnaires, OSD, pools, CephFS, configuration, journal) et page « Ceph »
+- [ ] C2 à C5 : pools, moniteurs / OSD / MDS, destruction (barrières de sécurité), installation
 
 ### M13 : Supervision
 - [ ] Graphiques d'historique (CPU, RAM, réseau, disque) pour nœuds et machines

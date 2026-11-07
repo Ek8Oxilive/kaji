@@ -57,7 +57,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Journal système (syslog) | ⬜ | M11 |
 | Services (démarrer, arrêter, redémarrer) | ⬜ | M11 |
 | Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | ⬜ | M11 |
-| Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) | ⬜ | M12 |
+| Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | ⬜ | M7 |
 | Réplication du nœud | ⬜ | M8 |
 | Historique des tâches du nœud | ⬜ | M13 |
