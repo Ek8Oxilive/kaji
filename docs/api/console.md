@@ -1,7 +1,7 @@
 # Console web (noVNC, xterm.js)
 
 Une console est un **accès interactif à une machine** : tout est contrôlé côté serveur. Ce fichier décrit le **backend** (lot M9-1) ;
-l'interface (noVNC, xterm.js) est le lot suivant.
+l'interface (onglet « Console » de la page Machine : noVNC, xterm.js) est le lot M9-2, décrite en fin de fichier.
 
 | Route | Rôle |
 |---|---|
@@ -44,10 +44,27 @@ Ensuite :
 `VM.Console` sur la machine (compris dans `PVEVMAdmin` ; visible dans la page Accès). Pas de `Sys.Console` : le **shell du nœud** (qui
 exige `root@pam`) n'est **pas** géré.
 
+## Interface (lot M9-2)
+
+Onglet **Console** de la page Machine (adresse `#/machine/<nœud>/<type>/<id>/console`) : noVNC pour une VM ou un conteneur, xterm.js pour
+un conteneur (bouton « Ouvrir le terminal », ou « Écran (noVNC) »). Boutons Déconnecter, Ctrl+Alt+Suppr (noVNC), Plein écran.
+- La console se **ferme dès qu'on quitte l'onglet ou la page** (et l'audit `console-close` le journalise).
+- Les bibliothèques ne se chargent **qu'à l'ouverture d'une console** (noVNC ~187 Ko, xterm ~331 Ko, hors du paquet principal).
+- noVNC : le mot de passe VNC est le ticket renvoyé par la demande. xterm.js : le serveur fait l'identification ; le navigateur parle le
+  protocole de Proxmox (`0:<longueur>:<données>` pour la saisie, `1:<colonnes>:<lignes>:` pour la taille, `2` toutes les 30 s).
+- **nginx** (`frontend/nginx.conf`) : une route `/api/console/` dédiée relaie le WebSocket (`Upgrade`, `Connection: upgrade`, sans tampon).
+  **`Host` y garde son port (`$http_host`)** : le backend compare l'en-tête `Origin` (avec port) à `Host` ; avec `$host` le port serait perdu
+  et toutes les consoles seraient refusées derrière `:8080`. Un proxy placé devant (HTTPS) doit transmettre `Host` tel quel.
+- Dépendances épinglées en version exacte : `@novnc/novnc` 1.7.0 (MPL-2.0), `@xterm/xterm` 6.0.0 et `@xterm/addon-fit` 0.11.0 (MIT).
+
 ## Validé en réel, et ce qui ne l'a pas été
 
 Validé sur un vrai cluster (conteneur jetable du bac à sable, supprimé ensuite) : `vncproxy` et `termproxy` répondent avec le token de
 Kaji, le WebSocket s'ouvre (première trame `RFB 003.008` pour noVNC, `OK` pour xterm.js après l'identification).
 
-**Non validé en réel** : voir la description de la PR (relais complet depuis un navigateur, console d'une VM QEMU, console d'un
-conteneur sans terminal configuré). **Pas d'interface dans ce lot.**
+Validé aussi, **depuis l'interface** : terminal xterm.js d'un conteneur (invite de connexion), noVNC d'une VM vide (écran du BIOS) et d'une VM
+réelle (Ubuntu), fermeture en quittant l'onglet.
+
+**Non validé en réel** : le fonctionnement **derrière nginx** (pas de Docker sur la machine de test) et le CSP avec les WebSocket ; la saisie
+clavier dans noVNC, le copier-coller, le redimensionnement du terminal ; la console série des VM et SPICE (non gérés) ; le **shell des nœuds**
+(exige `root@pam`, voir `docs/m6-ecriture.md`, option D).
