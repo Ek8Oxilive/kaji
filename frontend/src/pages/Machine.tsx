@@ -3,6 +3,7 @@ import { BackupsTab } from "../components/BackupsTab";
 import { CloneDialog } from "../components/CloneDialog";
 import { GuestCharts } from "../components/charts/MetricsPanels";
 import { GuestTags } from "../components/GuestTags";
+import { NotesPanel } from "../components/NotesPanel";
 import { GuestTasksTab } from "../components/GuestTasksTab";
 import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
@@ -94,6 +95,8 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           </>}
         </div>
       </header>
+
+      <NotesPanel url={`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/notes`} label="Notes" />
 
       {guest.template
         ? <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">Cette machine est un modèle : elle ne se démarre pas et son matériel ne se modifie pas ici. Tu peux la cloner.</div>
