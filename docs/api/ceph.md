@@ -1,9 +1,9 @@
-# Ceph (lecture, et écriture des pools)
+# Ceph (lecture, écriture des pools, des moniteurs, des gestionnaires, des MDS et des OSD)
 
-Lots C1 et C2 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **La lecture** (toutes les routes `GET`) n'envoie
-que des lectures à Proxmox. **L'écriture se limite, pour l'instant, à créer et modifier un pool** (voir « Écriture des pools ») :
-il n'existe **aucune suppression**, ni d'écriture sur les moniteurs, les OSD ou l'installation (lots C3 à C5). Aucune réponse ne
-contient de secret.
+Lots C1, C2 et C3 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **La lecture** (toutes les routes `GET`)
+n'envoie que des lectures à Proxmox. **L'écriture** : créer et modifier un pool (« Écriture des pools »), puis créer, démarrer, arrêter
+des moniteurs, gestionnaires, MDS et OSD, et mettre un OSD dedans ou dehors (« Écriture des services »). Il n'existe **aucune
+suppression** et aucune installation (lots C4 et C5). Aucune réponse ne contient de secret.
 
 > **Rien de ce document n'a été validé en réel, sauf un point** (voir plus bas). Le cluster de test n'a pas de Ceph : un disque
 > par nœud et deux nœuds seulement. Tout a été écrit et testé avec un **faux Proxmox**, d'après la connaissance de l'API de
@@ -23,6 +23,12 @@ contient de secret.
 | `GET …/ceph/rules` | Règles de placement CRUSH (lecture) |
 | `POST …/ceph/pools` | **Écriture, non validée en réel** : créer un pool |
 | `PUT …/ceph/pools/{name}` | **Écriture, non validée en réel** : modifier un pool |
+| `POST …/ceph/nodes/{node}/monitors` | **Écriture, non validée en réel** : créer le moniteur du nœud |
+| `POST …/ceph/nodes/{node}/managers` | **Écriture, non validée en réel** : créer le gestionnaire du nœud |
+| `POST …/ceph/nodes/{node}/mds` | **Écriture, non validée en réel** : créer le MDS du nœud |
+| `POST …/ceph/nodes/{node}/osds` | **Écriture, non validée en réel** : créer un OSD (**efface le disque**) |
+| `POST …/ceph/nodes/{node}/osds/{id}/out` · `/in` | **Écriture, non validée en réel** : mettre un OSD dehors, dedans |
+| `POST …/ceph/nodes/{node}/services/{osd\|mon\|mgr\|mds}/{name}/start` · `/stop` | **Écriture, non validée en réel** : démarrer, arrêter un service |
 
 ## Ceph non installé
 
@@ -147,6 +153,45 @@ risquée pendant que Ceph redistribue les données (la santé n'est plus `HEALTH
 paramètres et renvoient une tâche ; que `GET /nodes/{node}/ceph/rules` existe et renvoie des noms de règles (`name` ou `rule_name`) ;
 que la santé lue dans `/cluster/ceph/status` reflète bien la redistribution en cours ; que `add_storages` crée le stockage attendu ; le
 **comportement de Ceph** quand on abaisse `size` ou qu'on change `pg_num` ou la règle (durée, charge, risque réel).
+
+## Écriture des services (lot C3) : NON VALIDÉE EN RÉEL
+
+> **Aucune de ces écritures n'a jamais tourné sur un vrai Ceph.** Elles sont testées avec un faux Proxmox. Les noms de routes et de
+> paramètres de Proxmox viennent de sa documentation (`pveceph mon|mgr|mds|osd create`, `ceph start|stop`), jamais d'un essai. À ne pas
+> utiliser sur un Ceph de production avant validation sur un Ceph jetable. **Hypothèse assumée** : le domaine de panne est l'**hôte**
+> (règle CRUSH par défaut) ; une règle qui sépare autrement n'est pas comprise.
+
+Toutes ces routes sont sous `…/ceph/nodes/{node}/` : le **nœud est l'endroit où l'on agit** et doit exister et être **en ligne**
+(sinon 404, rien n'est écrit). Ceph non installé : **409**, jamais un 200. Réponse : `202 {"upid", "node"}`. **Aucune route de
+suppression** (lot C4) : `DELETE`, `PUT`, `PATCH` répondent 404 ou 405.
+
+| Opération | Refus avant tout appel d'écriture | Confirmation décidée par le serveur |
+|---|---|---|
+| **Créer un moniteur** | santé `HEALTH_ERR` ou inconnue (409) ; le nœud en a déjà un (409) | si le total devient **pair** (n'améliore pas la tolérance) |
+| **Créer un gestionnaire** | santé ERR ou inconnue ; le nœud en a déjà un | non |
+| **Créer un MDS** (`hotstandby` optionnel) | santé ERR ou inconnue ; le nœud en a déjà un | non |
+| **Créer un OSD** (`dev`, `encrypted`, `device_class` parmi `hdd`, `ssd`, `nvme`) | santé ERR ou inconnue ; disque **absent de la liste des disques inutilisés** du nœud (lue chez Proxmox, `type=unused`) ou déjà utilisé (409) | **toujours** : « EFFACE ENTIÈREMENT le disque… », puis `confirm_dev` = **nom exact du disque retapé** (400 sinon) |
+| **OSD dehors** | santé **différente de `HEALTH_OK`** (même avec confirmation) ; déjà dehors ; **moins d'hôtes utiles que le `min_size` du pool le plus exigeant** : des données deviendraient indisponibles | **toujours** ; ajoute « redondance DÉGRADÉE » s'il reste moins d'hôtes que `size` |
+| **OSD dedans** | santé ERR ou inconnue ; déjà dedans | non |
+| **Démarrer** un service | n'existe pas ou n'est pas sur ce nœud ; OSD déjà démarré. **Pas de barrière de santé** : démarrer répare, c'est autorisé même en `HEALTH_ERR` | non |
+| **Arrêter** un service | santé ≠ `HEALTH_OK` (même avec confirmation) ; absent ou sur un autre nœud ; OSD déjà arrêté ; **moniteur** : quorum perdu (majorité) ou état du quorum illisible ; **OSD** : même règle que « dehors » | **toujours** ; dit si c'est le **dernier gestionnaire** ou le **seul MDS actif** (CephFS indisponible) |
+
+`confirm` doit être le booléen JSON `true` (**ni `"true"`, ni `1`**). Il n'est **jamais transmis** à Proxmox. Les confirmations ne
+contournent aucun refus. Champs inconnus (`db_dev`, `wal_dev`, `force`, un `node` dans le corps…) : **ignorés, jamais transmis**.
+`dev` : `/dev/` puis lettres, chiffres, `_`, `-` et `/` (jamais `//` ni `..`), 69 caractères au plus.
+**Pas encore géré** : disque de journal DB/WAL, redémarrage, scrub, rééquilibrage, nom de moniteur ou de MDS libre (le nom par défaut
+est celui du nœud).
+
+**Une seule écriture Ceph à la fois par connexion** (le même verrou que les pools). **Audit** : `ceph-mon-create`, `ceph-mgr-create`,
+`ceph-mds-create`, `ceph-osd-create`, `ceph-osd-out`, `ceph-osd-in`, `ceph-service-start`, `ceph-service-stop`, pour chaque succès (avec
+l'UPID), refus et erreur.
+
+**Non validé en réel, et à vérifier sur un Ceph jetable** : que `POST /nodes/{node}/ceph/mon|mgr|mds|osd`,
+`…/osd/{id}/in|out` et `…/ceph/start|stop` acceptent exactement ces paramètres et renvoient une tâche ; que `GET /nodes/{node}/disks/list?type=unused`
+renvoie `devpath`, `size`, `model` et un `used` vide pour un disque libre (un disque dont `used` est renseigné est refusé) ; que
+`quorum` et `host` des moniteurs sont bien présents (sinon l'arrêt est **refusé**, par prudence) ; les valeurs de `state` des
+gestionnaires (`active`, `standby`) et des MDS (`up:…`) ; que la santé reflète une redistribution en cours ; le **comportement réel** de
+Ceph (durée, charge) à l'arrêt ou à la mise dehors d'un OSD. Si l'hôte d'un OSD est illisible, toute action dessus est refusée.
 
 ## Ce qui a été validé en réel, et ce qui ne l'a pas été
 
