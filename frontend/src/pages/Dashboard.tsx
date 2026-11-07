@@ -31,6 +31,21 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 
 const Skeleton = ({ n, h = "h-40" }: { n: number; h?: string }) => <>{Array.from({ length: n }, (_, i) => <div key={i} className={`panel animate-pulse ${h}`} />)}</>;
 
+type GroupBy = "none" | "node" | "pool" | "tag" | "type";
+const GROUPS: GroupBy[] = ["none", "node", "pool", "tag", "type"];
+const readGroupBy = (): GroupBy => { try { const v = localStorage.getItem("kaji.groupBy"); return GROUPS.includes(v as GroupBy) ? (v as GroupBy) : "none"; } catch { return "none"; } };
+
+/** Regroupe les machines. Une machine à plusieurs étiquettes apparaît dans chacun de ses groupes ; sans valeur : « Sans … » en dernier. */
+function groupGuests(list: Guest[], by: GroupBy): { key: string; label: string; items: Guest[] }[] {
+  if (by === "none") return [{ key: "all", label: "", items: list }];
+  const keyOf = (g: Guest): string[] => by === "node" ? [g.node] : by === "pool" ? [g.pool ?? ""] : by === "type" ? [g.template ? "template" : g.type] : ((g.tags ?? []).length ? g.tags! : [""]);
+  const empty = by === "pool" ? "Sans pool" : "Sans étiquette";
+  const label = (k: string) => k === "" ? empty : by === "type" ? (k === "template" ? "Modèles" : k === "qemu" ? "Machines virtuelles" : "Conteneurs LXC") : by === "node" ? `Nœud ${k}` : k;
+  const map = new Map<string, Guest[]>();
+  for (const g of list) for (const k of keyOf(g)) map.set(k, [...(map.get(k) ?? []), g]);
+  return [...map.entries()].sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "fr"))).map(([k, items]) => ({ key: k || "_", label: label(k), items }));
+}
+
 export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoConnections: () => void; onOpenGuest: (g: Guest) => void; onOpenNode: (node: string) => void }) {
   const conns = useQuery({ queryKey: ["connections"], queryFn: () => api<Connection[]>("/api/connections") });
   const [connId, setConnId] = useState<number | null>(readConn);
@@ -48,6 +63,7 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
   const [clone, setClone] = useState<Guest | null>(null);
 
   const [q, setQ] = useState(""), [state, setState] = useState("all"), [kind, setKind] = useState("all"), [node, setNode] = useState("all");
+  const [pool, setPool] = useState("all"), [tag, setTag] = useState("all"), [groupBy, setGroupBy] = useState<GroupBy>(readGroupBy);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
@@ -61,9 +77,13 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
 
   const visible = useMemo(() => (guests.data ?? []).filter((g) =>
     (state === "all" || effectiveStatus(g) === state) && (kind === "all" || g.type === kind) && (node === "all" || g.node === node) &&
+    (pool === "all" || (pool === "none" ? !g.pool : g.pool === pool)) && (tag === "all" || (tag === "none" ? !(g.tags ?? []).length : (g.tags ?? []).includes(tag))) &&
     (!q || `${g.name ?? ""} ${g.vmid}`.toLowerCase().includes(q.toLowerCase()))),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [guests.data, state, kind, node, q, busy, now]);
+  [guests.data, state, kind, node, pool, tag, q, busy, now]);
+  const pools = useMemo(() => [...new Set((guests.data ?? []).map((g) => g.pool).filter((p): p is string => !!p))].sort(), [guests.data]);
+  const tagList = useMemo(() => [...new Set((guests.data ?? []).flatMap((g) => g.tags ?? []))].sort(), [guests.data]);
+  const groups = useMemo(() => groupGuests(visible, groupBy), [visible, groupBy]);
 
   if (conns.isLoading) return <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4"><Skeleton n={4} h="h-24" /></div>;
   if (!active) return (
@@ -163,16 +183,27 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
             <select className={sel} aria-label="État" value={state} onChange={(e) => setState(e.target.value)}><option value="all">Tous les états</option><option value="running">En marche</option><option value="stopped">Arrêtées</option></select>
             <select className={sel} aria-label="Type" value={kind} onChange={(e) => setKind(e.target.value)}><option value="all">VM + LXC</option><option value="qemu">VM</option><option value="lxc">LXC</option></select>
             <select className={sel} aria-label="Nœud" value={node} onChange={(e) => setNode(e.target.value)}><option value="all">Tous les nœuds</option>{n.map((x) => <option key={x.node} value={x.node}>{x.node}</option>)}</select>
+            {pools.length > 0 && <select className={sel} aria-label="Pool" value={pool} onChange={(e) => setPool(e.target.value)}><option value="all">Tous les pools</option><option value="none">Sans pool</option>{pools.map((p) => <option key={p} value={p}>{p}</option>)}</select>}
+            {tagList.length > 0 && <select className={sel} aria-label="Étiquette" value={tag} onChange={(e) => setTag(e.target.value)}><option value="all">Toutes les étiquettes</option><option value="none">Sans étiquette</option>{tagList.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
+            <select className={sel} aria-label="Regrouper par" value={groupBy} onChange={(e) => { const v = e.target.value as GroupBy; setGroupBy(v); try { localStorage.setItem("kaji.groupBy", v); } catch { /* stockage indisponible */ } }}>
+              <option value="none">Sans regroupement</option><option value="node">Regrouper par nœud</option><option value="pool">Regrouper par pool</option><option value="tag">Regrouper par étiquette</option><option value="type">Regrouper par type</option>
+            </select>
           </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {guests.isLoading ? <Skeleton n={6} h="h-52" /> : visible.map((x, i) => (
-            <GuestCard key={guestKey(x)} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
-              onOpen={() => onOpenGuest(x)} onClone={() => setClone(x)}
-              onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
+        {guests.isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Skeleton n={6} h="h-52" /></div> : visible.length === 0
+          ? <div className="panel p-6 text-muted">Aucune machine ne correspond aux filtres.</div>
+          : groups.map((grp) => (
+            <div key={grp.key} className="space-y-3">
+              {groupBy !== "none" && <h3 className="flex items-baseline gap-2 border-b border-line pb-1 text-sm font-semibold">{grp.label}<span className="font-normal text-muted">({grp.items.length})</span></h3>}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {grp.items.map((x, i) => (
+                  <GuestCard key={`${grp.key}/${guestKey(x)}`} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
+                    onOpen={() => onOpenGuest(x)} onClone={() => setClone(x)}
+                    onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
+                ))}
+              </div>
+            </div>
           ))}
-          {!guests.isLoading && visible.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucune machine ne correspond aux filtres.</div>}
-        </div>
       </section>
 
       {clone && id && <CloneDialog connId={id} guest={clone} nodes={n} onClose={() => setClone(null)} />}

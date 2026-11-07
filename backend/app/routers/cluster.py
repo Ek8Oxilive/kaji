@@ -1,4 +1,5 @@
 """Lecture de l'état d'un cluster Proxmox via une connexion enregistrée."""
+import re
 from collections.abc import Callable
 
 import httpx
@@ -46,6 +47,14 @@ async def _px_get(db: Session, factory: Factory, conn_id: int, path: str, /, **p
     return await _px(db, factory, conn_id, "get", path, **params)
 
 
+POOL = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,63}")
+
+
+def _pool(v) -> str | None:
+    """Pool de ressources de la machine (absent chez Proxmox quand elle n'en a pas) ; une valeur de forme inattendue est écartée."""
+    return v if isinstance(v, str) and POOL.fullmatch(v) else None
+
+
 def _guest(r: dict) -> dict:
     return {
         "vmid": r.get("vmid"), "name": r.get("name"), "type": r.get("type"),  # qemu | lxc
@@ -55,6 +64,7 @@ def _guest(r: dict) -> dict:
         "disk": r.get("disk", 0), "maxdisk": r.get("maxdisk"),
         "uptime": r.get("uptime", 0),
         "tags": parse_tags(r.get("tags")),
+        "pool": _pool(r.get("pool")),
     }
 
 
