@@ -52,7 +52,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (lecture : DNS, fuseau, heure) | M11 |
-| Mises à jour (apt) et dépôts | 🟡 (lecture ; la liste des mises à jour exige `Sys.Modify`) | M11 |
+| Mises à jour (apt) et dépôts | 🟡 (liste, actualiser ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation) | M11 |
 | Firmware | ⬜ | M11 |
 | Journal système (syslog) | 🟡 (lecture, droit `Sys.Syslog`) | M11 |
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |

@@ -52,3 +52,11 @@ Droit `Sys.PowerMgmt` sur `/nodes` (fonction `node-power`).
 | Machine **protégée** (`KAJI_PROTECTED_VMIDS`) en marche sur le nœud : jamais, même avec les acceptations | 422 |
 | Machines en marche sans `accept_guests` | 409 |
 | Les nœuds restants perdraient le quorum (`nœuds restants × 2 ≤ total`) sans `accept_quorum_loss` | 409 |
+
+## `POST /api/connections/{id}/nodes/{node}/apt/update` (écriture légère)
+Lance `apt update` sur le nœud (actualise la liste des paquets) : `202 {upid, node}`. Droit `Sys.Modify`. Aucun paramètre n'est transmis
+à Proxmox (ni `notify`, ni `quiet`), aucune confirmation (l'index change, pas les paquets installés), audité (`apt-refresh`).
+
+**L'installation des mises à jour n'est pas faite par Kaji** : l'API de Proxmox n'a pas de route d'installation (l'interface native
+ouvre un terminal qui lance `apt dist-upgrade`). Kaji affiche la commande à copier dans la console du nœud. Une route `…/apt/upgrade`
+n'existe volontairement pas (test).
