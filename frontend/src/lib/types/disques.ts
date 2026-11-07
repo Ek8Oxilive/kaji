@@ -1,7 +1,7 @@
 /** Disques d'un nœud : forme des réponses de `docs/api/disques.md`. */
 import type { Section } from "./systeme";
 export type Partition = { device: string; size: number | null; used: string | null };
-export type Disk = { device: string; size: number | null; used: string | null; gpt: boolean; model: string | null; type: string | null; health: string | null; wearout: number | null; partitions: Partition[] };
+export type Disk = { device: string; size: number | null; used: string | null; gpt: boolean; osd: boolean; model: string | null; type: string | null; health: string | null; wearout: number | null; partitions: Partition[] };
 export type NodeDisks = {
   disks: Section<Disk[]>;
   lvm: Section<{ name: string; size: number | null; free: number | null; volumes: number | null; devices: string[] }[]>;

@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
 import { bytes, pct } from "../lib/format";
-import type { NodeDisks as Disks, Smart } from "../lib/types/disques";
+import type { Disk, NodeDisks as Disks, Smart } from "../lib/types/disques";
 import type { Section } from "../lib/types/systeme";
 import { Gauge } from "./Gauge";
+import { DiskWriteDialog, type DiskMode } from "./DiskWriteDialog";
 import { Button, Notice } from "./ui";
 
 function Block<T>({ title, section, children }: { title: string; section: Section<T> | undefined; children: (d: T) => React.ReactNode }) {
@@ -20,6 +21,9 @@ function Block<T>({ title, section, children }: { title: string; section: Sectio
 }
 
 const ok = (h: string | null) => !h || h === "PASSED" || h === "OK";
+/** Indication d'affichage seulement : le serveur relit l'état chez Proxmox et décide. */
+const stateOf = (d: Disk): "free" | "leftover" | "busy" =>
+  d.osd ? "busy" : !d.used && d.partitions.length === 0 ? "free" : d.used === "partitions" && d.partitions.length > 0 && d.partitions.every((p) => !p.used) ? "leftover" : "busy";
 
 function SmartPanel({ base, device }: { base: string; device: string }) {
   const q = useQuery({ queryKey: ["node-smart", base, device], staleTime: 30_000, queryFn: () => api<Smart>(`${base}/smart?disk=${encodeURIComponent(device)}`) });
@@ -42,6 +46,7 @@ export function NodeDisks({ connId, node, online }: { connId: number; node: stri
   const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}/disks`;
   const q = useQuery({ queryKey: ["node-disks", connId, node], enabled: online, staleTime: 30_000, queryFn: () => api<Disks>(base) });
   const [smart, setSmart] = useState<string | null>(null);
+  const [dlg, setDlg] = useState<{ mode: DiskMode; disk?: Disk } | null>(null);
   if (!online) return <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">Nœud hors ligne : disques indisponibles.</div>;
   if (q.error) return <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>réessayer</button></Notice>;
   const d = q.data;
@@ -55,6 +60,13 @@ export function NodeDisks({ connId, node, online }: { connId: number; node: stri
               <span className="flex items-center gap-2"><span className={ok(x.health) ? "text-muted" : "text-danger"}>{x.health ?? "?"}{x.wearout != null ? ` · usure ${100 - x.wearout} %` : ""}</span>
                 <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setSmart(smart === x.device ? null : x.device)}>{smart === x.device ? "Masquer SMART" : "SMART"}</Button></span>
             </div>
+            {stateOf(x) === "busy" ? <p className="ml-4 text-xs text-muted">Utilisé : Kaji n'y touche pas.</p>
+              : <div className="ml-4 flex flex-wrap gap-1">
+                {stateOf(x) === "free" && <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setDlg({ mode: "gpt", disk: x })}>Initialiser GPT</Button>}
+                <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => setDlg({ mode: "wipe", disk: x })}>Effacer</Button>
+                {stateOf(x) === "free" && (["lvm", "lvmthin", "directory"] as const).map((m) => (
+                  <Button key={m} variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setDlg({ mode: m, disk: x })}>{m === "lvm" ? "Créer LVM" : m === "lvmthin" ? "Créer LVM-thin" : "Créer répertoire"}</Button>))}
+              </div>}
             {x.partitions.length > 0 && <ul className="ml-4 text-xs text-muted">{x.partitions.map((p) => <li key={p.device}>{p.device} · {p.size != null ? bytes(p.size) : "–"} · {p.used ?? "inutilisée"}</li>)}</ul>}
             {smart === x.device && <div className="rounded-lg border border-line p-3"><SmartPanel base={base} device={x.device} /></div>}
           </div>))}</div>)}</Block>
@@ -68,7 +80,10 @@ export function NodeDisks({ connId, node, online }: { connId: number; node: stri
         <Block title="ZFS" section={d?.zfs}>{(v) => v.length === 0 ? <p className="text-sm text-muted">Aucun pool ZFS.</p> : (
           <div className="space-y-2">{v.map((z) => (<Gauge key={z.name} label={`${z.name} · ${z.health ?? "?"}`} value={z.size && z.alloc != null ? pct(z.alloc, z.size) : 0} detail={z.size ? `${bytes(z.alloc ?? 0)} / ${bytes(z.size)}` : "–"} />))}</div>)}</Block>
       </div>
-      <p className="text-xs text-muted">Lecture seule. Initialiser, effacer ou créer un volume se fait pour l'instant dans Proxmox.</p>
+      {d?.disks.data && d.disks.data.some((x) => stateOf(x) === "free") && (
+        <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setDlg({ mode: "zfs" })}>Créer un pool ZFS…</Button>)}
+      <p className="text-xs text-muted">La suppression d'un volume existant se fait pour l'instant dans Proxmox.</p>
+      {dlg && <DiskWriteDialog connId={connId} node={node} mode={dlg.mode} disk={dlg.disk} free={(d?.disks.data ?? []).filter((x) => stateOf(x) === "free")} onClose={() => setDlg(null)} />}
     </div>
   );
 }
