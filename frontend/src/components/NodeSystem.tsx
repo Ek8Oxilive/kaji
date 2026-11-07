@@ -5,6 +5,7 @@ import { uptime } from "../lib/format";
 import { runTask } from "../lib/tasks";
 import type { NodeSystem as Sys, Section, Service, ServiceAction, SyslogLines } from "../lib/types/systeme";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { NodeCerts } from "./NodeCerts";
 import { NodeConfig } from "./NodeConfig";
 import { Button, Notice } from "./ui";
 
@@ -56,7 +57,8 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
         <Block title="Certificats" section={d?.certificates}>{(c) => (
           <div className="space-y-2 text-sm">{c.map((x) => { const left = daysLeft(x.not_after); return (
             <div key={x.file ?? x.fingerprint}><div className="font-medium">{x.file}</div><div className="truncate text-xs text-muted" title={x.subject ?? ""}>{x.subject}</div>
-              <div className={`text-xs ${left != null && left < 30 ? "text-danger" : "text-muted"}`}>Expire le {when(x.not_after)}{left != null && ` (${left} j)`}</div></div>); })}</div>)}</Block>
+              <div className={`text-xs ${left != null && left < 30 ? "text-danger" : "text-muted"}`}>Expire le {when(x.not_after)}{left != null && ` (${left} j)`}</div></div>); })}
+            <NodeCerts connId={connId} node={node} hasCustom={c.some((x) => x.file === "pveproxy-ssl.pem")} /></div>)}</Block>
       </div>
 
       <Block title="Services" section={d?.services}>{(list) => <Services connId={connId} node={node} list={list} />}</Block>
