@@ -3,6 +3,8 @@
 ## Objectif
 Alternative moderne à l'UI Proxmox : supervision, création/gestion des VM et LXC, et paramétrage complet du cluster (stockage, réseau, sauvegardes, utilisateurs/ACL, firewall, HA/réplication). Usage perso homelab.
 
+**But précisé : ne perdre aucune fonctionnalité de l'interface de Proxmox VE.** Le suivi fonction par fonction est dans `docs/parite-proxmox.md`.
+
 Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Docker Compose.
 
 ## Principes transverses (valables pour toutes les phases)
@@ -67,7 +69,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - **Jalon MVP : fin de M4**
 
 ### M5 : Stockage et sauvegardes
-- [ ] Stockage : usage, ajout NFS/LVM/ZFS/dir, contenu (ISO, templates), upload ISO
+- [ ] Stockage : usage, ajout NFS/LVM/ZFS/dir/CIFS/iSCSI/CephFS/RBD/PBS, contenu (ISO, templates), **téléverser et télécharger depuis une URL** (ISO, modèles)
 - [ ] Sauvegardes : jobs vzdump, planification, rétention, lancement manuel, restauration
 
 ### M6 : Utilisateurs et ACL
@@ -84,11 +86,34 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Jobs de réplication (ZFS)
 
 ### M9 : Console et déploiement
-- [ ] Console web (noVNC / xterm.js via vncproxy + proxy WebSocket)
+- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket)
 - [ ] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement
 
-### M10 (optionnel) : Gestion du cluster
-- [ ] Création, jonction de nœuds, corosync. À faire seulement si le besoin se confirme ; l'UI Proxmox native reste plus sûre pour cela.
+### M10 : Gestion du cluster (banc d'essai imbriqué obligatoire)
+- [ ] Création, jonction de nœuds, corosync. Nécessaire pour la parité avec Proxmox ; à tester uniquement sur le banc d'essai imbriqué (une erreur peut casser le quorum).
+
+### M11 : Système des nœuds
+- [ ] Mises à jour (apt) et dépôts, firmware, certificats (personnalisés, ACME), DNS, hôtes, fuseau horaire, heure
+- [ ] Journal système, services, redémarrer / éteindre un nœud
+- [ ] Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS
+
+### M12 : Ceph (banc d'essai imbriqué obligatoire)
+- [ ] État, configuration, moniteurs, gestionnaires, OSD, pools, CephFS, journaux
+
+### M13 : Supervision
+- [ ] Graphiques d'historique (CPU, RAM, réseau, disque) pour nœuds et machines
+- [ ] Journal des tâches (cluster, nœud, machine) et barre de tâches
+- [ ] Étiquettes (tags), notes, vues par dossier / pool / stockage
+- [ ] Notifications (cibles, règles), serveurs de métriques (InfluxDB, Graphite)
+
+### M14 : Options avancées des machines et conteneurs
+- [ ] Matériel avancé : passthrough PCI et USB, correspondances de ressources, TPM, disque EFI, port série, audio, hotplug
+- [ ] Options (démarrage automatique, ordre de démarrage, QEMU Agent…), fonctionnalités LXC (nesting, FUSE, keyctl)
+- [ ] Reset, suspendre, hiberner, convertir en modèle, migration distante, moniteur QEMU
+- [ ] Cloud-init avancé (snippets), téléchargement de modèles LXC officiels
+
+### M15 : Options du datacenter et divers
+- [ ] Options du datacenter, notes, actions groupées, Wake-on-LAN, langues
 
 ## Risques principaux
 | Risque | Parade |
