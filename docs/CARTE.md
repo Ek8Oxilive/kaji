@@ -89,7 +89,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/pages/AuthScreen.tsx` — 
 - `frontend/src/pages/Ceph.tsx` — Couleur ET mot : l'état ne repose jamais sur la couleur seule
 - `frontend/src/pages/Connections.tsx` — 
-- `frontend/src/pages/Dashboard.tsx` — 
+- `frontend/src/pages/Dashboard.tsx` — Regroupe les machines. Une machine à plusieurs étiquettes app…
 - `frontend/src/pages/Machine.tsx` — 
 - `frontend/src/pages/Node.tsx` — 
 - `frontend/src/pages/Sauvegardes.tsx` — 
@@ -165,7 +165,6 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/lib/useCluster.ts` — Données du cluster. Le flux temps réel (SSE) alimente le cach…
 
 ## Documentation
-- `docs/CARTE.md` — 
 - `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
 - `docs/deploiement.md` — Déploiement avec Docker
 - `docs/m12-ceph.md` — M12 : cadrage de Ceph
@@ -184,3 +183,4 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/stockage.md` — Stockage (lecture seule)
 - `docs/api/systeme-noeud.md` — Système d'un nœud (M11, lecture seule)
 - `docs/api/taches.md` — Journal des tâches (lecture seule)
+- `docs/api/vues.md` — Vues du tableau de bord (M13)

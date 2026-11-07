@@ -6,8 +6,8 @@ peuvent travailler en parallèle ; **le dépôt est le seul canal de coordinatio
 ## 0. Qui est qui
 | Agent | Étiquette | Rôle |
 |---|---|---|
-| **PC A** | `agent:pc-a` | Valide en réel sur le cluster (bac à sable seulement) et vérifie les PR des autres. Lots : compte, Docker, migrations. |
-| **PC B** | `agent:pc-b` | Développe **avec le faux Proxmox uniquement**, aucun accès au cluster réel. Lots : M5 (stockage et sauvegardes). |
+| **PC A** | `agent:pc-a` | Valide en réel sur le cluster (lecture seule, ou écritures réversibles avec l'accord du propriétaire) et relit les PR des autres. Lots qui exigent le cluster. |
+| **PC B** | `agent:pc-b` | Développe **avec le faux Proxmox uniquement**, aucun accès au cluster réel. Lots codables sans le cluster (voir `docs/REPRISE.md`). |
 
 Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent **PC B** ne prend jamais un ticket
 `agent:pc-a`, et ne fait jamais de test réel.
@@ -22,6 +22,7 @@ Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer
 - **Tu ne merges pas** : le propriétaire merge après vérification. Toutes les PR partent du même compte GitHub,
   personne ne peut « approuver » : la vérification est une vraie relecture du code et des tests.
 - **Avant de demander une revue** : fusionne `main` dans ta branche et résous les conflits toi-même.
+- **Carte du projet** : régénère `docs/CARTE.md` (`python3 tools/carte.py > docs/CARTE.md`) avant chaque PR, et après avoir fusionné `main` (un test le vérifie). Mets aussi à jour la section « État » de `docs/REPRISE.md` si ton lot change l'état du projet.
 - **PR honnête** : liste précisément ce qui n'est **pas** testé (en réel, ou du tout). Une PR qui prétend tout tester
   alors que non sera refusée.
 
@@ -68,6 +69,6 @@ Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer
 - Un test qui passe du premier coup est suspect : demande-toi ce qui le ferait échouer.
 
 ## 6. Ce qui fait refuser une PR
-CI rouge · secret qui fuit · paramètre non validé transmis à Proxmox · écriture sans audit · suppression sans confirmation
+CI rouge (y compris la carte du projet périmée) · secret qui fuit · paramètre non validé transmis à Proxmox · écriture sans audit · suppression sans confirmation
 serveur · route masquée par `{action}` · test qui dépend de la machine · affirmation « testé en réel » non vérifiable ·
 modification de fichiers hors du périmètre du ticket (surtout `PLAN.md`, `README.md`, `main.py`, `api.ts`).
