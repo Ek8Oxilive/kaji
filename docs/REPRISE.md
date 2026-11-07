@@ -15,8 +15,9 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
 - **Fait** : M0 à M4, M5 lecture, M6 lecture, M9 consoles, M11 complet (système des nœuds, sauf firmware : pas d'API), M12 Ceph lecture + écriture C2/C3/init (PC B, rien validé : pas de Ceph), M13 tâches, graphiques, étiquettes, notes, vues.
 - **À merger / déployer (2026-11-07 soir)** : PR #126 (vues : filtres et regroupement) et #128 (cette reprise + la carte) ; ensuite mettre à jour le CT (étiquettes et notes y sont déjà ; vues non).
 - **Déployé** : CT 116, `http://192.168.1.214:8080` (VPN), dossier `~/kaji`, `git pull && docker compose up -d --build`. Je n'y ai pas accès : Enzo lance les commandes.
+- **En cours (PR M5 stockage)** : ajouter/modifier/retirer un stockage (`/storage-config`, docs/api/stockage-config.md). Reste M5 : téléverser/télécharger ISO, PBS, volumes (supprimer, prune, protéger).
 - **Reste, dans cet ordre** (tableau détaillé : `docs/parite-proxmox.md`, colonnes ⬜/🟡) : **M5** stockage (ajouter/modifier, téléverser ISO, PBS) → M6 droits en écriture → M7 réseau/firewall/SDN → M8 HA/réplication → M10 cluster → M12 C4 destruction Ceph → M13 notifications + métriques → M14 options avancées → M15 datacenter.
-- **Jamais exécuté en réel** (à dire dans chaque PR) : redémarrer/éteindre un nœud, disques et volumes, certificats, ACME, dépôts (ajout), Ceph.
+- **Jamais exécuté en réel** (à dire dans chaque PR) : ajout/modification/retrait de stockage, redémarrer/éteindre un nœud, disques et volumes, certificats, ACME, dépôts (ajout), Ceph.
 
 ## Méthode d'un lot (≈ 1 PR)
 1. `git checkout main && git pull`, branche `feat/mX-…`, ticket `gh issue create --milestone … --label agent:pc-a`.

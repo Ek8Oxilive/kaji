@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Gauge } from "../components/Gauge";
+import { AddStorageDialog, DeleteStorageDialog, EditStorageDialog } from "../components/StorageConfigDialogs";
 import { Button, Notice } from "../components/ui";
 import { api, type Connection } from "../lib/api";
 import { bytes, pct } from "../lib/format";
 import type { StorageRow, StorageVolume } from "../lib/types/stockage";
+import type { StorageConfig } from "../lib/types/stockage-config";
 
 const CONN_KEY = "kaji-connection";   // même clé que le tableau de bord : le cluster choisi est partagé
 const readConn = () => { try { return Number(localStorage.getItem(CONN_KEY)) || null; } catch { return null; } };
@@ -67,7 +69,7 @@ function StorageCard({ card, index, onOpen }: { card: Card; index: number; onOpe
 }
 
 /** Tiroir latéral (comme le panneau « Matériel ») : le contenu du stockage s'ouvre par-dessus la page, qui ne bouge pas. */
-function StorageDrawer({ connId, card, onClose }: { connId: number; card: Card; onClose: () => void }) {
+function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { connId: number; card: Card; config: StorageConfig | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const { node, storage } = card.row;
   const vols = useQuery({
     queryKey: ["storage-content", connId, node, storage],
@@ -100,8 +102,13 @@ function StorageDrawer({ connId, card, onClose }: { connId: number; card: Card; 
             <h2 className="truncate text-lg font-semibold">{storage}</h2>
             <p className="truncate text-sm text-muted">{card.row.type ?? "type inconnu"} · {card.row.shared ? "partagé" : "local"} · {card.where}</p>
           </div>
-          <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {config?.managed && <Button variant="ghost" onClick={onEdit} className="!px-3 !py-1">Modifier</Button>}
+            {config && <Button variant="danger" onClick={onDelete} className="!px-3 !py-1">Retirer</Button>}
+            <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
+          </div>
         </div>
+        {config && !config.managed && <p className="text-xs text-muted">Type « {config.type} » : Kaji ne le modifie pas encore, il peut seulement le retirer.</p>}
 
         <div className="max-w-sm space-y-2"><Space row={card.row} /></div>
 
@@ -169,6 +176,12 @@ export function Stockage({ onGoConnections }: { onGoConnections: () => void }) {
   const [opened, setOpened] = useState<string | null>(null);
   useEffect(() => { setOpened(null); }, [id]);
   const current = cards.find((c) => c.key === opened) ?? null;
+  const configs = useQuery({
+    queryKey: ["storage-config", id], queryFn: () => api<StorageConfig[]>(`/api/connections/${id}/storage-config`),
+    enabled: id !== null, staleTime: 15_000,
+  });
+  const [dialog, setDialog] = useState<"add" | "edit" | "delete" | null>(null);
+  const currentConfig = configs.data?.find((c) => c.storage === current?.row.storage) ?? null;
 
   if (conns.isLoading) return <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-3"><Skeleton n={3} h="h-44" /></div>;
   if (!active) return (
@@ -194,6 +207,7 @@ export function Stockage({ onGoConnections }: { onGoConnections: () => void }) {
               {list!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
+          <Button onClick={() => setDialog("add")} className="!px-3 !py-1.5">+ Ajouter un stockage</Button>
           <Button variant="ghost" onClick={() => rows.refetch()} disabled={rows.isFetching} className="!px-3 !py-1.5">
             <span className={rows.isFetching ? "inline-block animate-spin" : ""}>↻</span> Actualiser
           </Button>
@@ -210,7 +224,12 @@ export function Stockage({ onGoConnections }: { onGoConnections: () => void }) {
         {cards.length > 0 && <p className="text-sm text-muted">Clique sur un stockage pour ouvrir son contenu.</p>}
       </section>
 
-      {current && id && <StorageDrawer connId={id} card={current} onClose={() => setOpened(null)} />}
+      {current && id && <StorageDrawer connId={id} card={current} config={currentConfig} onClose={() => setOpened(null)}
+        onEdit={() => setDialog("edit")} onDelete={() => setDialog("delete")} />}
+      {id && dialog === "add" && <AddStorageDialog connId={id} onClose={() => setDialog(null)} />}
+      {id && dialog === "edit" && currentConfig && <EditStorageDialog connId={id} cfg={currentConfig} onClose={() => setDialog(null)} />}
+      {id && dialog === "delete" && current && <DeleteStorageDialog connId={id} storage={current.row.storage}
+        onClose={() => { setDialog(null); setOpened(null); }} />}
     </div>
   );
 }
