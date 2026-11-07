@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BackupsTab } from "../components/BackupsTab";
 import { CloneDialog } from "../components/CloneDialog";
 import { GuestCharts } from "../components/charts/MetricsPanels";
+import { GuestTags } from "../components/GuestTags";
 import { GuestTasksTab } from "../components/GuestTasksTab";
 import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
@@ -70,6 +71,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold tracking-tight">{name}</h1>
             <p className="text-sm text-muted">#{guest.vmid} · {guest.template ? "Modèle" : guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
+            <div className="mt-2"><GuestTags connId={connId} guest={guest} /></div>
           </div>
           <span className="flex items-center gap-1.5 text-sm"><span className={`size-2 rounded-full ${dot}`} />{text}</span>
         </div>

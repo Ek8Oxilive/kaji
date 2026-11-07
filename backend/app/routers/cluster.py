@@ -10,6 +10,7 @@ from ..deps import get_client_factory
 from ..proxmox import ProxmoxClient
 from ..storagespec import shape_storages
 from .auth import current_user
+from ..tagspec import parse_tags
 from .connections import _get_or_404, _params
 
 router = APIRouter(prefix="/api/connections/{conn_id}", tags=["cluster"],
@@ -53,6 +54,7 @@ def _guest(r: dict) -> dict:
         "mem": r.get("mem", 0), "maxmem": r.get("maxmem"),
         "disk": r.get("disk", 0), "maxdisk": r.get("maxdisk"),
         "uptime": r.get("uptime", 0),
+        "tags": parse_tags(r.get("tags")),
     }
 
 

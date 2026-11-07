@@ -34,7 +34,7 @@ export type ClusterStatus = { name: string | null; quorate: boolean | null; node
 export type NodeInfo = { node: string; status: string | null; cpu: number | null; maxcpu: number | null; mem: number | null; maxmem: number | null; disk: number | null; maxdisk: number | null; uptime: number | null };
 export type Guest = {
   vmid: number; name: string | null; type: "qemu" | "lxc"; node: string; status: string | null; template: boolean;
-  cpu: number; maxcpu: number | null; mem: number; maxmem: number | null; uptime: number;
+  cpu: number; maxcpu: number | null; mem: number; maxmem: number | null; uptime: number; tags?: string[];
 };
 export type GuestAction = "start" | "shutdown" | "reboot" | "stop";
 export type TaskStatus = { status: string | null; exitstatus: string | null; type: string | null; ok: boolean; warnings?: boolean };
