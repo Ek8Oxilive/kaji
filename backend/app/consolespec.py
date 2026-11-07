@@ -18,6 +18,8 @@ MAX_ACTIVE = 4              # consoles ouvertes en même temps par session Kaji
 IDLE_TIMEOUT = 1800.0       # secondes sans aucun octet dans un sens ou dans l'autre
 MAX_DURATION = 8 * 3600.0   # durée maximale d'une console
 MAX_MESSAGE = 1024 * 1024   # octets par message
+NODE_IDLE_TIMEOUT = 600.0   # shell d'un nœud : plus court (accès au système de l'hôte)
+NODE_MAX_DURATION = 3600.0
 
 
 @dataclass(frozen=True)
@@ -25,7 +27,7 @@ class Target:
     """Ce que le WebSocket doit atteindre. Construit par le serveur, jamais par le client."""
     conn_id: int
     node: str
-    gtype: Literal["qemu", "lxc"]
+    gtype: Literal["qemu", "lxc", "node"]      # "node" : shell du nœud (vmid vaut alors 0)
     vmid: int
     kind: Kind
     port: int

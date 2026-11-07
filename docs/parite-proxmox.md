@@ -48,7 +48,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | 🟡 (jauges, sans historique) | M13 |
 | Notes du nœud | ⬜ | M15 |
-| Shell du nœud (exige `root@pam` : session administrateur, M6-6) | ⬜ | M9 / M6 |
+| Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
 | Certificats (personnalisés, ACME) | ⬜ | M11 |
 | DNS, hôtes, fuseau horaire, heure | ⬜ | M11 |
