@@ -50,13 +50,13 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Notes du nœud | ⬜ | M15 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
-| Certificats (personnalisés, ACME) | ⬜ | M11 |
-| DNS, hôtes, fuseau horaire, heure | ⬜ | M11 |
-| Mises à jour (apt) et dépôts | ⬜ | M11 |
+| Certificats (personnalisés, ACME) | 🟡 (lecture) | M11 |
+| DNS, hôtes, fuseau horaire, heure | 🟡 (lecture : DNS, fuseau, heure) | M11 |
+| Mises à jour (apt) et dépôts | 🟡 (lecture ; la liste des mises à jour exige `Sys.Modify`) | M11 |
 | Firmware | ⬜ | M11 |
-| Journal système (syslog) | ⬜ | M11 |
-| Services (démarrer, arrêter, redémarrer) | ⬜ | M11 |
-| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | ⬜ | M11 |
+| Journal système (syslog) | 🟡 (lecture, droit `Sys.Syslog`) | M11 |
+| Services (démarrer, arrêter, redémarrer) | 🟡 (lecture) | M11 |
+| Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (liste et santé) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | ⬜ | M7 |
 | Réplication du nœud | ⬜ | M8 |
