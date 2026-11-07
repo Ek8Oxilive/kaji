@@ -6,6 +6,7 @@ l'interface (onglet « Console » de la page Machine : noVNC, xterm.js) est le l
 | Route | Rôle |
 |---|---|
 | `POST /api/connections/{id}/guests/{node}/{type}/{vmid}/console` | Demande une console. Corps : `{"kind": "vnc" \| "term"}` (défaut `vnc`). Réponse **201** : `{session, kind, expires_in, ticket?}` |
+| `POST /api/connections/{id}/nodes/{node}/console` | **Shell d'un nœud** (xterm.js). Corps : `{"confirm": true}` obligatoire. Réponse **201** : `{session, kind: "term", expires_in}` |
 | `WS /api/console/{session}` | Relais binaire navigateur ↔ console Proxmox |
 
 ## Demande (`POST …/console`)
@@ -39,10 +40,25 @@ Ensuite :
   gros`, `error…`). **Aucun contenu de console n'est journalisé** (ni ce que tu tapes, ni ce qui s'affiche).
 - L'audit de fermeture est écrit **avant** les fermetures de connexion, pour qu'une interruption du serveur ne le fasse pas perdre.
 
+## Console d'un nœud (`POST …/nodes/{node}/console`)
+
+Accès au **système de l'hôte** : plus de précautions que pour une machine.
+- **`confirm: true` obligatoire** (sinon 400, rien n'est demandé à Proxmox, refus audité). L'interface exige une case à cocher.
+- Le nœud doit répondre (`/nodes/{node}/status`), sinon 409.
+- **Limites plus courtes** : fermeture après **10 min** sans octet, durée maximale **1 h** (machines : 30 min et 8 h). Le plafond de
+  consoles simultanées est commun aux machines et aux nœuds.
+- Proxmox exige le droit **`Sys.Console`** sur `/nodes/{node}` (constaté en réel : sans lui, 403 « Permission check failed
+  (/nodes/enzo, Sys.Console) »). Ce n'est **pas** `root@pam` qui est exigé. Avec ce droit, Proxmox ouvre un terminal qui demande
+  **`login:`** : il faut un **compte Unix du nœud**. **Kaji ne stocke ni ne transmet aucun identifiant** (comme une console physique).
+- Le ticket reste sur le serveur ; l'identification auprès de Proxmox est faite par Kaji. Audit : `console-open` / `console-close` avec la
+  cible `node/<nœud> (term)`.
+- La page **Accès** affiche la fonction « Ouvrir la console (shell) d'un nœud » (`Sys.Console` sur `/nodes`) et, si elle manque, la
+  commande à copier.
+
 ## Droits Proxmox nécessaires
 
-`VM.Console` sur la machine (compris dans `PVEVMAdmin` ; visible dans la page Accès). Pas de `Sys.Console` : le **shell du nœud** (qui
-exige `root@pam`) n'est **pas** géré.
+Machines : `VM.Console` sur la machine (compris dans `PVEVMAdmin`). Nœuds : `Sys.Console` sur `/nodes/{node}` (non compris dans les rôles
+actuels de Kaji ; à accorder, voir la page Accès).
 
 ## Interface (lot M9-2)
 

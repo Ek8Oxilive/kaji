@@ -176,7 +176,7 @@ def test_proxmox_down_returns_the_error_not_a_fake_unknown(api):
 def test_proxmox_is_only_asked_about_constant_paths(api):
     feats(api)
     asked = {req.url.params.get("path") for req in SEEN if req.url.path.endswith("/access/permissions")}
-    assert asked == set(needed_paths()) == {"/", "/pool", "/sdn/zones", "/storage", "/vms"}
+    assert asked == set(needed_paths()) == {"/", "/nodes", "/pool", "/sdn/zones", "/storage", "/vms"}
 
 
 # ---------- logique pure --------------------------------------------------------------------------------------------
@@ -291,3 +291,13 @@ def test_unknown_next_to_missing_gets_no_command(api):
     STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
     STATE["fail_paths"] = {"/sdn/zones"}                                # « network » devient inconnu
     assert list(fixes(api)) == ["backup-jobs"]
+
+
+def test_node_console_right_has_its_own_fix(api):
+    STATE["perms"] = {"/nodes": {k: 1 for k in ALL_PRIVS if k != "Sys.Console"}}
+    f = fixes(api)
+    assert list(f) == ["node-console"]
+    assert f["node-console"]["commands"] == [
+        "pveum role add Kaji-node-console -privs Sys.Console",
+        "pveum aclmod /nodes -user kaji@pve -role Kaji-node-console"]
+    assert feats(api)["node-console"]["missing"] == [{"path": "/nodes", "privilege": "Sys.Console"}]

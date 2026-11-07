@@ -16,8 +16,8 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from .. import db as dbm
-from ..consolespec import (IDLE_TIMEOUT, MAX_DURATION, MAX_MESSAGE, SESSION_TTL, ConsoleSessions, Kind, Target, origin_ok,
-                           valid_proxy_reply)
+from ..consolespec import (IDLE_TIMEOUT, MAX_DURATION, MAX_MESSAGE, NODE_IDLE_TIMEOUT, NODE_MAX_DURATION, SESSION_TTL,
+                           ConsoleSessions, Kind, Target, origin_ok, valid_proxy_reply)
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -81,6 +81,47 @@ async def open_console(body: ConsoleBody, request: Request, conn_id: int, node: 
     return {"session": sid, "kind": body.kind, "expires_in": int(SESSION_TTL), **({"ticket": ticket} if body.kind == "vnc" else {})}
 
 
+class NodeConsoleBody(BaseModel):
+    confirm: bool = False
+
+
+@router.post("/api/connections/{conn_id}/nodes/{node}/console", status_code=status.HTTP_201_CREATED)
+async def open_node_console(body: NodeConsoleBody, request: Request, conn_id: int, node: str = Path(pattern=NODE),
+                            db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
+                            user: AdminUser = Depends(current_user)):
+    """Ouvre le **shell d'un nœud** (xterm.js). C'est un accès au système de l'hôte : **`confirm: true` est exigé**, le nœud doit être en
+    ligne, et les limites sont plus courtes (10 min d'inactivité, 1 h). Proxmox exige le droit `Sys.Console` sur `/nodes/{node}` ; il
+    ouvre un terminal qui demande `login:` : il faut un compte Unix du nœud, **aucun identifiant n'est stocké ni transmis par Kaji**.
+    Même identifiant à usage unique et même WebSocket que les consoles de machines ; le ticket ne quitte pas le serveur."""
+    found = _session_of(request, db)
+    owner = found[1].id if found else ""
+    target = f"node/{node} (term)"
+
+    def refuse(code: int, msg: str):
+        audit.record(db, username=user.username, connection_id=conn_id, action="console-open", target=target, status="error", detail=msg)
+        raise HTTPException(code, msg)
+
+    if not body.confirm:
+        refuse(400, "Le shell d'un nœud donne accès au système de l'hôte : renvoie la requête avec confirm=true")
+    st = await _px(db, factory, conn_id, "get", f"/nodes/{node}/status")
+    if not isinstance(st, dict):
+        refuse(409, "Le nœud ne répond pas : sa console n'est pas disponible")
+    try:
+        reply = await _px(db, factory, conn_id, "post", f"/nodes/{node}/termproxy")
+    except HTTPException as e:
+        audit.record(db, username=user.username, connection_id=conn_id, action="console-open", target=target, status="error", detail=str(e.detail))
+        raise
+    ok = valid_proxy_reply(reply, "term")
+    if ok is None:
+        refuse(502, "Réponse inattendue de Proxmox pour la console du nœud")
+    port, ticket, pve_user = ok
+    sid = SESSIONS.create(owner, Target(conn_id, node, "node", 0, "term", port, ticket, pve_user))
+    if sid is None:
+        refuse(429, "Trop de consoles demandées sans être ouvertes : réessaie dans quelques secondes")
+    audit.record(db, username=user.username, connection_id=conn_id, action="console-open", target=target, status="started")
+    return {"session": sid, "kind": "term", "expires_in": int(SESSION_TTL)}
+
+
 @router.websocket("/api/console/{session}")
 async def console_ws(ws: WebSocket, session: str, factory: Factory = Depends(get_client_factory)):
     """Relais binaire navigateur <-> console Proxmox. Refus **avant** d'accepter (réponse HTTP 403) si l'`Origin`, la session
@@ -104,9 +145,10 @@ async def console_ws(ws: WebSocket, session: str, factory: Factory = Depends(get
         except HTTPException:
             await ws.close(code=1011)
             return
-    label = f"{target.gtype}/{target.vmid}@{target.node} ({target.kind})"
-    url, headers, ctx = client.ws_target(f"/nodes/{target.node}/{target.gtype}/{target.vmid}/vncwebsocket",
-                                         port=target.port, vncticket=target.ticket)
+    is_node = target.gtype == "node"
+    label = f"node/{target.node} ({target.kind})" if is_node else f"{target.gtype}/{target.vmid}@{target.node} ({target.kind})"
+    ws_path = f"/nodes/{target.node}/vncwebsocket" if is_node else f"/nodes/{target.node}/{target.gtype}/{target.vmid}/vncwebsocket"
+    url, headers, ctx = client.ws_target(ws_path, port=target.port, vncticket=target.ticket)
     await client.aclose()
 
     if not SESSIONS.acquire(owner):
@@ -163,9 +205,9 @@ async def console_ws(ws: WebSocket, session: str, factory: Factory = Depends(get
             while True:
                 await asyncio.sleep(WATCHDOG_EVERY)
                 now = time.monotonic()
-                if now - last > IDLE_TIMEOUT:
+                if now - last > (NODE_IDLE_TIMEOUT if is_node else IDLE_TIMEOUT):
                     return "inactivité"
-                if now - started > MAX_DURATION:
+                if now - started > (NODE_MAX_DURATION if is_node else MAX_DURATION):
                     return "durée maximale"
 
         tasks = [asyncio.create_task(f()) for f in (to_proxmox, to_browser, watchdog)]
