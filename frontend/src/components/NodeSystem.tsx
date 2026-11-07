@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
 import { bytes, uptime } from "../lib/format";
-import type { NodeSystem as Sys, Section, SyslogLines } from "../lib/types/systeme";
+import { runTask } from "../lib/tasks";
+import type { NodeSystem as Sys, Section, Service, ServiceAction, SyslogLines } from "../lib/types/systeme";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { Button, Notice } from "./ui";
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR") : "–");
@@ -31,7 +33,7 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
   const d = q.data;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted">Lecture seule. Les mises à jour, les services, les disques et le reste se modifient pour l'instant dans Proxmox.</p>
+      <p className="text-xs text-muted">Les services se pilotent ici (droit Sys.Modify) ; mises à jour, disques et le reste se modifient pour l'instant dans Proxmox.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Block title="Version" section={d?.status}>{(s) => (
           <dl className="space-y-1 text-sm"><div>{s.pveversion ?? "–"}</div><div className="text-muted">Noyau {s.kernel ?? "–"} · démarrage {s.boot_mode ?? "–"}</div><div className="text-muted">Actif depuis {s.uptime != null ? uptime(s.uptime) : "–"}</div></dl>)}</Block>
@@ -60,8 +62,7 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
             <span className={x.health && x.health !== "PASSED" && x.health !== "OK" ? "text-danger" : "text-muted"}>{x.health ?? "?"}{x.wearout != null ? ` · usure ${100 - x.wearout} %` : ""}</span></div>))}</div>)}</Block>
       </div>
 
-      <Block title="Services" section={d?.services}>{(s) => (
-        <div className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">{s.map((x) => (<div key={x.name} className="flex items-center gap-2"><span className={`size-2 rounded-full ${x.state === "running" ? "bg-ok" : "bg-muted"}`} /><span className="font-medium">{x.name}</span><span className="truncate text-xs text-muted">{x.description}</span></div>))}</div>)}</Block>
+      <Block title="Services" section={d?.services}>{(list) => <Services connId={connId} node={node} list={list} />}</Block>
 
       <div className="panel space-y-2 p-4">
         <div className="flex items-center justify-between"><h3 className="font-semibold">Journal système</h3>
@@ -70,6 +71,66 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
           : log.error ? <p className="text-sm text-muted">{(log.error as Error).message}. Le journal exige le droit <code>Sys.Syslog</code> (page « Accès »).</p>
           : log.data ? <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded bg-surface2 p-2 text-xs" tabIndex={0}>{log.data.lines.map((l) => l.text).join("\n") || "Journal vide."}</pre> : null}
       </div>
+    </div>
+  );
+}
+
+const VERB: Record<ServiceAction, [string, string]> = { start: ["Démarrer", "Démarrage"], stop: ["Arrêter", "Arrêt"], restart: ["Redémarrer", "Redémarrage"], reload: ["Recharger", "Rechargement"] };
+const WARN: Record<Service["risk"], string> = {
+  normal: "",
+  sensitive: "Ce service est utilisé par Proxmox : l'API, les consoles, le pare-feu ou la haute disponibilité peuvent être coupés un court moment.",
+  vital: "Service vital du cluster : un redémarrage peut faire perdre le quorum ou geler le cluster un moment.",
+};
+
+function Services({ connId, node, list }: { connId: number; node: string; list: Service[] }) {
+  const qc = useQueryClient();
+  const [ask, setAsk] = useState<{ s: Service; action: ServiceAction } | null>(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}/services`;
+  const run = async (s: Service, action: ServiceAction) => {
+    setAsk(null); setBusy(s.name); setMsg(null);
+    try {
+      await runTask(connId, node, () => api(`${base}/${s.name}/${action}`, { method: "POST", body: { confirm: true, type_name: s.risk === "vital" ? typed : undefined } }), VERB[action][1]);
+      setMsg({ kind: "ok", text: `${VERB[action][1]} de « ${s.name} » terminé.` });
+    } catch (e) { setMsg({ kind: "error", text: (e as Error).message }); }
+    setBusy(null); setTyped("");
+    qc.invalidateQueries({ queryKey: ["node-system", connId, node] });
+  };
+  const actions = (s: Service): ServiceAction[] => {
+    const run_ = s.state === "running";
+    return [...(run_ ? [] : ["start" as const]), ...(run_ && s.stoppable ? ["stop" as const] : []), ...(run_ ? ["restart" as const, "reload" as const] : [])];
+  };
+  return (
+    <div className="space-y-2">
+      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
+      <div className="divide-y divide-line/60 text-sm">
+        {list.map((x) => (
+          <div key={x.name} className="flex flex-wrap items-center gap-2 py-1.5">
+            <span className={`size-2 rounded-full ${x.state === "running" ? "bg-ok" : "bg-muted"}`} />
+            <span className="font-medium">{x.name}</span>
+            <span className="min-w-0 flex-1 truncate text-xs text-muted">{x.description}</span>
+            {x.manageable && actions(x).map((a) => (
+              <Button key={a} variant="ghost" className="!px-2 !py-1 text-xs" disabled={busy !== null}
+                onClick={() => { setTyped(""); a === "start" ? run(x, a) : setAsk({ s: x, action: a }); }}>{busy === x.name ? "…" : VERB[a][0]}</Button>
+            ))}
+          </div>
+        ))}
+      </div>
+      {ask && (
+        <ConfirmDialog title={`${VERB[ask.action][0]} « ${ask.s.name} » sur ${node} ?`} confirmLabel={VERB[ask.action][0]} danger={ask.s.risk !== "normal"}
+          onCancel={() => setAsk(null)} onConfirm={() => { if (ask.s.risk === "vital" && typed !== ask.s.name) return; run(ask.s, ask.action); }}>
+          <div className="space-y-3">
+            <p>{WARN[ask.s.risk] || "Le service sera " + (ask.action === "stop" ? "arrêté." : ask.action === "reload" ? "rechargé." : "redémarré.")}</p>
+            {ask.s.risk === "vital" && (
+              <label className="block text-xs">Retape <code>{ask.s.name}</code> pour confirmer
+                <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="mt-1 w-full rounded border border-line bg-surface2 px-2 py-1 text-sm text-fg" />
+              </label>
+            )}
+          </div>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }
