@@ -71,7 +71,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Sauvegardes : jobs vzdump, planification, rétention, lancement manuel, restauration
 
 ### M6 : Utilisateurs et ACL
-- [ ] **Accès en lecture seule** : « droits de Kaji » (chaque fonction a-t-elle son droit ?), utilisateurs, rôles, ACL visibles, realms — **en cours**
+- [x] **Accès en lecture seule** : « droits de Kaji » (chaque fonction a-t-elle son droit ?), utilisateurs, rôles, ACL visibles, realms — API et page « Accès » livrées ; statut « droit manquant » vu seulement sur faux Proxmox
 - [ ] Users, groupes, rôles, permissions par chemin, realms (écriture)
 - [ ] Tokens API (création, révocation)
 
