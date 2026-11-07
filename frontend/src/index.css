@@ -25,6 +25,7 @@
   --canvas: #0a0e16;
   --surface: #111826;
   --surface2: #182133;
+  --option-bg: #182133;          /* fond OPAQUE des listes déroulantes natives (un fond translucide s'affiche en blanc) */
   --fg: #e6edf7;
   --muted: #8b98ad;
   --line: #243049;
@@ -44,6 +45,7 @@
   --canvas: #0b0a1f;
   --surface: rgb(255 255 255 / 0.07);
   --surface2: rgb(255 255 255 / 0.12);
+  --option-bg: #1f1b3f;
   --fg: #f4f1ff;
   --muted: #b3acd6;
   --line: rgb(255 255 255 / 0.18);
@@ -95,6 +97,13 @@ body {
 }
 .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .field::placeholder { color: var(--muted); opacity: 0.7; }
+
+/* Listes déroulantes natives (tous les <select> de l'application) : fond opaque et texte lisible dans chaque thème.
+   Sans cela, le fond translucide des champs rendait la liste blanche avec un texte clair, donc illisible. */
+select { color-scheme: dark; }
+select option, select optgroup { background-color: var(--option-bg); color: var(--fg); }
+select option:checked, select option:hover { background-color: var(--accent); color: var(--accentfg); }
+select option:disabled { color: var(--muted); }
 
 @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
 .dot-live { animation: pulse-ring 2s ease-out infinite; }
