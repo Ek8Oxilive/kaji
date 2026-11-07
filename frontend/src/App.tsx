@@ -7,6 +7,7 @@ import { Connections } from "./pages/Connections";
 import { Dashboard } from "./pages/Dashboard";
 import { Machine } from "./pages/Machine";
 import { NodePage } from "./pages/Node";
+import { Sauvegardes } from "./pages/Sauvegardes";
 import { Stockage } from "./pages/Stockage";
 
 const PAGES = [...NAV, ...NAV_BOTTOM].map((n) => n.id) as string[];
@@ -33,6 +34,7 @@ export default function App() {
         : route.page === "node" ? <NodePage params={route.params} go={go} onGoConnections={goConnections} />
         : page === "connections" ? <Connections />
         : page === "storage" ? <Stockage onGoConnections={goConnections} />
+        : page === "backups" ? <Sauvegardes onGoConnections={goConnections} />
         : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );
