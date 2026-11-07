@@ -2,11 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..accessspec import (check_features, granted, needed_paths, shape_acl, shape_groups, shape_realms, shape_roles,
-                          shape_users)
+from ..accessspec import (build_fixes, check_features, granted, needed_paths, shape_acl, shape_groups, shape_realms,
+                          shape_roles, shape_users)
 from ..db import get_db
 from ..deps import get_client_factory
 from .auth import current_user
+from .connections import _get_or_404
 from .cluster import Factory, _px_get
 
 router = APIRouter(prefix="/api/connections/{conn_id}/access", tags=["access"], dependencies=[Depends(current_user)])
@@ -40,11 +41,8 @@ async def realms(conn_id: int, db: Session = Depends(get_db), factory: Factory =
     return shape_realms(await _px_get(db, factory, conn_id, "/access/domains"))
 
 
-@router.get("/features")
-async def features(conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
-    """« Droits de Kaji » : pour chaque fonction, le token a-t-il les privilèges nécessaires ? (`ok`, `missing` avec la liste
-    des privilèges manquants, ou `unknown`). Les droits sont ceux que Proxmox calcule pour le token, héritage compris.
-    Si Proxmox ne répond à aucune des questions, l'erreur est renvoyée telle quelle plutôt qu'un faux « inconnu »."""
+async def _features(db: Session, factory: Factory, conn_id: int) -> list[dict]:
+    """Évalue les droits de Kaji. Si Proxmox ne répond à aucune question, l'erreur est renvoyée telle quelle."""
     perms: dict[str, set[str] | None] = {}
     first_error: HTTPException | None = None
     for path in needed_paths():
@@ -58,3 +56,26 @@ async def features(conn_id: int, db: Session = Depends(get_db), factory: Factory
     if all(v is None for v in perms.values()) and first_error is not None:
         raise first_error
     return check_features(perms)
+
+
+@router.get("/features")
+async def features(conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
+    """« Droits de Kaji » : pour chaque fonction, le token a-t-il les privilèges nécessaires ? (`ok`, `missing` avec la liste
+    des privilèges manquants, ou `unknown`). Les droits sont ceux que Proxmox calcule pour le token, héritage compris.
+    Si Proxmox ne répond à aucune des questions, l'erreur est renvoyée telle quelle plutôt qu'un faux « inconnu »."""
+    return await _features(db, factory, conn_id)
+
+
+@router.get("/fixes")
+async def fixes(conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
+    """Commandes `pveum` à lancer **en root sur un nœud** pour corriger les droits manquants. **Kaji n'exécute rien** et
+    n'obtient aucun droit de plus : ce sont des textes construits à partir de constantes et de l'utilisateur de la connexion."""
+    feats = await _features(db, factory, conn_id)
+    if not any(f["status"] == "missing" for f in feats):
+        return []
+    user = _get_or_404(db, conn_id).user
+    try:
+        roles = {r["roleid"] for r in shape_roles(await _px_get(db, factory, conn_id, "/access/roles"))}
+    except HTTPException:
+        roles = None
+    return build_fixes(feats, user, roles)

@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from app.accessspec import FEATURES, check_features, granted, needed_paths
+from app.accessspec import FEATURES, FORBIDDEN_PRIVS, FIX_USER, build_fixes, check_features, granted, needed_paths
 from app.deps import get_client_factory
 from app.main import app
 from app.proxmox import ProxmoxClient
@@ -47,7 +47,7 @@ def _handler(request: httpx.Request) -> httpx.Response:
         if path not in STATE.get("omit_paths", ()):
             body[path] = perms
         return httpx.Response(200, json={"data": STATE.get("raw_perms", body)})
-    table = {"/access/users": USERS, "/access/groups": GROUPS, "/access/roles": ROLES, "/access/acl": ACL,
+    table = {"/access/users": USERS, "/access/groups": GROUPS, "/access/roles": STATE.get("roles", ROLES), "/access/acl": ACL,
              "/access/domains": REALMS}
     if p in table:
         return httpx.Response(200, json={"data": table[p]})
@@ -192,3 +192,102 @@ def test_check_features_without_any_data_is_all_unknown():
 
 def test_check_features_with_empty_privileges_is_all_missing():
     assert {x["status"] for x in check_features({p: set() for p in needed_paths()})} == {"missing"}
+
+
+# ---------- commandes de correction (jamais exécutées) ---------------------------------------------------------------
+
+def fixes(api):
+    r = get(api, "fixes")
+    assert r.status_code == 200
+    return {f["id"]: f for f in r.json()}
+
+
+def test_fixes_requires_auth(client):
+    assert client.get("/api/connections/1/access/fixes").status_code == 401
+
+
+def test_no_fix_when_nothing_is_missing(api):
+    assert get(api, "fixes").json() == []
+
+
+def test_missing_privilege_gives_role_and_acl_commands(api):
+    STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
+    f = fixes(api)
+    assert list(f) == ["backup-jobs"]                                   # seulement la fonction touchée
+    assert f["backup-jobs"]["commands"] == [
+        "pveum role add Kaji-backup-jobs -privs Sys.Modify",
+        "pveum aclmod / -user kaji@pve -role Kaji-backup-jobs"]
+    assert f["backup-jobs"]["error"] is None
+
+
+def test_existing_role_is_modified_not_recreated(api):
+    STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
+    STATE["roles"] = [{"roleid": "Kaji-backup-jobs", "privs": "VM.Audit"}]
+    cmds = fixes(api)["backup-jobs"]["commands"]
+    assert cmds[0] == "pveum role modify Kaji-backup-jobs -privs Sys.Modify -append 1"
+
+
+def test_unreadable_roles_fall_back_to_creation(api):
+    STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
+    STATE["roles"] = "illisible"
+    assert fixes(api)["backup-jobs"]["commands"][0].startswith("pveum role add ")
+
+
+def test_a_feature_missing_on_two_paths_gets_one_role_per_path(api):
+    STATE["perms"] = {"/vms": {k: 1 for k in ALL_PRIVS if k != "VM.Backup"}, "/storage": {}}
+    c = fixes(api)["backup"]["commands"]
+    assert c == [
+        "pveum role add Kaji-backup-storage -privs Datastore.AllocateSpace",
+        "pveum aclmod /storage -user kaji@pve -role Kaji-backup-storage",
+        "pveum role add Kaji-backup-vms -privs VM.Backup",
+        "pveum aclmod /vms -user kaji@pve -role Kaji-backup-vms"]
+
+
+def test_unknown_status_gives_no_command(api):
+    STATE["fail_paths"] = {"/sdn/zones"}
+    assert get(api, "fixes").json() == []                               # « inconnu » n'est pas « manquant »
+
+
+def test_fixes_never_write_and_never_leak(api):
+    STATE["perms"] = {"/": {}}
+    r = get(api, "fixes")
+    assert SECRET not in r.text and all(req.method == "GET" for req in SEEN)
+
+
+def test_no_command_ever_grants_the_right_to_manage_rights(api):
+    STATE["perms"] = {p: {} for p in needed_paths()}                    # tout manque
+    text = " ".join(" ".join(f["commands"]) for f in fixes(api).values())
+    assert text and "Administrator" not in text and not any(bad in text for bad in FORBIDDEN_PRIVS)
+    assert "-privs *" not in text and "--delete" not in text
+
+
+@pytest.mark.parametrize("user", ["kaji@pve; rm -rf /", "kaji@pve\n", "$(id)@pve", "a b@pve", "kaji", "@pve", "kaji@", "kaji@pve!kaji",
+                                  "kaji@pve`id`", "kaji@pve && id", "", None, "x" * 80 + "@pve"])
+def test_a_dangerous_user_gets_no_command(user):
+    feats = [{"id": "backup-jobs", "label": "x", "status": "missing", "missing": [{"path": "/", "privilege": "Sys.Modify"}]}]
+    out = build_fixes(feats, user, set())
+    assert out[0]["commands"] == [] and out[0]["error"]
+
+
+def test_a_forbidden_privilege_is_never_proposed():
+    feats = [{"id": "x", "label": "x", "status": "missing", "missing": [{"path": "/", "privilege": "Permissions.Modify"}]}]
+    out = build_fixes(feats, "kaji@pve", set())
+    assert out[0]["commands"] == [] and "jamais proposé" in out[0]["error"]
+
+
+def test_fix_user_pattern_uses_fullmatch_semantics():
+    assert FIX_USER.fullmatch("kaji@pve") and not FIX_USER.fullmatch("kaji@pve\n")
+
+
+def test_build_fixes_only_concerns_missing_features():
+    miss = [{"path": "/", "privilege": "Sys.Modify"}]
+    feats = [{"id": "a", "label": "a", "status": "ok", "missing": []},
+             {"id": "b", "label": "b", "status": "unknown", "missing": []},
+             {"id": "backup-jobs", "label": "c", "status": "missing", "missing": miss}]
+    assert [f["id"] for f in build_fixes(feats, "kaji@pve", set())] == ["backup-jobs"]
+
+
+def test_unknown_next_to_missing_gets_no_command(api):
+    STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
+    STATE["fail_paths"] = {"/sdn/zones"}                                # « network » devient inconnu
+    assert list(fixes(api)) == ["backup-jobs"]
