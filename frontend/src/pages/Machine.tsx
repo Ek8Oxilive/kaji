@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BackupsTab } from "../components/BackupsTab";
 import { CloneDialog } from "../components/CloneDialog";
 import { GuestCharts } from "../components/charts/MetricsPanels";
+import { GuestTasksTab } from "../components/GuestTasksTab";
 import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -16,8 +17,8 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
-type Tab = "hardware" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"]];
+type Tab = "hardware" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups" | "tasks";
+const TABS: [Tab, string][] = [["hardware", "Matériel"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["tasks", "Tâches"]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -107,6 +108,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={running} />}
           {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
           {tab === "backups" && <BackupsTab connId={connId} guest={guest} />}
+          {tab === "tasks" && <GuestTasksTab connId={connId} guest={guest} />}
         </>}
 
       {clone && <CloneDialog connId={connId} guest={guest} nodes={nodes.data ?? []} onClose={() => setClone(false)} />}

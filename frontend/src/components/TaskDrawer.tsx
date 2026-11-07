@@ -1,0 +1,91 @@
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { Button, Notice } from "./ui";
+import { api } from "../lib/api";
+import { STATE_LABEL } from "../lib/taskLabels";
+import type { TaskDetail, TaskLine, TaskRow, TaskState } from "../lib/types/taches";
+
+export const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "medium" }) : "–");
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const LOG_CHUNK = 1000;
+const LOG_MAX = 20_000;            // lignes gardées en mémoire : au-delà, on le dit au lieu de ralentir la page
+
+/** Couleur ET mot : l'état ne repose jamais sur la couleur seule. */
+const TONE: Record<TaskState, { dot: string; text: string }> = {
+  running: { dot: "bg-accent animate-pulse", text: "text-accent" }, ok: { dot: "bg-ok", text: "text-ok" },
+  warning: { dot: "bg-warn", text: "text-warn" }, error: { dot: "bg-danger", text: "text-danger" },
+};
+export const Badge = ({ s }: { s: TaskState }) => <span className={`flex items-center gap-1.5 text-xs ${TONE[s].text}`}><span className={`size-2 rounded-full ${TONE[s].dot}`} />{STATE_LABEL[s]}</span>;
+
+/** Tiroir d'une tâche : état, puis journal ; une tâche en cours est suivie en direct. */
+export function TaskDrawer({ connId, task, label, onClose }: { connId: number; task: TaskRow; label: string; onClose: () => void }) {
+  const base = `/api/connections/${connId}/tasks/${encodeURIComponent(task.node ?? "")}/${encodeURIComponent(task.upid)}`;
+  const detail = useQuery({ queryKey: ["task", connId, task.upid], queryFn: () => api<TaskDetail>(base), refetchInterval: (q) => (q.state.data?.status === "stopped" ? false : 2000) });
+  const running = detail.data ? detail.data.status !== "stopped" : task.state === "running";
+  const runningRef = useRef(running);
+  runningRef.current = running;
+  const [lines, setLines] = useState<TaskLine[]>([]);
+  const [logError, setLogError] = useState<string | null>(null);
+  const [capped, setCapped] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const follow = useRef(true);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Lecture incrémentale du journal : on ne redemande jamais ce qu'on a déjà ; tant que la tâche tourne, on revient toutes les 2 s.
+  useEffect(() => {
+    let stop = false;
+    let have = 0;
+    (async () => {
+      while (!stop) {
+        try {
+          const chunk = await api<TaskLine[]>(`${base}/log?start=${have}&limit=${LOG_CHUNK}`);
+          if (stop) return;
+          setLogError(null);
+          if (chunk.length) { have += chunk.length; setLines((cur) => [...cur, ...chunk]); }
+          if (have >= LOG_MAX) { setCapped(true); return; }
+          if (chunk.length === LOG_CHUNK) continue;            // il en reste
+        } catch (e) {
+          if (!stop) setLogError((e as Error).message);
+          return;
+        }
+        if (!runningRef.current) return;                        // terminée, et la dernière lecture vient d'être faite
+        await sleep(2000);
+      }
+    })();
+    return () => { stop = true; };
+  }, [base]);
+
+  useEffect(() => { if (follow.current) box.current?.scrollTo({ top: box.current.scrollHeight }); }, [lines]);
+
+  const d = detail.data;
+  const state: TaskState = running ? "running" : d ? (d.warnings ? "warning" : d.ok ? "ok" : "error") : task.state;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+      <aside role="dialog" aria-modal="true" aria-label={`Tâche : ${label}`} onClick={(e) => e.stopPropagation()}
+        className="panel rise flex h-full w-[min(56rem,100vw)] flex-col gap-4 !rounded-none !rounded-l-2xl p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold">{label}</h2>
+            <p className="truncate text-sm text-muted">{task.node} · {task.user ?? "–"}{task.token ? `!${task.token}` : ""} · {when(task.start)}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3"><Badge s={state} />{running && <span className="text-xs text-muted">Journal suivi en direct</span>}</div>
+        {!running && d?.exitstatus && d.exitstatus !== "OK" && <Notice kind={d.warnings ? "ok" : "error"}>{d.exitstatus}</Notice>}
+        {detail.error && <Notice kind="error">{(detail.error as Error).message}</Notice>}
+        {logError && <Notice kind="error">Journal illisible : {logError}</Notice>}
+        <div ref={box} onScroll={(e) => { const el = e.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
+          className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-line bg-black/40 p-3 font-mono text-xs leading-relaxed" aria-label="Journal de la tâche" tabIndex={0}>
+          {lines.length === 0 && !logError ? <p className="text-muted">{running ? "En attente de sortie…" : "Journal vide."}</p>
+            : lines.map((l, i) => <div key={l.n ?? i} className="whitespace-pre-wrap break-all">{l.t}</div>)}
+          {capped && <p className="mt-2 text-warn">Journal tronqué : seules les {LOG_MAX.toLocaleString("fr-FR")} premières lignes sont affichées.</p>}
+        </div>
+      </aside>
+    </div>
+  );
+}

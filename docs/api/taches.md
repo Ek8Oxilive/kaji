@@ -57,3 +57,6 @@ d'une tâche terminée (journal complet jusqu'à `TASK WARNINGS: 1`) et d'une t�
 **Non validé en réel** : le suivi en direct d'une tâche **jusqu'à sa fin** depuis le tiroir (la tâche de test avait déjà fini quand je
 l'ai ouverte) ; un nœud qui ne répond pas (le cas est testé sur le faux Proxmox) ; plus de 500 tâches ; un journal de plus de 20 000
 lignes ; l'écran étroit.
+
+## Onglet « Tâches » d'une machine
+L'onglet utilise `GET /api/connections/{id}/tasks?vmid=<id>&limit=250` (tous les nœuds : la machine a pu migrer). L'interface masque par défaut les tâches de console (`vncproxy`, `termproxy`, `spiceproxy`, `vncshell`, `spiceshell`), qui représentaient près de la moitié de l'historique constaté en réel ; une case permet de les afficher. Aucune route nouvelle.

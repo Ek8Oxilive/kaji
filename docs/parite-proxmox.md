@@ -85,7 +85,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Pare-feu de la machine (règles, options, IPSet) | ⬜ | M7 |
 | Permissions de la machine | ⬜ | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
-| Historique des tâches de la machine | 🟡 (filtre par machine dans l'API, pas encore sur sa page) | M13 |
+| Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
 | Étiquettes (tags), notes | ⬜ | M13 |
 | Résumé avec graphiques d'historique | ✅ (onglet « Performances ») | M13 |
 | Supprimer | ✅ | M4 |
