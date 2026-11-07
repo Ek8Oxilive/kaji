@@ -4,6 +4,8 @@ Tout est tolérant aux données illisibles. Règle de prudence : **« ok » n'es
 « ok » que si Proxmox a répondu et que chaque privilège nécessaire est explicitement accordé ; une réponse absente ou
 illisible donne « inconnu », jamais « ok ».
 """
+import re
+import shlex
 from dataclasses import dataclass
 
 from .storagespec import _int, _str
@@ -117,4 +119,49 @@ def check_features(perms_by_path: dict[str, set[str] | None]) -> list[dict]:
             missing += [{"path": path, "privilege": p} for p in privs if p not in have]
         status = "missing" if missing else "unknown" if unknown else "ok"
         out.append({"id": f.id, "label": f.label, "status": status, "missing": missing})
+    return out
+
+
+# ------------------------------------------------------------------ commandes de correction (jamais exécutées)
+
+# Privilèges qui permettent de gérer les droits eux-mêmes : une commande de correction n'en contient JAMAIS (cadrage
+# `docs/m6-ecriture.md`). Garde-fou en plus de la liste `FEATURES`, qui n'en contient aucun.
+FORBIDDEN_PRIVS = frozenset({"Permissions.Modify", "User.Modify", "Group.Allocate", "Realm.Allocate", "Realm.AllocateUser"})
+FIX_USER = re.compile(r"[A-Za-z0-9._-]{1,64}@[A-Za-z0-9._-]{1,32}")   # utilisateur de la connexion : `fullmatch`
+_SLUG = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _role_name(feature_id: str, path: str, several_paths: bool) -> str:
+    return f"Kaji-{feature_id}" + (f"-{_SLUG.sub('-', path).strip('-') or 'racine'}" if several_paths else "")
+
+
+def build_fixes(features: list[dict], user: str, existing_roles: set[str] | None) -> list[dict]:
+    """Pour chaque fonction dont un droit manque : les commandes `pveum` à lancer **en root sur un nœud**. Kaji n'exécute
+    rien. Tout vient de constantes (chemins et privilèges de `FEATURES`) et de `user`, vérifié par `FIX_USER`
+    (sinon aucune commande n'est produite). `existing_roles` : rôles connus de Proxmox (`None` : illisible, on propose
+    la création)."""
+    safe_user = bool(FIX_USER.fullmatch(user or ""))
+    out = []
+    for f in features:
+        if f.get("status") != "missing":
+            continue
+        by_path: dict[str, list[str]] = {}
+        for m in f.get("missing", []):
+            by_path.setdefault(m["path"], []).append(m["privilege"])
+        entry = {"id": f["id"], "label": f["label"], "commands": [], "error": None}
+        privs_all = {p for ps in by_path.values() for p in ps}
+        if not safe_user:
+            entry["error"] = "Utilisateur de la connexion non reconnu : aucune commande n'est proposée."
+        elif privs_all & FORBIDDEN_PRIVS:
+            entry["error"] = "Privilège d'administration des droits : à accorder dans Proxmox, jamais proposé par Kaji."
+        else:
+            for path, privs in sorted(by_path.items()):
+                role = _role_name(f["id"], path, len(by_path) > 1)
+                plist = ",".join(sorted(set(privs)))
+                if existing_roles is not None and role in existing_roles:
+                    entry["commands"].append(f"pveum role modify {shlex.quote(role)} -privs {shlex.quote(plist)} -append 1")
+                else:
+                    entry["commands"].append(f"pveum role add {shlex.quote(role)} -privs {shlex.quote(plist)}")
+                entry["commands"].append(f"pveum aclmod {shlex.quote(path)} -user {shlex.quote(user)} -role {shlex.quote(role)}")
+        out.append(entry)
     return out

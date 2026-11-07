@@ -74,6 +74,8 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ### M6 : Utilisateurs et ACL
 - [x] **Accès en lecture seule** : « droits de Kaji » (chaque fonction a-t-elle son droit ?), utilisateurs, rôles, ACL visibles, realms — API et page « Accès » livrées ; statut « droit manquant » vu seulement sur faux Proxmox
+- [x] **Commandes de correction** (lot A1) : pour un droit manquant, Kaji affiche les commandes `pveum` à copier ; il n'exécute rien
+- [ ] Profil de droits recommandé (lot A2) : attend d'avoir éprouvé chaque privilège en bac à sable
 - [ ] Écriture des droits : **cadrée** dans `docs/m6-ecriture.md` (rien n'est développé ; décision du propriétaire attendue : commandes à copier d'abord, écriture bornée seulement si un besoin réel apparaît)
 - [ ] Tokens API (création, révocation) : voir le cadrage ci-dessus
 

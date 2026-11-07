@@ -8,3 +8,6 @@ export type AccessGroup = { groupid: string; comment: string | null; users: stri
 export type AccessRole = { roleid: string; special: boolean; privs: string[] };
 export type AccessAcl = { path: string; type: string | null; ugid: string; roleid: string; propagate: boolean };
 export type AccessRealm = { realm: string; type: string | null; comment: string | null };
+
+/** `GET …/access/fixes` : commandes `pveum` à copier (Kaji n'exécute rien). */
+export type Fix = { id: string; label: string; commands: string[]; error: string | null };

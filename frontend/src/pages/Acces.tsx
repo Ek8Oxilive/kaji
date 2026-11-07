@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
-import type { AccessAcl, AccessGroup, AccessRealm, AccessRole, AccessUser, Feature } from "../lib/types/acces";
+import type { AccessAcl, AccessGroup, AccessRealm, AccessRole, AccessUser, Feature, Fix } from "../lib/types/acces";
 
 const when = (s: number | null) => (s ? new Date(s * 1000).toLocaleDateString("fr-FR") : "jamais");
 
@@ -29,6 +29,24 @@ function Block<T>({ title, count, hint, q, children }: {
   );
 }
 
+/** Commandes à copier : Kaji n'exécute rien, tu les lances toi-même sur un nœud. */
+function FixBox({ fix }: { fix: Fix }) {
+  const [copied, setCopied] = useState(false);
+  const text = fix.commands.join("\n");
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* le texte reste sélectionnable */ }
+  };
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-line bg-surface2 p-3">
+      {fix.error ? <p className="text-xs text-warn">{fix.error}</p> : <>
+        <p className="text-xs text-muted">À lancer <strong className="text-fg">en root, dans le shell d'un nœud Proxmox</strong>. Kaji n'exécute rien.</p>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/30 p-2 font-mono text-xs" aria-label={`Commandes pour : ${fix.label}`}>{text}</pre>
+        <Button variant="ghost" onClick={copy} className="!px-3 !py-1 text-xs">{copied ? "Copié ✓" : "Copier"}</Button>
+      </>}
+    </div>
+  );
+}
+
 const Empty = ({ children }: { children: ReactNode }) => <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{children}</div>;
 const th = "px-4 py-2 font-normal";
 
@@ -41,6 +59,9 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
   const roles = useQuery(get<AccessRole[]>("roles"));
   const acl = useQuery(get<AccessAcl[]>("acl"));
   const realms = useQuery(get<AccessRealm[]>("realms"));
+  const anyMissing = (features.data ?? []).some((x) => x.status === "missing");
+  const fixes = useQuery({ ...get<Fix[]>("fixes"), enabled: id !== null && anyMissing });
+  const [openFix, setOpenFix] = useState<string | null>(null);
 
   if (conns.isLoading) return <div className="mx-auto max-w-5xl space-y-3">{[0, 1, 2].map((i) => <div key={i} className="panel h-14 animate-pulse" />)}</div>;
   if (!active || id === null) return (
@@ -87,6 +108,15 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
                     <p className="text-sm">{x.label}<span className="sr-only"> : {s.label}</span></p>
                     {x.missing.length > 0 && <p className="text-xs text-danger">Manque : {x.missing.map((m) => `${m.privilege} sur ${m.path}`).join(", ")}</p>}
                     {x.status === "unknown" && <p className="text-xs text-warn">Proxmox n'a pas pu confirmer ce droit.</p>}
+                    {x.status === "missing" && (() => {
+                      const fix = fixes.data?.find((f) => f.id === x.id);
+                      return <>
+                        <button className="mt-1 text-xs underline" onClick={() => setOpenFix(openFix === x.id ? null : x.id)} aria-expanded={openFix === x.id}
+                          disabled={!fix}>{fixes.isLoading ? "Chargement…" : openFix === x.id ? "Masquer la commande" : "Voir la commande"}</button>
+                        {openFix === x.id && fix && <FixBox fix={fix} />}
+                        {fixes.error && <p className="text-xs text-warn">Commandes indisponibles : {(fixes.error as Error).message}</p>}
+                      </>;
+                    })()}
                   </div>
                   <span className={`shrink-0 text-xs ${s.cls}`}>{s.label}</span>
                 </li>
