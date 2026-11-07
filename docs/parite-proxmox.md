@@ -34,7 +34,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | ⬜ | M6 |
 | HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
-| ACME (certificats automatiques) | ⬜ | M11 |
+| ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | ⬜ | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
 | Notifications : cibles et règles | ⬜ | M13 |
@@ -50,7 +50,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Notes du nœud | ⬜ | M15 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
-| Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME ⬜) | M11 |
+| Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME : voir plus haut) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (codé, jamais exécuté en réel ; synchronisation NTP ⬜) | M11 |
 | Mises à jour (apt) et dépôts | 🟡 (liste, actualiser, dépôts : activer / désactiver / ajouter un standard, codés et jamais exécutés en réel ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation ; dépôt personnalisé ⬜) | M11 |
 | Firmware | ➖ (aucune route dans l'API de Proxmox 9.1.9 : `GET /nodes/{n}/firmware` → 501) | — |

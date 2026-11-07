@@ -93,3 +93,16 @@ Droit `Sys.Modify` (fonction `node-repos` de la page Accès). Audités (`apt-rep
 | `POST …/nodes/{n}/apt/repositories` | `{handle, digest, confirm, accept_risk}` | idem ; `handle` parmi les dépôts standard **non encore configurés** (déjà configuré : 409, il faut l'activer) |
 
 `accept_risk` est exigé (409 avec la liste des raisons) pour : activer ou ajouter un dépôt *enterprise* **sans abonnement actif** (apt répondrait 401 et les mises à jour échoueraient) ; ajouter un dépôt de **test** ; **désactiver le dernier** dépôt Proxmox ou le dernier dépôt Debian actif. Abonnement illisible = « sans abonnement » ; dépôts illisibles : 502, rien n'est écrit.
+
+## ACME : certificats automatiques (écriture)
+Droit `Sys.Modify` sur `/nodes` **et** sur `/` (fonction `acme` de la page Accès). Audités (`acme-account-create`, `acme-account-delete`, `acme-config`, `acme-order`, `acme-renew`). **Ces opérations contactent une autorité extérieure (Let's Encrypt)** : l'adresse de contact lui est transmise, ses conditions d'utilisation doivent être acceptées, et une commande en production est limitée en nombre. L'interface propose l'annuaire de **test (staging)** par défaut ; son certificat n'est pas approuvé.
+
+| Route | Corps | Garde-fous |
+|---|---|---|
+| `GET …/nodes/{n}/acme` | — | `accounts`, `directories`, `tos`, `plugins` (**sans leurs données** : un plugin DNS porte un jeton d'API), `config` ; rubriques indépendantes |
+| `POST …/acme/accounts` | `{name, contact, directory, accept_tos, confirm}` | `accept_tos` + `confirm` ; adresse valide ; annuaire **parmi ceux de Proxmox** (https) ; nom libre ; les conditions envoyées sont **celles lues chez Proxmox**, jamais celles du client ; pas de champ EAB |
+| `POST …/acme/accounts/{name}/delete` | `{confirm, type_name}` | nom retapé ; refusé si un nœud du cluster utilise le compte (état illisible = refus) ; irréversible chez l'autorité |
+| `PUT …/nodes/{n}/acme/config` | `{account, domains: [{domain, plugin}] (1 à 5), digest, confirm}` | compte existant ; domaine valide sans doublon ; `*.` exige un plugin DNS ; plugin connu ; digest périmé → 409 ; **seuls** `acme`, `acmedomain0..4` (et `delete` des emplacements en trop) sont écrits |
+| `POST …/nodes/{n}/acme/order` · `…/renew` | `{confirm, replace_existing}` | nœud configuré ; annuaire du compte lisible ; **annuaire de test refusé si la connexion vérifie le TLS** (Kaji perdrait l'accès) ; certificat personnalisé déjà présent : `replace_existing` explicite (commande seulement : le renouvellement ne force jamais) |
+
+Les **plugins DNS** (création, modification, suppression) ne sont pas gérés ici (ils portent des secrets d'API) : à faire dans Proxmox.
