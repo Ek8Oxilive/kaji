@@ -165,7 +165,6 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/lib/useCluster.ts` — Données du cluster. Le flux temps réel (SSE) alimente le cach…
 
 ## Documentation
-- `docs/CARTE.md` — 
 - `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
 - `docs/deploiement.md` — Déploiement avec Docker
 - `docs/m12-ceph.md` — M12 : cadrage de Ceph
