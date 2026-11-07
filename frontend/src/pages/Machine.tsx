@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BackupsTab } from "../components/BackupsTab";
 import { CloneDialog } from "../components/CloneDialog";
+import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Gauge } from "../components/Gauge";
@@ -14,8 +15,8 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
-type Tab = "hardware" | "snapshots" | "cloudinit" | "backups";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"]];
+type Tab = "hardware" | "console" | "snapshots" | "cloudinit" | "backups";
+const TABS: [Tab, string][] = [["hardware", "Matériel"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -100,6 +101,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
             ))}
           </div>
           {tab === "hardware" && <HardwareTab connId={connId} guest={guest} onDeleted={() => go("#/")} onMigrated={(target) => go(guestHash({ ...guest, node: target }), { replace: true })} />}
+          {tab === "console" && <ConsoleTab connId={connId} guest={guest} />}
           {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={running} />}
           {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
           {tab === "backups" && <BackupsTab connId={connId} guest={guest} />}

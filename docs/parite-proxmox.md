@@ -48,7 +48,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | 🟡 (jauges, sans historique) | M13 |
 | Notes du nœud | ⬜ | M15 |
-| Shell du nœud | ⬜ | M9 |
+| Shell du nœud (exige `root@pam` : session administrateur, M6-6) | ⬜ | M9 / M6 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
 | Certificats (personnalisés, ACME) | ⬜ | M11 |
 | DNS, hôtes, fuseau horaire, heure | ⬜ | M11 |
@@ -70,7 +70,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
 | Réinitialiser (reset), suspendre, hiberner | ⬜ | M14 |
-| Console : noVNC, xterm.js (port série), SPICE | ⬜ | M9 |
+| Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ | M4 |
 | Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
@@ -95,7 +95,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
-| Console (noVNC / xterm.js), `pct enter` | ⬜ | M9 |
+| Console : noVNC et terminal xterm.js | ✅ | M9 |
 | Créer depuis un modèle (privilégié ou non) | ✅ (téléchargement de modèle : ⬜) | M4 / M14 |
 | Ressources, disques, points de montage, réseau, DNS | ✅ | M4 |
 | Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | ⬜ | M14 |
