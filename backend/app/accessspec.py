@@ -96,6 +96,7 @@ FEATURES: tuple[Feature, ...] = (
     Feature("node-disks-write", "Initialiser, effacer un disque et créer un volume (LVM, LVM-thin, répertoire, ZFS)", (("/nodes", ("Sys.Modify",)), ("/storage", ("Datastore.Allocate",)))),
     Feature("node-config", "Modifier le DNS, le fichier hosts et le fuseau horaire d'un nœud", (("/nodes", ("Sys.Modify",)),)),
     Feature("node-certs", "Installer ou retirer un certificat personnalisé sur un nœud", (("/nodes", ("Sys.Modify",)),)),
+    Feature("node-repos", "Activer, désactiver ou ajouter un dépôt de paquets d'un nœud", (("/nodes", ("Sys.Modify",)),)),
     Feature("network", "Ajouter une carte réseau sur un bridge ou un VNet", (("/sdn/zones", ("SDN.Use",)),)),
 )
 

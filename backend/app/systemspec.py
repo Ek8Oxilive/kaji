@@ -76,16 +76,27 @@ def shape_versions(raw) -> dict:
     return {"installed": len(rows), "key": sorted(key, key=lambda k: k["package"])}
 
 
+HEX64 = re.compile(r"[0-9a-f]{64}")
+
+
 def shape_repositories(raw) -> dict:
+    """Dépôts apt. `index` = position **dans le fichier chez Proxmox** (nécessaire pour modifier) : calculée sur la liste brute,
+    avant tout filtrage. `digest` : empreinte commune des fichiers (64 hexadécimaux), exigée par toute modification."""
     r = raw if isinstance(raw, dict) else {}
     files = []
     for f in _rows(r.get("files")):
-        repos = [{"types": [t for t in (f2.get("Types") or []) if isinstance(t, str)][:4], "uris": [u for u in (f2.get("URIs") or []) if isinstance(u, str)][:4],
-                  "suites": [s for s in (f2.get("Suites") or []) if isinstance(s, str)][:4], "components": [c for c in (f2.get("Components") or []) if isinstance(c, str)][:6],
-                  "enabled": bool(f2.get("Enabled"))} for f2 in _rows(f.get("repositories"))]
+        repos = []
+        for i, f2 in enumerate(f.get("repositories") if isinstance(f.get("repositories"), list) else []):
+            if not isinstance(f2, dict) or i > 200:
+                continue
+            repos.append({"index": i, "types": [t for t in (f2.get("Types") or []) if isinstance(t, str)][:4], "uris": [u for u in (f2.get("URIs") or []) if isinstance(u, str)][:4],
+                          "suites": [x for x in (f2.get("Suites") or []) if isinstance(x, str)][:4], "components": [c for c in (f2.get("Components") or []) if isinstance(c, str)][:6],
+                          "enabled": bool(f2.get("Enabled"))})
         files.append({"path": _t(f.get("path"), 200), "repositories": repos})
-    return {"files": files, "errors": len(_rows(r.get("errors"))), "standard": [{"name": _t(s.get("name"), 60), "status": s.get("status") if isinstance(s.get("status"), int) and not isinstance(s.get("status"), bool) else None}
-                                                                              for s in _rows(r.get("standard-repos"))]}
+    digest = r.get("digest")
+    return {"files": files, "errors": len(_rows(r.get("errors"))), "digest": digest if isinstance(digest, str) and HEX64.fullmatch(digest) else None,
+            "standard": [{"handle": _t(s.get("handle"), 60), "name": _t(s.get("name"), 60), "description": _t(s.get("description"), 300),
+                          "status": s.get("status") if s.get("status") in (0, 1) and not isinstance(s.get("status"), bool) else None} for s in _rows(r.get("standard-repos"))]}
 
 
 def shape_certificates(raw) -> list[dict]:

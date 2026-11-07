@@ -7,6 +7,7 @@ import type { NodeSystem as Sys, Section, Service, ServiceAction, SyslogLines } 
 import { ConfirmDialog } from "./ConfirmDialog";
 import { NodeCerts } from "./NodeCerts";
 import { NodeConfig } from "./NodeConfig";
+import { NodeRepos } from "./NodeRepos";
 import { Button, Notice } from "./ui";
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR") : "–");
@@ -48,10 +49,7 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
 
       <Block title={`Mises à jour disponibles${d?.updates.data ? ` (${d.updates.data.length})` : ""}`} section={d?.updates} hint="Sys.Modify">{(u) => <Updates connId={connId} node={node} list={u} />}</Block>
 
-      <Block title="Dépôts de paquets" section={d?.repositories}>{(r) => (
-        <div className="space-y-2 text-sm">{r.files.map((f) => (<div key={f.path}><div className="text-xs text-muted">{f.path}</div>
-          {f.repositories.map((x, i) => (<div key={i} className={x.enabled ? "" : "text-muted line-through"}>{x.types.join(" ")} {x.uris.join(" ")} {x.suites.join(" ")} {x.components.join(" ")}</div>))}</div>))}
-          {r.errors > 0 && <p className="text-danger">{r.errors} fichier(s) de dépôts illisible(s).</p>}</div>)}</Block>
+      <Block title="Dépôts de paquets" section={d?.repositories}>{(r) => <NodeRepos connId={connId} node={node} repos={r} />}</Block>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Block title="Certificats" section={d?.certificates}>{(c) => (
