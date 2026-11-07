@@ -11,6 +11,7 @@ import { Machine } from "./pages/Machine";
 import { NodePage } from "./pages/Node";
 import { Sauvegardes } from "./pages/Sauvegardes";
 import { Stockage } from "./pages/Stockage";
+import { Taches } from "./pages/Taches";
 
 const PAGES = [...NAV, ...NAV_BOTTOM].map((n) => n.id) as string[];
 
@@ -39,6 +40,7 @@ export default function App() {
         : page === "backups" ? <Sauvegardes onGoConnections={goConnections} />
         : page === "access" ? <Acces onGoConnections={goConnections} />
         : page === "ceph" ? <CephPage onGoConnections={goConnections} />
+        : page === "tasks" ? <Taches onGoConnections={goConnections} />
         : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );

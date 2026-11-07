@@ -60,7 +60,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | ⬜ | M7 |
 | Réplication du nœud | ⬜ | M8 |
-| Historique des tâches du nœud | ⬜ | M13 |
+| Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
 | Redémarrer / éteindre le nœud | ⬜ | M11 |
 
@@ -85,7 +85,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Pare-feu de la machine (règles, options, IPSet) | ⬜ | M7 |
 | Permissions de la machine | ⬜ | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
-| Historique des tâches de la machine | ⬜ | M13 |
+| Historique des tâches de la machine | 🟡 (filtre par machine dans l'API, pas encore sur sa page) | M13 |
 | Étiquettes (tags), notes | ⬜ | M13 |
 | Résumé avec graphiques d'historique | 🟡 (jauges, sans historique) | M13 |
 | Supprimer | ✅ | M4 |
@@ -115,7 +115,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
-| Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (suivi pendant l'action, pas de page de journal) | M13 |
+| Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (page « Tâches » et tiroir de journal ; pas de barre permanente) | M13 |
 | Recherche globale | ✅ (palette Ctrl+K) | M3 |
 | Vues par dossier, par pool, par stockage | ⬜ | M13 |
 | Thèmes clair / sombre | ✅ (sombre et Glass) | M3 |

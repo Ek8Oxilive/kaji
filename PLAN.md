@@ -107,7 +107,7 @@ la lecture seule se développe avec le faux Proxmox ; l'écriture exige un Ceph 
 
 ### M13 : Supervision
 - [ ] Graphiques d'historique (CPU, RAM, réseau, disque) pour nœuds et machines
-- [ ] Journal des tâches (cluster, nœud, machine) et barre de tâches
+- [x] **Journal des tâches** (liste de tous les nœuds, filtres, journal d'une tâche suivi en direct) ; reste : barre de tâches permanente, onglet « Tâches » par machine
 - [ ] Étiquettes (tags), notes, vues par dossier / pool / stockage
 - [ ] Notifications (cibles, règles), serveurs de métriques (InfluxDB, Graphite)
 
