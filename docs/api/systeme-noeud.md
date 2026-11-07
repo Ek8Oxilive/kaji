@@ -36,3 +36,19 @@ Droit `Sys.Modify` sur `/nodes` (fonction `node-services` de la page Accès). Ga
 | `restart` ou `reload` de `corosync` / `pve-cluster` sans `type_name` égal au nom du service | 400 |
 
 `GET …/system` ajoute par service : `manageable`, `risk` (`normal`, `sensitive`, `vital`), `stoppable`.
+
+## Redémarrer / éteindre un nœud (écriture)
+Droit `Sys.PowerMgmt` sur `/nodes` (fonction `node-power`).
+
+`GET …/nodes/{node}/power` (lecture seule) : conséquences lues auprès de Proxmox : `running_guests`, `protected_running`, `quorum_loss`, `nodes_online_after`.
+
+`POST …/nodes/{node}/power` — `{ "action": "reboot" | "shutdown", "confirm": true, "type_name": "<nœud>", "accept_guests": false, "accept_quorum_loss": false }` → `202 {node, action}` (Proxmox ne renvoie pas de tâche). Garde-fous serveur, audités :
+
+| Règle | Réponse |
+|---|---|
+| État du cluster illisible (fail closed) | 502 |
+| Nœud inconnu / déjà hors ligne | 404 / 409 |
+| Pas de `confirm` ou `type_name` ≠ nom exact du nœud | 400 |
+| Machine **protégée** (`KAJI_PROTECTED_VMIDS`) en marche sur le nœud : jamais, même avec les acceptations | 422 |
+| Machines en marche sans `accept_guests` | 409 |
+| Les nœuds restants perdraient le quorum (`nœuds restants × 2 ≤ total`) sans `accept_quorum_loss` | 409 |
