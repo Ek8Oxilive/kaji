@@ -7,6 +7,7 @@ leur contenu PEM. L'état d'un abonnement n'expose ni clé ni identifiant de ser
 import re
 from datetime import datetime, timezone
 
+from .servicespec import KNOWN, NO_STOP, risk
 from .storagespec import _int, _str
 
 MAX_ROWS = 500
@@ -57,7 +58,8 @@ def shape_services(raw) -> list[dict]:
         if not name or not SERVICE.fullmatch(name):
             continue
         out.append({"name": name, "description": _t(r.get("desc"), 120), "state": _t(r.get("state"), 30),
-                    "active": _t(r.get("active-state"), 30), "enabled": _t(r.get("unit-state"), 30)})
+                    "active": _t(r.get("active-state"), 30), "enabled": _t(r.get("unit-state"), 30),
+                    "manageable": name in KNOWN, "risk": risk(name), "stoppable": name not in NO_STOP})
     return sorted(out, key=lambda s: s["name"])
 
 

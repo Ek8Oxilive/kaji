@@ -22,3 +22,17 @@ Droit `Sys.Syslog` ; sans lui : `502 « Droits insuffisants pour cette opératio
 ## Droits de Kaji (page Accès)
 Deux fonctions ajoutées : `node-syslog` (`Sys.Syslog` sur `/nodes`) et `node-updates` (`Sys.Modify` sur `/nodes`), avec leur commande `pveum` à copier.
 Attention : `Sys.Modify` autorise aussi des modifications du nœud ; ne l'accorde que si tu veux voir les mises à jour dans Kaji.
+
+## `POST /api/connections/{id}/nodes/{node}/services/{service}/{action}` (écriture)
+`action` : `start`, `stop`, `restart`, `reload`. Corps : `{ "confirm": true, "type_name": "…" }`. Réponse `202 {upid, node}` (tâche Proxmox à suivre).
+Droit `Sys.Modify` sur `/nodes` (fonction `node-services` de la page Accès). Garde-fous, **vérifiés côté serveur** avant tout appel à Proxmox, et audités (succès, refus, erreur) :
+
+| Règle | Réponse |
+|---|---|
+| Service hors liste blanche (`chrony`, `cron`, `ksmtuned`, `postfix`, `pvefw-logger`, `pveproxy`, `pvedaemon`, `pvestatd`, `pvescheduler`, `pve-firewall`, `proxmox-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `sshd`, `lxcfs`, `pve-lxc-syscalld`, `qmeventd`, `systemd-journald`, `spiceproxy`, `corosync`, `pve-cluster`) | 404 |
+| Nom de service ou de nœud mal formé (motif ancré) | 422 |
+| `stop` de `corosync`, `pve-cluster`, `pveproxy`, `pvedaemon`, `sshd`, `systemd-journald`, `lxcfs` : jamais depuis Kaji | 422 |
+| `stop`, `restart`, `reload` sans `confirm: true` (`start` n'en a pas besoin) | 400 |
+| `restart` ou `reload` de `corosync` / `pve-cluster` sans `type_name` égal au nom du service | 400 |
+
+`GET …/system` ajoute par service : `manageable`, `risk` (`normal`, `sensitive`, `vital`), `stoppable`.

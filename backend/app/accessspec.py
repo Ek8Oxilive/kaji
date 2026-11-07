@@ -91,6 +91,7 @@ FEATURES: tuple[Feature, ...] = (
     Feature("node-console", "Ouvrir la console (shell) d'un nœud", (("/nodes", ("Sys.Console",)),)),
     Feature("node-syslog", "Lire le journal système d'un nœud", (("/nodes", ("Sys.Syslog",)),)),
     Feature("node-updates", "Voir les mises à jour disponibles d'un nœud", (("/nodes", ("Sys.Modify",)),)),
+    Feature("node-services", "Démarrer, arrêter ou redémarrer un service d'un nœud", (("/nodes", ("Sys.Modify",)),)),
     Feature("network", "Ajouter une carte réseau sur un bridge ou un VNet", (("/sdn/zones", ("SDN.Use",)),)),
 )
 
