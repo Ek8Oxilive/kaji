@@ -17,12 +17,12 @@ const warn = "rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn"
 
 // ------------------------------------------------------------------------------------------------ lancer une sauvegarde
 
-const MODES: { id: BackupMode; label: string; hint: string }[] = [
+export const MODES: { id: BackupMode; label: string; hint: string }[] = [
   { id: "snapshot", label: "Instantané", hint: "La machine reste en marche (recommandé)." },
   { id: "suspend", label: "Suspension", hint: "La machine est mise en pause pendant la copie." },
   { id: "stop", label: "Arrêt", hint: "La machine est ARRÊTÉE pendant la copie, puis redémarrée." },
 ];
-const COMPRESS: { id: BackupCompress; label: string }[] = [
+export const COMPRESS: { id: BackupCompress; label: string }[] = [
   { id: "zstd", label: "zstd (rapide, recommandé)" }, { id: "gzip", label: "gzip" }, { id: "lzo", label: "lzo (très rapide)" }, { id: "none", label: "Aucune" },
 ];
 
