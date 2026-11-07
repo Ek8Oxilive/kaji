@@ -98,10 +98,11 @@ body {
 .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .field::placeholder { color: var(--muted); opacity: 0.7; }
 
-/* Listes déroulantes natives (tous les <select> de l'application) : fond opaque et texte lisible dans chaque thème.
+/* Listes déroulantes natives (tous les <select> de l'application) : fond opaque et texte lisible dans CHAQUE thème.
+   Tout nouveau thème doit définir `--option-bg` (opaque) ; à défaut, on retombe sur `--canvas` du thème.
    Sans cela, le fond translucide des champs rendait la liste blanche avec un texte clair, donc illisible. */
-select { color-scheme: dark; }
-select option, select optgroup { background-color: var(--option-bg); color: var(--fg); }
+/* le schéma de couleurs (clair / sombre) est hérité du thème actif : aucun thème n'est forcé ici */
+select option, select optgroup { background-color: var(--option-bg, var(--canvas)); color: var(--fg); }
 select option:checked, select option:hover { background-color: var(--accent); color: var(--accentfg); }
 select option:disabled { color: var(--muted); }
 
