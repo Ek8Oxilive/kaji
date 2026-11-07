@@ -40,3 +40,14 @@ export type CephMon = { name: string; host: string | null; addr: string | null; 
 export type CephMonitors = { monitors: CephMon[] };
 export type CephMgr = { name: string; host: string | null; addr: string | null; state: string | null; version: string | null };
 export type CephManagers = { managers: CephMgr[] };
+
+// ---- écriture des pools (lot C2) : docs/api/ceph.md. JAMAIS validé sur un vrai Ceph. ----
+export type CephRules = { rules: { name: string; id: number | null }[] };
+export type PoolAutoscale = "on" | "off" | "warn";
+export type PoolApplication = "rbd" | "cephfs" | "rgw";
+export type PoolFields = { size?: number; min_size?: number; pg_num?: number; autoscale?: PoolAutoscale; application?: PoolApplication; crush_rule?: string };
+/** `POST /ceph/pools` : seuls ces champs existent côté serveur, tout autre est ignoré. */
+export type PoolCreateBody = PoolFields & { name: string; add_storage?: boolean };
+/** `PUT /ceph/pools/{name}` : seuls les champs qui changent ; `confirm: true` seulement après avoir montré les raisons du serveur. */
+export type PoolPatchBody = PoolFields & { confirm?: boolean };
+export type PoolWriteResult = { upid: string | null; node: string; pool: string; changes?: PoolFields };

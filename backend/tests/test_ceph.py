@@ -126,6 +126,10 @@ def test_unknown_connection(api, what):
 @pytest.mark.parametrize("what", ROUTES)
 @pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
 def test_only_get_exists(api, what, method):
+    """Les routes de LECTURE restent en lecture seule. Seule exception, voulue par le propriétaire (lot C2) : on peut CRÉER un
+    pool (`POST /ceph/pools`). Tout le reste, dont la suppression d'un pool, reste refusé : voir `test_ceph_pools.py`."""
+    if (what, method) == ("pools", "post"):
+        pytest.skip("la création d'un pool existe depuis le lot C2 (écriture, testée dans test_ceph_pools.py)")
     c, cid = api
     assert getattr(c, method)(u(cid, what)).status_code == 405
     assert CALLS == []

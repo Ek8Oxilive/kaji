@@ -1,7 +1,8 @@
-# Ceph (lecture seule)
+# Ceph (lecture, et écriture des pools)
 
-Lot C1 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **Elles sont toutes en `GET` : aucune écriture
-n'existe** (`POST`, `PUT`, `PATCH` et `DELETE` répondent 405), et Kaji n'envoie que des lectures à Proxmox. Aucune réponse ne
+Lots C1 et C2 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **La lecture** (toutes les routes `GET`) n'envoie
+que des lectures à Proxmox. **L'écriture se limite, pour l'instant, à créer et modifier un pool** (voir « Écriture des pools ») :
+il n'existe **aucune suppression**, ni d'écriture sur les moniteurs, les OSD ou l'installation (lots C3 à C5). Aucune réponse ne
 contient de secret.
 
 > **Rien de ce document n'a été validé en réel, sauf un point** (voir plus bas). Le cluster de test n'a pas de Ceph : un disque
@@ -19,6 +20,9 @@ contient de secret.
 | `GET …/ceph/filesystems` | CephFS et serveurs de métadonnées (MDS) |
 | `GET …/ceph/config` | `ceph.conf` et base de configuration, secrets masqués |
 | `GET …/ceph/log?limit=&start=` | Journal de Ceph |
+| `GET …/ceph/rules` | Règles de placement CRUSH (lecture) |
+| `POST …/ceph/pools` | **Écriture, non validée en réel** : créer un pool |
+| `PUT …/ceph/pools/{name}` | **Écriture, non validée en réel** : modifier un pool |
 
 ## Ceph non installé
 
@@ -91,6 +95,58 @@ Le `ceph.conf`, la base de configuration et le journal passent par un masquage :
 libre). C'est volontairement large : `keyring = …` est masqué aussi. Le texte est borné (200 000 octets pour `ceph.conf`, 500
 caractères par ligne). **Ceph ne met normalement pas de secret dans ces textes** (les trousseaux sont des fichiers à part) : ce
 masquage est une précaution, pas une réponse à un cas observé.
+
+## Écriture des pools (lot C2) : NON VALIDÉE EN RÉEL
+
+> **Aucune de ces écritures n'a jamais tourné sur un vrai Ceph** (le cluster de test n'en a pas). Elles sont testées avec un faux
+> Proxmox. Les **noms et bornes des paramètres** viennent de la documentation officielle de `pveceph pool create` et `pveceph pool
+> set` ; **le comportement réel** (réponse, durée, effet sur le cluster) n'a jamais été vu. L'interface l'affiche dans un bandeau.
+> **Ne pas utiliser sur un Ceph en production avant validation sur un Ceph jetable** (`docs/m12-ceph.md` §5).
+
+Une erreur sur un pool détruit les données de **toutes** les machines qui s'y appuient. D'où des garde-fous **vérifiés côté serveur**,
+chacun avec un test qui échoue si on le retire.
+
+**`POST /ceph/pools`** : crée un pool **répliqué** (pas de pool à effacement, pas de suppression).
+
+| Champ | Validation | Défaut |
+|---|---|---|
+| `name` | lettres, chiffres, `_`, `-`, `.` ; 63 caractères au plus ; **jamais de point initial** (les pools internes de Ceph, comme `.mgr`, commencent par un point) | obligatoire |
+| `size` | entier de **2** à 7 (**une seule copie est refusée**) | 3 |
+| `min_size` | entier de **2** à 7 (**`min_size` à 1 est refusé**), jamais supérieur à `size` | 2 |
+| `pg_num` | **puissance de 2**, de 1 à 32768 | 128 |
+| `autoscale` | `on`, `off` ou `warn` | `warn` |
+| `application` | `rbd`, `cephfs` ou `rgw` | `rbd` |
+| `crush_rule` | une règle que **Proxmox connaît** (lue chez lui) ; illisible : 502, jamais ignorée | règle par défaut |
+| `add_storage` | booléen ; crée aussi le stockage RBD du pool (**définition de stockage pour tout le cluster**) ; seulement avec `rbd` | `false` |
+
+Tout autre champ (`erasure-coding`, `target_size`, `force`, un `node` dans le corps…) est **ignoré et jamais transmis**. Refus avant tout
+appel d'écriture : santé **`HEALTH_ERR` ou inconnue** (409), pool **déjà existant** (409), règle CRUSH **inconnue** (422), Ceph **non
+installé** (409, jamais un 200 : ce n'est pas une lecture). La création est acceptée en `HEALTH_OK` et `HEALTH_WARN`.
+
+**`PUT /ceph/pools/{name}`** : mise à jour partielle. Seuls les champs fournis **et différents de l'existant** sont envoyés ; si rien
+ne diffère, 400 « Aucun changement ».
+- **Non risqués** (`autoscale`, `application`) : passent sans condition de santé ni confirmation.
+- **Risqués** (`size`, `min_size`, `pg_num`, `crush_rule`), car ils **déplacent ou dupliquent des données** : refusés tant que la santé
+  n'est pas **`HEALTH_OK`** (même avec confirmation), puis exigent **`confirm: true`**. Sans lui, 400 « Confirmation requise (…) : raison ;
+  raison », avec ce que Ceph va faire (par exemple « RÉDUIT le nombre de copies (de 3 à 2) »). `confirm` n'est **jamais** transmis à
+  Proxmox. L'interface affiche ces raisons puis renvoie avec `confirm: true`.
+- Les valeurs **effectives** sont vérifiées : `min_size` ne peut pas dépasser `size`, même si seul l'un des deux est modifié.
+- **Pool à effacement** : `size` et `crush_rule` sont refusés (409), comme le dit la documentation de Proxmox ; `min_size` est permis.
+- Pool inconnu : 404.
+
+**Une seule écriture Ceph à la fois par connexion** : une seconde, pendant que la première s'exécute, est refusée (409). La tâche que
+Proxmox lance peut durer plus longtemps que la requête ; c'est la **barrière de santé** qui empêche d'enchaîner une seconde modification
+risquée pendant que Ceph redistribue les données (la santé n'est plus `HEALTH_OK`).
+
+**Audit** : `ceph-pool-create` et `ceph-pool-update` pour chaque succès (avec l'UPID), refus et erreur, sans secret.
+
+**Réponses** : `202 {"upid", "node", "pool"}` à la création ; `200 {"upid", "node", "pool", "changes"}` à la modification. `upid` vaut
+`null` si Proxmox ne renvoie pas de tâche (cas non vérifié).
+
+**Non validé en réel, et à vérifier sur un Ceph jetable** : que `POST` et `PUT /nodes/{node}/ceph/pool` acceptent exactement ces
+paramètres et renvoient une tâche ; que `GET /nodes/{node}/ceph/rules` existe et renvoie des noms de règles (`name` ou `rule_name`) ;
+que la santé lue dans `/cluster/ceph/status` reflète bien la redistribution en cours ; que `add_storages` crée le stockage attendu ; le
+**comportement de Ceph** quand on abaisse `size` ou qu'on change `pg_num` ou la règle (durée, charge, risque réel).
 
 ## Ce qui a été validé en réel, et ce qui ne l'a pas été
 

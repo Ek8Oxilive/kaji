@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..cephspec import (shape_conf_db, shape_conf_raw, shape_fs, shape_log, shape_mgrs, shape_mons, shape_osds,
-                        shape_pools, shape_status)
+                        shape_pools, shape_rules, shape_status)
 from ..db import get_db
 from ..deps import get_client_factory
 from .actions import NODE
@@ -124,6 +124,16 @@ async def ceph_pools(conn_id: int, node: str | None = NodeQ, db: Session = Depen
     try:
         n, r = await _on_node(db, factory, conn_id, node, {"main": "pool"})
         return {"installed": True, "node": n, "pools": shape_pools(r["main"])}
+    except _NotInstalled:
+        return NOT_INSTALLED
+
+
+@router.get("/rules")
+async def ceph_rules(conn_id: int, node: str | None = NodeQ, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
+    """Règles de placement CRUSH (lecture seule) : proposées, et vérifiées, à la création d'un pool."""
+    try:
+        n, r = await _on_node(db, factory, conn_id, node, {"main": "rules"})
+        return {"installed": True, "node": n, "rules": shape_rules(r["main"])}
     except _NotInstalled:
         return NOT_INSTALLED
 
