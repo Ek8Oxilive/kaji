@@ -15,6 +15,10 @@
   --color-danger: var(--danger);
 }
 
+/* Séries des graphiques : emplacements 1 (bleu) et 2 (orange) de la palette catégorielle, teintes pour fond sombre, validées avec
+   scripts/validate_palette.js sur les deux surfaces (écart CVD 26,8 ; contraste >= 3:1). Identiques dans les deux thèmes (tous deux sombres). */
+:root, :root[data-theme="dark"], :root[data-theme="glass"] { --series-1: #3987e5; --series-2: #d95926; }
+
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
