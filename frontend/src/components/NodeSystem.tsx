@@ -42,10 +42,7 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
             {d?.dns.state === "ok" && d.dns.data && <div className="text-muted">DNS {d.dns.data.servers.join(", ") || "–"} · domaine {d.dns.data.search ?? "–"}</div>}</div>)}</Block>
       </div>
 
-      <Block title={`Mises à jour disponibles${d?.updates.data ? ` (${d.updates.data.length})` : ""}`} section={d?.updates} hint="Sys.Modify">{(u) => u.length === 0
-        ? <p className="text-sm text-ok">Le nœud est à jour.</p>
-        : <div className="max-h-64 overflow-auto"><table className="w-full text-sm"><tbody>{u.map((p) => (
-          <tr key={p.package} className="border-b border-line/60 last:border-0"><td className="py-1 pr-3 font-medium">{p.package}</td><td className="py-1 pr-3 text-muted">{p.from ?? "–"} → {p.to ?? "–"}</td><td className="py-1 text-muted">{p.title}</td></tr>))}</tbody></table></div>}</Block>
+      <Block title={`Mises à jour disponibles${d?.updates.data ? ` (${d.updates.data.length})` : ""}`} section={d?.updates} hint="Sys.Modify">{(u) => <Updates connId={connId} node={node} list={u} />}</Block>
 
       <Block title="Dépôts de paquets" section={d?.repositories}>{(r) => (
         <div className="space-y-2 text-sm">{r.files.map((f) => (<div key={f.path}><div className="text-xs text-muted">{f.path}</div>
@@ -131,6 +128,43 @@ function Services({ connId, node, list }: { connId: number; node: string; list: 
           </div>
         </ConfirmDialog>
       )}
+    </div>
+  );
+}
+
+const UPGRADE_CMD = "apt update && apt dist-upgrade";
+
+function Updates({ connId, node, list }: { connId: number; node: string; list: NonNullable<Sys["updates"]["data"]> }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const refresh = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      await runTask(connId, node, () => api(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/apt/update`, { method: "POST" }), "Actualisation");
+      setMsg({ kind: "ok", text: "Liste des paquets actualisée." });
+    } catch (e) { setMsg({ kind: "error", text: (e as Error).message }); }
+    setBusy(false);
+    qc.invalidateQueries({ queryKey: ["node-system", connId, node] });
+  };
+  const copy = async () => { try { await navigator.clipboard.writeText(UPGRADE_CMD); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* presse-papiers indisponible */ } };
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className={`text-sm ${list.length === 0 ? "text-ok" : "text-muted"}`}>{list.length === 0 ? "Le nœud est à jour (selon la dernière actualisation)." : `${list.length} paquet(s) peuvent être mis à jour.`}</p>
+        <Button variant="ghost" className="!px-3 !py-1.5" disabled={busy} onClick={refresh}>{busy ? "Actualisation…" : "Actualiser la liste"}</Button>
+      </div>
+      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
+      {list.length > 0 && <>
+        <div className="max-h-64 overflow-auto"><table className="w-full text-sm"><tbody>{list.map((p) => (
+          <tr key={p.package} className="border-b border-line/60 last:border-0"><td className="py-1 pr-3 font-medium">{p.package}</td><td className="py-1 pr-3 text-muted">{p.from ?? "–"} → {p.to ?? "–"}</td><td className="py-1 text-muted">{p.title}</td></tr>))}</tbody></table></div>
+        <div className="rounded-xl border border-line bg-surface2 p-3 text-xs text-muted">
+          <p>Proxmox n'installe pas les mises à jour par son API : elles se lancent dans un terminal. Kaji ne le fait pas à ta place. Ouvre la console du nœud (section plus haut) et lance :</p>
+          <div className="mt-2 flex items-center gap-2"><code className="flex-1 rounded bg-surface px-2 py-1 text-fg">{UPGRADE_CMD}</code><Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={copy}>{copied ? "Copié" : "Copier"}</Button></div>
+          <p className="mt-2">Après une mise à jour du noyau, redémarre le nœud (boutons en haut de la section Système).</p>
+        </div>
+      </>}
     </div>
   );
 }
