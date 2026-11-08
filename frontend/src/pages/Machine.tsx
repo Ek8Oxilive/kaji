@@ -7,6 +7,7 @@ import { NotesPanel } from "../components/NotesPanel";
 import { GuestTasksTab } from "../components/GuestTasksTab";
 import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
+import { OptionsTab } from "../components/OptionsTab";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Gauge } from "../components/Gauge";
 import { HardwareTab } from "../components/HardwareTab";
@@ -19,8 +20,8 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
-type Tab = "hardware" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups" | "tasks";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["tasks", "Tâches"]];
+type Tab = "hardware" | "options" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups" | "tasks";
+const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["tasks", "Tâches"]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -58,7 +59,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
   const name = guest.name ?? String(guest.vmid);
   const dot = busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
   const text = busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
-  const tabs = TABS.filter(([t]) => t !== "cloudinit" || guest.type === "qemu");
+  const tabs = TABS.filter(([t]) => (t !== "cloudinit" && t !== "options") || guest.type === "qemu");     // Options : VM seulement (les conteneurs : lot #145)
   const tab = tabs.some(([t]) => t === ref.tab) ? ref.tab : "hardware";
   void now;
 
@@ -108,6 +109,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
             ))}
           </div>
           {tab === "hardware" && <HardwareTab connId={connId} guest={guest} onDeleted={() => go("#/")} onMigrated={(target) => go(guestHash({ ...guest, node: target }), { replace: true })} />}
+          {tab === "options" && guest.type === "qemu" && <OptionsTab connId={connId} guest={guest} />}
           {tab === "metrics" && <GuestCharts connId={connId} node={guest.node} type={guest.type} vmid={guest.vmid} />}
           {tab === "console" && <ConsoleTab connId={connId} guest={guest} />}
           {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={running} />}
