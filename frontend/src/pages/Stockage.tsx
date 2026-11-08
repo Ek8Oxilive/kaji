@@ -178,9 +178,9 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
                               v.notes].filter(Boolean).join(" · ")}
                           </span>)}
                       </td>
-                      <td className="px-4 py-2 text-muted">{label(v.content)}</td>
-                      <td className="px-4 py-2 text-muted">{v.format ?? "–"}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">{bytes(v.size)}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-muted">{label(v.content)}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-muted">{v.format ?? "–"}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">{bytes(v.size)}</td>
                       <td className="whitespace-nowrap px-4 py-2 text-muted">{when(v.date)}</td>
                       <td className="px-4 py-2 tabular-nums text-muted">{v.vmid ?? "–"}</td>
                       <td className="whitespace-nowrap px-4 py-2 text-right">
