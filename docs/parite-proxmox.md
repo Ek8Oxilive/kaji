@@ -107,7 +107,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
-| **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ⬜ | M5 |
+| **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | 🟡 (métadonnées d'URL lues en réel ; envoi et téléchargement non validés en réel) | M5 |
 | Modèles LXC officiels (TurnKey, distributions) : télécharger | ⬜ | M14 |
 | Supprimer un volume, actions sur un volume, élagage (prune) manuel | 🟡 (sauvegardes : supprimer) | M5 |
 

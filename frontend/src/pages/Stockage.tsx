@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Gauge } from "../components/Gauge";
+import { UploadDialog, UrlDownloadDialog } from "../components/FileTransferDialogs";
 import { AddStorageDialog, DeleteStorageDialog, EditStorageDialog } from "../components/StorageConfigDialogs";
 import { Button, Notice } from "../components/ui";
 import { api, type Connection } from "../lib/api";
@@ -71,6 +72,8 @@ function StorageCard({ card, index, onOpen }: { card: Card; index: number; onOpe
 /** Tiroir latéral (comme le panneau « Matériel ») : le contenu du stockage s'ouvre par-dessus la page, qui ne bouge pas. */
 function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { connId: number; card: Card; config: StorageConfig | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const { node, storage } = card.row;
+  const fileKinds = card.row.contents.filter((c): c is "iso" | "vztmpl" => c === "iso" || c === "vztmpl");
+  const [transfer, setTransfer] = useState<"upload" | "url" | null>(null);
   const vols = useQuery({
     queryKey: ["storage-content", connId, node, storage],
     queryFn: () => api<StorageVolume[]>(`/api/connections/${connId}/nodes/${encodeURIComponent(node ?? "")}/storage/${encodeURIComponent(storage)}/content`),
@@ -111,6 +114,15 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
         {config && !config.managed && <p className="text-xs text-muted">Type « {config.type} » : Kaji ne le modifie pas encore, il peut seulement le retirer.</p>}
 
         <div className="max-w-sm space-y-2"><Space row={card.row} /></div>
+
+        {fileKinds.length > 0 && node && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">Téléverser un fichier</Button>
+            <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">Télécharger depuis une URL</Button>
+          </div>
+        )}
+        {transfer === "upload" && node && <UploadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
+        {transfer === "url" && node && <UrlDownloadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold">Contenu <span className="text-sm font-normal text-muted">({shown.length})</span></h3>
