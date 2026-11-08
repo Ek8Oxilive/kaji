@@ -44,6 +44,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/tagspec.py` — Étiquettes (tags) des machines : lecture tolérante et validat…
 - `backend/app/taskspec.py` — Journal des tâches Proxmox (lecture seule) : mise en forme to…
 - `backend/app/vmspec.py` — Construction sûre des paramètres de création d'une VM : tout…
+- `backend/app/volumespec.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un…
 
 ## Backend : routeurs (auto-chargés, un fichier = une fonction)
 - `backend/app/routers/access.py` — Accès Proxmox (lecture seule) : utilisateurs, groupes, rôles,… — GET /access/users; GET /access/groups; GET /access/roles; GET /access/acl (+3)
@@ -87,6 +88,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/storage.py` — Stockages Proxmox : contenu d'un stockage (lecture seule) — GET /nodes/{node}/storage/{storage}/content
 - `backend/app/routers/storage_config.py` — Configuration des stockages Proxmox : lire, ajouter, modifier… — GET /storage-config; GET /storage-config/{storage}; POST /storage-config; PUT /storage-config/{storage} (+1)
 - `backend/app/routers/task_list.py` — Journal des tâches (lecture seule) : liste des tâches de tous… — GET /tasks
+- `backend/app/routers/volumes.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un… — PUT /nodes/{node}/storage/{storage}/backups/{volume}/protect; DELETE /nodes/{node}/storage/{storage}/files/{kind}/{name}; POST /nodes/{node}/storage/{storage}/prune/preview; POST /nodes/{node}/storage/{storage}/prune
 
 ## Frontend : pages
 - `frontend/src/pages/Acces.tsx` — Une requête de lecture + son squelette et son erreur ; `child…
@@ -142,6 +144,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/components/TaskDrawer.tsx` — Couleur ET mot : l'état ne repose jamais sur la couleur seule
 - `frontend/src/components/ThemeSwitcher.tsx` — 
 - `frontend/src/components/Toast.tsx` — 
+- `frontend/src/components/VolumeDialogs.tsx` — Types de fichier que le serveur accepte de supprimer ici (les…
 - `frontend/src/components/charts/MetricsPanels.tsx` — Sélecteur de période : une seule rangée au-dessus des graphiq…
 - `frontend/src/components/charts/TimeChart.tsx` — Une courbe. `slot` : emplacement de couleur (1 bleu, 2 orange…
 - `frontend/src/components/ui.tsx` — 
@@ -192,4 +195,5 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/systeme-noeud.md` — Système d'un nœud (M11, lecture seule)
 - `docs/api/taches.md` — Journal des tâches (lecture seule)
 - `docs/api/telechargement.md` — Téléverser ou télécharger une ISO, un modèle, une image
+- `docs/api/volumes.md` — Volumes d'un stockage : protéger, supprimer, élaguer
 - `docs/api/vues.md` — Vues du tableau de bord (M13)

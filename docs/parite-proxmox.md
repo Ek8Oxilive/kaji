@@ -28,7 +28,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
 | Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | 🟡 (écriture non validée en réel) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
-| Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protéger : ⬜) | M5 |
+| Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection : écriture non validée en réel) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
 | Réplication (jobs ZFS) | ⬜ | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
@@ -109,7 +109,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
 | **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | 🟡 (métadonnées d'URL lues en réel ; envoi et téléchargement non validés en réel) | M5 |
 | Modèles LXC officiels (TurnKey, distributions) : télécharger | ⬜ | M14 |
-| Supprimer un volume, actions sur un volume, élagage (prune) manuel | 🟡 (sauvegardes : supprimer) | M5 |
+| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichiers, protection, élagage : écriture non validée en réel ; copie d'un volume : ⬜) | M5 |
 
 ## Transverses
 

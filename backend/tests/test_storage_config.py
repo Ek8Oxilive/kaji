@@ -257,6 +257,13 @@ def test_edit_refused_without_write(api, b):
     assert c.put(url(cid, "nas"), json=b).status_code == 422 and not writes()
 
 
+@pytest.mark.parametrize("digest", ["z" + DIGEST, DIGEST + "z", " " + DIGEST, DIGEST + "\n", DIGEST[:-1], DIGEST.upper()])
+def test_digest_must_match_entirely(api, digest):
+    """Le motif est ancré : un digest entouré de texte ne passe pas (il serait transmis tel quel à Proxmox)."""
+    c, cid = api
+    assert c.put(url(cid, "nas"), json={"disable": True, "digest": digest}).status_code == 422 and not writes()
+
+
 def test_edit_cannot_set_and_reset_same_field(api):
     c, cid = api
     assert c.put(url(cid, "nas"), json={"domain": "X", "reset": ["domain"]}).status_code == 422 and not writes()
