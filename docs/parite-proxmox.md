@@ -26,7 +26,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Cluster : créer, joindre, liens corosync, retirer un nœud | ⬜ | M10 |
 | Options du datacenter (clavier, langue, console, proxy HTTP, préfixe MAC, migration, HA, tâches parallèles) | ⬜ | M15 |
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
-| Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | 🟡 (écriture non validée en réel) | M5 |
+| Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | ✅ (validé en réel pour `dir` ; les autres types : non validés en réel) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
 | Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection : écriture non validée en réel) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
@@ -71,15 +71,15 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
 | Réinitialiser (reset), suspendre, hiberner | ⬜ | M14 |
 | Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
-| Créer (assistant complet) | ✅ | M4 |
-| Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ | M4 |
+| Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
+| Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
 | Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
 | Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | ⬜ | M14 |
-| Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ | M4 |
+| Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
-| Snapshots (créer, supprimer, restaurer) | ✅ | M4 |
-| Clone (complet, lié), convertir en modèle | ✅ (convertir : ⬜) | M4 / M14 |
-| Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (distante : ⬜) | M4 / M14 |
+| Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
+| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir : ⬜) | M4 / M14 |
+| Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |
 | Pare-feu de la machine (règles, options, IPSet) | ⬜ | M7 |
@@ -88,7 +88,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
 | Étiquettes (tags) et notes | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
 | Résumé avec graphiques d'historique | ✅ (onglet « Performances ») | M13 |
-| Supprimer | ✅ | M4 |
+| Supprimer | ✅ (validé en réel : nom retapé exigé) | M4 |
 
 ## Conteneur (LXC)
 
@@ -107,20 +107,20 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
-| **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | 🟡 (métadonnées d'URL lues en réel ; envoi et téléchargement non validés en réel) | M5 |
+| **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ✅ (téléversement et téléchargement par URL validés en réel, avec sha256) | M5 |
 | Modèles LXC officiels (TurnKey, distributions) : télécharger | ⬜ | M14 |
-| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichiers, protection, élagage : écriture non validée en réel ; copie d'un volume : ⬜) | M5 |
+| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un volume : ⬜) | M5 |
 
 ## Transverses
 
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (page « Tâches » et tiroir de journal ; pas de barre permanente) | M13 |
-| Recherche globale | ✅ (palette Ctrl+K) | M3 |
+| Recherche globale | ✅ (palette Ctrl+K, validée en réel) | M3 |
 | Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type ; par stockage ⬜) | M13 |
-| Thèmes clair / sombre | ✅ (sombre et Glass) | M3 |
+| Thèmes clair / sombre | ✅ (sombre et Glass, mémorisés : validé en réel) | M3 |
 | Langues | ⬜ (français seulement) | M15 |
-| Tableau de bord temps réel | ✅ (flux SSE) | M3 |
+| Tableau de bord temps réel | ✅ (flux SSE validé en réel : un instantané toutes les 5 s) | M3 |
 | Journal d'audit des actions de Kaji | ✅ (Kaji uniquement : hors Proxmox) | M1 |
 
 ## Hors périmètre (autres produits)
