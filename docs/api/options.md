@@ -1,4 +1,4 @@
-# Options d'une VM (onglet « Options » de Proxmox)
+# Options d'une VM ou d'un conteneur (onglet « Options » de Proxmox)
 
 > **Rien de ceci n'a été validé en réel** : écrit et testé avec un faux Proxmox qui n'accepte que les paramètres du schéma réel de
 > `PUT /nodes/{node}/qemu/{vmid}/config` (relevé par PC A). Les essais réels sont à faire dans le bac à sable (VM 115).
@@ -9,7 +9,7 @@
 | `PATCH …/options` | Modifier ou retirer des options (liste blanche) |
 
 Fichiers : `routers/options.py`, `optionspec.py`, interface `components/OptionsTab.tsx` (onglet « Options » de la page Machine, VM seulement).
-Ce n'est **pas** la route `/config` du matériel : la validation et les risques diffèrent. Les conteneurs LXC : lot #145.
+Ce n'est **pas** la route `/config` du matériel : la validation et les risques diffèrent. Les conteneurs LXC sont décrits plus bas (lot #145).
 
 ## Lecture
 
@@ -59,3 +59,45 @@ illisible : 502. Erreur de Proxmox : 502 traduit, sans secret.
 - les changements en attente (`pending`) après un `hotplug` ;
 - le `digest` : une configuration modifiée entre la lecture et l'écriture est refusée ;
 - la valeur par défaut affichée par l'interface pour un réglage absent (`tablet`, `acpi`, `kvm` à vrai) est une supposition tirée de la documentation de Proxmox.
+
+---
+
+# Options d'un conteneur LXC (lot #145)
+
+> **Non validé en réel**, comme les VM. Fichiers : `routers/options.py` (même fichier), `lxcoptionspec.py`, `components/LxcOptionsTab.tsx`
+> (onglet « Options » de la page Machine, conteneurs). Faux Proxmox strict sur `PUT /nodes/{node}/lxc/{vmid}/config`.
+
+| Route | Rôle |
+|---|---|
+| `GET /api/connections/{id}/guests/{node}/lxc/{vmid}/options` | Options actuelles, `unprivileged` (lecture seule) et changements en attente |
+| `PATCH …/lxc/{vmid}/options` | Modifier ou retirer des options (liste blanche) |
+
+`options` : `onboot`, `protection`, `console` (booléens) ; `startup` (`order`, `up`, `down`) ; `features` (`nesting`, `fuse`, `keyctl`, `mount` : liste
+parmi `nfs`, `cifs`) ; `ostype` ; `cmode` ; `tty` ; `timezone` ; `description`. Valeur `null` : non défini. Aucune autre clé n'est renvoyée
+(`hookscript`, `lock`, `lxc.*`, `rootfs`…).
+
+## Modification
+
+Mêmes règles que pour les VM (booléens stricts, champs inconnus ignorés, `clear` → `delete=` en liste blanche, `digest`, corps vide : 400, audit
+`options`, protection de Kaji). En plus :
+
+| Champ | Validation |
+|---|---|
+| `features` | `{nesting, fuse, keyctl, mount}` : booléens stricts, `mount` = liste sans doublon de `nfs`, `cifs` (`[]` retire `mount`). Au moins un champ. Les **autres propriétés** déjà présentes (`mknod`, `force_rw_sys`…) sont **conservées** ; si l'une est illisible, ou si le résultat serait vide, la modification est **refusée** |
+| `ostype` | `debian, devuan, ubuntu, centos, fedora, opensuse, archlinux, alpine, gentoo, nixos, unmanaged` |
+| `cmode` | `shell`, `console` ou `tty` |
+| `tty` | entier de 0 à 6 (pas de texte, pas de booléen) |
+| `timezone` | `host` ou un fuseau `Zone` / `Zone/Ville` (lettres, chiffres, `_`, `+`, `-`) ; pas de `..`, d'espace ni de `/` initial |
+| `clear` | `onboot, startup, protection, features, ostype, console, cmode, tty, timezone, description` |
+
+- **`unprivileged` et `arch` ne sont pas modifiables : les fournir donne 422** (quel que soit le reste de la demande), sans aucun appel.
+- **Confirmation décidée par le serveur** : seulement `protection` retirée d'un conteneur protégé. Un conteneur de `KAJI_PROTECTED_VMIDS` refuse
+  de perdre sa protection **même avec `confirm`** (409).
+- **Réglages réservés à `root@pam`** (par exemple `features.mount` sur un conteneur non privilégié) : Proxmox répond 403 ; Kaji le traduit en 502 sans
+  fuite et l'audite. L'interface prévient avant d'envoyer.
+
+## Non validé en réel (à essayer sur un LXC jetable, par exemple 118)
+- l'acceptation par Proxmox de `features=nesting=1,fuse=0,keyctl=1,mount=nfs;cifs`, de `startup=order=1,up=2,down=3` et de `timezone=host` ;
+- le message exact de Proxmox pour un réglage réservé à root (traduit, sans fuite) ;
+- les valeurs par défaut affichées pour un réglage absent (`console` actif, tous les `features` désactivés) : tirées de la documentation, pas observées ;
+- l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).

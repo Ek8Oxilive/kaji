@@ -98,7 +98,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Console : noVNC et terminal xterm.js | ✅ | M9 |
 | Créer depuis un modèle (privilégié ou non) | ✅ (téléchargement de modèle : ⬜) | M4 / M14 |
 | Ressources, disques, points de montage, réseau, DNS | ✅ | M4 |
-| Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | ⬜ | M14 |
+| Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | 🟡 non validé en réel (`docs/api/options.md`, lot #145) | M14 |
 | Snapshots, clone, migration, sauvegarde, restauration, suppression | ✅ | M4 / M5 |
 | Pare-feu, réplication, permissions, historique, tags | ⬜ | M7 / M8 / M6 / M13 |
 
