@@ -12,7 +12,13 @@ il ne peut rien annuler). Proxmox n'offre pas de retour arrière automatique apr
 - **Pare-feu non configuré nulle part** : options, règles, alias, IPSets, groupes vides au datacenter, sur le nœud et sur la VM 115.
 - Kaji (CT 116) joint Proxmox sur ce même réseau : toucher à `vmbr0` ou filtrer 8006 couperait Kaji lui-même.
 
-## 3. Garde-fous proposés pour toute écriture (à figer avant le code)
+## 3. Garde-fous : décisions d'Enzo (2026-11-08) et leur application
+
+**Décision : le but est de remplacer toutes les fonctions de l'interface Proxmox.** Les garde-fous ne doivent donc pas interdire d'opérations légitimes mais les rendre **sûres** :
+des **verrous à déverrouillage explicite** décidés par le serveur sur l'état relu chez Proxmox (objet utilisé par un pare-feu actif, interface d'administration, ports d'administration…), avec aperçu, phrase à retaper et analyse du risque de coupure. Les « interdits absolus » ci-dessous deviennent donc des **verrous** : l'opération reste possible, jamais par accident.
+**Validation en réel** : pas de banc d'essai monté pour l'instant (pas de RAM libre) ; on ne valide en réel que des objets **inertes** (alias, IPSets, groupes et règles tant que le pare-feu du niveau est désactivé ; bridge sans port ni adresse laissé en attente puis annulé, jamais appliqué ; pare-feu de la VM 115, sans carte réseau). **On n'active jamais le pare-feu du datacenter et on n'applique jamais une configuration réseau sur le cluster réel.**
+
+### Garde-fous d'origine (réinterprétés comme des verrous)
 1. **Interdits absolus côté serveur** : l'interface qui porte la passerelle par défaut (`has_gateway`) et ses ports, les ports 8006, 22 et 3128 en `DROP`/`REJECT` entrant sans règle `ACCEPT` plus précise, activer le pare-feu du datacenter sans règle d'accès à l'administration.
 2. **Aperçu avant application** : le diff de Proxmox (`changes`) est montré tel quel ; `confirm=true` et le nom du nœud ou du niveau retapé.
 3. **Écriture en deux temps** pour le réseau : on écrit dans la configuration **en attente**, on montre le diff, on peut **annuler** (`DELETE /nodes/{node}/network`) ; l'application (`PUT`) est un geste séparé.
@@ -27,7 +33,7 @@ Il faut 2 à 3 VM Proxmox sur un réseau isolé (environ 8 à 12 Go de RAM et 10
 | Lot | Contenu | Qui | Risque |
 |---|---|---|---|
 | **M7-1** | Lecture du réseau, des modifications en attente et du pare-feu (livré) | PC A | Nul |
-| M7-2 | Pare-feu : alias, IPSets, groupes (sans effet tant que le pare-feu est désactivé) | PC B (faux Proxmox), essais réels sur le banc | Faible |
+| **M7-2** | Pare-feu : alias, IPSets, groupes (livré, `docs/api/pare-feu-objets.md`) | PC A | Faible : verrou si utilisé par un pare-feu actif |
 | M7-3 | Pare-feu : options et règles, avec les interdits du §3 | PC B, essais sur le banc | Élevé |
 | M7-4 | Réseau : bridges, bonds, VLAN en attente, aperçu, annulation, application | PC A, banc obligatoire | Très élevé |
 | M7-5 | SDN (zones, VNets, sous-réseaux) | PC A/B, banc | Élevé |
