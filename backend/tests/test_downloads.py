@@ -158,6 +158,15 @@ def test_storage_and_node_validated(api):
     assert c.post(f"/api/connections/{cid}/nodes/bad node/storage/local/download-url", json={}).status_code == 422
 
 
+def test_audit_says_checksum_was_required_not_verified(api):
+    """Le téléchargement est une tâche : au moment de l'audit, rien n'est encore vérifié (le nœud peut refuser la somme)."""
+    c, cid = api
+    dl(c, cid, checksum_algorithm="sha256", checksum=SHA256)
+    up(c, cid, checksum_algorithm="sha256", checksum=SHA256)
+    log = c.get("/api/audit").text
+    assert log.count("sha256 exigé") == 2 and "vérifié" not in log
+
+
 def test_url_not_logged_in_full(api):
     c, cid = api
     dl(c, cid, url=f"https://exemple.org/d.iso?token={TOKEN_IN_URL}")

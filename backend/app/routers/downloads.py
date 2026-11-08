@@ -83,7 +83,7 @@ async def download_url(body: DownloadBody, conn_id: int, node: str = Path(patter
     upid = await c.px("post", f"/nodes/{node}/storage/{storage}/download-url", **params)
     # L'URL n'est pas journalisée en entier : elle peut porter un jeton dans sa requête.
     host = body.url.split("/")[2] if body.url.count("/") >= 2 else "?"
-    c.log("started", f"{body.content} depuis {host}" + (f", {body.checksum_algorithm} vérifié" if sums else ", sans somme de contrôle"), upid=_upid(upid))
+    c.log("started", f"{body.content} depuis {host}" + (f", {body.checksum_algorithm} exigé" if sums else ", sans somme de contrôle"), upid=_upid(upid))
     return {"upid": upid, "node": node}
 
 
@@ -122,5 +122,5 @@ async def upload(request: Request, conn_id: int, node: str = Path(pattern=NODE),
         raise
     except Exception:                                       # envoi interrompu (navigateur fermé, taille fausse…)
         c.refuse("Envoi interrompu", 400)
-    c.log("started", f"{content}, {length} octets" + (f", {checksum_algorithm} vérifié" if sums else ""), upid=_upid(upid))
+    c.log("started", f"{content}, {length} octets" + (f", {checksum_algorithm} exigé" if sums else ""), upid=_upid(upid))
     return {"upid": upid, "node": node}
