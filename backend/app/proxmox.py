@@ -1,4 +1,5 @@
 import ssl
+import uuid
 from urllib.parse import quote, urlencode
 
 import httpx
@@ -58,6 +59,28 @@ class ProxmoxClient:
 
     async def delete(self, path: str, /, **params):
         r = await self._client.delete(path, params=params)
+        r.raise_for_status()
+        return r.json()["data"]
+
+    async def upload(self, path: str, /, *, fields: dict[str, str], filename: str, body, length: int):
+        """Envoie un fichier en multipart, **en flux** (jamais chargé en mémoire ni écrit sur le disque de Kaji).
+        `body` : itérateur asynchrone d'octets de taille totale `length` ; `fields` : champs texte, placés avant le fichier.
+        Le Content-Length est calculé d'avance (pveproxy n'accepte pas l'envoi en morceaux)."""
+        boundary = "kajiupload" + uuid.uuid4().hex
+        head = b"".join(f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode() for k, v in fields.items())
+        head += (f'--{boundary}\r\nContent-Disposition: form-data; name="filename"; filename="{filename}"\r\n'
+                 "Content-Type: application/octet-stream\r\n\r\n").encode()
+        tail = f"\r\n--{boundary}--\r\n".encode()
+
+        async def stream():
+            yield head
+            async for chunk in body:
+                yield chunk
+            yield tail
+
+        r = await self._client.post(path, content=stream(), timeout=httpx.Timeout(30, read=None, write=None),
+                                    headers={"Content-Type": f"multipart/form-data; boundary={boundary}",
+                                             "Content-Length": str(len(head) + length + len(tail))})
         r.raise_for_status()
         return r.json()["data"]
 
