@@ -47,6 +47,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/systemspec.py` — Système d'un nœud (lecture seule) : mise en forme tolérante d…
 - `backend/app/tagspec.py` — Étiquettes (tags) des machines : lecture tolérante et validat…
 - `backend/app/taskspec.py` — Journal des tâches Proxmox (lecture seule) : mise en forme to…
+- `backend/app/userwrite.py` — Écriture des utilisateurs, groupes et appartenances Proxmox.…
 - `backend/app/vmspec.py` — Construction sûre des paramètres de création d'une VM : tout…
 - `backend/app/volumespec.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un…
 
@@ -95,6 +96,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/storage.py` — Stockages Proxmox : contenu d'un stockage (lecture seule) — GET /nodes/{node}/storage/{storage}/content
 - `backend/app/routers/storage_config.py` — Configuration des stockages Proxmox : lire, ajouter, modifier… — GET /storage-config; GET /storage-config/{storage}; POST /storage-config; PUT /storage-config/{storage} (+1)
 - `backend/app/routers/task_list.py` — Journal des tâches (lecture seule) : liste des tâches de tous… — GET /tasks
+- `backend/app/routers/user_write.py` — Écrire des utilisateurs (realm pve), des groupes et des appar… — POST /access/users; PUT /access/users/{userid}; GET /access/users/{userid}/impact; DELETE /access/users/{userid} (+3)
 - `backend/app/routers/volumes.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un… — PUT /nodes/{node}/storage/{storage}/backups/{volume}/protect; DELETE /nodes/{node}/storage/{storage}/files/{kind}/{name}; POST /nodes/{node}/storage/{storage}/prune/preview; POST /nodes/{node}/storage/{storage}/prune
 
 ## Frontend : pages
@@ -158,6 +160,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/components/ThemeSwitcher.tsx` — 
 - `frontend/src/components/Toast.tsx` — 
 - `frontend/src/components/ui.tsx` — 
+- `frontend/src/components/UserWriteDialog.tsx` — Écrire des utilisateurs (realm pve), des groupes et des appar…
 - `frontend/src/components/VolumeDialogs.tsx` — Types de fichier que le serveur accepte de supprimer ici (les…
 
 ## Frontend : lib
@@ -211,5 +214,6 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/systeme-noeud.md` — Système d'un nœud (M11, lecture seule)
 - `docs/api/taches.md` — Journal des tâches (lecture seule)
 - `docs/api/telechargement.md` — Téléverser ou télécharger une ISO, un modèle, une image
+- `docs/api/utilisateurs-ecriture.md` — Écrire des utilisateurs, des groupes et des appartenances
 - `docs/api/volumes.md` — Volumes d'un stockage : protéger, supprimer, élaguer
 - `docs/api/vues.md` — Vues du tableau de bord (M13)
