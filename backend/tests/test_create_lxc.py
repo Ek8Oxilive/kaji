@@ -76,6 +76,7 @@ CT_PWD = "mot-de-passe-du-conteneur"
 UPID = "UPID:enzo:0001A2B3:00C4D5E6:67890ABC:vzcreate:300:kaji@pve!kaji:"
 CALLS: list = []
 FAIL: dict = {}
+RES: dict = {}
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
@@ -83,12 +84,16 @@ def _handler(request: httpx.Request) -> httpx.Response:
     CALLS.append((request.method, p, {k: v[0] for k, v in parse_qs(request.content.decode()).items()}))
     if FAIL.get("code") and request.method == "POST" and p.endswith("/lxc"):
         return httpx.Response(FAIL["code"], json={"data": None})
+    if p == "/cluster/resources":                       # strict : seul `type=vm` est connu de ce test
+        if request.url.params.get("type") != "vm":
+            return httpx.Response(400, json={"data": None})
+        return httpx.Response(200, json={"data": RES.get("rows", [{"vmid": 115, "type": "qemu"}, {"vmid": "116", "type": "lxc"}])})
     return httpx.Response(200, json={"data": "300" if p == "/cluster/nextid" else UPID})
 
 
 @pytest.fixture
 def api(client):
-    CALLS.clear(); FAIL.clear()
+    CALLS.clear(); FAIL.clear(); RES.clear()
     app.dependency_overrides[get_client_factory] = lambda: (
         lambda **kw: ProxmoxClient(**kw, transport=httpx.MockTransport(_handler)))
     client.post("/api/auth/setup", json={"username": "admin", "password": PWD})
@@ -152,3 +157,47 @@ def test_audit_marks_privileged_and_no_access(api):
 def test_invalid_node_rejected(api, node):
     c, cid = api
     assert c.post(url(cid, node), json=good()).status_code in (404, 422) and CALLS == []
+
+
+# ---------- identifiant déjà pris (pré-contrôle, aucun appel de création) ----------
+
+@pytest.mark.parametrize("vmid", [115, 116])
+def test_taken_vmid_is_refused_409_and_nothing_is_created(api, vmid):
+    c, cid = api
+    r = c.post(url(cid), json=good(vmid=vmid))
+    assert r.status_code == 409 and r.json()["detail"] == "Cet identifiant est déjà utilisé" and str(vmid) not in r.text
+    assert not any(x[0] == "POST" for x in CALLS)
+
+
+def test_taken_vmid_refusal_is_audited_without_the_typed_value_in_the_message(api):
+    c, cid = api
+    c.post(url(cid), json=good(vmid=116))
+    e = c.get("/api/audit").json()[0]
+    assert (e["action"], e["status"], e["target"]) == ("create-lxc", "error", "lxc/116@enzo") and "116" not in (e["detail"] or "")
+
+
+def test_free_vmid_is_created_after_one_listing(api):
+    c, cid = api
+    assert c.post(url(cid), json=good(vmid=117)).status_code == 202
+    assert [x[1] for x in CALLS] == ["/cluster/resources", "/nodes/enzo/lxc"]
+
+
+def test_automatic_vmid_does_not_list_the_machines(api):
+    c, cid = api
+    assert c.post(url(cid), json=good()).status_code == 202 and [x[1] for x in CALLS] == ["/cluster/nextid", "/nodes/enzo/lxc"]
+
+
+@pytest.mark.parametrize("rows", ["texte", {"vmid": 115}, 5])
+def test_an_unreadable_listing_is_refused_502_and_nothing_is_created(api, rows):
+    c, cid = api
+    RES["rows"] = rows
+    r = c.post(url(cid), json=good(vmid=117))
+    assert r.status_code == 502 and "illisible" in r.json()["detail"] and not any(x[0] == "POST" for x in CALLS)
+    assert c.get("/api/audit").json()[0]["status"] == "error"
+
+
+def test_an_empty_or_missing_listing_means_free(api):
+    c, cid = api
+    for rows in (None, []):
+        RES["rows"] = rows
+        assert c.post(url(cid), json=good(vmid=116)).status_code == 202

@@ -40,6 +40,22 @@ async def storages(conn_id: int, node: str = Path(pattern=NODE),
                    for s in data or [] if s.get("storage")), key=lambda s: s["storage"])
 
 
+VMID_TAKEN = "Cet identifiant est déjà utilisé"
+UNREADABLE = "Impossible de vérifier si cet identifiant est libre : la liste des machines est illisible"
+
+
+async def vmid_state(px, vmid: int) -> str | None:
+    """Pré-contrôle d'un identifiant choisi à la main : `None` s'il est libre, sinon le message de refus. Proxmox répondrait 500
+    « already exists » (traduit en 502) : on refuse avant d'appeler la création, sans citer la valeur saisie."""
+    rows = await px("get", "/cluster/resources", type="vm")
+    if rows is not None and not isinstance(rows, list):
+        return UNREADABLE
+    for r in rows or []:
+        if isinstance(r, dict) and str(r.get("vmid")) == str(vmid):
+            return VMID_TAKEN
+    return None
+
+
 @router.post("/api/connections/{conn_id}/nodes/{node}/qemu", status_code=status.HTTP_202_ACCEPTED)
 async def create_vm(body: VmCreate, conn_id: int, node: str = Path(pattern=NODE), db: Session = Depends(get_db),
                     factory: Factory = Depends(get_client_factory), user: AdminUser = Depends(current_user)):
@@ -61,6 +77,8 @@ async def create_vm(body: VmCreate, conn_id: int, node: str = Path(pattern=NODE)
 
     vmid = body.vmid if body.vmid is not None else int(await px("get", "/cluster/nextid"))
     target = f"qemu/{vmid}@{node}"
+    if body.vmid is not None and (problem := await vmid_state(px, vmid)):
+        fail(problem, 409 if problem == VMID_TAKEN else 502)
     try:
         params = build_params(body, vmid)
     except ValueError as e:
@@ -90,6 +108,9 @@ async def create_lxc(body: LxcCreate, conn_id: int, node: str = Path(pattern=NOD
 
     vmid = body.vmid if body.vmid is not None else int(await px("get", "/cluster/nextid"))
     target = f"lxc/{vmid}@{node}"
+    if body.vmid is not None and (problem := await vmid_state(px, vmid)):
+        log("error", problem)
+        raise HTTPException(409 if problem == VMID_TAKEN else 502, problem)
     try:
         params = build_lxc_params(body, vmid)
     except ValueError as e:
