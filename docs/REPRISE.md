@@ -27,6 +27,8 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
   - **À ne jamais tester** : le CT 116 `kaji-ct` est Kaji lui-même (suppression, arrêt, migration interdits) ; machines 100 à 114 = services d'Enzo. Les tickets #143 à #151 (agent:pc-b) sont des lots pour PC B que PC A teste ensuite dans ce bac à sable.
   - **#143 (PC B, PR en attente de relecture)** : identifiant déjà pris refusé en 409 avant création (VM et LXC, pré-contrôle `/cluster/resources`), carte « création en cours » pour un clone dont Proxmox n'a pas encore le nom, `upgrade` effaçable du cloud-init (`delete=ciupgrade`). **Non validé en réel** : les trois essais du ticket sont à faire par PC A.
 
+- **M6 en cours** : décisions d'Enzo (2026-11-08) = option D (`docs/m6-ecriture.md`), token d'administration collé, session de 30 min (4 h max). **M6-6 livré** : session administrateur (`docs/api/admin-session.md`, `routers/admin_session.py`, `adminsession.py`) ; elle n'écrit aucun droit. **Suite** : M6-7 écriture bornée (utilisateurs, ACL, tokens) avec les interdits absolus du §5, une écriture à la fois, essais réels seulement sur un utilisateur et un chemin jetables (`/pool/kaji-test`). Pour tester en réel, Enzo doit créer un token sans séparation de privilèges avec `Permissions.Modify` sur `/pool/kaji-test` seulement.
+
 ## Méthode d'un lot (≈ 1 PR)
 1. `git checkout main && git pull`, branche `feat/mX-…`, ticket `gh issue create --milestone … --label agent:pc-a`.
 2. Sonder le vrai Proxmox **en lecture seule** (`$CLAUDE_JOB_DIR/tmp/probe*.py`, `PYTHONPATH=. .venv/bin/python -B`) avant de coder ; schémas réels, pas de mémoire.
