@@ -92,14 +92,19 @@ def require_admin(conn_id: int, found: tuple[AdminUser, UserSession] = Depends(k
     return user, s
 
 
-async def admin_get(db: Session, factory: Factory, conn_id: int, s: AdminSession, path: str, /, **params):
+async def admin_call(db: Session, factory: Factory, conn_id: int, s: AdminSession, method: str, path: str, /, **params):
+    """Appel Proxmox avec l'identité de la session administrateur (`method` : get, post, put, delete). Erreurs traduites sans secret."""
     client = admin_client(db, factory, conn_id, s)
     try:
-        return await client.get(path, **params)
+        return await getattr(client, method)(path, **params)
     except httpx.HTTPError as e:
         raise http_error(e) from None
     finally:
         await client.aclose()
+
+
+async def admin_get(db: Session, factory: Factory, conn_id: int, s: AdminSession, path: str, /, **params):
+    return await admin_call(db, factory, conn_id, s, "get", path, **params)
 
 
 @router.get("")
