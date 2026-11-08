@@ -24,8 +24,8 @@ BASE = "/api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit"
 USER = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
 DOMAIN = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9.\-]{0,251}[A-Za-z0-9])?$")
 IPCONF = re.compile(r"^ipconfig(\d|[12]\d|3[01])$")
-CLEARABLE = Literal["user", "password", "ssh_keys", "nameserver", "searchdomain", "ipconfig0", "ipconfig1", "ipconfig2", "ipconfig3"]
-PVE_KEY = {"user": "ciuser", "password": "cipassword", "ssh_keys": "sshkeys", "nameserver": "nameserver", "searchdomain": "searchdomain"}
+CLEARABLE = Literal["user", "password", "ssh_keys", "nameserver", "searchdomain", "upgrade", "ipconfig0", "ipconfig1", "ipconfig2", "ipconfig3"]
+PVE_KEY = {"user": "ciuser", "password": "cipassword", "ssh_keys": "sshkeys", "nameserver": "nameserver", "searchdomain": "searchdomain", "upgrade": "ciupgrade"}
 
 
 class IpConf(BaseModel):

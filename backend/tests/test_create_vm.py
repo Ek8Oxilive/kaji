@@ -69,6 +69,7 @@ BODY = {"name": "lab", "host": "10.0.0.5", "user": "kaji@pve", "token_id": "kaji
 UPID = "UPID:enzo:0001A2B3:00C4D5E6:67890ABC:qmcreate:900:kaji@pve!kaji:"
 CALLS: list[tuple[str, str, dict]] = []
 FAIL: dict = {}
+RES: dict = {}                    # "rows" : réponse de /cluster/resources (par défaut : 115 « kaji-sandbox » et 120 en texte)
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
@@ -77,6 +78,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
     CALLS.append((request.method, p, form))
     if FAIL.get("code") and p == FAIL.get("path", p):
         return httpx.Response(FAIL["code"], json={"data": None})
+    if p == "/cluster/resources":                       # strict : seul `type=vm` est connu de ce test
+        if request.url.params.get("type") != "vm":
+            return httpx.Response(400, json={"data": None})
+        return httpx.Response(200, json={"data": RES.get("rows", [{"vmid": 115, "name": "kaji-sandbox", "type": "qemu"}, {"vmid": "120", "type": "lxc"}])})
     data = {
         "/cluster/nextid": "900",
         "/pools": [{"poolid": "kaji-test", "comment": "bac à sable"}, {"poolid": "autre"}],
@@ -88,7 +93,7 @@ def _handler(request: httpx.Request) -> httpx.Response:
 
 @pytest.fixture
 def api(client):
-    CALLS.clear(); FAIL.clear()
+    CALLS.clear(); FAIL.clear(); RES.clear()
     app.dependency_overrides[get_client_factory] = lambda: (
         lambda **kw: ProxmoxClient(**kw, transport=httpx.MockTransport(_handler)))
     client.post("/api/auth/setup", json={"username": "admin", "password": PWD})
@@ -123,7 +128,7 @@ def test_create_uses_nextid_and_posts_validated_params(api):
 def test_create_with_explicit_vmid_skips_nextid(api):
     c, cid = api
     c.post(f"/api/connections/{cid}/nodes/enzo/qemu", json={"name": "x1", "vmid": 777})
-    assert [x[1] for x in CALLS] == ["/nodes/enzo/qemu"] and CALLS[0][2]["vmid"] == "777"
+    assert [x[1] for x in CALLS] == ["/cluster/resources", "/nodes/enzo/qemu"] and CALLS[1][2]["vmid"] == "777"      # nextid non demandé
 
 
 @pytest.mark.parametrize("node", ["a;b", "-x"])
@@ -153,3 +158,65 @@ def test_audit_success_and_proxmox_refusal_without_secrets(api):
     assert [(e["action"], e["status"]) for e in log] == [("create-vm", "started"), ("create-vm", "error")]
     assert log[0]["target"] == "qemu/900@enzo" and log[0]["upid"] == UPID and "kaji-test" in log[0]["detail"]
     assert SECRET not in c.get("/api/audit").text
+
+
+# ---------- identifiant déjà pris (pré-contrôle, aucun appel de création) ----------
+
+def _vm(c, cid, **kw):
+    return c.post(f"/api/connections/{cid}/nodes/enzo/qemu", json={"name": "x1", **kw})
+
+
+@pytest.mark.parametrize("vmid", [115, 120])
+def test_taken_vmid_is_refused_409_and_nothing_is_created(api, vmid):
+    c, cid = api
+    r = _vm(c, cid, vmid=vmid)
+    assert r.status_code == 409 and r.json()["detail"] == "Cet identifiant est déjà utilisé" and str(vmid) not in r.text
+    assert not any(x[0] == "POST" for x in CALLS)
+
+
+def test_taken_vmid_refusal_is_audited_without_the_typed_value_in_the_message(api):
+    c, cid = api
+    _vm(c, cid, vmid=115)
+    e = c.get("/api/audit").json()[0]
+    assert (e["action"], e["status"], e["target"]) == ("create-vm", "error", "qemu/115@enzo") and "115" not in (e["detail"] or "")
+
+
+def test_free_vmid_is_created_after_one_listing(api):
+    c, cid = api
+    assert _vm(c, cid, vmid=116).status_code == 202
+    assert [x[1] for x in CALLS] == ["/cluster/resources", "/nodes/enzo/qemu"]
+
+
+def test_automatic_vmid_does_not_list_the_machines(api):
+    c, cid = api
+    assert _vm(c, cid).status_code == 202 and [x[1] for x in CALLS] == ["/cluster/nextid", "/nodes/enzo/qemu"]
+
+
+def test_an_empty_or_missing_listing_means_free(api):
+    c, cid = api
+    RES["rows"] = None
+    assert _vm(c, cid, vmid=115).status_code == 202
+    RES["rows"] = []
+    assert _vm(c, cid, vmid=115).status_code == 202
+
+
+@pytest.mark.parametrize("rows", ["texte", {"vmid": 115}, 5])
+def test_an_unreadable_listing_is_refused_502_and_nothing_is_created(api, rows):
+    c, cid = api
+    RES["rows"] = rows
+    r = _vm(c, cid, vmid=116)
+    assert r.status_code == 502 and "illisible" in r.json()["detail"] and not any(x[0] == "POST" for x in CALLS)
+    assert c.get("/api/audit").json()[0]["status"] == "error"
+
+
+def test_entries_without_a_vmid_are_ignored(api):
+    c, cid = api
+    RES["rows"] = [{"name": "sans-id"}, "bizarre", None, {"vmid": None}]
+    assert _vm(c, cid, vmid=116).status_code == 202
+
+
+def test_a_listing_error_from_proxmox_is_audited_and_refused(api):
+    c, cid = api
+    FAIL.update(code=500, path="/cluster/resources")
+    assert _vm(c, cid, vmid=116).status_code == 502 and not any(x[0] == "POST" for x in CALLS)
+    assert c.get("/api/audit").json()[0]["status"] == "error"

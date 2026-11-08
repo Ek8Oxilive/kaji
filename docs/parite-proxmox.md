@@ -75,7 +75,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
 | Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
 | Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | 🟡 non validé en réel (`docs/api/options.md`, lot #144 ; reste `vga`, `keyboard`, `tags`, `name`, `reboot`) | M14 |
-| Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés) | M4 |
+| Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
 | Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir : ⬜) | M4 / M14 |
