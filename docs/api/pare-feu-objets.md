@@ -19,6 +19,7 @@ Deux niveaux, mêmes routes : datacenter `/api/connections/{id}/firewall/cluster
 - **Objet utilisé par une règle d'un pare-feu ACTIF** : refus **409** qui liste les règles concernées, tant que `acknowledge_live=true` n'est pas envoyé en plus. Les références cherchées : `name`, `dc/name`, `guest/name` (alias), `+name`, `+dc/name` (IPSet), règles de type `group`. Au datacenter, les règles du datacenter, des groupes et de **tous les nœuds** sont lues ; les règles des machines ne le sont pas toutes (Proxmox tranche).
 - **`management` et `blacklist`** (ensembles intégrés que Proxmox utilise sans règle qui les nomme) : verrou **toujours** actif, même pare-feu éteint.
 - **Supprimer** un alias, un IPSet ou un groupe **nommé par une règle** est refusé même avec `acknowledge_live` : on ne casse pas une règle (retire-le d'abord de la règle).
+- **Un alias nommé par une entrée d'IPSet** (`alias`, `dc/alias`, `guest/alias`) est protégé de la même façon : suppression refusée (409), modification verrouillée si le pare-feu est actif. **Constaté en réel** : Proxmox laisse supprimer un tel alias et laisse une référence cassée dans l'IPSet ; Kaji le refuse. Limite : seuls les IPSets du même niveau sont lus (un IPSet de machine qui nomme `dc/alias` n'est pas détecté).
 - IPSet non vide : suppression seulement avec `delete_members=true`.
 
 ## Validation
