@@ -74,7 +74,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
 | Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
-| Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | 🟡 non validé en réel (`docs/api/options.md`, lot #144 ; reste `vga`, `keyboard`, `tags`, `name`, `reboot`) | M14 |
+| Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | ✅ validé en réel (VM 115 : démarrage automatique, tablette, ordre de démarrage, agent, protection avec confirmation, refus des valeurs invalides ; `docs/api/options.md`, lot #144) ; reste `vga`, `keyboard`, `tags`, `name`, `reboot` | M14 |
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
@@ -98,7 +98,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Console : noVNC et terminal xterm.js | ✅ | M9 |
 | Créer depuis un modèle (privilégié ou non) | ✅ (téléchargement de modèle : ⬜) | M4 / M14 |
 | Ressources, disques, points de montage, réseau, DNS | ✅ | M4 |
-| Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | 🟡 non validé en réel (`docs/api/options.md`, lot #145) | M14 |
+| Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | 🟡 validé en réel sauf **`keyctl`, `fuse` et `mount`** : Proxmox les refuse au token de Kaji (« Droits insuffisants », ils exigent `root@pam`) ; nesting, démarrage, protection, fuseau, console OK (`docs/api/options.md`, lot #145) | M14 |
 | Snapshots, clone, migration, sauvegarde, restauration, suppression | ✅ | M4 / M5 |
 | Pare-feu, réplication, permissions, historique, tags | ⬜ | M7 / M8 / M6 / M13 |
 
