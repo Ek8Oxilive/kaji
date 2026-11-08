@@ -107,7 +107,11 @@ commande ne contient jamais `Administrator` ni `/` avec `Permissions.Modify`).
 | **M6-6** | **Mode administrateur par session** (§D) : socle (identification, expiration, jamais stocké) | PC A | Élevé |
 | **M6-7+** | Écriture des droits et des tokens par-dessus M6-6, avec les garde-fous du §5 ; une écriture à la fois | PC A | Élevé |
 
-## 7. Décisions à prendre
+## 7. Décisions (prises par le propriétaire le 2026-11-08)
+
+**Retenu : option D, identification par token d'administration collé, session de 30 minutes renouvelable (4 h au plus).** Socle livré : `docs/api/admin-session.md` (M6-6). Reste : l'écriture proprement dite (M6-7+), avec les garde-fous du §5, une écriture à la fois.
+
+Questions d'origine :
 
 1. **Lot A (commandes à copier + profil recommandé) : on le fait en premier ?** *(recommandé : oui)*
 2. **Écriture des droits : on prend l'option D (mode administrateur par session) ?** *(recommandé : oui, après le lot A)*
