@@ -81,11 +81,23 @@ async def _all_rules(c: Ctx, scope: Scope) -> list[dict]:
     return rules
 
 
+async def _alias_users(c: Ctx, scope: Scope, name: str) -> list[str]:
+    """IPSets du niveau dont une entrée nomme cet alias. Constaté en réel : Proxmox laisse supprimer un alias encore utilisé par un IPSet et laisse une référence cassée."""
+    users = []
+    for s in shape_named(await c.px("get", f"{scope.base}/ipset"), "name"):
+        entries = shape_ipset_entries(await c.px("get", f"{scope.base}/ipset/{s['name']}"))
+        if any(e["cidr"].removeprefix("dc/").removeprefix("guest/") == name for e in entries):
+            users.append(s["name"])
+    return users
+
+
 async def _live_gate(c: Ctx, scope: Scope, kind: Kind, name: str, acknowledge: bool):
     """Verrou décidé par le serveur : objet utilisé par un pare-feu actif ⇒ `acknowledge_live` exigé."""
     hits = references(await _all_rules(c, scope), kind, name)
-    if is_live(kind, name, hits, await _enabled(c, scope)) and not acknowledge:
-        why = "ensemble intégré utilisé par Proxmox" if (kind == "ipset" and not hits) else f"règle(s) {', '.join(map(str, hits))} d'un pare-feu ACTIF"
+    users = await _alias_users(c, scope, name) if kind == "alias" else []
+    if is_live(kind, name, hits or users, await _enabled(c, scope)) and not acknowledge:
+        why = "ensemble intégré utilisé par Proxmox" if (kind == "ipset" and not hits) else (
+            (f"règle(s) {', '.join(map(str, hits))} d'un pare-feu ACTIF" if hits else "") + (" et " if hits and users else "") + (f"IPSet(s) {', '.join(users)} d'un pare-feu ACTIF" if users else ""))
         c.refuse(f"Objet en service ({why}) : une erreur peut couper l'accès. Renvoie la requête avec acknowledge_live=true pour confirmer", status.HTTP_409_CONFLICT)
     return hits
 
@@ -134,6 +146,9 @@ def _routes(prefix: str, dep, with_groups: bool):
         hits = references(await _all_rules(c, scope), "alias", name)
         if hits:                                                      # supprimer un alias nommé par une règle la casserait : jamais, même confirmé
             c.refuse(f"Alias utilisé par la ou les règles {', '.join(map(str, hits))} : retire-le d'abord de ces règles", status.HTTP_409_CONFLICT)
+        users = await _alias_users(c, scope, name)
+        if users:                                                     # même règle pour un alias nommé par une entrée d'IPSet
+            c.refuse(f"Alias utilisé comme entrée de l'IPSet {', '.join(users)} : retire d'abord cette entrée", status.HTTP_409_CONFLICT)
         await c.px("delete", f"{scope.base}/aliases/{name}")
         if any(a["name"] == name for a in shape_aliases(await c.px("get", f"{scope.base}/aliases"))):
             c.refuse("Proxmox n'a pas supprimé l'alias", status.HTTP_502_BAD_GATEWAY)

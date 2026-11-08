@@ -443,3 +443,31 @@ def test_guest_level_reads_only_its_own_rules(api):
         pytest.skip("niveau machine seulement")
     c.put(u(cid, sc, "/aliases/srv"), json={"cidr": "10.0.0.9", "confirm": True, "type_name": "srv"})
     assert not [r for r in READS if r.startswith("/cluster/") or r.startswith("/nodes/enzo/firewall") or r == "/nodes"]
+
+
+# ---------------------------------------------------------------- trouvé en réel : un alias nommé par une entrée d'IPSet
+@pytest.mark.parametrize("entry", ["lan", "dc/lan", "guest/lan"])
+def test_an_alias_used_as_an_ipset_entry_is_never_deleted(api, entry):
+    """Constaté en réel : Proxmox laisse supprimer cet alias et laisse une référence cassée dans l'IPSet. Kaji le refuse."""
+    c, cid, sc = api
+    state(sc)["ipsets"]["vide"] = [(entry, None, 0)]
+    r = c.delete(u(cid, sc, "/aliases/lan"), params={"confirm": "true", "typed": "lan"})
+    assert r.status_code == 409 and "IPSet" in r.json()["detail"] and "vide" in r.json()["detail"] and not WRITES and "lan" in state(sc)["aliases"]
+
+
+def test_changing_an_alias_used_by_an_ipset_in_an_active_firewall_needs_the_unlock(api):
+    c, cid, sc = api
+    state(sc)["ipsets"]["vide"] = [("lan", None, 0)]
+    b = {"cidr": "10.9.9.0/24", "confirm": True, "type_name": "lan"}
+    assert c.put(u(cid, sc, "/aliases/lan"), json=b).status_code == 200                       # pare-feu éteint : inerte
+    state(sc)["aliases"]["lan"] = ("192.168.1.0/24", "LAN"); WRITES.clear()
+    state(sc)["enable"] = 1
+    r = c.put(u(cid, sc, "/aliases/lan"), json=b)
+    assert r.status_code == 409 and "IPSet" in r.json()["detail"] and "ACTIF" in r.json()["detail"] and not WRITES
+    assert c.put(u(cid, sc, "/aliases/lan"), json={**b, "acknowledge_live": True}).status_code == 200
+
+
+def test_an_unused_alias_is_still_deletable_with_ipsets_around(api):
+    c, cid, sc = api
+    state(sc)["ipsets"]["vide"] = [("10.0.0.1", None, 0)]
+    assert c.delete(u(cid, sc, "/aliases/srv"), params={"confirm": "true", "typed": "srv"}).status_code == 200
