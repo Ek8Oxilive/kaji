@@ -24,7 +24,7 @@ class StorageCreate(StorageFields):
 
 class StorageUpdate(StorageFields):
     reset: list[str] = Field(default_factory=list, max_length=10, description="Réglages à retirer (nodes, options, prune_backups…)")
-    digest: str | None = Field(default=None, pattern=DIGEST.pattern, description="Refuse si la configuration a changé entre-temps")
+    digest: str | None = Field(default=None, pattern="^" + DIGEST.pattern + "$", description="Refuse si la configuration a changé entre-temps")
 
 
 class Ctx:

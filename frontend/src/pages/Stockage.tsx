@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Gauge } from "../components/Gauge";
 import { UploadDialog, UrlDownloadDialog } from "../components/FileTransferDialogs";
+import { BACKUP_FILE, DeleteFileDialog, PruneDialog, isFileKind } from "../components/VolumeDialogs";
 import { AddStorageDialog, DeleteStorageDialog, EditStorageDialog } from "../components/StorageConfigDialogs";
 import { Button, Notice } from "../components/ui";
 import { api, type Connection } from "../lib/api";
@@ -73,7 +74,19 @@ function StorageCard({ card, index, onOpen }: { card: Card; index: number; onOpe
 function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { connId: number; card: Card; config: StorageConfig | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const { node, storage } = card.row;
   const fileKinds = card.row.contents.filter((c): c is "iso" | "vztmpl" => c === "iso" || c === "vztmpl");
-  const [transfer, setTransfer] = useState<"upload" | "url" | null>(null);
+  const [transfer, setTransfer] = useState<"upload" | "url" | "prune" | null>(null);
+  const [toDelete, setToDelete] = useState<StorageVolume | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const hasBackups = card.row.contents.includes("backup") && card.row.type !== "pbs";      // l'élagage d'un PBS se règle sur le PBS
+  const toggleProtect = async (v: StorageVolume) => {
+    if (!node) return;
+    setActionErr(null);
+    try {
+      await api(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/storage/${encodeURIComponent(storage)}/backups/${encodeURIComponent(v.name)}/protect`, { method: "PUT", body: { protected: !v.protected } });
+      qc.invalidateQueries({ queryKey: ["storage-content", connId, node, storage] });
+    } catch (e) { setActionErr((e as Error).message); }
+  };
   const vols = useQuery({
     queryKey: ["storage-content", connId, node, storage],
     queryFn: () => api<StorageVolume[]>(`/api/connections/${connId}/nodes/${encodeURIComponent(node ?? "")}/storage/${encodeURIComponent(storage)}/content`),
@@ -115,13 +128,17 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
 
         <div className="max-w-sm space-y-2"><Space row={card.row} /></div>
 
-        {fileKinds.length > 0 && node && (
+        {(fileKinds.length > 0 || hasBackups) && node && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">Téléverser un fichier</Button>
-            <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">Télécharger depuis une URL</Button>
+            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">Téléverser un fichier</Button>}
+            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">Télécharger depuis une URL</Button>}
+            {hasBackups && <Button variant="danger" onClick={() => setTransfer("prune")} className="!px-3 !py-1.5">Élaguer les sauvegardes…</Button>}
           </div>
         )}
         {transfer === "upload" && node && <UploadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
+        {transfer === "prune" && node && <PruneDialog connId={connId} node={node} storage={storage} onClose={() => setTransfer(null)} />}
+        {toDelete && node && isFileKind(toDelete.content) && <DeleteFileDialog connId={connId} node={node} storage={storage} kind={toDelete.content} name={toDelete.name} onClose={() => setToDelete(null)} />}
+        {actionErr && <Notice kind="error">{actionErr}</Notice>}
         {transfer === "url" && node && <UrlDownloadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -141,12 +158,12 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
           : shown.length === 0 ? <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{data.length === 0 ? "Ce stockage ne contient aucun volume." : "Aucun volume ne correspond aux filtres."}</div>
           : (
             <div className="overflow-x-auto rounded-xl border border-line">
-              <table className="w-full min-w-[40rem] text-sm">
+              <table className="w-full min-w-[44rem] text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs text-muted">
                     <th scope="col" className="px-4 py-2 font-normal">Nom</th><th scope="col" className="px-4 py-2 font-normal">Type</th>
                     <th scope="col" className="px-4 py-2 font-normal">Format</th><th scope="col" className="px-4 py-2 text-right font-normal">Taille</th>
-                    <th scope="col" className="px-4 py-2 font-normal">Date</th><th scope="col" className="px-4 py-2 font-normal">Machine</th>
+                    <th scope="col" className="px-4 py-2 font-normal">Date</th><th scope="col" className="px-4 py-2 font-normal">Machine</th><th scope="col" className="px-4 py-2 font-normal"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,6 +183,12 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
                       <td className="px-4 py-2 text-right tabular-nums">{bytes(v.size)}</td>
                       <td className="whitespace-nowrap px-4 py-2 text-muted">{when(v.date)}</td>
                       <td className="px-4 py-2 tabular-nums text-muted">{v.vmid ?? "–"}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right">
+                        {v.content === "backup" && BACKUP_FILE.test(v.name) && node && (
+                          <button type="button" className="text-xs text-muted underline hover:text-fg" onClick={() => toggleProtect(v)}>{v.protected ? "Retirer la protection" : "Protéger"}</button>)}
+                        {isFileKind(v.content) && node && (
+                          <button type="button" className="text-xs text-danger underline" onClick={() => setToDelete(v)}>Supprimer</button>)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
