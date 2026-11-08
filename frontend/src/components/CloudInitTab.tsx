@@ -19,6 +19,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [dropPassword, setDropPassword] = useState(false);
+  const [dropUpgrade, setDropUpgrade] = useState(false);
   const [keys, setKeys] = useState("");
   const [mode, setMode] = useState<Mode>("unset");
   const [ip, setIp] = useState("");
@@ -37,7 +38,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
     const c = data.ipconfig["ipconfig0"];
     setUser(data.user ?? ""); setKeys(data.ssh_keys ?? ""); setDns(data.nameserver ?? ""); setDomain(data.searchdomain ?? "");
     setUpgrade(data.upgrade ?? true); setMode(c ? c.mode : "unset"); setIp(c?.ip ?? ""); setGw(c?.gateway ?? "");
-    setPassword(""); setDropPassword(false);
+    setPassword(""); setDropPassword(false); setDropUpgrade(false);
   }, [data]);
 
   const chosen = storage || stores.data?.[0]?.storage || "";
@@ -57,7 +58,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
     diff(data.user, user, "user", "user"); diff(data.ssh_keys, keys, "ssh_keys", "ssh_keys");
     diff(data.nameserver, dns, "nameserver", "nameserver"); diff(data.searchdomain, domain, "searchdomain", "searchdomain");
     if (password) body.password = password; else if (dropPassword && data.password_set) clear.push("password");
-    if (upgrade !== (data.upgrade ?? true)) body.upgrade = upgrade;
+    if (dropUpgrade && data.upgrade !== null) clear.push("upgrade"); else if (upgrade !== (data.upgrade ?? true)) body.upgrade = upgrade;
     const cur = data.ipconfig["ipconfig0"];
     if (mode === "unset") { if (cur) clear.push("ipconfig0"); }
     else if (!cur || cur.mode !== mode || (mode === "static" && (cur.ip !== ip || (cur.gateway ?? "") !== gw)))
@@ -113,6 +114,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
         </div>}
         <Field label="Domaine de recherche" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="lab.local" />
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={upgrade} onChange={(e) => setUpgrade(e.target.checked)} /> Mettre à jour les paquets au premier démarrage</label>
+        {data.upgrade !== null && <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={dropUpgrade} onChange={(e) => setDropUpgrade(e.target.checked)} /> Ne plus définir ce réglage (valeur par défaut de Proxmox)</label>}
         {err && <Notice kind="error">{err}</Notice>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button onClick={save} disabled={busy || !ipOk}>{busy ? "…" : "Enregistrer"}</Button>

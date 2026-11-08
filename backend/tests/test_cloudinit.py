@@ -31,6 +31,12 @@ def test_ipconfig_modes():
             ipconfig_value(bad)
 
 
+def test_upgrade_can_be_cleared_and_maps_to_ciupgrade():
+    assert build_params(CloudInitUpdate(clear=["upgrade"])) == ({}, ["ciupgrade"])
+    with pytest.raises(ValueError):
+        build_params(CloudInitUpdate(upgrade=False, clear=["upgrade"]))
+
+
 def test_clear_maps_to_proxmox_keys_and_refuses_clashes():
     assert build_params(CloudInitUpdate(clear=["user", "password", "ssh_keys", "ipconfig0"]))[1] == ["ciuser", "cipassword", "sshkeys", "ipconfig0"]
     with pytest.raises(ValueError):
@@ -42,7 +48,7 @@ def test_clear_maps_to_proxmox_keys_and_refuses_clashes():
     {"ssh_keys": "pas une clé"}, {"ssh_keys": ""}, {"ssh_keys": KEY + "\nssh-rsa court"}, {"ssh_keys": "\n".join([KEY] * 9)},
     {"nameserver": "pas-une-ip"}, {"nameserver": "1.1.1.1;x"}, {"nameserver": "  "}, {"searchdomain": "a b"}, {"searchdomain": "-x"},
     {"ipconfig": {"ipconfig99": {"mode": "dhcp"}}}, {"ipconfig": {"net0": {"mode": "dhcp"}}}, {"ipconfig": {"ipconfig0": {"mode": "evil"}}},
-    {"clear": ["ciuser"]}, {"clear": ["../x"]},
+    {"clear": ["ciuser"]}, {"clear": ["ciupgrade"]}, {"clear": ["../x"]},
 ])
 def test_invalid_updates_rejected(bad):
     with pytest.raises(ValidationError):
@@ -123,6 +129,18 @@ def test_patch_clear_goes_in_one_delete_parameter(api):
     c, cid = api
     c.patch(u(cid), json={"clear": ["user", "password", "ssh_keys"]})
     assert WRITES[0][2] == {"delete": "ciuser,cipassword,sshkeys"}
+
+
+def test_patch_clear_upgrade_deletes_exactly_ciupgrade(api):
+    """`ciupgrade=0` restait après un essai : « upgrade » doit pouvoir être RETIRÉ, pas seulement mis à 0."""
+    c, cid = api
+    assert c.patch(u(cid), json={"clear": ["upgrade"]}).status_code == 200
+    assert WRITES[0][2] == {"delete": "ciupgrade"}
+
+
+def test_patch_upgrade_and_clear_upgrade_together_is_refused(api):
+    c, cid = api
+    assert c.patch(u(cid), json={"upgrade": True, "clear": ["upgrade"]}).status_code == 422 and WRITES == []
 
 
 def test_empty_and_clashing_patches_refused(api):
