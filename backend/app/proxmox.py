@@ -39,6 +39,13 @@ class ProxmoxClient:
         r.raise_for_status()
         return r.json()["data"]
 
+    async def get_envelope(self, path: str, /, **params):
+        """Réponse complète de Proxmox (`data` plus les attributs de l'enveloppe, comme `changes` pour le réseau). Lecture seule."""
+        r = await self._client.get(path, params=params)
+        r.raise_for_status()
+        body = r.json()
+        return body if isinstance(body, dict) else {"data": body}
+
     async def get_with_total(self, path: str, /, **params):
         """Comme `get`, mais renvoie aussi le `total` de l'enveloppe (listes paginées comme le journal système) : `(data, total|None)`."""
         r = await self._client.get(path, params=params)
