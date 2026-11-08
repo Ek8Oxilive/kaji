@@ -12,6 +12,9 @@ SECRET = "s3cr3t-value-xyz"
 CIFS_PWD = "mdp-cifs-très-secret"
 BODY = {"name": "lab", "host": "10.0.0.5", "user": "kaji@pve", "token_id": "kaji", "token_secret": SECRET}
 DIGEST = "921a2c39e40935cc1d681235282a3f4359c66196"
+FP = ":".join(["AB"] * 32)
+PBS_PWD = "mdp-pbs-très-secret"
+ENC_KEY = '{"kdf":null,"data":"cle-chiffrement-secrete-xyz"}'
 CALLS: list[tuple[str, str, dict]] = []
 ST: dict = {}
 
@@ -32,7 +35,11 @@ EXISTING = [
     {"storage": "local", "type": "dir", "path": "/var/lib/vz", "content": "backup,import,vztmpl,iso", "digest": DIGEST},
     {"storage": "local-lvm", "type": "lvmthin", "vgname": "pve", "thinpool": "data", "content": "images,rootdir", "digest": DIGEST},
     {"storage": "nas", "type": "cifs", "server": "10.0.0.9", "share": "bk", "username": "kaji", "content": "backup", "digest": DIGEST},
-    {"storage": "pbs1", "type": "pbs", "server": "10.0.0.7", "datastore": "d", "content": "backup", "digest": DIGEST},
+    {"storage": "pbs1", "type": "pbs", "server": "10.0.0.7", "datastore": "d", "username": "kaji@pbs", "content": "backup", "digest": DIGEST,
+     "encryption-key": "1", "fingerprint": FP, "password": PBS_PWD},
+    {"storage": "pbs0", "type": "pbs", "server": "10.0.0.8", "datastore": "d", "username": "k@pbs", "content": "backup", "digest": DIGEST},
+    {"storage": "pbs00", "type": "pbs", "server": "10.0.0.8", "datastore": "d", "username": "k@pbs", "content": "backup", "digest": DIGEST, "encryption-key": "0"},
+    {"storage": "bt1", "type": "btrfs", "path": "/mnt/bt", "content": "images", "digest": DIGEST},
 ]
 
 
@@ -62,6 +69,8 @@ def _handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(400, json={"data": None, "message": f"{k} doit valoir 0 ou 1"})
     if ST.get("write_fail"):
         return httpx.Response(403, json={"data": None, "message": SECRET})
+    if request.method == "POST" and (body.get("encryption-key") == "autogen" or ST.get("rogue_key")):
+        return httpx.Response(200, json={"data": {"storage": body["storage"], "type": body["type"], "config": {"encryption-key": ST.get("key", ENC_KEY)}}})
     return httpx.Response(200, json={"data": None})
 
 
@@ -96,7 +105,7 @@ def test_list_and_get_are_whitelisted(api):
     by = {x["storage"]: x for x in r.json()}
     assert by["local"]["content"] == ["backup", "import", "vztmpl", "iso"] and by["local"]["path"] == "/var/lib/vz"
     assert by["local"]["digest"] == DIGEST and by["local"]["managed"] is True
-    assert by["pbs1"] == {"storage": "pbs1", "type": "pbs", "managed": False}          # type non géré : rien d'autre n'est exposé
+    assert by["bt1"] == {"storage": "bt1", "type": "btrfs", "managed": False}          # type non géré : rien d'autre n'est exposé
     assert c.get(url(cid, "nas")).json()["secrets_set"] == []
     assert c.get(url(cid, "absent")).status_code == 404
 
@@ -157,7 +166,7 @@ def test_add_refuses_existing_name(api):
     {"type": "cifs", "server": "s"},                                    # partage manquant
     {"type": "lvmthin", "vgname": "pve"},                               # pool thin manquant
     {"type": "rbd", "pool": "p"},                                       # moniteurs manquants
-    {"type": "pbs", "server": "s", "datastore": "d"},                   # type pas encore géré
+    {"type": "pbs", "server": "s", "datastore": "d"},                   # identifiants manquants
     {"type": "dir", "path": "/x", "server": "s"},                       # champ d'un autre type
     {"type": "dir", "path": "/x", "password": "mdp"},
     {"type": "lvm", "vgname": "v", "content": ["iso"]},                 # contenu impossible sur LVM
@@ -256,7 +265,7 @@ def test_edit_cannot_set_and_reset_same_field(api):
 def test_edit_unknown_and_unmanaged(api):
     c, cid = api
     assert c.put(url(cid, "absent"), json={"disable": True}).status_code == 404
-    assert c.put(url(cid, "pbs1"), json={"disable": True}).status_code == 422 and not writes()      # pbs : pas encore géré
+    assert c.put(url(cid, "bt1"), json={"disable": True}).status_code == 422 and not writes()      # btrfs : pas géré
 
 
 # ---------------------------------------------------------------- suppression
@@ -320,3 +329,95 @@ def test_requires_login(client):
     assert client.get("/api/connections/1/storage-config").status_code == 401
     assert client.post("/api/connections/1/storage-config", json={}).status_code == 401
     assert client.delete("/api/connections/1/storage-config/x").status_code == 401
+
+
+# ---------------------------------------------------------------- Proxmox Backup Server
+PBS = {"type": "pbs", "server": "pbs.lan", "datastore": "store1", "username": "kaji@pbs", "password": PBS_PWD}
+
+
+def test_add_pbs_plain(api):
+    c, cid = api
+    r = c.post(url(cid), json={"storage": "pbs2", **PBS, "fingerprint": FP, "port": 8007, "namespace": "prod/vm", "content": ["backup"]})
+    assert r.status_code == 201 and r.json() == {"storage": "pbs2", "type": "pbs"} and "encryption_key" not in r.json()
+    assert writes()[-1][2] == {"storage": "pbs2", "type": "pbs", "server": "pbs.lan", "datastore": "store1", "username": "kaji@pbs",
+                               "password": PBS_PWD, "fingerprint": FP, "port": "8007", "namespace": "prod/vm", "content": "backup"}
+
+
+def test_add_pbs_autogen_returns_key_once_without_logging_it(api):
+    c, cid = api
+    r = c.post(url(cid), json={"storage": "pbs2", **PBS, "encryption_key": "autogen"})
+    assert r.status_code == 201 and r.json()["encryption_key"] == ENC_KEY
+    assert r.headers["cache-control"] == "no-store"
+    assert writes()[-1][2]["encryption-key"] == "autogen"
+    assert "cle-chiffrement-secrete" not in c.get("/api/audit").text and PBS_PWD not in c.get("/api/audit").text
+    again = c.get(url(cid, "pbs1"))
+    assert again.status_code == 200 and again.json()["encrypted"] is True and "cle-chiffrement" not in again.text
+
+
+def test_pbs_encrypted_flag_follows_proxmox(api):
+    c, cid = api
+    assert c.get(url(cid, "pbs1")).json()["encrypted"] is True
+    assert c.get(url(cid, "pbs0")).json()["encrypted"] is False
+    assert c.get(url(cid, "pbs00")).json()["encrypted"] is False
+
+
+@pytest.mark.parametrize("key", ["", "x" * 4001, 12345, ["a"]])
+def test_odd_keys_from_proxmox_are_not_relayed(api, key):
+    c, cid = api
+    ST["key"] = key
+    r = c.post(url(cid), json={"storage": "p", **PBS, "encryption_key": "autogen"})
+    assert r.status_code == 201 and "encryption_key" not in r.json()
+
+
+def test_pbs_get_never_returns_password_nor_key(api):
+    c, cid = api
+    r = c.get(url(cid, "pbs1"))
+    assert PBS_PWD not in r.text and r.json()["secrets_set"] == ["password"] and r.json()["fingerprint"] == FP
+    assert "encryption_key" not in r.json() and "encryption-key" not in r.json()
+
+
+def test_pbs_master_pubkey_needs_encryption(api):
+    c, cid = api
+    assert c.post(url(cid), json={"storage": "p", **PBS, "master_pubkey": "QUJD"}).status_code == 422 and not writes()
+    assert c.post(url(cid), json={"storage": "p", **PBS, "master_pubkey": "QUJD", "encryption_key": "autogen"}).status_code == 201
+    assert writes()[-1][2]["master-pubkey"] == "QUJD"
+
+
+@pytest.mark.parametrize("extra", [
+    {"encryption_key": "ma-cle"}, {"encryption_key": ""}, {"fingerprint": "AB:CD"}, {"fingerprint": FP + ":00"}, {"fingerprint": "ZZ" + FP[2:]},
+    {"datastore": "a b"}, {"datastore": "a"}, {"port": 0}, {"port": 65536}, {"namespace": "a b"}, {"namespace": "a//b"}, {"namespace": "/a"},
+    {"namespace": "/".join(["n"] * 8)}, {"master_pubkey": "a b", "encryption_key": "autogen"}, {"content": ["iso"]}, {"content": ["images"]},
+    {"path": "/x"}, {"monhost": ["h"]},
+])
+def test_pbs_fields_validated(api, extra):
+    c, cid = api
+    assert c.post(url(cid), json={"storage": "p", **{**PBS, **extra}}).status_code == 422 and not writes()
+
+
+@pytest.mark.parametrize("drop", ["server", "datastore", "username", "password"])
+def test_pbs_requires_connection_fields(api, drop):
+    c, cid = api
+    assert c.post(url(cid), json={"storage": "p", **{k: v for k, v in PBS.items() if k != drop}}).status_code == 422 and not writes()
+
+
+def test_pbs_edit_cannot_touch_key_server_or_datastore(api):
+    c, cid = api
+    for b in ({"encryption_key": "autogen"}, {"master_pubkey": "QUJD"}, {"server": "x"}, {"datastore": "autre"}):
+        assert c.put(url(cid, "pbs1"), json=b).status_code == 422
+    assert not writes()
+
+
+def test_pbs_edit_password_fingerprint_and_reset(api):
+    c, cid = api
+    assert c.put(url(cid, "pbs1"), json={"password": "nouveau", "fingerprint": FP, "port": 8008, "reset": ["namespace"]}).status_code == 200
+    assert writes() == [("PUT", "/storage/pbs1", {"password": "nouveau", "fingerprint": FP, "port": "8008", "delete": "namespace"})]
+    assert c.put(url(cid, "pbs1"), json={"reset": ["fingerprint"]}).status_code == 200
+    assert writes()[-1][2] == {"delete": "fingerprint"}
+
+
+def test_key_is_not_forwarded_when_not_requested(api):
+    """Même si Proxmox renvoyait une clé, elle n'est relayée que si l'appelant a demandé « autogen »."""
+    c, cid = api
+    ST["rogue_key"] = True
+    r = c.post(url(cid), json={"storage": "d9", "type": "dir", "path": "/x"})
+    assert r.status_code == 201 and "encryption_key" not in r.json() and "cle-chiffrement" not in r.text

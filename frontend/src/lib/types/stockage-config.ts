@@ -1,6 +1,6 @@
 /** Types de l'ajout / modification / suppression d'un stockage : forme des réponses de `docs/api/stockage-config.md`. */
 
-export type StorageKind = "dir" | "nfs" | "cifs" | "lvm" | "lvmthin" | "zfspool" | "iscsi" | "cephfs" | "rbd";
+export type StorageKind = "dir" | "nfs" | "cifs" | "lvm" | "lvmthin" | "zfspool" | "iscsi" | "cephfs" | "rbd" | "pbs";
 
 /** `GET /api/connections/{id}/storage-config` : une entrée par stockage du datacenter (jamais de secret). */
 export type StorageConfig = {
@@ -15,7 +15,7 @@ export type StorageConfig = {
   [champ: string]: unknown;
 };
 
-export type FieldKind = "text" | "password" | "bool" | "list" | "select";
+export type FieldKind = "text" | "password" | "bool" | "list" | "select" | "number";
 export type FieldDef = { key: string; label: string; kind: FieldKind; create?: boolean; required?: boolean; hint?: string; options?: string[] };
 
 const CONTENT_ALL = ["images", "rootdir", "iso", "vztmpl", "backup", "snippets", "import"];
@@ -68,6 +68,15 @@ export const KINDS: Record<StorageKind, { label: string; contents: string[]; fie
     { key: "subdir", label: "Sous-dossier", kind: "text" },
     { key: "fuse", label: "Monter avec FUSE", kind: "bool" },
     { key: "keyring", label: "Keyring (cluster externe)", kind: "password", hint: "Jamais réaffiché." },
+  ] },
+  pbs: { label: "Proxmox Backup Server", contents: ["backup"], fields: [
+    { key: "server", label: "Serveur", kind: "text", create: true, required: true, hint: "Adresse IP ou nom du PBS" },
+    { key: "port", label: "Port", kind: "number", hint: "8007 par défaut" },
+    { key: "datastore", label: "Datastore", kind: "text", create: true, required: true },
+    { key: "username", label: "Utilisateur ou jeton d'API", kind: "text", required: true, hint: "Ex. kaji@pbs ou kaji@pbs!jeton" },
+    { key: "password", label: "Mot de passe ou secret du jeton", kind: "password", required: true, hint: "Jamais réaffiché. Laisser vide pour ne pas le changer." },
+    { key: "fingerprint", label: "Empreinte du certificat (SHA-256)", kind: "text", hint: "Obligatoire si le certificat du PBS est auto-signé" },
+    { key: "namespace", label: "Espace de noms", kind: "text", hint: "Ex. prod ou prod/vm" },
   ] },
   rbd: { label: "Ceph RBD", contents: ["images", "rootdir"], fields: [
     { key: "pool", label: "Pool", kind: "text", create: true, required: true },

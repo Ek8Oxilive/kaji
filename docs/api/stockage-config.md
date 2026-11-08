@@ -25,11 +25,20 @@ Un champ qui ne concerne pas le type, ou qui n'est pas modifiable, est refusé (
 | `zfspool` | `pool` | `blocksize`, `sparse`, `mountpoint` |
 | `iscsi` | `portal`, `target` | |
 | `cephfs` | (`monhost` obligatoire) | `monhost`, `username`, `fs_name`, `subdir`, `fuse`, `keyring`* |
+| `pbs` | `server`, `datastore`, `encryption_key` (`"autogen"`), `master_pubkey` | `username`, `password`*, `fingerprint`, `namespace`, `port` |
 | `rbd` | `pool` | `monhost`, `username`, `krbd`, `keyring`*, `namespace` |
 
 \* secret : jamais renvoyé ; `GET` indique seulement `secrets_set`. `reset` accepte : `nodes`, `options`, `prune_backups`, `domain`, `subdir`, `max_protected_backups`, `namespace`.
 
-Le type `pbs` est traité dans un lot à part (sa clé de chiffrement n'est affichée qu'une fois par Proxmox).
+## Proxmox Backup Server (`pbs`)
+- À la création : `server`, `datastore`, `username` (ou jeton `user@realm!jeton`) et `password` sont obligatoires ; `content` ne peut être que `backup`.
+- **Chiffrement** : `encryption_key: "autogen"` fait générer une clé par Proxmox. Elle est renvoyée **une seule fois**, dans la réponse du `POST`
+  (`encryption_key`, en-tête `Cache-Control: no-store`) ; Kaji ne la journalise pas et ne peut plus la relire (`GET` donne seulement `encrypted: true`).
+  Sans cette clé, les sauvegardes chiffrées sont irrécupérables. Elle n'est **pas modifiable** après la création (la changer rendrait les anciennes sauvegardes illisibles).
+  `master_pubkey` (clé RSA publique, base64) exige le chiffrement. Une clé fournie par l'appelant n'est pas acceptée : seulement `autogen`.
+- `fingerprint` : SHA-256 du certificat (`AB:CD:…`, 32 octets), obligatoire en pratique si le PBS a un certificat auto-signé. `namespace` : jusqu'à 7 niveaux (`prod/vm`).
+- Lecture des sauvegardes d'un stockage PBS (`GET …/storage/{storage}/content`) : chaque volume porte `verification` (`ok`, `failed`, `none` ou `null`) et `encrypted`.
+  Les tâches de vérification elles-mêmes se planifient sur le PBS, pas dans Proxmox VE : Kaji n'en crée pas.
 
 ## Garde-fous
 - Chaque champ a sa regex (`fullmatch`) : pas d'espace, de `..`, de `//` ni de saut de ligne dans un chemin ; `nodes` et `monhost` validés élément par élément.
