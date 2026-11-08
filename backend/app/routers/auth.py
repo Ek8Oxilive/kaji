@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from .. import audit
+from ..adminsession import sessions as admin_sessions
 from ..config import get_settings
 from ..db import get_db
 from ..models import AdminUser, UserSession
@@ -127,6 +128,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """Révoque la session courante côté serveur : un jeton copié ne sert plus à rien après la déconnexion."""
     found = _session_of(request, db)
     if found:
+        admin_sessions.close(found[1].id)               # la session administrateur disparaît avec la session de connexion
         db.delete(found[1])
         db.commit()
     response.delete_cookie(COOKIE, path="/")
@@ -135,6 +137,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
 @router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
 def logout_all(response: Response, user: AdminUser = Depends(current_user), db: Session = Depends(get_db)):
     """Révoque toutes les sessions du compte, y compris la courante."""
+    admin_sessions.close_owner(user.id)
     db.execute(delete(UserSession).where(UserSession.user_id == user.id))
     db.commit()
     audit.record(db, username=user.username, connection_id=None, action="logout-all", target="admin", status="started")
@@ -157,6 +160,7 @@ def change_password(body: PasswordChange, request: Request, response: Response,
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Le nouveau mot de passe doit être différent de l'actuel")
     throttle.reset(key)
     user.password_hash = hash_password(body.new_password)
+    admin_sessions.close_owner(user.id)
     db.execute(delete(UserSession).where(UserSession.user_id == user.id))
     db.commit()
     _start_session(db, response, user.id)

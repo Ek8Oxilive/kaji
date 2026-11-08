@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { AdminSessionPanel } from "../components/AdminSessionPanel";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -91,7 +92,9 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
         </Button>
       </header>
 
-      <Notice kind="ok">Lecture seule : cette page n'écrit rien dans Proxmox. Les droits se gèrent dans l'interface de Proxmox.</Notice>
+      <Notice kind="ok">Lecture seule : cette page n'écrit encore aucun droit dans Proxmox. La session administrateur ci-dessous est le socle des prochaines écritures ; en attendant, les droits se gèrent dans l'interface de Proxmox.</Notice>
+
+      <AdminSessionPanel connId={id} />
 
       <Block<Feature[]> title="Droits de Kaji" q={features}
         count={(d) => d.length}
