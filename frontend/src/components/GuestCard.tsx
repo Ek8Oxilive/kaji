@@ -9,8 +9,10 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
-  const dot = busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
-  const text = busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
+  // Juste après un clonage ou une création, Proxmox met sa liste à jour avec retard : nom absent et état inconnu pendant quelques secondes.
+  const creating = !guest.template && guest.name === null && (status === null || status === "unknown");
+  const dot = creating ? "bg-muted animate-pulse" : busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
+  const text = creating ? "Création en cours" : busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
   const off = !!busyLabel;
   return (
     // Un clic n'importe où sur la carte (hors boutons et liens) ouvre la page de la machine ; le nom est un vrai lien, pour le clavier.
@@ -18,7 +20,7 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
       onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) onOpen(); }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold"><a href={guestHash(guest)} className="hover:underline focus-visible:underline">{guest.name ?? `#${guest.vmid}`}</a></h3>
+          <h3 className="truncate font-semibold"><a href={guestHash(guest)} className="hover:underline focus-visible:underline">{guest.name ?? `#${guest.vmid}`}</a>{creating && <span className="ml-2 text-xs font-normal italic text-muted">(création en cours)</span>}</h3>
           <p className="text-xs text-muted">#{guest.vmid} · {guest.node}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -35,9 +37,9 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
       </div>
 
       <div className="mt-auto space-y-3">
-        <p className="text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
+        <p className="text-xs text-muted">{creating ? "Proxmox n'a pas encore actualisé cette machine." : running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
         <div className="flex flex-wrap gap-1.5">
-          <Button variant="ghost" onClick={onClone} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
+          <Button variant="ghost" onClick={onClone} disabled={creating} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
             {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
             {running && <>
