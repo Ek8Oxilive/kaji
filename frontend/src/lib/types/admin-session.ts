@@ -15,3 +15,17 @@ export type AdminSessionState =
 
 export const SESSION_MINUTES = 30;
 export const MAX_HOURS = 4;
+
+/** `POST …/access/acl/preview` : ce que ferait l'écriture d'une entrée d'ACL (n'écrit rien). */
+export type AclPreview = {
+  allowed: boolean;
+  reason: string | null;
+  entry_exists: boolean;
+  would_change: boolean;
+  existing_entries: { path: string; type: string | null; ugid: string; roleid: string; propagate: boolean }[];
+  role_privs: string[] | null;
+  effective_before: string[] | null;
+  estimate_after: string[] | null;
+  note: string;
+};
+export type AclChange = { action: "add" | "remove"; path: string; kind: "user" | "group" | "token"; ugid: string; role: string; propagate: boolean };

@@ -2,6 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { MAX_HOURS, SESSION_MINUTES, type AdminSessionState } from "../lib/types/admin-session";
+import { AclWriteDialog } from "./AclWriteDialog";
+import { UserWriteDialog } from "./UserWriteDialog";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
@@ -49,6 +51,8 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
   const key = ["admin-session", connId];
   const q = useQuery({ queryKey: key, queryFn: () => api<AdminSessionState>(`/api/connections/${connId}/admin-session`), refetchInterval: 30_000 });
   const [open, setOpen] = useState(false);
+  const [acl, setAcl] = useState(false);
+  const [usr, setUsr] = useState(false);
   const [left, setLeft] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -82,6 +86,8 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
         </div>
         <div className="flex gap-2">
           {active ? <>
+            <Button disabled={busy} onClick={() => setAcl(true)} className="!px-3 !py-1.5">Modifier une ACL…</Button>
+            <Button disabled={busy} onClick={() => setUsr(true)} className="!px-3 !py-1.5">Utilisateurs et groupes…</Button>
             <Button variant="ghost" disabled={busy} onClick={() => act("POST", "/renew")} className="!px-3 !py-1.5">Prolonger de {SESSION_MINUTES} min</Button>
             <Button variant="danger" disabled={busy} onClick={() => act("DELETE", "")} className="!px-3 !py-1.5">Fermer</Button>
           </> : <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">Ouvrir une session</Button>}
@@ -89,6 +95,8 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
       </div>
       {active && s && s.active && s.renewals > 0 && <p className="text-xs text-muted">{s.renewals} prolongation(s) ; âge maximal {MAX_HOURS} h.</p>}
       {err && <Notice kind="error">{err}</Notice>}
+      {usr && active && <UserWriteDialog connId={connId} onClose={() => setUsr(false)} />}
+      {acl && active && <AclWriteDialog connId={connId} onClose={() => setAcl(false)} />}
       {open && <OpenDialog connId={connId} onClose={() => setOpen(false)} onOpened={() => { setOpen(false); qc.invalidateQueries({ queryKey: key }); }} />}
     </section>
   );

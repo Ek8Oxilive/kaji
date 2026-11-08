@@ -32,7 +32,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
 | Réplication (jobs ZFS) | ⬜ | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
-| Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (socle livré : session administrateur temporaire ; aucune écriture de droits encore) | M6 |
+| Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes et appartenances livrés, non validés en réel ; tokens API : ⬜) | M6 |
 | HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | ⬜ | M7 |
