@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
+import { FwObjectsDialog } from "../components/FwObjectsDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -53,6 +54,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
   const { active, id } = useActiveConnection();
   const nodes = useQuery({ queryKey: ["nodes", id], queryFn: () => api<{ node: string }[]>(`/api/connections/${id}/nodes`), enabled: id !== null });
   const [node, setNode] = useState("");
+  const [objects, setObjects] = useState(false);
   useEffect(() => { if (!node && nodes.data?.length) setNode(nodes.data[0].node); }, [nodes.data, node]);
   const net = useQuery({ queryKey: ["network", id, node], queryFn: () => api<NetworkInfo>(`/api/connections/${id}/nodes/${encodeURIComponent(node)}/network`), enabled: id !== null && !!node, staleTime: 15_000 });
   const dc = useQuery({ queryKey: ["fw-cluster", id], queryFn: () => api<FwCluster>(`/api/connections/${id}/firewall/cluster`), enabled: id !== null, staleTime: 15_000 });
@@ -71,7 +73,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
         {nodes.data && nodes.data.length > 1 && (
           <select aria-label="Nœud" className="field !w-auto !py-1.5 text-sm" value={node} onChange={(e) => setNode(e.target.value)}>{nodes.data.map((n) => <option key={n.node}>{n.node}</option>)}</select>)}
       </header>
-      <Notice kind="ok">Lecture seule. Une erreur de réseau ou de pare-feu peut couper l'accès à tout le cluster : les écritures ne seront proposées qu'après validation sur un banc d'essai (voir la documentation).</Notice>
+      <Notice kind="ok">Une erreur de réseau ou de pare-feu peut couper l'accès à tout le cluster. Les interfaces sont en lecture seule ; les alias, IPSets et groupes se modifient, avec un verrou explicite pour tout objet utilisé par un pare-feu actif.</Notice>
 
       <Section title={`Interfaces de ${node || "…"}`}>
         {net.isLoading ? <div className="panel h-24 animate-pulse" /> : net.error ? <Notice kind="error">{(net.error as Error).message}</Notice> : net.data && <>
@@ -81,6 +83,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
       </Section>
 
       <Section title="Pare-feu du datacenter" hint="Un pare-feu non activé ne filtre rien, même s'il a des règles.">
+        <div><Button variant="ghost" onClick={() => setObjects(true)} className="!px-3 !py-1.5">Alias, IPSets et groupes…</Button></div>
         {dc.isLoading ? <div className="panel h-24 animate-pulse" /> : dc.error ? <Notice kind="error">{(dc.error as Error).message}</Notice> : dc.data && <>
           <Options o={dc.data.options} /><Rules rules={dc.data.rules} />
           <h3 className="text-sm font-semibold">Alias</h3>
@@ -89,6 +92,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
         </>}
       </Section>
 
+      {objects && id !== null && <FwObjectsDialog connId={id} onClose={() => setObjects(false)} />}
       <Section title={`Pare-feu de ${node || "…"}`}>
         {fn.isLoading ? <div className="panel h-24 animate-pulse" /> : fn.error ? <Notice kind="error">{(fn.error as Error).message}</Notice> : fn.data && <><Options o={fn.data.options} /><Rules rules={fn.data.rules} /></>}
       </Section>
