@@ -119,8 +119,6 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/components/BackupsTab.tsx` — Onglet « Sauvegardes » de la page Machine : lecture seule. Ch…
 - `frontend/src/components/CephPoolDialog.tsx` — Bandeau affiché au-dessus de toute action d'écriture Ceph : l…
 - `frontend/src/components/CephWriteDialog.tsx` — Ce que la fenêtre fait. `nodes` : liste de nœuds à choisir (c…
-- `frontend/src/components/charts/MetricsPanels.tsx` — Sélecteur de période : une seule rangée au-dessus des graphiq…
-- `frontend/src/components/charts/TimeChart.tsx` — Une courbe. `slot` : emplacement de couleur (1 bleu, 2 orange…
 - `frontend/src/components/CloneDialog.tsx` — 
 - `frontend/src/components/CloudInitTab.tsx` — 
 - `frontend/src/components/CommandPalette.tsx` — Tous les mots saisis doivent apparaître (sans tenir compte de…
@@ -157,9 +155,11 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/components/TaskDrawer.tsx` — Couleur ET mot : l'état ne repose jamais sur la couleur seule
 - `frontend/src/components/ThemeSwitcher.tsx` — 
 - `frontend/src/components/Toast.tsx` — 
-- `frontend/src/components/ui.tsx` — 
 - `frontend/src/components/UserWriteDialog.tsx` — Écrire des utilisateurs (realm pve), des groupes et des appar…
 - `frontend/src/components/VolumeDialogs.tsx` — Types de fichier que le serveur accepte de supprimer ici (les…
+- `frontend/src/components/charts/MetricsPanels.tsx` — Sélecteur de période : une seule rangée au-dessus des graphiq…
+- `frontend/src/components/charts/TimeChart.tsx` — Une courbe. `slot` : emplacement de couleur (1 bleu, 2 orange…
+- `frontend/src/components/ui.tsx` — 
 
 ## Frontend : lib
 - `frontend/src/lib/api.ts` — 
@@ -189,11 +189,12 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/lib/useCluster.ts` — Données du cluster. Le flux temps réel (SSE) alimente le cach…
 
 ## Documentation
+- `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
 - `docs/deploiement.md` — Déploiement avec Docker
 - `docs/m12-ceph.md` — M12 : cadrage de Ceph
 - `docs/m6-ecriture.md` — M6 : cadrage de l'écriture (utilisateurs, rôles, droits, toke…
 - `docs/parite-proxmox.md` — Parité avec l'interface de Proxmox
-- `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
+- `docs/api/README.md` — Documentation d'API par fonction
 - `docs/api/acces.md` — Accès : droits de Kaji, utilisateurs, rôles, ACL (lecture seu…
 - `docs/api/acl-ecriture.md` — Écrire une entrée d'ACL (ajouter, retirer)
 - `docs/api/admin-session.md` — Session administrateur (socle de l'écriture des droits)
@@ -204,7 +205,6 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/mesures.md` — Historique des mesures (graphiques)
 - `docs/api/notes.md` — Notes des machines et des nœuds (M13)
 - `docs/api/options.md` — Options d'une VM (onglet « Options » de Proxmox)
-- `docs/api/README.md` — Documentation d'API par fonction
 - `docs/api/sauvegardes-planifiees.md` — Sauvegardes planifiées (jobs)
 - `docs/api/sauvegardes.md` — Sauvegardes (lister, lancer, supprimer)
 - `docs/api/stockage-config.md` — Configuration des stockages (ajouter, modifier, retirer)
