@@ -35,7 +35,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
 | HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
-| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | ⬜ | M7 |
+| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture seule validée en réel, pare-feu vide sur le cluster ; écriture : ⬜, banc d'essai requis) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
 | Notifications : cibles et règles | ⬜ | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | ⬜ | M7 |
@@ -49,7 +49,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | ✅ (jauges et historique heure à année) | M13 |
 | Notes du nœud | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
-| Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des bridges) | M7 |
+| Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des interfaces et des modifications en attente validée en réel ; écriture : ⬜, banc d'essai requis) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME : voir plus haut) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (codé, jamais exécuté en réel ; synchronisation NTP ⬜) | M11 |
 | Mises à jour (apt) et dépôts | 🟡 (liste, actualiser, dépôts : activer / désactiver / ajouter un standard, codés et jamais exécutés en réel ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation ; dépôt personnalisé ⬜) | M11 |
@@ -58,7 +58,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
 | Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer et supprimer (volume vide) LVM / LVM-thin / répertoire / ZFS, codés et jamais exécutés en réel) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
-| Pare-feu du nœud | ⬜ | M7 |
+| Pare-feu du nœud | 🟡 (lecture seule) | M7 |
 | Réplication du nœud | ⬜ | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
@@ -82,7 +82,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |
-| Pare-feu de la machine (règles, options, IPSet) | ⬜ | M7 |
+| Pare-feu de la machine (règles, options, IPSet) | 🟡 (lecture seule : règles et options) | M7 |
 | Permissions de la machine | ⬜ | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
