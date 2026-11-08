@@ -29,4 +29,6 @@ export type StorageVolume = {
   vmid: number | null;
   notes: string | null;
   protected: boolean;
+  verification: "ok" | "failed" | "none" | null;   // PBS : dernière vérification
+  encrypted: boolean;                              // PBS : sauvegarde chiffrée
 };

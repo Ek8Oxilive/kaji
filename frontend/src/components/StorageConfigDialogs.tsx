@@ -3,7 +3,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { CONTENT_LABEL, KINDS, type FieldDef, type StorageConfig, type StorageKind } from "../lib/types/stockage-config";
 import { Modal } from "./Modal";
-import { Notice } from "./ui";
+import { Button, Notice } from "./ui";
 
 type Values = Record<string, string | boolean>;
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
@@ -30,7 +30,7 @@ function Inputs({ kind, editing, values, set }: { kind: StorageKind; editing: bo
         <span className="text-muted">{f.label}{f.required && !editing ? " *" : ""}{locked ? " (non modifiable)" : ""}</span>
         {f.kind === "select"
           ? <select className="field" value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)}><option value="">(par défaut)</option>{f.options!.map((o) => <option key={o}>{o}</option>)}</select>
-          : <input className="field" type={f.kind === "password" ? "password" : "text"} autoComplete="off" disabled={locked}
+          : <input className="field" type={f.kind === "password" ? "password" : f.kind === "number" ? "number" : "text"} min={f.kind === "number" ? 1 : undefined} max={f.kind === "number" ? 65535 : undefined} autoComplete="off" disabled={locked}
               value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)} />}
         {f.hint && <span className="block text-xs text-muted">{f.hint}</span>}
       </label>
@@ -76,8 +76,10 @@ export function AddStorageDialog({ connId, onClose }: { connId: number; onClose:
   const [st, setSt] = useState(() => initial("dir"));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [encrypt, setEncrypt] = useState(false);
+  const [issuedKey, setIssuedKey] = useState<string | null>(null);
   const done = useDone(connId, onClose);
-  const pick = (k: StorageKind) => { setKind(k); setSt(initial(k)); setErr(null); };
+  const pick = (k: StorageKind) => { setKind(k); setSt(initial(k)); setErr(null); setEncrypt(false); };
   const set = (k: string, v: string | boolean) => setSt((s) => ({ ...s, values: { ...s.values, [k]: v } }));
   const missing = KINDS[kind].fields.some((f) => f.required && !String(st.values[f.key]).trim());
   const ok = NAME.test(name) && !missing && st.content.length > 0;
@@ -88,14 +90,18 @@ export function AddStorageDialog({ connId, onClose }: { connId: number; onClose:
     for (const f of KINDS[kind].fields) {
       const v = st.values[f.key];
       if (f.kind === "bool") { if (v === true) body[f.key] = true; }
-      else if (String(v).trim()) body[f.key] = f.kind === "list" ? csv(String(v)) : String(v).trim();
+      else if (String(v).trim()) body[f.key] = f.kind === "list" ? csv(String(v)) : f.kind === "number" ? Number(v) : String(v).trim();
     }
     if (csv(st.nodes).length) body.nodes = csv(st.nodes);
     if (st.disable) body.disable = true;
-    try { await api(base(connId), { method: "POST", body }); done(); }
-    catch (e) { setErr((e as Error).message); setBusy(false); }
+    if (kind === "pbs" && encrypt) body.encryption_key = "autogen";
+    try {
+      const r = await api<{ encryption_key?: string }>(base(connId), { method: "POST", body });
+      if (r.encryption_key) { setIssuedKey(r.encryption_key); setBusy(false); } else done();
+    } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
 
+  if (issuedKey) return <KeyDialog storage={name} secret={issuedKey} onDone={done} />;
   return (
     <Modal title="Ajouter un stockage" subtitle="Ajoute le stockage à la configuration du cluster ; aucune donnée existante n'est touchée."
       onClose={onClose} onSubmit={submit} submitLabel="Ajouter" busy={busy} error={err} canSubmit={ok}>
@@ -106,9 +112,34 @@ export function AddStorageDialog({ connId, onClose }: { connId: number; onClose:
         <input className="field" value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
         <span className="block text-xs text-muted">Lettres, chiffres, - et _ (40 caractères au plus).</span></label>
       <Inputs kind={kind} editing={false} values={st.values} set={set} />
+      {kind === "pbs" && (
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={encrypt} onChange={(e) => setEncrypt(e.target.checked)} />
+          <span>Chiffrer les sauvegardes (Proxmox génère une clé, affichée une seule fois)</span></label>
+      )}
       <Common kind={kind} content={st.content} setContent={(content) => setSt((s) => ({ ...s, content }))} nodes={st.nodes}
         setNodes={(nodes) => setSt((s) => ({ ...s, nodes }))} disable={st.disable} setDisable={(disable) => setSt((s) => ({ ...s, disable }))} />
     </Modal>
+  );
+}
+
+/** Clé de chiffrement PBS : affichée UNE seule fois. Sans elle, les sauvegardes chiffrées sont perdues. On ne ferme qu'après confirmation. */
+function KeyDialog({ storage, secret, onDone }: { storage: string; secret: string; onDone: () => void }) {
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => { try { await navigator.clipboard.writeText(secret); setCopied(true); } catch { /* le texte reste sélectionnable */ } };
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
+      <div role="dialog" aria-modal="true" aria-label="Clé de chiffrement" className="panel rise w-full max-w-lg space-y-4 p-6">
+        <h2 className="text-lg font-semibold">Clé de chiffrement de {storage}</h2>
+        <Notice kind="error">Garde cette clé en lieu sûr (gestionnaire de mots de passe). Elle ne sera <b>plus jamais affichée</b> : sans elle, les sauvegardes chiffrées de ce stockage sont irrécupérables.</Notice>
+        <textarea readOnly rows={4} value={secret} onFocus={(e) => e.currentTarget.select()} className="field font-mono text-xs" aria-label="Clé de chiffrement" />
+        <div className="flex items-center justify-between gap-3">
+          <Button type="button" variant="ghost" onClick={copy}>{copied ? "Copiée" : "Copier"}</Button>
+          <label className="flex gap-2 text-sm"><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /><span>J'ai conservé la clé</span></label>
+        </div>
+        <div className="flex justify-end"><Button type="button" onClick={onDone} disabled={!saved}>Terminer</Button></div>
+      </div>
+    </div>
   );
 }
 
@@ -130,8 +161,8 @@ export function EditStorageDialog({ connId, cfg, onClose }: { connId: number; cf
       if (f.kind === "password") { if (String(v)) body[f.key] = String(v); continue; }
       if (v === orig.values[f.key]) continue;
       if (f.kind === "bool") body[f.key] = v === true;
-      else if (!String(v).trim()) { if (["options", "domain", "subdir", "namespace"].includes(f.key)) reset.push(f.key); }
-      else body[f.key] = f.kind === "list" ? csv(String(v)) : String(v).trim();
+      else if (!String(v).trim()) { if (["options", "domain", "subdir", "namespace", "fingerprint"].includes(f.key)) reset.push(f.key); }
+      else body[f.key] = f.kind === "list" ? csv(String(v)) : f.kind === "number" ? Number(v) : String(v).trim();
     }
     if (st.content.join() !== orig.content.join()) body.content = st.content;
     if (st.nodes !== orig.nodes) { if (csv(st.nodes).length) body.nodes = csv(st.nodes); else reset.push("nodes"); }

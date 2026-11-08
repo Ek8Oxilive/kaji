@@ -5,7 +5,9 @@ Principe : une table par type de stockage (`TYPES`) liste les champs acceptés, 
 - champs **modifiables**.
 Un champ qui ne concerne pas le type, ou qui n'est pas modifiable, est **refusé** (422) au lieu d'être ignoré en silence.
 Les secrets (mot de passe CIFS, keyring Ceph) ne sont jamais renvoyés ni journalisés : l'audit dit seulement « défini ».
-Le type `pbs` est volontairement absent (lot suivant : sa clé de chiffrement est affichée une seule fois par Proxmox).
+Type `pbs` (Proxmox Backup Server) : la clé de chiffrement n'est demandée qu'à la création (`encryption_key: "autogen"`), Proxmox la renvoie
+**une seule fois** ; Kaji la transmet telle quelle à l'appelant, ne la journalise pas et ne peut plus la relire. Elle n'est jamais modifiable ensuite
+(la changer rendrait les anciennes sauvegardes chiffrées illisibles).
 """
 import re
 from typing import Literal
@@ -25,6 +27,10 @@ WORD = re.compile(r"[A-Za-z0-9._\-]{1,64}")
 IQN = re.compile(r"[A-Za-z0-9.:_\-]{1,223}")
 MOUNT_OPTS = re.compile(r"[A-Za-z0-9=,._\-]{1,200}")
 DIGEST = re.compile(r"[0-9a-f]{40}")
+FINGERPRINT = re.compile(r"([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}")
+DATASTORE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._\-]{1,63}")
+PBS_NS = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._\-]{0,30}(/[A-Za-z0-9_][A-Za-z0-9._\-]{0,30}){0,6}")
+PUBKEY = re.compile(r"[A-Za-z0-9+/=\r\n]{1,2000}")
 KEYRING_CHARS = re.compile(r"[A-Za-z0-9+/=\[\]._\- \r\n]{1,2000}")
 
 Content = Literal["images", "rootdir", "iso", "vztmpl", "backup", "snippets", "import"]
@@ -39,6 +45,7 @@ CONTENTS: dict[str, tuple[str, ...]] = {
     "zfspool": ("images", "rootdir"),
     "rbd": ("images", "rootdir"),
     "iscsi": ("images",),
+    "pbs": ("backup",),
 }
 
 # type -> (champs de création seulement, champs modifiables)
@@ -56,15 +63,18 @@ TYPES: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "iscsi": (frozenset({"portal", "target"}), frozenset({"content", "nodes", "disable"})),
     "cephfs": (frozenset(), frozenset({"content", "nodes", "disable", "monhost", "username", "fs_name", "subdir", "fuse", "keyring",
                                        "prune_backups", "max_protected_backups"})),
+    "pbs": (frozenset({"server", "datastore", "encryption_key", "master_pubkey"}),
+            frozenset({"content", "nodes", "disable", "username", "password", "fingerprint", "namespace", "port", "prune_backups",
+                       "max_protected_backups"})),
     "rbd": (frozenset({"pool"}), frozenset({"content", "nodes", "disable", "monhost", "username", "krbd", "keyring", "namespace"})),
 }
-StorageType = Literal["dir", "nfs", "cifs", "lvm", "lvmthin", "zfspool", "iscsi", "cephfs", "rbd"]
+StorageType = Literal["dir", "nfs", "cifs", "lvm", "lvmthin", "zfspool", "iscsi", "cephfs", "rbd", "pbs"]
 # Réglages qu'on peut retirer d'un stockage (« delete » de Proxmox) ; seulement ceux du type.
-RESETTABLE = frozenset({"nodes", "options", "prune_backups", "domain", "subdir", "max_protected_backups", "namespace"})
+RESETTABLE = frozenset({"nodes", "options", "prune_backups", "domain", "subdir", "max_protected_backups", "namespace", "fingerprint"})
 SECRETS = frozenset({"password", "keyring"})
 # Nom Python -> nom du paramètre Proxmox.
 WIRE = {"create_base_path": "create-base-path", "prune_backups": "prune-backups", "max_protected_backups": "max-protected-backups",
-        "fs_name": "fs-name"}
+        "fs_name": "fs-name", "encryption_key": "encryption-key", "master_pubkey": "master-pubkey"}
 BOOLS = frozenset({"disable", "shared", "saferemove", "sparse", "fuse", "krbd", "create_base_path"})
 PRUNE_KEYS = ("keep_last", "keep_hourly", "keep_daily", "keep_weekly", "keep_monthly", "keep_yearly")
 
@@ -137,6 +147,11 @@ class StorageFields(BaseModel):
     keyring: SecretStr | None = Field(default=None, max_length=2000)
     krbd: bool | None = None
     namespace: str | None = None
+    datastore: str | None = None
+    fingerprint: str | None = None
+    port: int | None = Field(default=None, ge=1, le=65535)
+    encryption_key: Literal["autogen"] | None = None
+    master_pubkey: str | None = Field(default=None, max_length=2000)
 
     @field_validator("nodes")
     @classmethod
@@ -164,6 +179,7 @@ FIELD_RULES: dict[str, tuple[re.Pattern, str]] = {
     "username": (USER, "Utilisateur"), "domain": (WORD, "Domaine"), "vgname": (LVNAME, "Groupe de volumes"),
     "thinpool": (LVNAME, "Pool thin"), "pool": (ZPOOL, "Pool"), "portal": (HOST, "Portail"), "target": (IQN, "Cible iSCSI"),
     "fs_name": (WORD, "Système de fichiers Ceph"), "namespace": (WORD, "Espace de noms"),
+    "datastore": (DATASTORE, "Datastore"), "fingerprint": (FINGERPRINT, "Empreinte du certificat"), "master_pubkey": (PUBKEY, "Clé maîtresse publique"),
 }
 
 
@@ -183,7 +199,9 @@ def check(stype: str, body: StorageFields, *, creating: bool, sent: set[str]) ->
         v = getattr(body, f)
         if v is None:
             raise ValueError(f"Champ « {f} » vide")
-        if f in FIELD_RULES:
+        if f == "namespace" and stype == "pbs":
+            _match(PBS_NS, v, "Espace de noms")
+        elif f in FIELD_RULES:
             _match(FIELD_RULES[f][0], v, FIELD_RULES[f][1])
         if f == "content":
             bad = [c for c in v if c not in CONTENTS[stype]]
@@ -213,10 +231,12 @@ def check(stype: str, body: StorageFields, *, creating: bool, sent: set[str]) ->
     if creating:
         need = {"dir": ("path",), "nfs": ("server", "export"), "cifs": ("server", "share"), "lvm": ("vgname",),
                 "lvmthin": ("vgname", "thinpool"), "zfspool": ("pool",), "iscsi": ("portal", "target"),
-                "cephfs": ("monhost",), "rbd": ("pool", "monhost")}[stype]
+                "cephfs": ("monhost",), "rbd": ("pool", "monhost"), "pbs": ("server", "datastore", "username", "password")}[stype]
         missing = [n for n in need if n not in sent]
         if missing:
             raise ValueError("Champs obligatoires manquants : " + ", ".join(missing))
+        if "master_pubkey" in sent and "encryption_key" not in sent:
+            raise ValueError("La clé maîtresse exige le chiffrement (encryption_key)")
     return out
 
 
@@ -245,7 +265,7 @@ def shape_config(raw) -> dict | None:
     create_only, editable = TYPES[stype]
     out: dict = {"storage": raw["storage"], "type": stype, "managed": True,
                  "digest": raw["digest"] if isinstance(raw.get("digest"), str) and DIGEST.fullmatch(raw["digest"]) else None}
-    for f in sorted((create_only | editable) - SECRETS):
+    for f in sorted((create_only | editable) - SECRETS - {"encryption_key"}):
         v = raw.get(WIRE.get(f, f))
         if v is None:
             continue
@@ -258,4 +278,6 @@ def shape_config(raw) -> dict | None:
         elif isinstance(v, str):
             out[f] = v[:300]
     out["secrets_set"] = [s for s in sorted(SECRETS & (create_only | editable)) if raw.get(s) not in (None, "")]
+    if stype == "pbs":
+        out["encrypted"] = raw.get("encryption-key") not in (None, "", 0, "0", False)          # jamais la clé elle-même
     return out

@@ -94,9 +94,15 @@ async def add_storage(body: StorageCreate, conn_id: int, db: Session = Depends(g
     rows = await c.px("get", "/storage")
     if any(isinstance(r, dict) and r.get("storage") == body.storage for r in (rows if isinstance(rows, list) else [])):
         c.refuse("Un stockage porte déjà ce nom", 409)
-    await c.px("post", "/storage", storage=body.storage, type=body.type, **params)
+    created = await c.px("post", "/storage", storage=body.storage, type=body.type, **params)
     c.log("started", f"{body.type}: {_detail(params)}")
-    return {"storage": body.storage, "type": body.type}
+    out = {"storage": body.storage, "type": body.type}
+    # Clé de chiffrement générée par Proxmox (PBS) : renvoyée UNE fois à l'appelant, jamais journalisée, jamais mise en cache.
+    cfg = created.get("config") if isinstance(created, dict) else None
+    key = cfg.get("encryption-key") if isinstance(cfg, dict) else None
+    if isinstance(key, str) and 0 < len(key) <= 4000 and "encryption-key" in params:
+        out["encryption_key"] = key             # « Cache-Control: no-store » est déjà posé sur toutes les réponses (main.py)
+    return out
 
 
 @router.put("/{storage}")

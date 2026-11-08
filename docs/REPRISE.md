@@ -14,9 +14,9 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
 ## État (mis à jour à chaque fin de session)
 - **Fait** : M0 à M4, M5 lecture, M6 lecture, M9 consoles, M11 complet (système des nœuds, sauf firmware : pas d'API), M12 Ceph lecture + écriture C2/C3/init (PC B, rien validé : pas de Ceph), M13 tâches, graphiques, étiquettes, notes, vues.
 - **Déployé** : CT 116, `http://192.168.1.214:8080` (VPN), dossier `~/kaji`, `git pull && docker compose up -d --build`. Je n'y ai pas accès : Enzo lance les commandes.
-- **M5 fait** : lecture, sauvegardes, ajouter/modifier/retirer un stockage (PR #133, `/storage-config`), téléverser/télécharger ISO et modèles (lot 2, `docs/api/telechargement.md`). **Reste M5** : PBS (stockage, chiffrement, vérification), volumes (supprimer, prune, protéger une sauvegarde).
+- **M5 fait** : lecture, sauvegardes, ajouter/modifier/retirer un stockage (PR #133, `/storage-config`), téléverser/télécharger ISO et modèles (lot 2, `docs/api/telechargement.md`), PBS (lot 3 : stockage, clé de chiffrement affichée une fois, état de vérification des sauvegardes). **Reste M5** : volumes (supprimer, prune, protéger une sauvegarde).
 - **Reste, dans cet ordre** (tableau détaillé : `docs/parite-proxmox.md`, colonnes ⬜/🟡) : **M5** stockage (ajouter/modifier, téléverser ISO, PBS) → M6 droits en écriture → M7 réseau/firewall/SDN → M8 HA/réplication → M10 cluster → M12 C4 destruction Ceph → M13 notifications + métriques → M14 options avancées → M15 datacenter.
-- **Jamais exécuté en réel** (à dire dans chaque PR) : ajout/modification/retrait de stockage, envoi et téléchargement d'ISO, redémarrer/éteindre un nœud, disques et volumes, certificats, ACME, dépôts (ajout), Ceph.
+- **Jamais exécuté en réel** (à dire dans chaque PR) : ajout/modification/retrait de stockage (PBS compris : aucun PBS dispo), envoi et téléchargement d'ISO, redémarrer/éteindre un nœud, disques et volumes, certificats, ACME, dépôts (ajout), Ceph.
 
 ## Méthode d'un lot (≈ 1 PR)
 1. `git checkout main && git pull`, branche `feat/mX-…`, ticket `gh issue create --milestone … --label agent:pc-a`.

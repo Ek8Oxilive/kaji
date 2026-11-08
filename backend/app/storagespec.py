@@ -79,6 +79,17 @@ def _iso(ts: int | None) -> str | None:
         return None
 
 
+def _verification(v) -> str | None:
+    """Dernière vérification d'une sauvegarde PBS : `ok`, `failed` ou `none` ; autre chose (ou absent) → None."""
+    state = v.get("state") if isinstance(v, dict) else None
+    return state if state in ("ok", "failed", "none") else None
+
+
+def _encrypted(v) -> bool:
+    """PBS : « 1 » ou l'empreinte de la clé quand la sauvegarde est chiffrée. L'empreinte n'est pas reprise."""
+    return v not in (None, "", 0, "0", False)
+
+
 def shape_volumes(data) -> list[dict]:
     """Volumes d'un stockage : une entrée illisible (sans `volid`) est ignorée, pas fatale."""
     out = []
@@ -91,5 +102,6 @@ def shape_volumes(data) -> list[dict]:
             "format": _str(v.get("format")), "size": _int(v.get("size")),
             "ctime": ctime, "date": _iso(ctime),
             "vmid": _int(v.get("vmid")), "notes": _str(v.get("notes")), "protected": bool(v.get("protected")),
+            "verification": _verification(v.get("verification")), "encrypted": _encrypted(v.get("encrypted")),
         })
     return sorted(out, key=lambda v: (v["content"] or "", v["name"], v["volid"]))

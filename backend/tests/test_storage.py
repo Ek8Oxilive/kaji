@@ -259,3 +259,21 @@ def test_int_never_raises_and_gives_null_for_unreadable_values(raw):
 def test_int_reads_valid_values(raw, expected):
     from app.storagespec import _int
     assert _int(raw) == expected
+
+
+# ---------------------------------------------------------------- PBS : vérification et chiffrement des sauvegardes
+def test_volumes_report_pbs_verification_and_encryption():
+    from app.storagespec import shape_volumes
+    fp = "ab:" * 31 + "ab"
+    rows = shape_volumes([
+        {"volid": "pbs:backup/vm/100/2026-11-08T10:00:00Z", "content": "backup", "verification": {"state": "ok", "upid": "UPID:x"}, "encrypted": fp},
+        {"volid": "pbs:backup/vm/101/2026-11-08T10:00:00Z", "content": "backup", "verification": {"state": "failed"}, "encrypted": "1"},
+        {"volid": "pbs:backup/vm/102/2026-11-08T10:00:00Z", "content": "backup", "verification": {"state": "none"}},
+        {"volid": "pbs:backup/vm/103/2026-11-08T10:00:00Z", "content": "backup", "verification": {"state": "<script>"}, "encrypted": "0"},
+        {"volid": "pbs:backup/vm/104/2026-11-08T10:00:00Z", "content": "backup", "verification": "ok", "encrypted": ""},
+        {"volid": "local:iso/a.iso", "content": "iso"},
+    ])
+    by = {r["vmid"] if r["vmid"] is not None else r["name"]: r for r in rows}
+    got = {r["volid"].split("/")[2] if "backup/" in r["volid"] else "iso": (r["verification"], r["encrypted"]) for r in rows}
+    assert got == {"100": ("ok", True), "101": ("failed", True), "102": ("none", False), "103": (None, False), "104": (None, False), "iso": (None, False)}
+    assert fp not in str(rows) and by                      # l'empreinte de la clé n'est pas reprise

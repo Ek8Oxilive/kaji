@@ -154,7 +154,12 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
                     <tr key={v.volid} className="border-b border-line/60 last:border-0">
                       <td className="max-w-xs px-4 py-2">
                         <span className="block truncate" title={v.volid}>{v.name}</span>
-                        {(v.notes || v.protected) && <span className="block truncate text-xs text-muted">{v.protected ? "Protégé" : ""}{v.protected && v.notes ? " · " : ""}{v.notes}</span>}
+                        {(v.notes || v.protected || v.verification || v.encrypted) && (
+                          <span className="block truncate text-xs text-muted">
+                            {[v.protected ? "Protégé" : null, v.encrypted ? "Chiffrée" : null,
+                              v.verification === "ok" ? "Vérifiée" : v.verification === "failed" ? "Vérification échouée" : v.verification === "none" ? "Non vérifiée" : null,
+                              v.notes].filter(Boolean).join(" · ")}
+                          </span>)}
                       </td>
                       <td className="px-4 py-2 text-muted">{label(v.content)}</td>
                       <td className="px-4 py-2 text-muted">{v.format ?? "–"}</td>
