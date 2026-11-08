@@ -35,7 +35,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
 | HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
-| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée ; règles : ⬜) | M7 |
+| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : ⬜) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
 | Notifications : cibles et règles | ⬜ | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | ⬜ | M7 |
