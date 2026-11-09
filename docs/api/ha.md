@@ -1,13 +1,13 @@
 # Haute disponibilité et réplication (M8-1, lecture seule)
 
-Préfixe `/api/connections/{conn_id}`. Ce fichier décrit la lecture. L'écriture HA (M8-2) est dans `docs/api/ha-ecriture.md` ; l'écriture de la réplication (M8-3) viendra ensuite.
+Préfixe `/api/connections/{conn_id}`. Ce fichier décrit la lecture. L'écriture HA (M8-2) est dans `docs/api/ha-ecriture.md` ; l'écriture de la réplication (M8-3) dans `docs/api/replication-ecriture.md`.
 
 | Route | Contenu |
 |---|---|
 | `GET /ha/status` | Quorum, maître, LRM, chien de garde (`fencing`, `armed_state`), services HA (`sid`, `state`, `request_state`) |
 | `GET /ha/resources` | Ressources HA : `sid` (`vm:100`, `ct:101`), `state`, `max_restart`, `max_relocate`, `failback`, `comment` |
 | `GET /ha/rules` | Règles HA : `node-affinity` (`nodes` avec priorité, `strict`) et `resource-affinity` (`affinity` positive/négative) |
-| `GET /replication` | Jobs de réplication : `id` (`100-0`), `guest`, `source`, `target`, `schedule`, `rate`, `disable`, `comment` |
+| `GET /replication` | Jobs de réplication : `id` (`100-0`), `guest`, `source`, `target`, `schedule`, `rate`, `disable`, `comment`, `remove_job` (job marqué pour suppression) |
 | `GET /nodes/{node}/replication` | État des jobs dont le nœud est la source : `last_sync`, `next_sync`, `duration`, `fail_count`, `error` |
 | `GET /nodes/{node}/replication/{job}/log?limit=` | Journal d'un job (texte borné) |
 
@@ -17,4 +17,4 @@ Mise en forme en liste blanche : identifiants validés (`vm:ID`, `ct:ID`, `ID-N`
 - **2 nœuds** (`enzo`, `enzo2`) : quorum fragile. Activer la HA arme un chien de garde ; si un nœud tombe, l'autre perd le quorum et redémarre de lui-même. Les écritures HA exigeront donc une phrase de confirmation.
 - Les **groupes HA** n'existent plus (`/cluster/ha/groups` répond « migrated to rules ») : seules les **règles** existent.
 - Aucune ressource HA, aucune règle, aucun job de réplication. **Pas de stockage ZFS** (seulement `local` et `local-lvm`) : la réplication ne peut pas être créée sur ce cluster.
-- Page « Haute dispo » du menu : état, ressources, règles, jobs.
+- Page « HA » du menu : état, ressources, règles, jobs ; écritures : `docs/api/ha-ecriture.md` et `docs/api/replication-ecriture.md`.

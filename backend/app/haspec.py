@@ -80,7 +80,8 @@ def shape_jobs(raw) -> list[dict]:
             continue
         out.append({"id": i, "guest": _int(r.get("guest")), "type": _choice(r.get("type"), ("local",)), "source": r.get("source") if isinstance(r.get("source"), str) and NODE.fullmatch(r["source"]) else None,
                     "target": r.get("target") if isinstance(r.get("target"), str) and NODE.fullmatch(r["target"]) else None, "schedule": _t(r.get("schedule"), 128),
-                    "rate": _num(r.get("rate")), "disable": _b(r.get("disable")), "comment": _t(r.get("comment"), 500), "digest": _t(r.get("digest"), 64)})
+                    "rate": _num(r.get("rate")), "disable": _b(r.get("disable")), "comment": _t(r.get("comment"), 500), "digest": _t(r.get("digest"), 64),
+                    "remove_job": _choice(r.get("remove_job"), ("local", "full"))})
     return sorted(out, key=lambda x: x["id"])
 
 
