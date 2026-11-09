@@ -15,7 +15,7 @@ ORIGINS = ("builtin", "user-created", "modified-builtin")
 MATCHER_MODES = ("all", "any")
 SMTP_MODES = ("insecure", "starttls", "tls")
 HTTP_METHODS = ("post", "put", "get")
-_HEADER_NAME = re.compile(r"(?:^|,)name=([A-Za-z0-9\-_.]{1,100})(?:,|$)")
+_HEADER_NAME = re.compile(r"[A-Za-z0-9\-_.]{1,100}")
 MAX_ROWS = 200
 
 
@@ -53,9 +53,10 @@ def _header_names(v) -> list[str]:
     """Noms seulement : `name=X,value=<base64>` -> `X` (la valeur peut être un jeton)."""
     out = []
     for e in (v if isinstance(v, list) else [])[:50]:
-        m = _HEADER_NAME.search(e) if isinstance(e, str) else None
-        if m:
-            out.append(m.group(1))
+        parts = e.split(",") if isinstance(e, str) else []
+        name = next((p[5:] for p in parts if p.startswith("name=")), None)                # seul le NOM est gardé, jamais `value=`
+        if name and _HEADER_NAME.fullmatch(name):
+            out.append(name)
     return out
 
 
