@@ -25,13 +25,16 @@ Chaque corps accepte aussi les **verrous** : `confirm`, `acknowledge_live`, `ack
 
 ## Contrôles avant d'écrire
 Machine inconnue ou de mauvais type (404), modèle (422), déjà en HA (409) ; ressource ou règle inconnue (404) ; règle au nom déjà pris (409) ; ressources d'une règle absentes de la HA (422) ; nœuds inconnus (422) ; type de règle non modifiable (422) ; `resource-affinity` : `affinity` obligatoire, au moins 2 ressources, ni `nodes` ni `strict` ; nœud cible inconnu, hors ligne ou égal au nœud actuel ; retrait d'une ressource encore citée par une règle (409, aucune règle n'est modifiée en douce).
-Champs en liste blanche, textes sans caractère de contrôle (500 caractères max.) ; un champ inconnu n'est jamais transmis. Après chaque écriture, l'état est **relu** : si Proxmox ne l'a pas appliqué, 502.
+Champs en liste blanche ; **commentaires : ASCII imprimable seulement** (500 caractères max.) : constaté en réel, Proxmox altère les accents d'un commentaire de règle HA (« è » revient en `U+FFFD`), Kaji refuse donc ces caractères (422) ; un champ inconnu n'est jamais transmis. Après chaque écriture, l'état est **relu** : si Proxmox ne l'a pas appliqué, 502.
 
 ## Audit
 Actions `ha-resource-create|update|delete`, `ha-rule-create|update|delete`, `ha-migrate`, `ha-relocate`, refus compris. Le commentaire n'est jamais copié dans l'audit (« défini »).
 
 ## Réponses
 Création / modification : `{created|changed, removed, locks}`. Migrer / relocaliser : `{requested, from, blocking[{sid, cause}], comigrated[], locks}` — la HA décide ensuite, le suivi se fait par l'état HA.
+
+## Validé en réel par l'interface web (2026-11-09, VM jetable 117, tout remis à l'identique)
+Ajouter une machine (`stopped`), modifier (déplacements max., commentaire), créer puis modifier une règle `node-affinity` (nœuds, priorités, stricte), migrer `enzo` → `enzo2`, supprimer la règle, retirer la ressource ; verrous et phrase `COUPURE POSSIBLE` vus à l'écran. **Constaté** : le commentaire accentué d'une règle est altéré par Proxmox (corrigé : ASCII seulement) ; une **relocalisation vers `enzo` est ignorée par la HA tant qu'une règle stricte préfère `enzo2`** (la demande est acceptée, rien ne bouge, Kaji ne le signale pas encore).
 
 ## Validation
 Faux Proxmox strict (`backend/tests/test_ha_write.py`). **Rien n'a été écrit sur le cluster réel** : le cluster n'a que 2 nœuds (activer la HA arme le chien de garde). Les paramètres viennent du schéma d'API officiel de Proxmox (`apidoc.js`).

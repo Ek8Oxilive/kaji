@@ -117,7 +117,7 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
           <Field label="Déplacements max." type="number" min={0} max={10} value={maxRelocate} onChange={(e) => setMaxRelocate(e.target.value)} />
         </div>
         {triSel("Retour sur le nœud préféré (failback)", failback, setFailback)}
-        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} />
+        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint="ASCII uniquement : Proxmox altère les accents des commentaires HA" />
       </>}
       {(k === "migrate" || k === "relocate") && select("Nœud cible", target, setTarget, [["", "Choisir un nœud"], ...(nodes.data ?? []).map((n) => [n.node, n.node] as [string, string])])}
       {k === "resource-delete" && <Notice kind="error">La machine n'est pas touchée : seule sa gestion par la HA s'arrête. Refusé tant qu'une règle la cite.</Notice>}
@@ -141,7 +141,7 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
           {triSel("Stricte (aucun autre nœud autorisé)", strict, setStrict)}
         </> : select("Affinité", affinity, setAffinity, [["", "Choisir"], ["positive", "positive : sur le même nœud"], ["negative", "négative : sur des nœuds différents"]])}
         {triSel("Désactivée", disable, setDisable)}
-        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} />
+        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint="ASCII uniquement : Proxmox altère les accents des commentaires HA" />
       </>}
       <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>Aperçu des verrous</button>
       {preview && (
