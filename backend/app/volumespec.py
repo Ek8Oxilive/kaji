@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .backupspec import BACKUP_FILE, _int, _iso, _protected
+from .backupspec import _int, _iso, _protected
 from .storageconf import Prune
 
 FileKind = Literal["iso", "vztmpl", "snippets", "import"]
@@ -16,24 +16,6 @@ FileKind = Literal["iso", "vztmpl", "snippets", "import"]
 FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+()\-]{0,200}$")          # ancré : `Path(pattern=…)` cherche, il ne vérifie pas tout le texte
 MARKS = ("keep", "remove", "protected", "renamed")
 MAX_ROWS = 5000
-
-
-CopyKind = Literal["iso", "vztmpl", "snippets", "import", "backup"]
-NODE_NAME = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9\-]{0,62})$")
-STORAGE_ID = re.compile(r"^[A-Za-z][A-Za-z0-9._\-]{0,63}$")
-
-
-def copy_name_ok(kind: str, name: str) -> bool:
-    """Nom de fichier valable pour ce type : une sauvegarde suit le format vzdump, les autres la liste blanche des fichiers."""
-    return bool((BACKUP_FILE if kind == "backup" else FILE_NAME).fullmatch(name))
-
-
-class CopyBody(BaseModel):
-    """Copie d'un fichier (ISO, modèle, snippet, image à importer, sauvegarde) vers un autre stockage, éventuellement d'un autre nœud. Jamais un déplacement."""
-    target_storage: str = Field(max_length=64)
-    target_node: str | None = Field(default=None, max_length=63)
-    target_name: str | None = Field(default=None, max_length=210, description="Nom du fichier copié (défaut : le même)")
-    dry_run: bool = False
 
 
 class Protect(BaseModel):
