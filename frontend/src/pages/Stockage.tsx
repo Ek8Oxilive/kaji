@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Gauge } from "../components/Gauge";
+import { TemplateCatalogDialog } from "../components/TemplateCatalogDialog";
 import { UploadDialog, UrlDownloadDialog } from "../components/FileTransferDialogs";
 import { BACKUP_FILE, DeleteFileDialog, PruneDialog, isFileKind } from "../components/VolumeDialogs";
 import { AddStorageDialog, DeleteStorageDialog, EditStorageDialog } from "../components/StorageConfigDialogs";
@@ -74,7 +75,7 @@ function StorageCard({ card, index, onOpen }: { card: Card; index: number; onOpe
 function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { connId: number; card: Card; config: StorageConfig | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const { node, storage } = card.row;
   const fileKinds = card.row.contents.filter((c): c is "iso" | "vztmpl" => c === "iso" || c === "vztmpl");
-  const [transfer, setTransfer] = useState<"upload" | "url" | "prune" | null>(null);
+  const [transfer, setTransfer] = useState<"upload" | "url" | "prune" | "catalog" | null>(null);
   const [toDelete, setToDelete] = useState<StorageVolume | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
   const qc = useQueryClient();
@@ -132,10 +133,12 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
           <div className="flex flex-wrap gap-2">
             {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">Téléverser un fichier</Button>}
             {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">Télécharger depuis une URL</Button>}
+            {fileKinds.includes("vztmpl") && <Button variant="ghost" onClick={() => setTransfer("catalog")} className="!px-3 !py-1.5">Télécharger un modèle de conteneur</Button>}
             {hasBackups && <Button variant="danger" onClick={() => setTransfer("prune")} className="!px-3 !py-1.5">Élaguer les sauvegardes…</Button>}
           </div>
         )}
         {transfer === "upload" && node && <UploadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
+        {transfer === "catalog" && node && <TemplateCatalogDialog connId={connId} node={node} storage={storage} onClose={() => setTransfer(null)} />}
         {transfer === "prune" && node && <PruneDialog connId={connId} node={node} storage={storage} onClose={() => setTransfer(null)} />}
         {toDelete && node && isFileKind(toDelete.content) && <DeleteFileDialog connId={connId} node={node} storage={storage} kind={toDelete.content} name={toDelete.name} onClose={() => setToDelete(null)} />}
         {actionErr && <Notice kind="error">{actionErr}</Notice>}

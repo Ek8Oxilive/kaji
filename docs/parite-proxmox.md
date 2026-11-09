@@ -108,7 +108,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
 | **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ✅ (téléversement et téléchargement par URL validés en réel, avec sha256) | M5 |
-| Modèles LXC officiels (TurnKey, distributions) : télécharger | ⬜ | M14 |
+| Modèles LXC officiels (TurnKey, distributions) : télécharger | 🟡 (non validé en réel, `docs/api/modeles-lxc.md`) | M14 |
 | Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un volume : ⬜) | M5 |
 
 ## Transverses
