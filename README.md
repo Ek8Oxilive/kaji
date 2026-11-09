@@ -28,6 +28,418 @@ npm run dev        # http://localhost:5173 (les appels /api sont relayés vers l
 
 **Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Le bouton **« + Nouvelle machine »** (ou la palette Ctrl+K) propose une **VM** ou un **conteneur LXC** ; l'**assistant de création de VM** compte 4 étapes : général (nœud, nom, identifiant proposé, pool, système), matériel (cœurs, mémoire, disque et stockage, ISO), réseau (bridge ou VNet, VLAN, firewall) et récapitulatif. Windows 11 reçoit automatiquement UEFI, TPM et disque EFI. L'assistant prévient quand aucun pool n'est choisi. Un onglet **Snapshots** permet de créer, supprimer et restaurer des points de restauration (la restauration exige de retaper le nom de la machine). Le bouton **« Cloner »** (sur chaque carte, y compris les modèles) copie une machine : clone complet ou lié, vers le même nœud ou un autre. Une ligne **« Emplacement »** permet de **migrer** la machine vers un autre nœud, après les vérifications préalables de Proxmox. Une **zone dangereuse** en bas du panneau Matériel permet de supprimer une machine arrêtée : la fenêtre liste les disques détruits et exige de retaper le nom. Pour une VM, un onglet **Cloud-init** règle l'utilisateur, le mot de passe, les clés SSH, l'IP et le DNS, et ajoute ou retire le lecteur cloud-init. Les disques s'**ajoutent, se détachent (données conservées), se rattachent, se déplacent et se suppriment définitivement** (en retapant le nom de la machine). On peut aussi **ajouter ou retirer une carte réseau** et régler l'**ordre de démarrage** d'une VM. Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
 
+## Captures d'écran
+
+Un tour de toutes les pages et de leurs onglets, avec les fenêtres d'action. Elles ont été prises le 2026-11-09 sur un vrai cluster Proxmox à deux nœuds, **en lecture seule** : les fenêtres ont été ouvertes puis fermées sans rien valider. **Les noms des machines et les adresses IP du cluster sont remplacés par des exemples** (`media-server`, `dns-lxc`, `10.0.0.200`…) et les noms de domaine internes (réseau privé, certificats) sont masqués.
+
+### Tableau de bord
+
+Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
+
+![Résumé du cluster (nœuds en ligne, machines actives, RAM), cartes des nœuds (CPU, RAM, dis](docs/captures/dashboard-1-resume.jpg)
+
+*Résumé du cluster (nœuds en ligne, machines actives, RAM), cartes des nœuds (CPU, RAM, disque) puis liste des machines avec recherche et filtres (état, type, nœud, pool, regroupement). L'indicateur « En direct » montre que les données arrivent en temps réel.*
+
+![Chaque machine a sa carte ](docs/captures/dashboard-2-cartes.jpg)
+
+*Chaque machine a sa carte : état, CPU, RAM et actions rapides (cloner, redémarrer, éteindre, forcer l'arrêt, démarrer). Un clic sur la carte ouvre la page de la machine.*
+
+![Suite des cartes ](docs/captures/dashboard-3-cartes.jpg)
+
+*Suite des cartes : VM et conteneurs LXC, en marche ou arrêtés.*
+
+![Bas de la liste ](docs/captures/dashboard-4-bas.jpg)
+
+*Bas de la liste : la machine de test `kaji-sandbox` (arrêtée) et `kaji-ct`, le conteneur qui héberge Kaji.*
+
+![**Ctrl+K** ouvre la palette de commandes ](docs/captures/palette-ctrl-k.jpg)
+
+***Ctrl+K** ouvre la palette de commandes : retrouver une machine, l'ouvrir, la cloner ou la démarrer, changer de thème, aller à une page.*
+
+![Le thème **Glass**](docs/captures/theme-glass.jpg)
+
+*Le thème **Glass**. Le thème Sombre est le thème par défaut ; le choix se fait en haut à droite et il est mémorisé dans le navigateur.*
+
+### Créer une machine
+
+Le bouton « + Nouvelle machine » propose une VM ou un conteneur LXC. Les captures s'arrêtent au récapitulatif : rien n'a été créé.
+
+![Le choix entre une machine virtuelle et un conteneur LXC](docs/captures/nouvelle-machine-choix.jpg)
+
+*Le choix entre une machine virtuelle et un conteneur LXC.*
+
+![Assistant de création de VM, étape 1 ](docs/captures/creation-vm-1-general.jpg)
+
+*Assistant de création de VM, étape 1 : nœud, nom, identifiant proposé, pool et système d'exploitation.*
+
+![Étape 2 ](docs/captures/creation-vm-2-materiel.jpg)
+
+*Étape 2 : cœurs, mémoire, type de processeur, disque et stockage, image ISO.*
+
+![Étape 3 ](docs/captures/creation-vm-3-reseau.jpg)
+
+*Étape 3 : carte réseau (bridge ou VNet SDN), modèle, VLAN et pare-feu.*
+
+![Étape 4 ](docs/captures/creation-vm-4-recapitulatif.jpg)
+
+*Étape 4 : récapitulatif. La machine ne démarre après sa création que si la case est cochée.*
+
+![Assistant de création de conteneur LXC, étape 1 ](docs/captures/creation-lxc-1-general.jpg)
+
+*Assistant de création de conteneur LXC, étape 1 : nœud, nom d'hôte, identifiant et pool.*
+
+![Étape 2 ](docs/captures/creation-lxc-2-modele.jpg)
+
+*Étape 2 : modèle (avec le bouton « Télécharger un modèle… » du catalogue officiel de Proxmox), ressources, disque, conteneur non privilégié par défaut.*
+
+![Étape 3 ](docs/captures/creation-lxc-3-reseau.jpg)
+
+*Étape 3 : réseau (DHCP ou adresse fixe), VLAN, pare-feu, mot de passe root et clés SSH (facultatifs).*
+
+![Étape 4 ](docs/captures/creation-lxc-4-recapitulatif.jpg)
+
+*Étape 4 : récapitulatif avant la création.*
+
+### Page d'une machine virtuelle
+
+Une page par machine, avec des onglets : Matériel, Options, Performances, Console, Snapshots, Cloud-init, Sauvegardes, Tâches. Exemples avec la VM de test `kaji-sandbox` (#115).
+
+![Onglet **Matériel** ](docs/captures/vm-materiel-1.jpg)
+
+*Onglet **Matériel** : mémoire, processeurs, ordre de démarrage. Au-dessus, les actions de la machine (Cloner, Démarrer, Convertir en modèle…) et les notes.*
+
+![Suite du Matériel ](docs/captures/vm-materiel-2.jpg)
+
+*Suite du Matériel : disques (agrandir, déplacer, détacher), cartes réseau, emplacement (migrer vers un autre nœud) et zone dangereuse (supprimer la machine).*
+
+![Onglet **Options** ](docs/captures/vm-options-1.jpg)
+
+*Onglet **Options** : démarrage au démarrage du nœud, ordre et délais.*
+
+![Suite des Options ](docs/captures/vm-options-2.jpg)
+
+*Suite des Options : protection contre la suppression, tablette USB, NUMA, ACPI, KVM, système invité et agent QEMU.*
+
+![Fin des Options ](docs/captures/vm-options-3.jpg)
+
+*Fin des Options : hotplug, description et bouton « Enregistrer ».*
+
+![Onglet **Performances** ](docs/captures/vm-performances.jpg)
+
+*Onglet **Performances** : processeur, mémoire, réseau et disque, sur l'heure, le jour, la semaine, le mois ou l'année (exemple sur une VM en marche).*
+
+![Onglet **Console** ](docs/captures/vm-console.jpg)
+
+*Onglet **Console** : console graphique (noVNC) ; elle exige une machine en marche. Chaque ouverture est journalisée.*
+
+![Onglet **Snapshots** ](docs/captures/vm-snapshots.jpg)
+
+*Onglet **Snapshots** : points de restauration à créer, restaurer et supprimer.*
+
+![Onglet **Cloud-init** ](docs/captures/vm-cloud-init.jpg)
+
+*Onglet **Cloud-init** : utilisateur, clés SSH, réseau ; ajoute d'abord le lecteur cloud-init.*
+
+![Onglet **Sauvegardes** ](docs/captures/vm-sauvegardes.jpg)
+
+*Onglet **Sauvegardes** : les sauvegardes de cette machine sur les stockages du nœud.*
+
+![Onglet **Tâches** ](docs/captures/vm-taches.jpg)
+
+*Onglet **Tâches** : l'historique des tâches Proxmox de la machine, avec la durée de chacune.*
+
+### Page d'un conteneur LXC
+
+Mêmes onglets, adaptés aux conteneurs (pas de Cloud-init). Exemples avec le conteneur `dns-lxc` (#104).
+
+![Onglet **Matériel** d'un conteneur ](docs/captures/lxc-materiel-1.jpg)
+
+*Onglet **Matériel** d'un conteneur : mémoire, processeurs, swap et disque racine.*
+
+![Suite ](docs/captures/lxc-materiel-2.jpg)
+
+*Suite : agrandir ou déplacer le disque, cartes réseau, emplacement et zone dangereuse (la suppression exige un conteneur arrêté).*
+
+![Onglet **Options** ](docs/captures/lxc-options-1.jpg)
+
+*Onglet **Options** : démarrage, protection, et fonctionnalités (nesting modifiable ; FUSE, keyctl et montages sont réservés à `root@pam` côté Proxmox).*
+
+![Suite des Options ](docs/captures/lxc-options-2.jpg)
+
+*Suite des Options : système, console, fuseau horaire et description.*
+
+![Onglet **Console** ](docs/captures/lxc-console.jpg)
+
+*Onglet **Console** : terminal dans le navigateur (xterm.js) ou écran noVNC.*
+
+![Onglet **Snapshots** d'un conteneur](docs/captures/lxc-snapshots.jpg)
+
+*Onglet **Snapshots** d'un conteneur.*
+
+![Onglet **Sauvegardes** d'un conteneur](docs/captures/lxc-sauvegardes.jpg)
+
+*Onglet **Sauvegardes** d'un conteneur.*
+
+![Onglet **Tâches** d'un conteneur ](docs/captures/lxc-taches.jpg)
+
+*Onglet **Tâches** d'un conteneur : historique des démarrages, extinctions, etc.*
+
+### Fenêtres d'action d'une machine
+
+Chaque action ouvre une fenêtre. Les actions destructrices demandent une confirmation, et le nom de la machine est à retaper. Ces fenêtres ont été ouvertes puis fermées sans rien valider.
+
+![Modifier la mémoire (et le ballooning)](docs/captures/dialogue-memoire.jpg)
+
+*Modifier la mémoire (et le ballooning).*
+
+![Ajouter un disque ](docs/captures/dialogue-disque.jpg)
+
+*Ajouter un disque : stockage, taille et bus.*
+
+![Ajouter une carte réseau](docs/captures/dialogue-carte-reseau.jpg)
+
+*Ajouter une carte réseau.*
+
+![Migrer vers un autre nœud, avec les vérifications préalables de Proxmox (disques locaux co](docs/captures/dialogue-migrer.jpg)
+
+*Migrer vers un autre nœud, avec les vérifications préalables de Proxmox (disques locaux copiés, stockage de destination).*
+
+![Créer un snapshot](docs/captures/dialogue-snapshot.jpg)
+
+*Créer un snapshot.*
+
+![Suspendre une VM en marche ](docs/captures/dialogue-suspendre.jpg)
+
+*Suspendre une VM en marche : elle est figée en mémoire jusqu'à ce qu'on la reprenne (bouton « Reprendre »).*
+
+![Convertir en modèle ](docs/captures/dialogue-convertir-modele.jpg)
+
+*Convertir en modèle : irréversible, nom de la machine à retaper.*
+
+![Supprimer une machine ](docs/captures/dialogue-supprimer-machine.jpg)
+
+*Supprimer une machine : la fenêtre liste les disques détruits et exige de retaper le nom.*
+
+![Cloner ](docs/captures/cloner.jpg)
+
+*Cloner : clone complet (le clone lié est réservé aux modèles), nœud, stockage et pool de destination.*
+
+### Stockage
+
+Les stockages du cluster, leur contenu, les ISO et les modèles.
+
+![Page **Stockage** ](docs/captures/stockage.jpg)
+
+*Page **Stockage** : un stockage par carte (type, espace utilisé, contenu autorisé).*
+
+![Un clic ouvre le tiroir du stockage ](docs/captures/stockage-tiroir.jpg)
+
+*Un clic ouvre le tiroir du stockage : fichiers (ISO, modèles), téléversement, téléchargement depuis une URL, catalogue de modèles, élagage des sauvegardes.*
+
+![Catalogue officiel des modèles de conteneur de Proxmox (par défaut, seulement l'architectu](docs/captures/stockage-catalogue-modeles.jpg)
+
+*Catalogue officiel des modèles de conteneur de Proxmox (par défaut, seulement l'architecture du nœud), avec recherche et filtre par section.*
+
+![Ajouter un stockage ](docs/captures/stockage-ajouter.jpg)
+
+*Ajouter un stockage : type, identifiant, chemin, contenu autorisé et nœuds concernés. Rien n'est écrit sans validation.*
+
+![Téléverser une ISO ou un modèle, avec somme de contrôle facultative](docs/captures/stockage-televerser.jpg)
+
+*Téléverser une ISO ou un modèle, avec somme de contrôle facultative.*
+
+![Télécharger un fichier depuis une adresse http(s) par le nœud lui-même (les adresses local](docs/captures/stockage-url.jpg)
+
+*Télécharger un fichier depuis une adresse http(s) par le nœud lui-même (les adresses locales sont refusées).*
+
+### Sauvegardes
+
+Lire, lancer et planifier les sauvegardes.
+
+![Page **Sauvegardes** ](docs/captures/sauvegardes.jpg)
+
+*Page **Sauvegardes** : toutes les sauvegardes du cluster, avec recherche et filtres. Ici, aucune sauvegarde n'existe encore.*
+
+![Lancer une sauvegarde ](docs/captures/sauvegardes-lancer.jpg)
+
+*Lancer une sauvegarde : machine, stockage, mode (instantané, suspension, arrêt), compression et notes.*
+
+![Onglet **Planifiées** ](docs/captures/sauvegardes-planifiees.jpg)
+
+*Onglet **Planifiées** : les jobs de sauvegarde automatiques.*
+
+![Nouveau job planifié ](docs/captures/sauvegardes-nouveau-job.jpg)
+
+*Nouveau job planifié : jours, heure, stockage, machines (précises, un pool ou toutes) et mode.*
+
+### Tâches
+
+Le journal des tâches Proxmox, avec le compte qui les a lancées (« Kaji » signale celles qui viennent de l'interface).
+
+![Liste des 100 dernières tâches, avec filtres (recherche, état, nœud)](docs/captures/taches-1.jpg)
+
+*Liste des 100 dernières tâches, avec filtres (recherche, état, nœud).*
+
+![Suite de la liste](docs/captures/taches-2.jpg)
+
+*Suite de la liste. Cliquer sur une tâche ouvre son journal.*
+
+![Suite de la liste ](docs/captures/taches-3.jpg)
+
+*Suite de la liste : créations, clonages, conversions, suppressions…*
+
+### Ceph
+
+![Page **Ceph** ](docs/captures/ceph.jpg)
+
+*Page **Ceph** : sur un cluster sans Ceph, la page explique comment l'installer et l'initialiser. Ce cluster n'a pas de Ceph : les fonctions d'écriture de Ceph n'ont donc été testées qu'avec un faux Proxmox.*
+
+### Réseau et pare-feu
+
+Interfaces des nœuds, pare-feu (datacenter, nœud, machine) et SDN. Tout changement est préparé « en attente » puis appliqué avec un verrou explicite.
+
+![Interfaces du nœud (bridges, bonds, VLAN, cartes) et pare-feu du datacenter](docs/captures/reseau-1.jpg)
+
+*Interfaces du nœud (bridges, bonds, VLAN, cartes) et pare-feu du datacenter. L'interface d'administration est marquée : la modifier est verrouillée.*
+
+![Alias, IPSets, groupes de sécurité, zones SDN et pare-feu du nœud](docs/captures/reseau-2.jpg)
+
+*Alias, IPSets, groupes de sécurité, zones SDN et pare-feu du nœud.*
+
+![Ajouter une interface ](docs/captures/reseau-interface.jpg)
+
+*Ajouter une interface : la modification est préparée, mais n'est appliquée qu'après un second geste.*
+
+![Alias, IPSets et groupes de sécurité du pare-feu](docs/captures/reseau-alias-ipsets.jpg)
+
+*Alias, IPSets et groupes de sécurité du pare-feu.*
+
+![Options du pare-feu ](docs/captures/reseau-options-pare-feu.jpg)
+
+*Options du pare-feu : les modifications dangereuses sont verrouillées, et l'aperçu dit pourquoi.*
+
+![Règles du pare-feu (datacenter, nœud, machine, groupe) ](docs/captures/reseau-regles.jpg)
+
+*Règles du pare-feu (datacenter, nœud, machine, groupe) : chaque action montre d'abord ses verrous.*
+
+![Ajouter une zone SDN (les VNets, sous-réseaux, contrôleurs et IPAM ont leurs propres fenêt](docs/captures/reseau-sdn-zone.jpg)
+
+*Ajouter une zone SDN (les VNets, sous-réseaux, contrôleurs et IPAM ont leurs propres fenêtres).*
+
+### HA et réplication
+
+Haute disponibilité (ressources, règles) et réplication de stockage. Toute écriture est d'abord prévisualisée et exige la phrase `COUPURE POSSIBLE` quand elle présente un risque.
+
+![État de la HA ](docs/captures/ha-1.jpg)
+
+*État de la HA : quorum, maître, chien de garde, gestionnaires (LRM). Avec deux nœuds, la page prévient du risque.*
+
+![Ressources HA, règles HA et jobs de réplication](docs/captures/ha-2.jpg)
+
+*Ressources HA, règles HA et jobs de réplication.*
+
+![Ajouter une machine à la HA ](docs/captures/ha-ressource.jpg)
+
+*Ajouter une machine à la HA : état demandé, redémarrages et déplacements maximum, retour sur le nœud préféré.*
+
+![Nouvelle règle HA ](docs/captures/ha-regle.jpg)
+
+*Nouvelle règle HA : affinité de nœuds (avec priorités) ou affinité de ressources.*
+
+![Nouveau job de réplication ](docs/captures/ha-replication.jpg)
+
+*Nouveau job de réplication : machine, nœud cible, planification, débit maximal (exige du stockage ZFS).*
+
+### Cluster
+
+Informations de corosync en lecture seule.
+
+![Informations du cluster ](docs/captures/cluster-1.jpg)
+
+*Informations du cluster : nom, quorum, nombre de nœuds, version de configuration, liens.*
+
+![Nœuds (votes, adresses, liens), QDevice et commandes `pvecm` à copier pour créer, joindre ](docs/captures/cluster-2.jpg)
+
+*Nœuds (votes, adresses, liens), QDevice et commandes `pvecm` à copier pour créer, joindre ou retirer un nœud : Kaji ne modifie pas le cluster lui-même.*
+
+### Datacenter
+
+![Options du datacenter ](docs/captures/datacenter-1.jpg)
+
+*Options du datacenter : clavier, langue, visionneuse de console, e-mail d'expédition, préfixe MAC, tâches parallèles, proxy, migration.*
+
+![Notes du datacenter et serveurs de métriques](docs/captures/datacenter-2.jpg)
+
+*Notes du datacenter et serveurs de métriques.*
+
+![Ajouter un serveur de métriques (InfluxDB, Graphite…) ](docs/captures/datacenter-metriques.jpg)
+
+*Ajouter un serveur de métriques (InfluxDB, Graphite…) : les secrets ne sont jamais affichés.*
+
+### Page d'un nœud
+
+Tout ce qui concerne un serveur Proxmox : supervision, système, services, disques.
+
+![En-tête du nœud (CPU, RAM, disque), notes du nœud et historique (heure, jour, semaine, moi](docs/captures/noeud-1.jpg)
+
+*En-tête du nœud (CPU, RAM, disque), notes du nœud et historique (heure, jour, semaine, mois, année).*
+
+![Graphiques réseau et charge, console du nœud (verrouillée derrière une case à cocher) et b](docs/captures/noeud-2.jpg)
+
+*Graphiques réseau et charge, console du nœud (verrouillée derrière une case à cocher) et boutons redémarrer / éteindre le nœud.*
+
+![Version de Proxmox et du noyau, heure et DNS, configuration (DNS, fuseau horaire, fichier ](docs/captures/noeud-3.jpg)
+
+*Version de Proxmox et du noyau, heure et DNS, configuration (DNS, fuseau horaire, fichier hosts) et mises à jour disponibles.*
+
+![Dépôts de paquets (activer, désactiver, ajouter un dépôt standard) et certificats](docs/captures/noeud-4.jpg)
+
+*Dépôts de paquets (activer, désactiver, ajouter un dépôt standard) et certificats.*
+
+![Installer un certificat, certificats automatiques (ACME) et services du nœud (arrêter, red](docs/captures/noeud-5.jpg)
+
+*Installer un certificat, certificats automatiques (ACME) et services du nœud (arrêter, redémarrer, recharger).*
+
+![Fin des services, journal système et disques (état SMART)](docs/captures/noeud-6.jpg)
+
+*Fin des services, journal système et disques (état SMART).*
+
+![Groupes LVM, pools LVM-thin, répertoires, ZFS, et machines du nœud](docs/captures/noeud-7.jpg)
+
+*Groupes LVM, pools LVM-thin, répertoires, ZFS, et machines du nœud.*
+
+![Stockages et réseau du nœud](docs/captures/noeud-8.jpg)
+
+*Stockages et réseau du nœud.*
+
+### Accès
+
+Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
+
+![Mode administrateur (session temporaire) et liste des 26 droits dont Kaji a besoin](docs/captures/acces-1.jpg)
+
+*Mode administrateur (session temporaire) et liste des 26 droits dont Kaji a besoin.*
+
+![Suite des droits ](docs/captures/acces-2.jpg)
+
+*Suite des droits : snapshots, clonage, migration, sauvegardes, console, HA, réplication, datacenter…*
+
+![Fin des droits, puis utilisateurs et groupes](docs/captures/acces-3.jpg)
+
+*Fin des droits, puis utilisateurs et groupes.*
+
+![Droits attribués (ACL) du token de Kaji, par chemin](docs/captures/acces-4.jpg)
+
+*Droits attribués (ACL) du token de Kaji, par chemin.*
+
+![Rôles Proxmox et leurs privilèges](docs/captures/acces-5.jpg)
+
+*Rôles Proxmox et leurs privilèges.*
+
+![Fin des rôles et realms d'authentification](docs/captures/acces-6.jpg)
+
+*Fin des rôles et realms d'authentification.*
+
 ## Déploiement
 `docker compose up -d --build` lance le backend et le frontend (nginx). Guide complet, HTTPS, sauvegarde, mise à jour et mot de passe perdu : [docs/deploiement.md](docs/deploiement.md).
 
