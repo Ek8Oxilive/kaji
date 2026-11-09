@@ -55,14 +55,14 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if m == "POST":
         if "type" not in body or "iface" not in body or any(i["iface"] == body["iface"] for i in ST["ifs"]):
             return httpx.Response(400, json={"data": None, "message": "type/iface"})
-        ST["ifs"].append({k.replace("-", "_") if False else k: (int(v) if k in ("mtu", "autostart", "bridge_vlan_aware") else v) for k, v in body.items()})
+        ST["ifs"].append({k: (int(v) if k in ("mtu", "autostart", "bridge_vlan_aware") else v + "\n" if k == "comments" else v) for k, v in body.items()})   # réel : commentaire + « \n »
     elif m == "PUT" and name:
         if "type" not in body:
             return httpx.Response(400, json={"data": None, "message": "type requis"})
         i = next(x for x in ST["ifs"] if x["iface"] == name)
         for k in [x for x in body.get("delete", "").split(",") if x]:
             i.pop(k, None)
-        i.update({k: (int(v) if k in ("mtu", "autostart", "bridge_vlan_aware") else v) for k, v in body.items() if k not in ("delete",)})
+        i.update({k: (int(v) if k in ("mtu", "autostart", "bridge_vlan_aware") else v + "\n" if k == "comments" else v) for k, v in body.items() if k not in ("delete",)})
     elif m == "DELETE" and name:
         ST["ifs"] = [x for x in ST["ifs"] if x["iface"] != name]
     elif m == "PUT":
