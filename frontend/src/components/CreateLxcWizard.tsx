@@ -1,3 +1,4 @@
+import { TemplateCatalogDialog } from "./TemplateCatalogDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type Bridge, type LxcCreateBody, type LxcTemplates, type NodeInfo, type StorageInfo } from "../lib/api";
@@ -80,6 +81,7 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
     await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
   });
 
+  const [catalog, setCatalog] = useState(false);
   const noTemplate = tpls.isSuccess && tpls.data.local.length === 0;
   const lbl = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
 
@@ -113,7 +115,8 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
             <Select label="Modèle" value={f.template} onChange={(e) => set("template", e.target.value)} hint={tpls.isError ? "Liste indisponible" : undefined}>
               {tpls.data?.local.map((t) => <option key={t.volid} value={t.volid}>{t.name}{t.size ? ` · ${bytes(t.size)}` : ""}</option>)}
             </Select>
-            {noTemplate && <Notice kind="error">Aucun modèle de conteneur sur ce nœud. Télécharges-en un dans Proxmox (stockage → Modèles de CT).</Notice>}
+            {noTemplate && <Notice kind="error">Aucun modèle de conteneur sur ce nœud. Télécharges-en un depuis le catalogue officiel.</Notice>}
+            <div><Button variant="ghost" onClick={() => setCatalog(true)} className="!px-3 !py-1.5" disabled={!f.node}>Télécharger un modèle…</Button></div>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Cœurs" type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
               <Field label="Swap (Mo)" type="number" min={0} step={128} value={f.swap} onChange={(e) => set("swap", e.target.value)} />
@@ -193,6 +196,7 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
           </div>
         </footer>
       </div>
+    {catalog && <TemplateCatalogDialog connId={connId} node={f.node} onClose={() => setCatalog(false)} />}
     </div>
   );
 }
