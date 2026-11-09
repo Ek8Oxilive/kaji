@@ -31,4 +31,10 @@ Préfixe `/api/connections/{conn_id}/datacenter`. Page « Datacenter » du menu.
 Action `datacenter-options`, refus compris ; le contenu des notes n'est jamais copié (« défini »).
 
 ## Validation
-Faux Proxmox strict (`backend/tests/test_datacenter.py`), 30 mutations. Voir `docs/REPRISE.md` pour les essais réels.
+Faux Proxmox strict (`backend/tests/test_datacenter.py`), 31 mutations.
+
+## Constaté en réel (2026-11-09)
+- `GET /cluster/options` renvoie ici `keyboard` (`fr`), `mac_prefix` (`BC:24:11`) et `description` (chaîne vide) ; `migration` absent tant qu'il n'est pas réglé.
+- **Les notes écrites reviennent avec un saut de ligne final** (`"…\n"`) : comparées sans lui.
+- **Retirer les notes (`delete=description`) laisse `description` à `""`** (clé présente, vide), pas absente : la relecture l'accepte (bug trouvé et corrigé par cet essai).
+- Essais faits par l'interface web : clavier `fr` → `de` → `fr` (état identique à l'origine, même empreinte), notes écrites puis vidées. Refus constatés sans appel Proxmox : `max_workers` 0 et 500, préfixe MAC multicast, proxy avec identifiants / en `127.0.0.1` / en `https`, réseau avec bits d'hôte, clavier inconnu, requête vide (422) ; `digest` périmé et migration non chiffrée sans `confirm` (409).

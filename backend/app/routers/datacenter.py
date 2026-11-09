@@ -74,7 +74,7 @@ async def put_options(body: DatacenterOptions, conn_id: int, db: Session = Depen
         if not _same(k, after.get(k), v):
             refuse("Proxmox n'a pas appliqué la modification", status.HTTP_502_BAD_GATEWAY)
     for k in delete:
-        if after.get(k) not in (None, {"type": None, "network": None}):
+        if after.get(k) not in (None, "", {"type": None, "network": None}):                # constaté en réel : les notes retirées reviennent en chaîne vide
             refuse("Proxmox n'a pas retiré le réglage", status.HTTP_502_BAD_GATEWAY)
     log("started", ", ".join(f"{k}={'défini' if k in ('description',) else v}" for k, v in sorted(params.items())) + (f" ; retiré : {','.join(delete)}" if delete else ""))
     return {"changed": sorted(params), "removed": delete, "locks": locks, **fresh}
