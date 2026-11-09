@@ -1,0 +1,34 @@
+# Options et notes du datacenter (M15, lot #150)
+
+Préfixe `/api/connections/{conn_id}/datacenter`. Page « Datacenter » du menu. Droits Proxmox : `Sys.Audit` sur `/` (lire), `Sys.Modify` sur `/` (écrire) ; page « Accès » : `datacenter-write`.
+
+| Route | Effet |
+|---|---|
+| `GET /options` | Champs gérés + champs en lecture seule + `digest` |
+| `PUT /options` | Modifie (liste blanche), retire (`clear`), `dry_run` |
+
+## Champs gérés
+| Champ | Valeurs |
+|---|---|
+| `keyboard`, `language`, `console` | listes blanches de Proxmox (`console` : `applet`, `vv`, `html5`, `xtermjs`) |
+| `description` | **Notes du datacenter** (≤ 65 536 caractères, `\n` et `\t` permis, aucun autre caractère de contrôle) |
+| `mac_prefix` | `XX:XX:XX`, premier octet pair (unicast) ; mis en majuscules |
+| `max_workers` | entier 1 à 64 |
+| `email_from` | adresse e-mail simple |
+| `http_proxy` | `http://hôte[:port]` : pas de `https`, **pas d'identifiants**, pas de chemin ni de paramètres ; boucle locale (`127.x`, `::1`, `localhost`, `*.localhost`), adresse non spécifiée, liaison locale et multicast refusées (un proxy du réseau privé reste permis) |
+| `migration` | `{type: secure|insecure, network: CIDR}` ; réseau sans bits d'hôte ; `network: ""` retire le réseau ; fusionné avec l'état lu (changer le type garde le réseau) |
+| `clear` | `keyboard`, `language`, `console`, `description`, `mac_prefix`, `migration`, `max_workers`, `email_from`, `http_proxy` (envoyé en `delete=`) |
+
+**Lus mais jamais écrits** (`readonly` dans la lecture) : `ha`, `fencing`, `crs`, `bwlimit`, `next-id`, `tag-style`, `replication` : risque élevé (HA, fencing, ordonnancement) ou hors périmètre. Tout champ inconnu ou hors liste est **ignoré**, jamais transmis.
+
+## Verrous
+- **`digest`** : Proxmox n'a pas de `digest` pour ces options. Kaji calcule le sien (empreinte des valeurs lues) ; `GET` le renvoie, `PUT` accepte `digest` et répond **409** si l'état a changé depuis (rien n'est écrit). Facultatif pour l'API, toujours envoyé par la page.
+- **Migration non chiffrée** : passer `type` à `insecure` (depuis `secure` ou sans réglage) exige `confirm=true` (409 sinon) : la mémoire des machines circulerait en clair.
+- `dry_run=true` : renvoie `params`, `remove`, `locks.insecure` ; n'écrit rien. Rien à modifier = 422.
+- Après l'écriture, l'état est **relu** (502 si Proxmox n'a pas appliqué ; les notes sont comparées sans le saut de ligne final que Proxmox ajoute).
+
+## Audit
+Action `datacenter-options`, refus compris ; le contenu des notes n'est jamais copié (« défini »).
+
+## Validation
+Faux Proxmox strict (`backend/tests/test_datacenter.py`), 30 mutations. Voir `docs/REPRISE.md` pour les essais réels.
