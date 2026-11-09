@@ -12,7 +12,7 @@ const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const intOk = (s: string, max: number) => s.trim() === "" || (/^\d+$/.test(s.trim()) && Number(s) <= max);
 const TZ = /^(host|[A-Za-z0-9_+-]{1,32}(\/[A-Za-z0-9_+-]{1,32}){0,2})$/;
 
-const ROOT_ONLY = "Modifiable seulement dans Proxmox (droit root@pam)."
+const ROOT_ONLY = "Modifiable seulement dans Proxmox (droit root@pam).";
 
 export function LxcOptionsTab({ connId, guest }: { connId: number; guest: Guest }) {
   const base = `/api/connections/${connId}/guests/${guest.node}/lxc/${guest.vmid}/options`;
@@ -119,10 +119,10 @@ export function LxcOptionsTab({ connId, guest }: { connId: number; guest: Guest 
         {check("FUSE", "Systèmes de fichiers en espace utilisateur. " + ROOT_ONLY, fuse, setFuse, true)}
         {check("keyctl", "Trousseau de clés du noyau (nécessaire à certains conteneurs applicatifs). " + ROOT_ONLY, keyctl, setKeyctl, true)}
         <div className="flex flex-wrap gap-4 text-sm"><span className="text-muted">Montages autorisés :</span>
-          {(["nfs", "cifs"] as LxcMount[]).map((m) => <label key={m} className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={mount.includes(m)} disabled
+          {(["nfs", "cifs"] as LxcMount[]).map((m) => <label key={m} className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={mount.includes(m)} disabled={true}
             onChange={(e) => setMount((s) => e.target.checked ? [...s, m] : s.filter((x) => x !== m))} />{m}</label>)}</div>
         <p className="text-xs text-muted">Montages : {ROOT_ONLY}</p>
-        {defBtn("features", o.features !== null)}
+        {defBtn("features", o.features !== null && !(o.features.fuse || o.features.keyctl || o.features.mount.length > 0))}
       </div>
       <div className="panel space-y-3 p-5">
         <h3 className="font-semibold">Système et console</h3>

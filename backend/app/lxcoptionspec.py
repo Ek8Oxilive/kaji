@@ -188,7 +188,17 @@ def lxc_protected_refusal(body: LxcOptionsUpdate, cfg: dict) -> str | None:
     return None
 
 
-def touches_root_only(body) -> bool:
-    """La demande modifie-t-elle `fuse`, `keyctl` ou `mount` (même pour les retirer) ? `nesting` seul reste permis au token de Kaji."""
+_ROOT_ONLY_RE = re.compile(r"(?:.*,)?(?:fuse|keyctl|mount)=.*")
+
+
+def touches_root_only(body, cfg, params, delete) -> bool:
+    """La demande envoyée à Proxmox contient-elle `fuse`, `keyctl` ou `mount` ?
+
+    Trois cas : le corps les modifie (même pour les retirer) ; la chaîne `features` reconstruite les garde (un conteneur qui les a déjà : `nesting`
+    seul renvoie toute la chaîne) ; `clear: [features]` les retire. `nesting` sur un conteneur sans ces réglages reste permis au token de Kaji."""
     f = body.features
-    return f is not None and any(getattr(f, k) is not None for k in ROOT_ONLY_FEATURES)
+    if f is not None and any(getattr(f, k) is not None for k in ROOT_ONLY_FEATURES):
+        return True
+    if _ROOT_ONLY_RE.fullmatch(str(params.get("features", ""))):
+        return True
+    return "features" in delete and bool(_ROOT_ONLY_RE.fullmatch(str(cfg.get("features", ""))))

@@ -47,7 +47,7 @@ async def _write(gtype, body, build, risk_fn, protected_fn, conn_id, node, vmid,
         try:
             return await _px(db, factory, conn_id, method, p, **kw)
         except HTTPException as e:
-            if method == "put" and root_only and e.detail == FORBIDDEN_DETAIL and root_only(body):
+            if method == "put" and root_only and e.detail == FORBIDDEN_DETAIL and root_only(body, cfg, params, delete):
                 e = HTTPException(status.HTTP_403_FORBIDDEN, ROOT_ONLY_MESSAGE)  # message fixe : ni valeur saisie ni message brut de Proxmox
             log("error", str(e.detail))
             raise e

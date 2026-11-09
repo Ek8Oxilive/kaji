@@ -41,7 +41,8 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if request.method == "GET" and p == "/nodes/enzo/lxc/118/pending":
         return _json(200, {"data": STATE.get("pending", [])})
     if request.method == "PUT" and p == "/nodes/enzo/lxc/118/config":
-        if STATE.get("root_only") and re.search(r"(^|,)(keyctl|fuse|mount)=", form.get("features", "")):
+        had = re.search(r"(^|,)(keyctl|fuse|mount)=", STATE.get("cfg", CFG0).get("features", ""))
+        if STATE.get("root_only") and (re.search(r"(^|,)(keyctl|fuse|mount)=", form.get("features", "")) or ("features" in form.get("delete", "").split(",") and had)):
             return _json(403, {"data": None}, "Permission check failed (changing feature flags (except nesting) is only allowed for root@pam)")
         return _json(400, {"data": None}) if set(form) - ALLOWED else _json(200, {"data": None})
     return _json(404, {"data": None})
@@ -403,6 +404,34 @@ def test_403_on_nesting_only_request_is_not_the_root_only_message(api):
     c, cid = api
     STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 403)
     r = patch(c, cid, features={"nesting": True})
+    assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG
+
+
+def test_nesting_alone_on_container_that_already_has_keyctl_gives_root_only_message(api):
+    """Kaji renvoie toute la chaîne `features` (nesting=0,keyctl=1) : si Proxmox refuse, la cause est expliquée."""
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1,keyctl=1"}
+    r = patch(c, cid, features={"nesting": False})
+    assert r.status_code == 403 and r.json()["detail"] == ROOT_MSG
+    assert "keyctl=1" in writes()[0]["form"]["features"]
+
+
+def test_clear_features_on_container_with_root_only_flags_gives_root_only_message(api):
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1,fuse=1"}
+    r = patch(c, cid, clear=["features"])
+    assert r.status_code == 403 and r.json()["detail"] == ROOT_MSG
+
+
+def test_clear_features_without_root_only_flags_is_not_explained_by_root(api):
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1"}
+    assert patch(c, cid, clear=["features"]).status_code == 200
+    STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 403)
+    r = patch(c, cid, clear=["features"])
     assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG
 
 

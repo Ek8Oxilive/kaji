@@ -95,7 +95,7 @@ Mêmes règles que pour les VM (booléens stricts, champs inconnus ignorés, `cl
   de perdre sa protection **même avec `confirm`** (409).
 - **`keyctl`, `fuse` et `mount` sont réservés à `root@pam`** (essai réel de PC A, 2026-11-08 : `nesting` passe, `keyctl` et `fuse` donnent « Droits
   insuffisants », `mount` très probablement aussi). Quand Proxmox répond 403 à une écriture qui contient l'un d'eux (même pour le retirer), Kaji
-  répond **403** avec un message fixe (« Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans
+  (ou dont la chaîne `features` renvoyée les contient : un conteneur qui les a déjà, même pour changer `nesting` ; ou `clear: [features]` sur un tel conteneur) répond **403** avec un message fixe (« Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans
   l'interface de Proxmox. »), sans valeur saisie ni message brut de Proxmox, et l'audite (`options`, erreur, même texte). Proxmox refuse la demande
   **en entier** : une écriture combinée (démarrage + fuseau + `keyctl`) n'applique rien. Un 403 sur une écriture sans ces trois réglages, ou sur une
   lecture, reste un 502 générique. La **lecture** de ces réglages n'est pas touchée. L'interface les affiche en lecture seule avec une note ;
