@@ -238,6 +238,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 ## Documentation
 - `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
 - `docs/deploiement.md` — Déploiement avec Docker
+- `docs/essais-reels-pc-b.md` — Essais réels des lots PC B (#164, #146, #147)
 - `docs/m10-cluster.md` — M10 : gestion du cluster, cadrage de l'écriture (décisions d'…
 - `docs/m12-ceph.md` — M12 : cadrage de Ceph
 - `docs/m6-ecriture.md` — M6 : cadrage de l'écriture (utilisateurs, rôles, droits, toke…

@@ -27,6 +27,7 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
 **Interdits, quoi qu'il arrive** : ne jamais toucher au CT 116 `kaji-ct` (c'est Kaji : ni arrêt, ni suppression, ni migration, ni ajout HA) ni aux machines 100 à 114 (services d'Enzo) ; ne jamais activer le pare-feu du datacenter ou d'un nœud, ni **appliquer** une configuration réseau ou SDN sur le cluster réel ; ne jamais demander, lire ni écrire un mot de passe, un token ou `KAJI_SECRET_KEY` ; ne pas fabriquer de token avec `Permissions.Modify`.
 
 **Validations en réel qui attendent Enzo** (ne pas les inventer) :
+- **Lots PC B #164, #146, #147 (PR #188, #191, #195, fusionnées, jamais validées en réel)** : liste d'essais pas à pas dans `docs/essais-reels-pc-b.md` (session au premier plan avec Claude in Chrome ; bac à sable seulement ; nettoyage obligatoire).
 - **SDN** : donner le rôle `PVESDNAdmin` sur `/sdn` au token de Kaji (sinon « Droits insuffisants ») ; puis essai zone `simple` + VNet + sous-réseau en attente puis `rollback`.
 - **M6 (droits)** : Enzo crée un token d'administration (`Permissions.Modify` sur `/pool/kaji-test` seulement) et le colle dans le panneau ; il fait ces essais un autre jour.
 - **Autres** : l'application d'une config réseau n'a jamais été testée (pas de banc d'essai imbriqué : pas assez de RAM sur le cluster) ; pas de ZFS, PBS ni Ceph sur le cluster.
