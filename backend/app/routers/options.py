@@ -12,12 +12,13 @@ from .. import audit
 from ..config import get_settings
 from ..db import get_db
 from ..deps import get_client_factory
-from ..lxcoptionspec import LxcOptionsUpdate, build_lxc_params, lxc_protected_refusal, lxc_risks, normalize_lxc_options
+from ..lxcoptionspec import (ROOT_ONLY_MESSAGE, LxcOptionsUpdate, build_lxc_params, lxc_protected_refusal, lxc_risks, normalize_lxc_options,
+                             touches_root_only)
 from ..models import AdminUser
 from ..optionspec import DIGEST, OptionsUpdate, build_params, normalize_options, protected_refusal, risks
 from .actions import NODE
 from .auth import current_user
-from .cluster import Factory, _px
+from .cluster import FORBIDDEN_DETAIL, Factory, _px
 
 router = APIRouter(tags=["options"], dependencies=[Depends(current_user)])
 BASE = "/api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options"
@@ -32,7 +33,7 @@ async def _read(conn_id, node, gtype, vmid, db, factory, normalize):
     return normalize(cfg, pending if isinstance(pending, list) else [])
 
 
-async def _write(gtype, body, build, risk_fn, protected_fn, conn_id, node, vmid, db, factory, user):
+async def _write(gtype, body, build, risk_fn, protected_fn, conn_id, node, vmid, db, factory, user, root_only=None):
     path, target = f"/nodes/{node}/{gtype}/{vmid}", f"{gtype}/{vmid}@{node}"
 
     def log(st, detail=None):
@@ -46,8 +47,10 @@ async def _write(gtype, body, build, risk_fn, protected_fn, conn_id, node, vmid,
         try:
             return await _px(db, factory, conn_id, method, p, **kw)
         except HTTPException as e:
+            if method == "put" and root_only and e.detail == FORBIDDEN_DETAIL and root_only(body, cfg, params, delete):
+                e = HTTPException(status.HTTP_403_FORBIDDEN, ROOT_ONLY_MESSAGE)  # message fixe : ni valeur saisie ni message brut de Proxmox
             log("error", str(e.detail))
-            raise
+            raise e
 
     if not (body.model_fields_set - {"confirm"}):
         refuse("Aucune modification demandée", 400)
@@ -97,6 +100,6 @@ async def get_lxc_options(conn_id: int, node: str = Path(pattern=NODE), vmid: in
 @router.patch(LXC_BASE, status_code=status.HTTP_200_OK)
 async def update_lxc_options(body: LxcOptionsUpdate, conn_id: int, node: str = Path(pattern=NODE), vmid: int = Path(ge=100, le=999999999),
                              db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory), user: AdminUser = Depends(current_user)):
-    """`unprivileged` et `arch` ne sont pas modifiables (422). Un réglage réservé à `root@pam` chez Proxmox (par exemple `features.mount` sur
-    un conteneur non privilégié) donne une erreur 403 de Proxmox, traduite en 502 sans fuite."""
-    return await _write("lxc", body, build_lxc_params, lxc_risks, lxc_protected_refusal, conn_id, node, vmid, db, factory, user)
+    """`unprivileged` et `arch` ne sont pas modifiables (422). `keyctl`, `fuse` et `mount` sont réservés à `root@pam` chez Proxmox : son 403 sur
+    une demande qui les contient devient un 403 au message explicite (la demande est refusée en entier). Tout autre refus reste un 502 sans fuite."""
+    return await _write("lxc", body, build_lxc_params, lxc_risks, lxc_protected_refusal, conn_id, node, vmid, db, factory, user, touches_root_only)

@@ -93,11 +93,16 @@ Mêmes règles que pour les VM (booléens stricts, champs inconnus ignorés, `cl
 - **`unprivileged` et `arch` ne sont pas modifiables : les fournir donne 422** (quel que soit le reste de la demande), sans aucun appel.
 - **Confirmation décidée par le serveur** : seulement `protection` retirée d'un conteneur protégé. Un conteneur de `KAJI_PROTECTED_VMIDS` refuse
   de perdre sa protection **même avec `confirm`** (409).
-- **Réglages réservés à `root@pam`** (par exemple `features.mount` sur un conteneur non privilégié) : Proxmox répond 403 ; Kaji le traduit en 502 sans
-  fuite et l'audite. L'interface prévient avant d'envoyer.
+- **`keyctl`, `fuse` et `mount` sont réservés à `root@pam`** (essai réel de PC A, 2026-11-08 : `nesting` passe, `keyctl` et `fuse` donnent « Droits
+  insuffisants », `mount` très probablement aussi). Quand Proxmox répond 403 à une écriture qui contient l'un d'eux (même pour le retirer), Kaji
+  (ou dont la chaîne `features` renvoyée les contient : un conteneur qui les a déjà, même pour changer `nesting` ; ou `clear: [features]` sur un tel conteneur) répond **403** avec un message fixe (« Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans
+  l'interface de Proxmox. »), sans valeur saisie ni message brut de Proxmox, et l'audite (`options`, erreur, même texte). Proxmox refuse la demande
+  **en entier** : une écriture combinée (démarrage + fuseau + `keyctl`) n'applique rien. Un 403 sur une écriture sans ces trois réglages, ou sur une
+  lecture, reste un 502 générique. La **lecture** de ces réglages n'est pas touchée. L'interface les affiche en lecture seule avec une note ;
+  `nesting` reste modifiable.
 
 ## Non validé en réel (à essayer sur un LXC jetable, par exemple 118)
 - l'acceptation par Proxmox de `features=nesting=1,fuse=0,keyctl=1,mount=nfs;cifs`, de `startup=order=1,up=2,down=3` et de `timezone=host` ;
-- le message exact de Proxmox pour un réglage réservé à root (traduit, sans fuite) ;
+- le 403 explicite sur `keyctl` / `fuse` (lot #164 : faux Proxmox seulement) et le refus de `mount` (supposé, jamais observé) ;
 - les valeurs par défaut affichées pour un réglage absent (`console` actif, tous les `features` désactivés) : tirées de la documentation, pas observées ;
 - l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).

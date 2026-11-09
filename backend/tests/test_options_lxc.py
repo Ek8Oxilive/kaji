@@ -2,6 +2,7 @@
 
 Le faux n'accepte, sur `PUT …/lxc/{vmid}/config`, que les paramètres du schéma réel relevé par PC A : tout autre paramètre répond 400.
 """
+import re
 from urllib.parse import parse_qs
 
 import httpx
@@ -40,6 +41,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if request.method == "GET" and p == "/nodes/enzo/lxc/118/pending":
         return _json(200, {"data": STATE.get("pending", [])})
     if request.method == "PUT" and p == "/nodes/enzo/lxc/118/config":
+        had = re.search(r"(^|,)(keyctl|fuse|mount)=", STATE.get("cfg", CFG0).get("features", ""))
+        if STATE.get("root_only") and (re.search(r"(^|,)(keyctl|fuse|mount)=", form.get("features", "")) or ("features" in form.get("delete", "").split(",") and had)):
+            return _json(403, {"data": None}, "Permission check failed (changing feature flags (except nesting) is only allowed for root@pam)")
         return _json(400, {"data": None}) if set(form) - ALLOWED else _json(200, {"data": None})
     return _json(404, {"data": None})
 
@@ -339,9 +343,103 @@ def test_root_only_setting_refused_by_proxmox_is_translated_without_leak(api):
     """Un réglage réservé à root@pam (par exemple `mount` sur un conteneur non privilégié) : 403 de Proxmox, traduit, sans fuite."""
     c, cid = api
     STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 403)
-    r = patch(c, cid, features={"mount": ["nfs"]})
+    r = patch(c, cid, onboot=True)                                    # 403 sans keyctl/fuse/mount : reste un 502 générique
     assert r.status_code == 502 and SECRET not in r.text and "10.0.0.5" not in r.text
     assert (audit(c)[-1]["action"], audit(c)[-1]["status"]) == ("options", "error") and SECRET not in c.get("/api/audit").text
+
+
+ROOT_MSG = ("Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. "
+            "Fais-le dans l'interface de Proxmox.")
+
+
+@pytest.mark.parametrize("features", [{"keyctl": True}, {"fuse": True}, {"fuse": False}, {"mount": ["nfs"]}, {"nesting": True, "keyctl": True}])
+def test_root_only_features_give_explicit_403_and_audit(api, features):
+    c, cid = api
+    STATE["root_only"] = True
+    r = patch(c, cid, features=features)
+    assert r.status_code == 403 and r.json()["detail"] == ROOT_MSG
+    assert SECRET not in r.text and "10.0.0.5" not in r.text and "Permission check" not in r.text
+    last = audit(c)[0]
+    assert (last["action"], last["status"], last["detail"]) == ("options", "error", ROOT_MSG)
+
+
+def test_root_only_refusal_is_for_the_whole_request(api):
+    """Écriture combinée : Proxmox refuse tout ; Kaji ne prétend rien d'appliqué (une seule écriture tentée, 403)."""
+    c, cid = api
+    STATE["root_only"] = True
+    r = patch(c, cid, onboot=True, timezone="Europe/Paris", features={"keyctl": True})
+    assert r.status_code == 403 and len(writes()) == 1
+
+
+def test_nesting_and_other_writes_still_pass_when_root_only_is_enforced(api):
+    c, cid = api
+    STATE["root_only"] = True
+    assert patch(c, cid, features={"nesting": True}).status_code == 200
+    assert patch(c, cid, onboot=True, timezone="Europe/Paris", tty=2, cmode="shell", protection=False).status_code == 200
+
+
+def test_root_only_message_only_when_proxmox_refused(api):
+    """Sans refus de Proxmox, une demande avec keyctl passe : le message n'est pas posé d'avance."""
+    c, cid = api
+    assert patch(c, cid, features={"keyctl": True}).status_code == 200
+
+
+def test_other_proxmox_errors_on_root_only_request_stay_502(api):
+    c, cid = api
+    STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 500)
+    r = patch(c, cid, features={"keyctl": True})
+    assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG
+
+
+def test_403_on_read_with_root_only_request_is_not_the_root_only_message(api):
+    """Le message n'est posé que pour le refus de l'ÉCRITURE : un 403 en lecture reste générique."""
+    c, cid = api
+    STATE["fail"] = ("GET", "/nodes/enzo/lxc/118/config", 403)
+    r = patch(c, cid, features={"keyctl": True})
+    assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG and writes() == []
+
+
+def test_403_on_nesting_only_request_is_not_the_root_only_message(api):
+    """`nesting` est permis au token : un 403 sur cette seule demande a une autre cause, root@pam ne l'explique pas."""
+    c, cid = api
+    STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 403)
+    r = patch(c, cid, features={"nesting": True})
+    assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG
+
+
+def test_nesting_alone_on_container_that_already_has_keyctl_gives_root_only_message(api):
+    """Kaji renvoie toute la chaîne `features` (nesting=0,keyctl=1) : si Proxmox refuse, la cause est expliquée."""
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1,keyctl=1"}
+    r = patch(c, cid, features={"nesting": False})
+    assert r.status_code == 403 and r.json()["detail"] == ROOT_MSG
+    assert "keyctl=1" in writes()[0]["form"]["features"]
+
+
+def test_clear_features_on_container_with_root_only_flags_gives_root_only_message(api):
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1,fuse=1"}
+    r = patch(c, cid, clear=["features"])
+    assert r.status_code == 403 and r.json()["detail"] == ROOT_MSG
+
+
+def test_clear_features_without_root_only_flags_is_not_explained_by_root(api):
+    c, cid = api
+    STATE["root_only"] = True
+    STATE["cfg"] = {**CFG0, "features": "nesting=1"}
+    assert patch(c, cid, clear=["features"]).status_code == 200
+    STATE["fail"] = ("PUT", "/nodes/enzo/lxc/118/config", 403)
+    r = patch(c, cid, clear=["features"])
+    assert r.status_code == 502 and r.json()["detail"] != ROOT_MSG
+
+
+def test_root_only_features_remain_readable(api):
+    c, cid = api
+    STATE["cfg"] = {**CFG0, "features": "nesting=1,keyctl=1,fuse=1,mount=nfs"}
+    f = c.get(u(cid)).json()["options"]["features"]
+    assert f == {"nesting": True, "fuse": True, "keyctl": True, "mount": ["nfs"]}
 
 
 def test_unreadable_config_is_502_and_nothing_is_written(api):

@@ -19,6 +19,9 @@ LXC_CLEARABLE = Literal["onboot", "startup", "protection", "features", "ostype",
 LXC_BOOLEANS = ("onboot", "protection", "console")
 IMMUTABLE = ("unprivileged", "arch")
 MANAGED_FEATURES = ("nesting", "fuse", "keyctl", "mount")
+ROOT_ONLY_FEATURES = ("fuse", "keyctl", "mount")                      # Proxmox les réserve à root@pam (essai réel, lot #164)
+ROOT_ONLY_MESSAGE = ("Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. "
+                     "Fais-le dans l'interface de Proxmox.")
 
 
 class Features(BaseModel):
@@ -183,3 +186,19 @@ def lxc_protected_refusal(body: LxcOptionsUpdate, cfg: dict) -> str | None:
     if lxc_risks(body, cfg):
         return "Ce conteneur est protégé par Kaji : ce réglage dangereux est refusé"
     return None
+
+
+_ROOT_ONLY_RE = re.compile(r"(?:.*,)?(?:fuse|keyctl|mount)=.*")
+
+
+def touches_root_only(body, cfg, params, delete) -> bool:
+    """La demande envoyée à Proxmox contient-elle `fuse`, `keyctl` ou `mount` ?
+
+    Trois cas : le corps les modifie (même pour les retirer) ; la chaîne `features` reconstruite les garde (un conteneur qui les a déjà : `nesting`
+    seul renvoie toute la chaîne) ; `clear: [features]` les retire. `nesting` sur un conteneur sans ces réglages reste permis au token de Kaji."""
+    f = body.features
+    if f is not None and any(getattr(f, k) is not None for k in ROOT_ONLY_FEATURES):
+        return True
+    if _ROOT_ONLY_RE.fullmatch(str(params.get("features", ""))):
+        return True
+    return "features" in delete and bool(_ROOT_ONLY_RE.fullmatch(str(cfg.get("features", ""))))
