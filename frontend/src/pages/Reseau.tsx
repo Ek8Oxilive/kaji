@@ -3,10 +3,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import { FwObjectsDialog } from "../components/FwObjectsDialog";
 import { FwOptionsDialog } from "../components/FwOptionsDialog";
 import { NetWriteDialog, type NetMode } from "../components/NetWriteDialog";
+import { SdnDialog, type SdnMode } from "../components/SdnDialog";
 import { FwRulesDialog } from "../components/FwRulesDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
+import type { SdnSubnet, SdnVnet, SdnZone } from "../lib/types/sdn";
 import { isErr, type FwCluster, type FwNode, type FwOptions, type FwPart, type FwRule, type NetIface, type NetworkInfo } from "../lib/types/reseau";
 
 const TYPE_LABEL: Record<string, string> = { bridge: "Bridge", bond: "Bond", eth: "Carte", vlan: "VLAN", alias: "Alias", OVSBridge: "Bridge OVS", unknown: "Autre" };
@@ -55,6 +57,17 @@ function Rules({ rules }: { rules: FwPart<FwRule[]> }) {
 const Options = ({ o }: { o: FwPart<FwOptions> }) => isErr(o) ? <Notice kind="error">{o.error}</Notice> : (
   <p className="text-sm text-muted">{Object.entries(o).filter(([k]) => k !== "digest").map(([k, v]) => `${k} : ${v === null ? "–" : typeof v === "boolean" ? yn(v) : v}`).join(" · ") || "Aucune option définie."}</p>);
 
+function VnetRow({ v, connId, onAddSubnet, onDelete, onDeleteSubnet }: { v: SdnVnet; connId: number | null; onAddSubnet: () => void; onDelete: () => void; onDeleteSubnet: (s: string) => void }) {
+  const subs = useQuery({ queryKey: ["sdn", connId, "subnets", v.vnet], queryFn: () => api<SdnSubnet[]>(`/api/connections/${connId}/sdn/vnets/${v.vnet}/subnets`), enabled: connId !== null });
+  return (
+    <tr className="border-b border-line/60 align-top last:border-0"><td className="px-4 py-2 font-mono">{v.vnet}</td><td className="px-4 py-2 text-muted">{v.zone}</td>
+      <td className="px-4 py-2 text-muted">{[v.alias, v.tag && `tag ${v.tag}`, v.vlanaware && "VLAN aware"].filter(Boolean).join(" · ") || "–"}
+        {(subs.data ?? []).map((s) => <span key={s.subnet} className="mt-1 flex items-center gap-2 text-xs">{s.cidr ?? s.subnet}{s.gateway ? ` via ${s.gateway}` : ""}{s.state ? ` (${s.state})` : ""}<button type="button" className="rounded border border-danger/50 px-1 text-danger" onClick={() => onDeleteSubnet(s.subnet)}>×</button></span>)}</td>
+      <td className="px-4 py-2 text-muted">{v.state ?? "appliqué"}</td>
+      <td className="px-4 py-2 text-right"><span className="flex justify-end gap-1"><button type="button" className="rounded border border-line px-2" onClick={onAddSubnet}>+ sous-réseau</button><button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={onDelete}>Supprimer</button></span></td></tr>
+  );
+}
+
 export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
   const { active, id } = useActiveConnection();
   const nodes = useQuery({ queryKey: ["nodes", id], queryFn: () => api<{ node: string }[]>(`/api/connections/${id}/nodes`), enabled: id !== null });
@@ -62,12 +75,15 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
   const [objects, setObjects] = useState(false);
   const [options, setOptions] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [sdnMode, setSdnMode] = useState<SdnMode | null>(null);
   const [netMode, setNetMode] = useState<NetMode | null>(null);
   useEffect(() => { if (!node && nodes.data?.length) setNode(nodes.data[0].node); }, [nodes.data, node]);
   const net = useQuery({ queryKey: ["network", id, node], queryFn: () => api<NetworkInfo>(`/api/connections/${id}/nodes/${encodeURIComponent(node)}/network`), enabled: id !== null && !!node, staleTime: 15_000 });
   const dc = useQuery({ queryKey: ["fw-cluster", id], queryFn: () => api<FwCluster>(`/api/connections/${id}/firewall/cluster`), enabled: id !== null, staleTime: 15_000 });
   const fn = useQuery({ queryKey: ["fw-node", id, node], queryFn: () => api<FwNode>(`/api/connections/${id}/firewall/nodes/${encodeURIComponent(node)}`), enabled: id !== null && !!node, staleTime: 15_000 });
 
+  const zones = useQuery({ queryKey: ["sdn", id, "zones"], queryFn: () => api<SdnZone[]>(`/api/connections/${id}/sdn/zones`), enabled: id !== null, staleTime: 15_000 });
+  const vnets = useQuery({ queryKey: ["sdn", id, "vnets"], queryFn: () => api<SdnVnet[]>(`/api/connections/${id}/sdn/vnets`), enabled: id !== null, staleTime: 15_000 });
   if (!active) return (
     <div className="mx-auto grid max-w-3xl place-items-center py-24 text-center"><div className="panel space-y-4 p-10">
       <h1 className="text-2xl font-semibold tracking-tight">Aucun cluster connecté</h1><Button onClick={onGoConnections}>Ajouter un cluster</Button></div></div>
@@ -105,6 +121,21 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
       </Section>
 
       {options && id !== null && <FwOptionsDialog connId={id} node={node} onClose={() => setOptions(false)} />}
+      <Section title="SDN" hint="Tout est écrit en attente ; « Appliquer » pousse la configuration sur tous les nœuds.">
+        <div className="flex flex-wrap gap-2"><Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setSdnMode({ kind: "zone" })}>Ajouter une zone…</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setSdnMode({ kind: "vnet" })}>Ajouter un VNet…</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setSdnMode({ kind: "apply" })}>Appliquer…</Button>
+          <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setSdnMode({ kind: "rollback" })}>Annuler les modifications…</Button></div>
+        {zones.error ? <Notice kind="error">{(zones.error as Error).message}</Notice> : (zones.data ?? []).length === 0 ? <Empty>Aucune zone SDN.</Empty> : (
+          <Table head={["Zone", "Type", "Détails", "État", ""]}>{(zones.data ?? []).map((z) => (
+            <tr key={z.zone} className="border-b border-line/60 last:border-0"><td className="px-4 py-2 font-mono">{z.zone}</td><td className="px-4 py-2 text-muted">{z.type}</td>
+              <td className="px-4 py-2 text-muted">{[z.bridge && `bridge ${z.bridge}`, z.tag && `tag ${z.tag}`, z.nodes.length > 0 && z.nodes.join(", ")].filter(Boolean).join(" · ") || "–"}</td>
+              <td className="px-4 py-2 text-muted">{z.state ?? "appliquée"}</td><td className="px-4 py-2 text-right"><button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={() => setSdnMode({ kind: "delete", what: "zones", id: z.zone })}>Supprimer</button></td></tr>))}</Table>)}
+        {vnets.error ? <Notice kind="error">{(vnets.error as Error).message}</Notice> : (vnets.data ?? []).length > 0 && (
+          <Table head={["VNet", "Zone", "Détails", "État", ""]}>{(vnets.data ?? []).map((v) => <VnetRow key={v.vnet} v={v} connId={id} onAddSubnet={() => setSdnMode({ kind: "subnet", vnet: v.vnet })} onDelete={() => setSdnMode({ kind: "delete", what: "vnets", id: v.vnet })} onDeleteSubnet={(s) => setSdnMode({ kind: "delete", what: "subnets", id: s, vnet: v.vnet })} />)}</Table>)}
+      </Section>
+
+      {sdnMode && id !== null && <SdnDialog connId={id} mode={sdnMode} onClose={() => setSdnMode(null)} />}
       {netMode && id !== null && <NetWriteDialog connId={id} node={node} mode={netMode} ifaces={net.data?.interfaces ?? []} pendingDiff={net.data?.changes ?? null} onClose={() => setNetMode(null)} />}
       {rulesOpen && id !== null && <FwRulesDialog connId={id} node={node} onClose={() => setRulesOpen(false)} />}
       {objects && id !== null && <FwObjectsDialog connId={id} onClose={() => setObjects(false)} />}
