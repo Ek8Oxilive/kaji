@@ -213,7 +213,7 @@ def test_no_fix_when_nothing_is_missing(api):
 def test_missing_privilege_gives_role_and_acl_commands(api):
     STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
     f = fixes(api)
-    assert list(f) == ["backup-jobs", "acme"]                           # les fonctions qui exigent Sys.Modify sur « / » (ACME en fait partie)
+    assert list(f) == ["backup-jobs", "datacenter-write", "acme"]       # les fonctions qui exigent Sys.Modify sur « / » (ACME et les options du datacenter en font partie)
     assert f["backup-jobs"]["commands"] == [
         "pveum role add Kaji-backup-jobs -privs Sys.Modify",
         "pveum aclmod / -user kaji@pve -role Kaji-backup-jobs"]
@@ -290,7 +290,7 @@ def test_build_fixes_only_concerns_missing_features():
 def test_unknown_next_to_missing_gets_no_command(api):
     STATE["perms"] = {"/": {k: 1 for k in ALL_PRIVS if k != "Sys.Modify"}}
     STATE["fail_paths"] = {"/sdn/zones"}                                # « network » devient inconnu
-    assert list(fixes(api)) == ["backup-jobs", "acme"]                 # « network » inconnu : aucune commande ; Sys.Modify sur « / » manque aux deux autres
+    assert list(fixes(api)) == ["backup-jobs", "datacenter-write", "acme"]  # « network » inconnu : aucune commande ; Sys.Modify sur « / » manque aux trois autres
 
 
 def test_node_console_right_has_its_own_fix(api):
