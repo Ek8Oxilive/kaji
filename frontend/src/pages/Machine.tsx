@@ -9,6 +9,7 @@ import { ConsoleTab } from "../components/ConsoleTab";
 import { CloudInitTab } from "../components/CloudInitTab";
 import { LxcOptionsTab } from "../components/LxcOptionsTab";
 import { OptionsTab } from "../components/OptionsTab";
+import { PowerActions } from "../components/PowerActions";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Gauge } from "../components/Gauge";
 import { HardwareTab } from "../components/HardwareTab";
@@ -94,6 +95,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
               <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
               <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>
             </>}
+            <PowerActions connId={connId} guest={guest} running={running} stopped={stopped} disabled={off} />
           </>}
         </div>
       </header>
