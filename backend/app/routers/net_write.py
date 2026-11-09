@@ -58,7 +58,8 @@ def _cfg(i: dict | None) -> dict:
 
 
 def _same(want: dict, got: dict) -> bool:
-    return all(got.get(k) == v for k, v in want.items() if k in ("cidr", "cidr6", "gateway", "gateway6", "mtu", "comments", "bridge_ports", "slaves", "bridge_vlan_aware", "bond_mode"))
+    norm = lambda v: v.strip() if isinstance(v, str) else v                      # Proxmox renvoie les commentaires avec un saut de ligne final (constaté en réel)
+    return all(norm(got.get(k)) == norm(v) for k, v in want.items() if k in ("cidr", "cidr6", "gateway", "gateway6", "mtu", "comments", "bridge_ports", "slaves", "bridge_vlan_aware", "bond_mode"))
 
 
 async def _stage(op: str, ctx: Ctx, name: str, body, kind: str | None):
