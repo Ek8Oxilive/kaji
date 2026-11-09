@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { HaDialog } from "../components/HaDialog";
+import { ReplDialog } from "../components/ReplDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
-import type { HaMode, HaResource, HaRule, HaStatus, ReplJob, ReplStatus } from "../lib/types/ha";
+import type { HaMode, HaResource, HaRule, HaStatus, ReplJob, ReplMode, ReplStatus } from "../lib/types/ha";
 
 const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
   <div className="overflow-x-auto rounded-xl border border-line"><table className="w-full min-w-[32rem] text-sm">
@@ -13,10 +14,10 @@ const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
 const Empty = ({ children }: { children: ReactNode }) => <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">{children}</div>;
 const when = (t: number | null) => (t ? new Date(t * 1000).toLocaleString() : "–");
 
-/** Haute disponibilité (écriture avec verrous, M8-2) et réplication (lecture seule). */
-export function HauteDispo({ onGoConnections }: { onGoConnections: () => void }) {
+/** Page « HA » : haute disponibilité (M8-2) et réplication (M8-3), écritures verrouillées avec aperçu. */
+export function HA({ onGoConnections }: { onGoConnections: () => void }) {
   const { active, id } = useActiveConnection();
-  const [mode, setMode] = useState<HaMode | null>(null);
+  const [mode, setMode] = useState<HaMode | null>(null), [rmode, setRmode] = useState<ReplMode | null>(null);
   const q = <T,>(key: string, path: string) => useQuery({ queryKey: ["ha", id, key], queryFn: () => api<T>(`/api/connections/${id}/${path}`), enabled: id !== null, staleTime: 10_000 }); // eslint-disable-line react-hooks/rules-of-hooks
   const status = q<HaStatus[]>("status", "ha/status"), res = q<HaResource[]>("resources", "ha/resources"), rules = q<HaRule[]>("rules", "ha/rules"), jobs = q<ReplJob[]>("jobs", "replication");
   const nodes = useQuery({ queryKey: ["nodes", id], queryFn: () => api<{ node: string }[]>(`/api/connections/${id}/nodes`), enabled: id !== null });
@@ -32,7 +33,7 @@ export function HauteDispo({ onGoConnections }: { onGoConnections: () => void })
   const quorum = status.data?.find((s) => s.type === "quorum"), fencing = status.data?.find((s) => s.type === "fencing");
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <header><h1 className="text-2xl font-semibold tracking-tight">Haute disponibilité et réplication</h1><p className="text-muted">{active.name} · HA modifiable avec verrous · réplication en lecture seule</p></header>
+      <header><h1 className="text-2xl font-semibold tracking-tight">HA : haute disponibilité et réplication</h1><p className="text-muted">{active.name} · écritures verrouillées, avec aperçu</p></header>
       <Notice kind="ok">Avec deux nœuds, la HA est risquée : si un nœud tombe, l'autre perd le quorum et peut redémarrer de lui-même (chien de garde). Toute écriture HA est d'abord prévisualisée, et exige ici la phrase COUPURE POSSIBLE.</Notice>
 
       <section className="space-y-3"><h2 className="text-lg font-semibold">État</h2>
@@ -59,17 +60,19 @@ export function HauteDispo({ onGoConnections }: { onGoConnections: () => void })
               <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMode({ kind: "rule-edit", rule: r })}>Modifier</button><button className="text-danger underline" onClick={() => setMode({ kind: "rule-delete", rule: r })}>Supprimer</button></td></tr>))}</Table>)}
       </section>
 
-      <section className="space-y-3"><h2 className="text-lg font-semibold">Réplication</h2>
-        {jobs.error ? err(jobs.error) : (jobs.data ?? []).length === 0 ? <Empty>Aucun job de réplication. La réplication exige du stockage ZFS sur les deux nœuds.</Empty> : (
-          <Table head={["Job", "Machine", "Source → cible", "Planification", "Dernière synchro", "Prochaine", "Échecs"]}>{(jobs.data ?? []).map((j) => {
+      <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Réplication</h2><Button variant="ghost" onClick={() => setRmode({ kind: "new" })}>Nouveau job…</Button></div>
+        {jobs.error ? err(jobs.error) : (jobs.data ?? []).length === 0 ? <Empty>Aucun job de réplication. La réplication exige du stockage ZFS sur les deux nœuds : sans lui, « Nouveau job… » indiquera ce qui bloque.</Empty> : (
+          <Table head={["Job", "Machine", "Source → cible", "Planification", "Dernière synchro", "Prochaine", "Échecs", ""]}>{(jobs.data ?? []).map((j) => {
             const s = (rstat.data ?? []).find((x) => x.id === j.id);
             return (<tr key={j.id} className={`border-b border-line/60 last:border-0 ${j.disable ? "opacity-50" : ""}`}><td className="px-4 py-2 font-mono">{j.id}</td><td className="px-4 py-2">{j.guest ?? "–"}</td>
               <td className="px-4 py-2 text-muted">{j.source ?? "?"} → {j.target ?? "?"}</td><td className="px-4 py-2 text-muted">{j.schedule ?? "–"}</td>
               <td className="px-4 py-2 text-muted">{when(s?.last_sync ?? null)}</td><td className="px-4 py-2 text-muted">{when(s?.next_sync ?? null)}</td>
-              <td className={`px-4 py-2 ${s?.fail_count ? "text-danger" : "text-muted"}`} title={s?.error ?? undefined}>{s?.fail_count ?? 0}</td></tr>);
+              <td className={`px-4 py-2 ${s?.fail_count ? "text-danger" : "text-muted"}`} title={s?.error ?? undefined}>{s?.fail_count ?? 0}</td>
+              <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs">{j.remove_job ? <span className="text-muted">suppression en cours</span> : <><button className="underline" onClick={() => setRmode({ kind: "edit", job: j })}>Modifier</button><button className="underline" onClick={() => setRmode({ kind: "now", job: j })}>Lancer</button><button className="text-danger underline" onClick={() => setRmode({ kind: "delete", job: j })}>Supprimer</button></>}</td></tr>);
           })}</Table>)}
       </section>
       {mode && id !== null && <HaDialog connId={id} mode={mode} onClose={() => setMode(null)} />}
+      {rmode && id !== null && <ReplDialog connId={id} mode={rmode} onClose={() => setRmode(null)} />}
     </div>
   );
 }

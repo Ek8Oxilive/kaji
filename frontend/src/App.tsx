@@ -10,7 +10,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Machine } from "./pages/Machine";
 import { NodePage } from "./pages/Node";
 import { Sauvegardes } from "./pages/Sauvegardes";
-import { HauteDispo } from "./pages/HauteDispo";
+import { HA } from "./pages/HA";
 import { Reseau } from "./pages/Reseau";
 import { Stockage } from "./pages/Stockage";
 import { Taches } from "./pages/Taches";
@@ -44,7 +44,7 @@ export default function App() {
         : page === "ceph" ? <CephPage onGoConnections={goConnections} />
         : page === "tasks" ? <Taches onGoConnections={goConnections} />
         : page === "network" ? <Reseau onGoConnections={goConnections} />
-        : page === "ha" ? <HauteDispo onGoConnections={goConnections} />
+        : page === "ha" ? <HA onGoConnections={goConnections} />
         : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );

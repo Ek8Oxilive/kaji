@@ -14,7 +14,7 @@ export const NAV: NavItem[] = [
   { id: "ceph", label: "Ceph" },
   { id: "tasks", label: "Tâches" },
   { id: "network", label: "Réseau" },
-  { id: "ha", label: "Haute dispo" },
+  { id: "ha", label: "HA" },
 ];
 // Réglages rarement utilisés : en bas de la barre, au-dessus de « Compte » et « Déconnexion ».
 export const NAV_BOTTOM: NavItem[] = [
