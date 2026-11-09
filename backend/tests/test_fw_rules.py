@@ -66,7 +66,7 @@ def _handler(request: httpx.Request) -> httpx.Response:
         if "type" not in body or "action" not in body:
             return httpx.Response(400, json={"data": None, "message": "type/action requis"})
         r = {k: v for k, v in fields.items()}
-        rules.insert(int(body["pos"]) if "pos" in body else len(rules), r)
+        rules.insert(int(body["pos"]) if "pos" in body else 0, r)            # réel : sans pos, en tête
     elif m == "DELETE":
         rules.pop(pos)
     else:
@@ -75,7 +75,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
             r.pop(k.replace("-", "_"), None)
         r.update(fields)
         if "moveto" in body:
-            rules.insert(int(body["moveto"]), rules.pop(pos))
+            to = int(body["moveto"])                                           # réel : « avant la règle d'origine n° moveto »
+            r = rules.pop(pos)
+            rules.insert(to - 1 if to > pos else to, r)
     return httpx.Response(200, json={"data": None})
 
 
@@ -375,3 +377,15 @@ def test_moving_alone_accept_is_a_cut(api):
 def test_plus_ipset_needs_a_name(api):
     c, cid = api
     assert post(c, cid, "guest", type="in", action="ACCEPT", source="+10.0.0.1").status_code == 422
+
+
+def test_move_uses_final_position(api):
+    c, cid = api
+    for n in "ABC":
+        post(c, cid, "guest", type="in", action="ACCEPT", comment=n)
+    order = lambda: "".join(r["comment"] for r in ST["rules"]["guest"])
+    assert order() == "CBA"                                   # sans pos, Proxmox insère en tête
+    for pos, to, want in ((0, 2, "BAC"), (2, 0, "CBA"), (1, 2, "CAB"), (2, 1, "CBA"), (0, 1, "BCA"), (1, 0, "CBA")):
+        assert move(c, cid, "guest", pos, to).status_code == 200, (pos, to)
+        assert order() == want, (pos, to, order())
+    assert move(c, cid, "guest", 1, 1).status_code == 422

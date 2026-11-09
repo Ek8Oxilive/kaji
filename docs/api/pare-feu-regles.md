@@ -12,9 +12,9 @@ Créer, modifier, déplacer et supprimer des règles au datacenter, sur un nœud
 La lecture reste `GET /firewall/cluster`, `/firewall/nodes/{node}`, `/firewall/guests/…`, `/firewall/cluster/groups/{name}`.
 
 ## Corps
-- **Créer** : `type` (`in`, `out`, `forward`, `group`) et `action` (`ACCEPT`, `DROP`, `REJECT`, ou le nom d'un groupe existant si `type=group`) obligatoires ; `enable` (booléen strict, **faux par défaut**), `source`, `dest` (adresses, plages, alias, `+ipset`), `proto`, `sport`, `dport`, `iface`, `macro` (vérifiée contre `/cluster/firewall/macros`), `log`, `icmp_type`, `comment`, `pos` (insertion).
+- **Créer** : `type` (`in`, `out`, `forward`, `group`) et `action` (`ACCEPT`, `DROP`, `REJECT`, ou le nom d'un groupe existant si `type=group`) obligatoires ; `enable` (booléen strict, **faux par défaut**), `source`, `dest` (adresses, plages, alias, `+ipset`), `proto`, `sport`, `dport`, `iface`, `macro` (vérifiée contre `/cluster/firewall/macros`), `log`, `icmp_type`, `comment`, `pos` (insertion ; **sans `pos`, Proxmox insère la règle en tête**, constaté en réel).
 - **Modifier** : seuls les champs fournis changent ; `clear: [...]` retire des champs (`source`, `dest`, `proto`, `sport`, `dport`, `iface`, `macro`, `log`, `icmp_type`, `comment`).
-- **Déplacer** : `moveto`.
+- **Déplacer** : `moveto` = **position finale** de la règle (Kaji traduit : Proxmox attend « avant la règle d'origine n° moveto »). Même position : 422.
 - Verrous communs : `confirm`, `acknowledge_live`, `acknowledge_cut_access`, `type_name`, `dry_run` (pour `DELETE`, en paramètres de requête).
 - Niveau groupe : `in`/`out` seulement. Niveau machine : pas de `forward`. Champs inconnus ignorés, jamais transmis.
 
