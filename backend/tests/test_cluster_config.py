@@ -39,7 +39,7 @@ def full():
     DATA["/cluster/status"] = [{"type": "cluster", "name": "lab", "quorate": 1, "nodes": 2, "version": 7, "id": "cluster"},
                                {"type": "node", "name": "enzo", "nodeid": 1, "online": 1, "ip": "192.168.1.200", "local": 1},
                                {"type": "node", "name": "enzo2", "nodeid": 2, "online": 1, "ip": "192.168.1.201", "local": 0}]
-    DATA["/cluster/config/nodes"] = [{"name": "enzo", "nodeid": "1", "quorum_votes": "1", "ring0_addr": "192.168.1.200", "ring1_addr": "10.0.0.1", "pve_fp": FP},
+    DATA["/cluster/config/nodes"] = [{"name": "enzo", "nodeid": "1", "quorum_votes": "1", "ring0_addr": "192.168.1.200", "ring1_addr": "10.0.0.1"},
                                      {"name": "enzo2", "nodeid": 2, "quorum_votes": 1, "ring0_addr": "192.168.1.201"}]
     DATA["/cluster/config/totem"] = {"cluster_name": "lab", "config_version": "7", "interface": {"0": {"linknumber": "0"}, "1": {"linknumber": "1"}}, "ip_version": "ipv4-6",
                                      "link_mode": "passive", "secauth": "on", "version": "2"}
@@ -60,7 +60,7 @@ def test_full_summary_merges_status_and_corosync(api):
     n1, n2 = j["nodes"]
     assert (n1["name"], n1["nodeid"], n1["online"], n1["local"], n1["votes"], n1["ip"], n1["fingerprint"]) == ("enzo", 1, True, True, 1, "192.168.1.200", FP)
     assert n1["links"] == [{"link": 0, "addr": "192.168.1.200"}, {"link": 1, "addr": "10.0.0.1"}]
-    assert (n2["name"], n2["local"], n2["votes"], n2["fingerprint"]) == ("enzo2", False, 1, None)
+    assert (n2["name"], n2["local"], n2["votes"], n2["fingerprint"]) == ("enzo2", False, 1, FP)            # empreintes : liste de jonction
     assert j["totem"] == {"cluster_name": "lab", "config_version": 7, "ip_version": "ipv4-6", "link_mode": "passive", "secauth": "on", "transport": None, "links": [0, 1]}
     assert all(m == "GET" for m, _ in CALLS) and {p for _, p in CALLS} == {"/cluster/status", "/cluster/config/nodes", "/cluster/config/totem", "/cluster/config/qdevice", "/cluster/config/join"}
     assert j["join"] == {"preferred_node": "enzo", "address": "192.168.1.200", "fingerprint": FP, "nodes": 2}
@@ -138,6 +138,16 @@ def test_join_shape_picks_the_preferred_node_and_ignores_junk():
     assert j == {"preferred_node": "b", "address": "10.0.0.2", "fingerprint": None, "nodes": 2} and SECRET not in repr(j)
     assert shape_join({"preferred_node": "zz", "nodelist": [{"name": "a", "pve_addr": "10.0.0.1"}]}) == {"preferred_node": "zz", "address": None, "fingerprint": None, "nodes": 1}
     assert shape_join({"preferred_node": "a b", "nodelist": "x"}) == {"preferred_node": None, "address": None, "fingerprint": None, "nodes": 0}
+
+
+def test_merge_prefers_corosync_fingerprint_then_join_list():
+    other = ":".join(["CD"] * 32)
+    st = [{"name": "a", "nodeid": 1, "online": True, "ip": None, "local": True}, {"name": "b", "nodeid": 2, "online": True, "ip": None, "local": False}]
+    co = [{"name": "a", "nodeid": 1, "votes": 1, "links": [], "pve_addr": None, "fingerprint": other}, {"name": "b", "nodeid": 2, "votes": 1, "links": [], "pve_addr": None, "fingerprint": None},
+          {"name": "c", "nodeid": 3, "votes": 1, "links": [], "pve_addr": None, "fingerprint": None}]
+    join = [{"name": "a", "fingerprint": FP}, {"name": "b", "fingerprint": FP}, {"name": "c", "fingerprint": FP}]
+    assert [n["fingerprint"] for n in merge_nodes(st, co, join)] == [other, FP, FP]
+    assert [n["fingerprint"] for n in merge_nodes(st, co)] == [other, None, None]
 
 
 def test_merge_keeps_nodes_known_only_to_corosync():

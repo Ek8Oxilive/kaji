@@ -89,14 +89,15 @@ def shape_join(raw) -> dict | None:
     return {"preferred_node": pref, "address": addr, "fingerprint": node["fingerprint"] if node else None, "nodes": len(nodes)}
 
 
-def merge_nodes(status_nodes: list[dict], corosync: list[dict]) -> list[dict]:
-    """Un nœud par ligne : état (en ligne, adresse) du statut + votes et liens de corosync."""
+def merge_nodes(status_nodes: list[dict], corosync: list[dict], join_nodes: list[dict] | None = None) -> list[dict]:
+    """Un nœud par ligne : état (en ligne, adresse) du statut + votes et liens de corosync ; l'empreinte vient de corosync, sinon de la liste de jonction (constaté en réel : `/cluster/config/nodes` ne la donne pas)."""
     by_name = {n["name"]: n for n in corosync}
+    fp_join = {n["name"]: n["fingerprint"] for n in join_nodes or []}
     out = []
     for s in status_nodes:
         c = by_name.pop(s["name"], None)
         out.append({"name": s["name"], "nodeid": s["nodeid"] if s["nodeid"] is not None else (c or {}).get("nodeid"), "online": s["online"], "ip": s["ip"], "local": s["local"],
-                    "votes": (c or {}).get("votes"), "links": (c or {}).get("links", []), "fingerprint": (c or {}).get("fingerprint")})
+                    "votes": (c or {}).get("votes"), "links": (c or {}).get("links", []), "fingerprint": (c or {}).get("fingerprint") or fp_join.get(s["name"])})
     for c in by_name.values():                                     # dans corosync mais absent du statut
-        out.append({"name": c["name"], "nodeid": c["nodeid"], "online": None, "ip": c["pve_addr"], "local": False, "votes": c["votes"], "links": c["links"], "fingerprint": c["fingerprint"]})
+        out.append({"name": c["name"], "nodeid": c["nodeid"], "online": None, "ip": c["pve_addr"], "local": False, "votes": c["votes"], "links": c["links"], "fingerprint": c["fingerprint"] or fp_join.get(c["name"])})
     return out
