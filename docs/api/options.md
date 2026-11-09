@@ -64,7 +64,7 @@ illisible : 502. Erreur de Proxmox : 502 traduit, sans secret.
 
 # Options d'un conteneur LXC (lot #145)
 
-> **Non validé en réel**, comme les VM. Fichiers : `routers/options.py` (même fichier), `lxcoptionspec.py`, `components/LxcOptionsTab.tsx`
+> **Validé en réel le 2026-11-08 (premier essai) et le 2026-11-09 (lot #164, LXC jetable 118)** : voir « Validé en réel » en bas de page. Fichiers : `routers/options.py` (même fichier), `lxcoptionspec.py`, `components/LxcOptionsTab.tsx`
 > (onglet « Options » de la page Machine, conteneurs). Faux Proxmox strict sur `PUT /nodes/{node}/lxc/{vmid}/config`.
 
 | Route | Rôle |
@@ -94,15 +94,29 @@ Mêmes règles que pour les VM (booléens stricts, champs inconnus ignorés, `cl
 - **Confirmation décidée par le serveur** : seulement `protection` retirée d'un conteneur protégé. Un conteneur de `KAJI_PROTECTED_VMIDS` refuse
   de perdre sa protection **même avec `confirm`** (409).
 - **`keyctl`, `fuse` et `mount` sont réservés à `root@pam`** (essai réel de PC A, 2026-11-08 : `nesting` passe, `keyctl` et `fuse` donnent « Droits
-  insuffisants », `mount` très probablement aussi). Quand Proxmox répond 403 à une écriture qui contient l'un d'eux (même pour le retirer), Kaji
+  insuffisants » ; `mount` aussi, observé le 2026-11-09). Quand Proxmox répond 403 à une écriture qui contient l'un d'eux (même pour le retirer), Kaji
   (ou dont la chaîne `features` renvoyée les contient : un conteneur qui les a déjà, même pour changer `nesting` ; ou `clear: [features]` sur un tel conteneur) répond **403** avec un message fixe (« Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans
   l'interface de Proxmox. »), sans valeur saisie ni message brut de Proxmox, et l'audite (`options`, erreur, même texte). Proxmox refuse la demande
   **en entier** : une écriture combinée (démarrage + fuseau + `keyctl`) n'applique rien. Un 403 sur une écriture sans ces trois réglages, ou sur une
   lecture, reste un 502 générique. La **lecture** de ces réglages n'est pas touchée. L'interface les affiche en lecture seule avec une note ;
   `nesting` reste modifiable.
 
-## Non validé en réel (à essayer sur un LXC jetable, par exemple 118)
-- l'acceptation par Proxmox de `features=nesting=1,fuse=0,keyctl=1,mount=nfs;cifs`, de `startup=order=1,up=2,down=3` et de `timezone=host` ;
-- le 403 explicite sur `keyctl` / `fuse` (lot #164 : faux Proxmox seulement) et le refus de `mount` (supposé, jamais observé) ;
-- les valeurs par défaut affichées pour un réglage absent (`console` actif, tous les `features` désactivés) : tirées de la documentation, pas observées ;
-- l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).
+## Validé en réel (2026-11-09, PC A, LXC jetable 118 sur `enzo2`, créé depuis Alpine 3.23, supprimé ensuite)
+- **403 explicite** pour `keyctl`, `fuse` **et `mount`** (`{"features":{"keyctl":true}}`, `{"features":{"fuse":true}}`, `{"features":{"mount":["nfs"]}}`) : message
+  fixe « Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans l'interface de Proxmox. ». **`mount` est donc
+  bien réservé à `root@pam`** (première observation réelle). Les trois réglages se donnent **sous `features`** : à la racine (`{"fuse":true}`), Kaji les ignore et
+  répond 400 « Aucune modification demandée ».
+- **Écriture combinée** (`onboot` + `timezone` + `keyctl`) : 403 et **rien d'appliqué** (`onboot` et `timezone` relus à `null`).
+- **Interface** : FUSE, keyctl et montages en lecture seule avec la note « Modifiable seulement dans Proxmox (droit root@pam) » ; **nesting** coché puis enregistré
+  (`features.nesting = true`, toast « certains réglages ne s'appliquent qu'au prochain démarrage », audit `features=nesting=1`) ; « Valeur par défaut » sur les
+  fonctionnalités envoie le retrait (`features` revient à `null`, audit « retiré : features »).
+- **Écritures ordinaires** : `onboot`, `tty`, `cmode=shell`, `timezone=Europe/Paris`, `protection` passent (200), relues une à une, puis retirées par `clear` ;
+  retirer `protection` sans `confirm` : 400 « Confirmation requise… » (rien changé), avec `confirm: true` : 200.
+- Audit : erreurs 403 avec le message fixe, aucun secret. Sur un LXC fraîchement créé tous les `features` sont `null` et `ostype` vaut `alpine`.
+
+## Non validé en réel
+- le **cas du relecteur** : `keyctl` activé dans l'interface de Proxmox (`root@pam`), puis Kaji change `nesting` seul ou fait `clear: [features]` (200 ou 403 ?) :
+  non fait (demande l'accord d'Enzo et un accès `root@pam`) ;
+- l'acceptation par Proxmox de `startup=order=1,up=2,down=3`, de `ostype` et de `description` sur un LXC ; l'affichage de « Valeur par défaut » quand
+  `keyctl`, `fuse` ou `mount` sont déjà actifs ;
+- les valeurs par défaut affichées pour un réglage absent (`console` actif, tous les `features` désactivés) restent tirées de la documentation.
