@@ -3,7 +3,9 @@
 Un champ valable pour un autre type est refusé (422), un champ inconnu ignoré, jamais transmis. Les SECRETS (`token` d'InfluxDB, `otel_headers` d'OpenTelemetry) sont des `SecretStr` :
 jamais renvoyés (seulement « défini »), jamais journalisés, jamais dans une erreur. `server` : nom d'hôte ou adresse IP, adresses locales littérales refusées (le nœud ouvrirait la connexion).
 """
+import hashlib
 import ipaddress
+import json
 import re
 from typing import Literal
 
@@ -168,7 +170,7 @@ def build(type_: str, body: ServerFields, clear: list[str], *, creating: bool) -
 
 
 def shape_server(raw, type_hint: str | None = None) -> dict | None:
-    """Un serveur de métriques en liste blanche. Les secrets ne sortent JAMAIS : seulement `token_set` / `otel_headers_set`."""
+    """Un serveur de métriques en liste blanche. Les secrets ne sortent JAMAIS et ne sont pas relus par Proxmox : Kaji ne sait pas s'ils sont définis (constaté en réel)."""
     if not isinstance(raw, dict):
         return None
     sid = raw.get("id")
@@ -190,15 +192,19 @@ def shape_server(raw, type_hint: str | None = None) -> dict | None:
     out = {"id": sid, "type": typ, "server": txt("server", 253), "port": num("port"), "disable": bool(flag("disable")), "digest": txt("digest", 64)}
     if typ == "influxdb":
         out.update({"influxdbproto": raw.get("influxdbproto") if raw.get("influxdbproto") in ("udp", "http", "https") else None, "organization": txt("organization"), "bucket": txt("bucket"),
-                    "max_body_size": num("max-body-size"), "mtu": num("mtu"), "verify_certificate": flag("verify-certificate"), "api_path_prefix": txt("api-path-prefix", 600),
-                    "token_set": bool(raw.get("token"))})
+                    "max_body_size": num("max-body-size"), "mtu": num("mtu"), "verify_certificate": flag("verify-certificate"), "api_path_prefix": txt("api-path-prefix", 600)})
     elif typ == "graphite":
         out.update({"proto": raw.get("proto") if raw.get("proto") in ("udp", "tcp") else None, "path": txt("path", 1100), "mtu": num("mtu"), "timeout": num("timeout")})
     else:
         out.update({"otel_protocol": raw.get("otel-protocol") if raw.get("otel-protocol") in ("http", "https") else None, "otel_path": txt("otel-path", 600), "otel_timeout": num("otel-timeout"),
                     "otel_compression": raw.get("otel-compression") if raw.get("otel-compression") in ("none", "gzip") else None, "otel_verify_ssl": flag("otel-verify-ssl"),
-                    "otel_max_body_size": num("otel-max-body-size"), "otel_resource_attributes_set": bool(raw.get("otel-resource-attributes")), "otel_headers_set": bool(raw.get("otel-headers"))})
+                    "otel_max_body_size": num("otel-max-body-size"), "otel_resource_attributes_set": bool(raw.get("otel-resource-attributes"))})
     return out
+
+
+def digest_of(shaped: dict) -> str:
+    """Empreinte des valeurs lues (propre à Kaji : la lecture d'un serveur n'a pas de `digest` chez Proxmox, constaté en réel)."""
+    return hashlib.sha256(json.dumps({k: v for k, v in shaped.items() if k != "digest"}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:40]
 
 
 def shape_list(raw) -> list[dict]:

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from .. import audit
 from ..db import get_db
 from ..deps import get_client_factory
-from ..metricsspec import ID, OUTBOUND, SECRETS, WIRE, ServerCreate, ServerUpdate, build, shape_list, shape_server
+from ..metricsspec import ID, OUTBOUND, SECRETS, WIRE, ServerCreate, ServerUpdate, build, digest_of, shape_list, shape_server
 from ..models import AdminUser
 from .auth import current_user
 from .cluster import Factory, _px
@@ -50,13 +50,15 @@ def _txt(params: dict, delete: list[str]) -> str:
 
 
 def _matches(after: dict | None, params: dict) -> bool:
-    """Le serveur relu porte-t-il bien les valeurs écrites ? (les secrets : seulement « défini »)."""
+    """Le serveur relu porte-t-il bien les valeurs écrites ? Les SECRETS ne sont jamais relus par Proxmox : ils ne sont pas vérifiés."""
     if after is None:
         return False
     for k, v in params.items():
         f = FROM_WIRE[k]
-        if k in WIRE_SECRETS or f"{f}_set" in after:                                  # champs exposés seulement « défini »
-            if not after.get(f"{f}_set"):
+        if k in WIRE_SECRETS:
+            continue
+        if f"{f}_set" in after:                                                      # champ exposé seulement « défini »
+            if not after[f"{f}_set"]:
                 return False
         elif f in FLAGS:
             if bool(after.get(f)) != bool(v):
@@ -74,12 +76,16 @@ async def _exists(c: Ctx, sid: str) -> dict:
     return row
 
 
-async def _detail(c: Ctx, sid: str, typ: str) -> dict:
+async def _detail(c: Ctx, sid: str, typ: str) -> tuple[dict, str | None]:
+    """`(détail pour l'API, digest de Proxmox s'il existe)`. Le `digest` de l'API est celui de Kaji (Proxmox n'en renvoie pas à la lecture d'un serveur)."""
     raw = await c.px("get", f"{BASE}/{sid}")
-    d = shape_server({**(raw if isinstance(raw, dict) else {}), "id": sid}, typ)
+    raw = raw if isinstance(raw, dict) else {}
+    d = shape_server({**raw, "id": sid}, typ)
     if d is None:
         c.refuse("Configuration illisible", status.HTTP_502_BAD_GATEWAY)
-    return d
+    pve_digest = d["digest"]
+    d["digest"] = digest_of(d)
+    return d, pve_digest
 
 
 @router.get("")
@@ -96,6 +102,7 @@ async def get_server(conn_id: int, sid: str = Path(pattern=ID.pattern), db: Sess
     d = shape_server({**(await _px(db, factory, conn_id, "get", f"{BASE}/{sid}") or {}), "id": sid}, row["type"])
     if d is None:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Configuration illisible")
+    d["digest"] = digest_of(d)
     return d
 
 
@@ -117,7 +124,7 @@ async def create_server(body: ServerCreate, response: Response, conn_id: int, db
     await c.px("post", f"{BASE}/{body.id}", type=body.type, **params)                # l'identifiant est dans le chemin
     if not any(r["id"] == body.id for r in shape_list(await c.px("get", BASE))):
         c.refuse("Proxmox n'a pas appliqué la création", status.HTTP_502_BAD_GATEWAY)
-    after = await _detail(c, body.id, body.type)
+    after, _ = await _detail(c, body.id, body.type)
     if not _matches(after, params):
         c.refuse("Proxmox n'a pas appliqué la création", status.HTTP_502_BAD_GATEWAY)
     c.log("started", f"{body.type} ; {_txt(params, [])}")
@@ -129,28 +136,31 @@ async def update_server(body: ServerUpdate, conn_id: int, sid: str = Path(patter
                         user: AdminUser = Depends(current_user)):
     c = Ctx(db, factory, conn_id, user, "metrics-server-update", sid)
     row = await _exists(c, sid)
-    cur = await _detail(c, sid, row["type"])
+    cur, pve_digest = await _detail(c, sid, row["type"])
     try:
         params, delete = build(cur["type"], body, list(body.clear), creating=False)
     except ValueError as e:
         c.refuse(str(e), status.HTTP_422_UNPROCESSABLE_ENTITY)
-    if body.digest is not None and cur.get("digest") is not None and body.digest != cur["digest"]:
+    if body.digest is not None and body.digest != cur["digest"]:
         c.refuse("La configuration a changé depuis ta lecture (digest périmé) : recharge avant de modifier", status.HTTP_409_CONFLICT)
     will_be_enabled = (params["disable"] == 0) if "disable" in params else not cur["disable"]
     enabling = cur["disable"] and params.get("disable") == 0
-    outbound = bool(WIRE_OUTBOUND & set(params)) or bool(WIRE_OUTBOUND & set(delete))
+    changed_out = {w for w in WIRE_OUTBOUND & set(params) if cur.get(FROM_WIRE[w]) != params[w]}                # une valeur identique n'est pas un changement
+    outbound = bool(changed_out) or bool(WIRE_OUTBOUND & set(delete))
     needs_confirm = will_be_enabled and (enabling or outbound)
     if body.dry_run:
         return {"dry_run": True, "params": _masked(params), "remove": delete, "needs_confirm": needs_confirm}
     if needs_confirm and not body.confirm:
         c.refuse("Ce changement modifie où partent les métriques de tout le cluster (ou active le serveur) : renvoie la requête avec confirm=true", status.HTTP_400_BAD_REQUEST)
     send = dict(params)
+    send.setdefault("server", cur["server"])                       # Proxmox exige `server` et `port` même pour une modification (constaté en réel)
+    send.setdefault("port", cur["port"])
     if delete:
         send["delete"] = ",".join(delete)
-    if body.digest or cur.get("digest"):
-        send["digest"] = body.digest or cur["digest"]
+    if pve_digest:
+        send["digest"] = pve_digest
     await c.px("put", f"{BASE}/{sid}", **send)
-    after = await _detail(c, sid, cur["type"])
+    after, _ = await _detail(c, sid, cur["type"])
     if not _matches(after, params):
         c.refuse("Proxmox n'a pas appliqué la modification", status.HTTP_502_BAD_GATEWAY)
     c.log("started", _txt(params, delete))
