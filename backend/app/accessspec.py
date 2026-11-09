@@ -91,7 +91,7 @@ FEATURES: tuple[Feature, ...] = (
     Feature("node-console", "Ouvrir la console (shell) d'un nœud", (("/nodes", ("Sys.Console",)),)),
     Feature("ha-write", "Gérer la haute disponibilité (ressources, règles, migrer, relocaliser)", (("/", ("Sys.Console",)),)),
     Feature("replication-write", "Gérer les jobs de réplication (créer, modifier, supprimer, lancer)", (("/vms", ("VM.Replicate",)),)),
-    Feature("datacenter-write", "Modifier les options et les notes du datacenter", (("/", ("Sys.Modify",)),)),
+    Feature("datacenter-write", "Modifier les options, les notes et les serveurs de métriques du datacenter", (("/", ("Sys.Modify",)),)),
     Feature("node-syslog", "Lire le journal système d'un nœud", (("/nodes", ("Sys.Syslog",)),)),
     Feature("node-updates", "Voir et rafraîchir les mises à jour disponibles d'un nœud", (("/nodes", ("Sys.Modify",)),)),
     Feature("node-services", "Démarrer, arrêter ou redémarrer un service d'un nœud", (("/nodes", ("Sys.Modify",)),)),
