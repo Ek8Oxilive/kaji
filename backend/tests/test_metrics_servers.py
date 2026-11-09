@@ -1,4 +1,5 @@
-"""Serveurs de métriques (lot #149) : faux Proxmox STRICT (chemin, paramètres par type, valeurs, digest ; 400 sinon). Il renvoie le jeton EN CLAIR : Kaji ne doit jamais le relayer."""
+"""Serveurs de métriques (lot #149) : faux Proxmox STRICT (chemin, paramètres par type, valeurs ; 400 sinon). Comme en réel : `server` et `port` OBLIGATOIRES au PUT, le jeton jamais relu, pas de `digest` à la lecture.
+Option `leaky` : il renvoie le jeton EN CLAIR (autre version possible) : Kaji ne doit jamais le relayer."""
 from urllib.parse import parse_qs
 
 import httpx
@@ -27,7 +28,7 @@ ENUMS = {"influxdbproto": {"udp", "http", "https"}, "proto": {"udp", "tcp"}, "ot
 
 def fresh():
     ST.clear()
-    ST.update(noapply=False, fail=False, servers={
+    ST.update(noapply=False, fail=False, leaky=False, pve_digest=None, servers={
         "influx1": {"type": "influxdb", "server": "192.168.1.50", "port": 8086, "influxdbproto": "https", "organization": "lab", "bucket": "pve", "token": TOKEN, "disable": 0},
         "graph1": {"type": "graphite", "server": "graphite.lan", "port": 2003, "proto": "udp", "path": "proxmox.lab", "disable": 1},
         "otel1": {"type": "opentelemetry", "server": "otel.lan", "port": 4318, "otel-protocol": "http", "otel-path": "/v1/metrics", "otel-headers": HDR, "disable": 0}})
@@ -59,7 +60,8 @@ def _handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json={"data": [{"id": k, "type": v["type"], "server": v["server"], "port": v["port"], "disable": v.get("disable", 0)} for k, v in ST["servers"].items()]})
         sid = p.removeprefix("/cluster/metrics/server/")
         if p.startswith("/cluster/metrics/server/") and sid in ST["servers"]:
-            return httpx.Response(200, json={"data": {**ST["servers"][sid], "digest": DIGEST}})
+            cfg = {k: v for k, v in ST["servers"][sid].items() if ST["leaky"] or k not in ("token", "otel-headers")}
+            return httpx.Response(200, json={"data": {**cfg, **({"digest": ST["pve_digest"]} if ST["pve_digest"] else {})}})
         return httpx.Response(500, json={"data": None, "message": "no such server"})
     if ST["fail"]:
         return httpx.Response(403, json={"data": None, "message": SECRET})
@@ -80,9 +82,11 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if cur is None:
         return httpx.Response(500, json={"data": None, "message": "no such server"})
     if m == "PUT":
+        if "server" not in body or "port" not in body:
+            return bad("Parameter verification failed : server et port obligatoires")
         if (err := check(body, cur["type"])):
             return bad(err)
-        if body.get("digest") != DIGEST:
+        if ST["pve_digest"] and body.get("digest") != ST["pve_digest"]:
             return bad("digest différent")
         dl = [x for x in body.get("delete", "").split(",") if x]
         if set(dl) - (KEYS[cur["type"]] - {"server", "port"}):
@@ -122,15 +126,17 @@ def audit_pairs(c):
 
 
 # ---------------------------------------------------------------- lecture : jamais de secret
-def test_list_and_detail_never_return_secrets(api):
+@pytest.mark.parametrize("leaky", [False, True])
+def test_list_and_detail_never_return_secrets(api, leaky):
     c, cid = api
+    ST["leaky"] = leaky
     r = c.get(url(cid))
     assert r.status_code == 200 and [x["id"] for x in r.json()] == ["graph1", "influx1", "otel1"] and TOKEN not in r.text
     i = c.get(url(cid, "influx1"))
-    assert i.status_code == 200 and TOKEN not in i.text and i.json()["token_set"] is True and "token" not in i.json()
-    assert i.json()["organization"] == "lab" and i.json()["influxdbproto"] == "https" and i.json()["digest"] == DIGEST and i.json()["disable"] is False
+    assert i.status_code == 200 and TOKEN not in i.text and "token" not in i.json() and "token_set" not in i.json()
+    assert i.json()["organization"] == "lab" and i.json()["influxdbproto"] == "https" and len(i.json()["digest"]) == 40 and i.json()["disable"] is False
     o = c.get(url(cid, "otel1"))
-    assert HDR not in o.text and o.json()["otel_headers_set"] is True and o.json()["otel_protocol"] == "http"
+    assert HDR not in o.text and "otel_headers" not in o.json() and o.json()["otel_protocol"] == "http"
     g = c.get(url(cid, "graph1")).json()
     assert g["proto"] == "udp" and g["path"] == "proxmox.lab" and g["disable"] is True
     assert c.get(url(cid, "nope")).status_code == 404
@@ -141,7 +147,7 @@ def test_create_influxdb_exact_params_and_no_secret_back(api):
     c, cid = api
     r = c.post(url(cid), json={"id": "idb2", "type": "influxdb", "server": "influx.example.org", "port": 8086, "influxdbproto": "https", "organization": "mon org", "bucket": "pve",
                               "token": TOKEN, "max_body_size": 25000000, "verify_certificate": True, "api_path_prefix": "/influx", "confirm": True})
-    assert r.status_code == 201 and TOKEN not in r.text and r.json()["token_set"] is True and r.json()["type"] == "influxdb"
+    assert r.status_code == 201 and TOKEN not in r.text and r.json()["type"] == "influxdb" and r.json()["bucket"] == "pve"
     assert CALLS == [("POST", "/cluster/metrics/server/idb2", {"type": "influxdb", "server": "influx.example.org", "port": "8086", "influxdbproto": "https", "organization": "mon org",
                                                                  "bucket": "pve", "token": TOKEN, "max-body-size": "25000000", "verify-certificate": "1", "api-path-prefix": "/influx"})]
     assert TOKEN not in c.get("/api/audit").text and "token=défini" in c.get("/api/audit").text
@@ -154,7 +160,7 @@ def test_create_graphite_and_opentelemetry(api):
     r = c.post(url(cid), json={"id": "o2", "type": "opentelemetry", "server": "otel.example.org", "port": 4318, "otel_protocol": "https", "otel_path": "/v1/metrics", "otel_timeout": 10,
                               "otel_compression": "gzip", "otel_verify_ssl": False, "otel_max_body_size": 2048, "otel_headers": HDR, "otel_resource_attributes": HDR, "confirm": True})
     assert r.status_code == 201, r.text
-    assert HDR not in r.text and r.json()["otel_headers_set"] is True
+    assert HDR not in r.text and "otel_headers" not in r.json() and r.json()["otel_resource_attributes_set"] is True
     assert CALLS[-1][2] == {"type": "opentelemetry", "server": "otel.example.org", "port": "4318", "otel-protocol": "https", "otel-path": "/v1/metrics", "otel-timeout": "10",
                              "otel-compression": "gzip", "otel-verify-ssl": "0", "otel-max-body-size": "2048", "otel-headers": HDR, "otel-resource-attributes": HDR}
 
@@ -248,13 +254,12 @@ def test_update_exact_params_digest_and_clear(api):
     c, cid = api
     r = c.put(url(cid, "influx1"), json={"organization": "autre", "token": TOKEN + "2", "clear": ["bucket"]})
     assert r.status_code == 200 and TOKEN not in r.text and r.json()["organization"] == "autre"
-    assert CALLS == [("PUT", "/cluster/metrics/server/influx1", {"organization": "autre", "token": TOKEN + "2", "delete": "bucket", "digest": DIGEST})]
+    assert CALLS == [("PUT", "/cluster/metrics/server/influx1", {"organization": "autre", "token": TOKEN + "2", "delete": "bucket", "server": "192.168.1.50", "port": "8086"})]
     assert "bucket" not in ST["servers"]["influx1"]
     assert c.put(url(cid, "influx1"), json={"max_body_size": 5000, "verify_certificate": False}).status_code == 200
     assert c.put(url(cid, "influx1"), json={"clear": ["max_body_size", "verify_certificate", "api_path_prefix"], "confirm": True}).status_code == 200
     assert CALLS[-1][2]["delete"] == "max-body-size,verify-certificate,api-path-prefix"                                   # noms Proxmox, avec tirets
     assert c.put(url(cid, "influx1"), json={"clear": ["token"]}).status_code == 200 and "token" not in ST["servers"]["influx1"]
-    assert c.get(url(cid, "influx1")).json()["token_set"] is False
 
 
 def test_update_type_is_immutable_and_foreign_fields_refused(api):
@@ -263,7 +268,7 @@ def test_update_type_is_immutable_and_foreign_fields_refused(api):
     assert c.put(url(cid, "influx1"), json={"path": "a.b"}).status_code == 422
     assert not CALLS
     assert c.put(url(cid, "graph1"), json={"type": "influxdb", "id": "autre", "mtu": 1400}).status_code == 200
-    assert set(CALLS[-1][2]) == {"mtu", "digest"} and ST["servers"]["graph1"]["type"] == "graphite"
+    assert set(CALLS[-1][2]) == {"mtu", "server", "port"} and ST["servers"]["graph1"]["type"] == "graphite"
 
 
 @pytest.mark.parametrize("b", [{}, {"clear": []}, {"clear": ["server"]}, {"clear": ["port"]}, {"clear": ["type"]}, {"clear": ["id"]}, {"clear": ["../x"]}, {"clear": ["otel_headers"]},
@@ -276,9 +281,26 @@ def test_update_empty_or_forbidden_changes(api, b):
 def test_update_unknown_server_and_stale_digest(api):
     c, cid = api
     assert c.put(url(cid, "nope"), json={"mtu": 1400}).status_code == 404 and not CALLS
-    r = c.put(url(cid, "influx1"), json={"organization": "x", "digest": "0" * 40})
+    d = c.get(url(cid, "influx1")).json()["digest"]
+    ST["servers"]["influx1"]["bucket"] = "change-ailleurs"                                                   # quelqu'un d'autre a modifié entre-temps
+    r = c.put(url(cid, "influx1"), json={"organization": "x", "digest": d})
     assert r.status_code == 409 and "digest périmé" in r.json()["detail"] and not CALLS
-    assert c.put(url(cid, "influx1"), json={"organization": "x", "digest": DIGEST}).status_code == 200
+    new = c.get(url(cid, "influx1")).json()["digest"]
+    assert new != d and c.put(url(cid, "influx1"), json={"organization": "x", "digest": new}).status_code == 200
+    assert c.put(url(cid, "influx1"), json={"organization": "y", "digest": "0" * 40}).status_code == 409
+
+
+def test_proxmox_digest_is_forwarded_when_the_read_provides_one(api):
+    c, cid = api
+    ST["pve_digest"] = DIGEST
+    assert c.put(url(cid, "influx1"), json={"organization": "x"}).status_code == 200
+    assert CALLS[-1][2]["digest"] == DIGEST
+
+
+def test_unchanged_destination_is_not_a_change(api):
+    c, cid = api
+    assert c.put(url(cid, "influx1"), json={"server": "192.168.1.50", "port": 8086, "organization": "x"}).status_code == 200      # identique : pas de confirmation
+    assert c.put(url(cid, "influx1"), json={"server": "192.168.1.51"}).status_code == 400
 
 
 def test_update_confirm_rules(api):
