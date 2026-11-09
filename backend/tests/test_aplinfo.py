@@ -124,6 +124,14 @@ def test_other_present_template_does_not_block(api):
     assert c.post(u(cid), json={"storage": "local", "template": ALPINE}).status_code == 202
 
 
+@pytest.mark.parametrize("present", [None, {"x": 1}, "texte"])
+def test_unreadable_storage_content_refuses_without_write(api, present):
+    c, cid = api
+    ST["present"] = present
+    r = c.post(u(cid), json={"storage": "local", "template": ALPINE})
+    assert r.status_code == 502 and writes() == []
+
+
 def test_unreadable_catalogue_refuses(api):
     c, cid = api
     ST["catalogue"] = {"pas": "une liste"}

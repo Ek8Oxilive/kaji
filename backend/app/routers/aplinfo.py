@@ -60,8 +60,10 @@ async def download_template(conn_id: int, body: TemplateDownload, node: str = Pa
     if not isinstance(storages, list) or not any(isinstance(s, dict) and s.get("storage") == body.storage and s.get("active", 1) for s in storages):
         refuse("Ce stockage n'accepte pas les modèles de conteneur (vztmpl) ou n'est pas actif sur ce nœud", 422)
     present = await px("get", f"/nodes/{node}/storage/{body.storage}/content", content="vztmpl")
+    if not isinstance(present, list):
+        refuse("Contenu du stockage illisible : téléchargement refusé", 502)
     volid = f"{body.storage}:vztmpl/{body.template}"
-    if any(isinstance(i, dict) and i.get("volid") == volid for i in present or []):
+    if any(isinstance(i, dict) and i.get("volid") == volid for i in present):
         refuse("Ce modèle est déjà présent sur ce stockage", 409)
 
     upid = await px("post", f"/nodes/{node}/aplinfo", storage=body.storage, template=body.template)
