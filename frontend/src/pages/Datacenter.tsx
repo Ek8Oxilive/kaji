@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { MetricsServers } from "../components/MetricsServers";
+import { Notifications } from "../components/Notifications";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -90,6 +91,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
           </div>
         </section>
         {id !== null && <MetricsServers connId={id} />}
+        {id !== null && <Notifications connId={id} />}
         {Object.keys(d.readonly).length > 0 && (
           <section className="space-y-3"><h2 className="text-lg font-semibold">Non modifiable dans Kaji</h2>
             <dl className="panel p-4 text-sm">{Object.entries(d.readonly).map(([k, v]) => (
