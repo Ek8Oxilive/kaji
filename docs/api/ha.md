@@ -1,6 +1,6 @@
 # Haute disponibilité et réplication (M8-1, lecture seule)
 
-Préfixe `/api/connections/{conn_id}`. Rien n'est écrit : les écritures (M8-2 HA, M8-3 réplication) viendront avec leurs verrous.
+Préfixe `/api/connections/{conn_id}`. Ce fichier décrit la lecture. L'écriture HA (M8-2) est dans `docs/api/ha-ecriture.md` ; l'écriture de la réplication (M8-3) viendra ensuite.
 
 | Route | Contenu |
 |---|---|

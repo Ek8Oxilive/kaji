@@ -33,7 +33,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réplication (jobs ZFS) | 🟡 (lecture : jobs, état, journal, `docs/api/ha.md` ; écriture ⬜ ; pas de ZFS sur le cluster) | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
-| HA : ressources, groupes ou règles, fencing | 🟡 (lecture : état, ressources, règles ; écriture ⬜ ; groupes remplacés par les règles) | M8 |
+| HA : ressources, groupes ou règles, fencing | ✅ code (lecture + écriture : ressources, règles, migrer, relocaliser, `docs/api/ha-ecriture.md` ; verrous : < 3 nœuds = `COUPURE POSSIBLE`, machine de Kaji interdite ; **jamais écrit en réel** ; groupes remplacés par les règles) | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : écriture livrée (M7-3b), `docs/api/pare-feu-regles.md`) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
