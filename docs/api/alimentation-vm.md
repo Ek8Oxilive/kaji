@@ -1,6 +1,7 @@
 # Alimentation avancée d'une VM et conversion en modèle (lot #146)
 
-> **Non validé en réel** (PC B, faux Proxmox strict). Fichiers : `routers/power.py`, `tests/test_power.py`, `components/PowerActions.tsx`
+> **Validé en réel le 2026-11-09 (PC A, VM 115 et clone 117)** : voir « Validé en réel » en bas de page, avec les écarts (#201 à #204, #206).
+> Fichiers : `routers/power.py`, `tests/test_power.py`, `components/PowerActions.tsx`
 > (page Machine), `lib/types/alimentation-vm.ts`. Les routes ont la forme de la route générique `{action}` de `actions.py` (`ORDER = 90`) :
 > `power.py` garde l'ordre par défaut et passe avant (un test vérifie qu'aucune n'est masquée).
 
@@ -30,9 +31,26 @@ compris (400 ; `name` pour une VM, `hostname` pour un LXC). Chez Proxmox, les di
 Page Machine : « Suspendre », « Hiberner », « Réinitialiser » (VM en marche), « Reprendre » (VM en pause, état relu toutes les 8 s), « Convertir en
 modèle… » (machine arrêtée, VM ou LXC, nom à retaper). Pas encore dans le menu des cartes de la liste (l'état « en pause » y est inconnu).
 
-## Non validé en réel (essais du ticket, PC A, VM 115 et clone 117)
-- reset, suspend, resume, hibernate : les noms exacts d'états (`qmpstatus` `paused`/`suspended`) sont tirés de la documentation, jamais observés ;
-  une VM sans agent invité refusera sans doute l'hibernation (à noter) ;
-- l'état d'une VM hibernée sur disque (Proxmox : arrêtée avec verrou `suspended`) : « Reprendre » ne la concerne pas, elle se démarre ;
-- conversion : renommage `base-…`, refus du démarrage ensuite, retour `null` d'un LXC ;
-- l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).
+## Validé en réel (2026-11-09, PC A, VM 115 sans système et clone jetable 117, LXC jetable 119)
+- **États observés** : VM suspendue = `GET …/power` renvoie `{"status":"running","qmpstatus":"paused","paused":true}` ; en revanche la **liste des machines**
+  (`GET /guests`) renvoie `status: "paused"`, d'où l'écart **#201** (l'interface n'affiche alors aucun bouton, « Reprendre » introuvable : la reprise a
+  été faite par l'API). VM hibernée : `status` et `qmpstatus` = `stopped` (verrou `suspended` non exposé par Kaji).
+- **suspend** (confirmation, `qmsuspend`), **resume** (`qmresume`, API), **reset** (confirmation, `qmreset`, la VM reste en marche) : réussis.
+- **hibernate** avec `confirm` : **réussi** (tâche `qmsuspend` ok, VM arrêtée) alors qu'on attendait un refus faute d'agent invité ; « Démarrer » a consommé
+  l'état (`qmstart` ok). Aucun volume d'état résiduel (`vm-115-state-*`) après le démarrage.
+- **Refus sans tâche** : `reset` / `hibernate` sans `confirm` ou `confirm: false` : 400 ; `reset` et `suspend` sur une VM arrêtée : 409 (« La VM doit être en
+  marche (et non en pause) pour être réinitialisée / suspendue »).
+- **Conversion en modèle** : refus sans `confirm` (400), nom de casse différente, vide ou absent (400 « Le nom de la machine ne correspond pas »), machine en
+  marche (409), déjà un modèle (409 « La machine est déjà un modèle »), chaque fois sans tâche. Conversion VM 117 : `qmtemplate` ok, disque
+  `local-lvm:base-117-disk-0`, badge « Modèle ». **LXC 119** : toast « convertie en modèle » sans erreur, disque `base-119-disk-0`, tâche `vztemplate` ok.
+  `template: true` n'apparaît dans `/guests` qu'une dizaine de secondes après la tâche.
+- **Démarrer un modèle** : Kaji l'accepte (202) et Proxmox échoue (« you can't start a vm if it's a template ») : **#204**.
+- **Écarts d'interface** : fenêtre de conversion dont les boutons sont masqués sous la carte Notes (**#202**) ; pas de bouton « Supprimer » sur un modèle
+  (**#203**, suppression faite par `DELETE …/guests/{node}/{type}/{vmid}?confirm=true&name=…`) ; texte « disques d'une VM » pour un LXC (**#206**).
+- Audit : `start`, `suspend`, `resume`, `reset`, `hibernate`, `stop`, `guest-template` (refus en erreur, succès en `started`), sans secret.
+
+## Non validé en réel
+- refus de la conversion sur une VM verrouillée (`lock: suspended` après hibernation) : non essayé (risque de convertir la 115 de façon irréversible si le
+  contrôle échouait ; Kaji n'expose pas le verrou) ;
+- les machines de `KAJI_PROTECTED_VMIDS` (105, 108, 116) : couvertes par les tests seulement ;
+- l'hibernation d'une VM avec un vrai système et un stockage d'état choisi (`statestorage`).

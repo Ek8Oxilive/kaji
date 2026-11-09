@@ -28,7 +28,7 @@ Page Stockage → tiroir de `local` du nœud `enzo2` → « Télécharger un mod
 Créer un LXC **118** sur `enzo2` depuis le modèle Alpine du A (pool `kaji-test`, 128 Mo, disque 1 Go, `local-lvm`, **non démarré**).
 - [ ] Onglet Options du LXC : **FUSE, keyctl et les montages sont en lecture seule** avec la note « Modifiable seulement dans Proxmox (droit root@pam) » ; nesting modifiable ; « Valeur par défaut » absent pour `features` seulement si keyctl, fuse ou mount sont déjà actifs.
 - [ ] **nesting** : activer puis enregistrer → succès ; relire (la case reste cochée), puis remettre comme avant.
-- [ ] **keyctl / fuse refusés** (API : `PATCH …/lxc/118/options` avec `{"features":{"keyctl":true}}`, puis `{"fuse":true}`, `{"mount":["nfs"]}`) → **403** avec le message exact « Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans l'interface de Proxmox. ». Noter **pour chacun** : 403 attendu (`mount` n'a jamais été observé).
+- [ ] **keyctl / fuse refusés** (API : `PATCH …/lxc/118/options` avec `{"features":{"keyctl":true}}`, puis `{"features":{"fuse":true}}`, `{"features":{"mount":["nfs"]}}` : les trois sous `features`, sinon 400 « Aucune modification demandée ») → **403** avec le message exact « Proxmox réserve keyctl, fuse et mount à root@pam : le token de Kaji ne peut pas les modifier. Fais-le dans l'interface de Proxmox. ». Noter **pour chacun** : 403 attendu (`mount` n'a jamais été observé).
 - [ ] **Écriture combinée** : `{"onboot":true,"timezone":"Europe/Paris","features":{"keyctl":true}}` → 403 **et rien d'appliqué** (relire `onboot` et `timezone`).
 - [ ] **Écritures sans ces réglages** : `onboot`, `tty`, `cmode`, `timezone`, `protection` passent encore, puis tout remis.
 - [ ] **Cas du relecteur (optionnel, demande l'accord d'Enzo)** : dans l'interface de **Proxmox** (root@pam), activer `keyctl` sur le LXC 118 ; revenir dans Kaji et changer **nesting seul** → noter : Proxmox l'accepte-t-il (200) ou refuse-t-il (403 → message root@pam attendu) ? Puis `clear: ["features"]` → idem. Remettre `features` comme au départ dans Proxmox.
@@ -64,3 +64,34 @@ VM 115 (sans système : pas d'agent invité). Page Machine de la VM 115.
 Mettre à jour `docs/REPRISE.md` (section « État » : ce qui est **validé en réel**, avec la date, et les écarts trouvés) et passer les lignes concernées de `docs/parite-proxmox.md` de 🟡 à ✅. Pour chaque écart : ticket `agent:pc-b` (message exact, étapes, attendu), comme #164. Une PR « docs + corrections » avec la liste honnête de ce qui n'a pas pu être fait.
 
 Écarts connus à surveiller (non vérifiés) : états `qmpstatus` des VM en pause ; refus de `mount` ; nom de fichier des modèles téléchargés (`volid`) ; liste du catalogue tronquée à 300 entrées ; bouton « Convertir en modèle… » visible même pour une machine protégée (le serveur refuse) ; boutons d'alimentation absents du menu des cartes de la liste.
+
+## Résultats (2026-11-09, PC A, Claude in Chrome sur Kaji, cluster revenu à l'identique)
+Préparation : le déploiement n'avait **pas** #195 (`POST …/aplinfo` : 404) ; redéployé par la console du CT 116 (`main` 6f74226, PR #199) avec l'accord d'Enzo.
+Légende : ✅ comme prévu · ❌ écart (ticket) · ⏭️ non fait.
+
+| Essai | Résultat |
+|---|---|
+| A. Catalogue, recherche, sections | ✅ 136 entrées, sections `mail` / `system` / `turnkeylinux` ; ❌ modèle `arm64` proposé sur un nœud amd64 (#205) |
+| A. Téléchargement Alpine | ✅ 2 s, 3 450 920 octets, `volid` = nom du catalogue, « Déjà présent » |
+| A. 409, 422 (4 cas), aucune tâche | ✅ messages exacts dans `docs/api/modeles-lxc.md` |
+| A. Assistant LXC | ✅ bouton ouvre le dialogue ; modèle listé, non sélectionné automatiquement |
+| A. Audit | ✅ `template-download` started / error, sans secret |
+| B. Lecture seule FUSE / keyctl / montages, nesting | ✅ (nesting : coché, enregistré, relu, retiré par « Valeur par défaut ») |
+| B. keyctl, fuse, **mount** refusés | ✅ 403 au message exact pour les trois (`mount` observé pour la première fois) ; corps du doc corrigé (sous `features`) |
+| B. Écriture combinée | ✅ 403, rien appliqué |
+| B. `onboot`, `tty`, `cmode`, `timezone`, `protection` | ✅ passent, puis `clear` (protection : 400 sans `confirm`, 200 avec) |
+| B. Cas du relecteur (`keyctl` activé dans Proxmox) | ⏭️ accord d'Enzo et accès `root@pam` requis |
+| B. Audit, nettoyage 118 | ✅ |
+| C. États des boutons (arrêtée, en marche) | ✅ |
+| C. Suspendre | ✅ `/power` : `status: running`, `qmpstatus: paused` ; ❌ `/guests` : `paused`, aucun bouton, **Reprendre introuvable** (#201), reprise par l'API |
+| C. Reprendre, réinitialiser, refus sans `confirm`, refus sur VM arrêtée | ✅ |
+| C. Hibernation | ✅ **réussie** (pas de refus faute d'agent) ; VM redémarrée pour consommer l'état |
+| C. Refus de conversion sur verrou `suspended` | ⏭️ non essayé (risque irréversible sur la 115 ; verrou non exposé par Kaji) |
+| C. Clone 117, refus de conversion (5 cas + en marche), reconversion 409 | ✅ aucune tâche à chaque refus |
+| C. Conversion VM 117 | ✅ `qmtemplate` ok, `base-117-disk-0`, badge « Modèle » ; ❌ boutons de la fenêtre masqués (#202), clavier seulement ; ❌ démarrage non refusé par Kaji (#204) |
+| C. LXC modèle 119 | ✅ pas d'erreur, `base-119-disk-0`, tâche `vztemplate` ; cosmétique #206 |
+| C. Machines protégées 105 / 108 / 116, bouton « Convertir » sur une machine protégée, menu des cartes, catalogue tronqué à 300 | ⏭️ non essayés (136 entrées seulement) |
+| C. Nettoyage 117 et 119 | ✅ par l'API : ❌ pas de bouton « Supprimer » sur un modèle (#203) |
+| D. Alpine supprimé, 17 machines, 115 arrêtée et identique, audit sans secret | ✅ (options et pare-feu de la 115 inchangés, aucun volume résiduel) |
+
+Remarques : un 502 de nginx (~8 s) et des entrées d'audit `datacenter-options` et `console-open` du CT 116 qui ne viennent pas de cette session montrent qu'un autre agent ou Enzo travaillait en parallèle sur Kaji. Le champ « description » de la VM 115 (« jamais démarrée ») n'a pas été modifié : il est désormais inexact (démarrée pendant l'essai C).

@@ -1,6 +1,6 @@
 # Télécharger un modèle de conteneur du catalogue officiel (lot #147)
 
-> **Non validé en réel** (PC B, faux Proxmox strict). Fichiers : `routers/aplinfo.py`, `tests/test_aplinfo.py`, `components/TemplateCatalogDialog.tsx`
+> **Validé en réel le 2026-11-09 (PC A, nœud `enzo2`)** : voir « Validé en réel » en bas de page. Fichiers : `routers/aplinfo.py`, `tests/test_aplinfo.py`, `components/TemplateCatalogDialog.tsx`
 > (assistant de création LXC et tiroir d'un stockage de modèles), `lib/types/modeles-lxc.ts`. La liste (`downloadable`) et les modèles présents
 > (`local`) existent déjà : `GET /nodes/{node}/templates` (`routers/resources.py`).
 
@@ -23,9 +23,19 @@ dans le tiroir d'un stockage qui accepte les modèles (stockage fixé). Recherch
 sur le stockage choisi, progression par `runTask` (30 min max). La liste est tronquée à 300 entrées côté `GET …/templates` ; le serveur, lui, valide sur
 le catalogue **complet**.
 
-## Non validé en réel (essais du ticket, PC A)
-- l'acceptation par Proxmox de `storage` + `template` sur `POST /nodes/{node}/aplinfo` et la durée réelle du téléchargement ;
-- la forme exacte du catalogue (`type`, `template`, `section`) : tirée des schémas, jamais observée ;
-- le nom de fichier des modèles présents (`volid` = `{storage}:vztmpl/{template}`) : supposé identique au nom du catalogue ;
+## Validé en réel (2026-11-09, PC A, `local` du nœud `enzo2`)
+- **Redéploiement nécessaire** : le déploiement du jour n'avait pas la route (404) ; après `git pull` + build du CT 116 (`main` 6f74226), tout marche.
+- **Catalogue** : 136 entrées, sections `mail`, `system`, `turnkeylinux` ; champs observés `template`, `os`, `version`, `section`, `architecture`, `description` ;
+  la recherche « alpine » filtre (3 résultats). Écart **#205** : le modèle `arm64` est proposé sur un nœud amd64.
+- **Téléchargement** d'`alpine-3.23-default_20261105_amd64.tar.xz` : tâche `download` réussie en **2 s** (3 450 920 octets), `volid` =
+  `local:vztmpl/alpine-3.23-default_20261105_amd64.tar.xz` (**identique au nom du catalogue**), bouton passé à « Déjà présent », modèle visible dans l'assistant LXC.
+- **409** (« Ce modèle est déjà présent sur ce stockage ») et **422** (`debian-99` : « Ce modèle ne figure pas dans le catalogue officiel de Proxmox » ; `../x` :
+  « Nom de modèle invalide » ; stockage inexistant ou `local-lvm` : « Ce stockage n'accepte pas les modèles de conteneur (vztmpl) ou n'est pas actif sur ce
+  nœud ») : **aucune tâche créée** chaque fois.
+- **Assistant LXC** : le bouton « Télécharger un modèle… » ouvre le même dialogue ; un modèle téléchargé avant l'ouverture figure dans la liste mais **n'est pas
+  sélectionné** automatiquement. Audit `template-download` : `started` / `error`, sans secret.
+- Suppression du modèle d'essai par `DELETE …/storage/local/files/vztmpl/{nom}?confirm=true&typed={nom}` : réussie (tâche `imgdel`).
+
+## Non validé en réel
 - un nœud sans accès Internet (catalogue vide ou erreur) : message affiché, non essayé ;
-- l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).
+- le téléchargement depuis le tiroir d'un autre stockage que `local` ; un modèle volumineux (TurnKey, Debian : la durée réelle d'un gros téléchargement n'est pas mesurée).
