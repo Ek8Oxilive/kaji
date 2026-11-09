@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { FwObjectsDialog } from "../components/FwObjectsDialog";
 import { FwOptionsDialog } from "../components/FwOptionsDialog";
+import { NetWriteDialog, type NetMode } from "../components/NetWriteDialog";
 import { FwRulesDialog } from "../components/FwRulesDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
@@ -20,7 +21,8 @@ const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
 );
 const Empty = ({ children }: { children: ReactNode }) => <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">{children}</div>;
 
-function Iface({ i }: { i: NetIface }) {
+function Iface({ i, onEdit, onDelete }: { i: NetIface; onEdit: () => void; onDelete: () => void }) {
+  const managed = ["bridge", "bond", "vlan", "eth"].includes(i.type);
   const addr = i.cidr ?? i.address ?? i.cidr6 ?? i.address6 ?? "–";
   const links = [...i.bridge_ports, ...i.slaves, ...(i.vlan_id !== null ? [`VLAN ${i.vlan_id} sur ${i.vlan_raw_device ?? "?"}`] : [])].join(", ") || "–";
   return (
@@ -30,6 +32,7 @@ function Iface({ i }: { i: NetIface }) {
       <td className="px-4 py-2 tabular-nums">{addr}{i.gateway ? <span className="block text-xs text-muted">via {i.gateway}</span> : null}</td>
       <td className="px-4 py-2 text-muted">{links}{i.bridge_vlan_aware ? <span className="block text-xs">VLAN aware {i.bridge_vids ?? ""}</span> : null}</td>
       <td className="px-4 py-2 text-muted">{i.active === false ? "inactif" : "actif"} · démarrage {yn(i.autostart)}</td>
+      <td className="px-4 py-2 text-right">{managed && <span className="flex justify-end gap-1"><button type="button" className="rounded border border-line px-2" onClick={onEdit}>Modifier</button>{i.type !== "eth" && <button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={onDelete}>Supprimer</button>}</span>}</td>
     </tr>
   );
 }
@@ -59,6 +62,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
   const [objects, setObjects] = useState(false);
   const [options, setOptions] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [netMode, setNetMode] = useState<NetMode | null>(null);
   useEffect(() => { if (!node && nodes.data?.length) setNode(nodes.data[0].node); }, [nodes.data, node]);
   const net = useQuery({ queryKey: ["network", id, node], queryFn: () => api<NetworkInfo>(`/api/connections/${id}/nodes/${encodeURIComponent(node)}/network`), enabled: id !== null && !!node, staleTime: 15_000 });
   const dc = useQuery({ queryKey: ["fw-cluster", id], queryFn: () => api<FwCluster>(`/api/connections/${id}/firewall/cluster`), enabled: id !== null, staleTime: 15_000 });
@@ -77,12 +81,14 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
         {nodes.data && nodes.data.length > 1 && (
           <select aria-label="Nœud" className="field !w-auto !py-1.5 text-sm" value={node} onChange={(e) => setNode(e.target.value)}>{nodes.data.map((n) => <option key={n.node}>{n.node}</option>)}</select>)}
       </header>
-      <Notice kind="ok">Une erreur de réseau ou de pare-feu peut couper l'accès à tout le cluster. Les interfaces sont en lecture seule ; les alias, IPSets et groupes se modifient, avec un verrou explicite pour tout objet utilisé par un pare-feu actif.</Notice>
+      <Notice kind="ok">Une erreur de réseau ou de pare-feu peut couper l'accès à tout le cluster. Les interfaces se préparent en attente puis s'appliquent (verrou explicite) ; les alias, IPSets et groupes se modifient, avec un verrou explicite pour tout objet utilisé par un pare-feu actif.</Notice>
 
       <Section title={`Interfaces de ${node || "…"}`}>
         {net.isLoading ? <div className="panel h-24 animate-pulse" /> : net.error ? <Notice kind="error">{(net.error as Error).message}</Notice> : net.data && <>
-          {net.data.pending && <Notice kind="error">Des modifications réseau sont <b>en attente</b> sur ce nœud (non appliquées). Elles ont été faites hors de Kaji ; vérifie le diff avant de les appliquer dans Proxmox.<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs">{net.data.changes}</pre></Notice>}
-          {net.data.interfaces.length === 0 ? <Empty>Aucune interface lisible.</Empty> : <Table head={["Interface", "Type", "Adresse", "Liaisons", "État"]}>{net.data.interfaces.map((i) => <Iface key={i.iface} i={i} />)}</Table>}
+          {net.data.pending && <Notice kind="error">Des modifications réseau sont <b>en attente</b> sur ce nœud (non appliquées). Elles ont été faites hors de Kaji ; vérifie le diff avant de les appliquer dans Proxmox.<pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs">{net.data.changes}</pre>
+            <span className="mt-2 flex gap-2"><Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setNetMode({ kind: "apply" })}>Appliquer…</Button><Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setNetMode({ kind: "revert" })}>Annuler les modifications…</Button></span></Notice>}
+          <div><Button variant="ghost" className="!px-3 !py-1.5" onClick={() => setNetMode({ kind: "create" })}>Ajouter une interface…</Button></div>
+          {net.data.interfaces.length === 0 ? <Empty>Aucune interface lisible.</Empty> : <Table head={["Interface", "Type", "Adresse", "Liaisons", "État", ""]}>{net.data.interfaces.map((i) => <Iface key={i.iface} i={i} onEdit={() => setNetMode({ kind: "edit", iface: i })} onDelete={() => setNetMode({ kind: "delete", iface: i })} />)}</Table>}
         </>}
       </Section>
 
@@ -99,6 +105,7 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
       </Section>
 
       {options && id !== null && <FwOptionsDialog connId={id} node={node} onClose={() => setOptions(false)} />}
+      {netMode && id !== null && <NetWriteDialog connId={id} node={node} mode={netMode} ifaces={net.data?.interfaces ?? []} pendingDiff={net.data?.changes ?? null} onClose={() => setNetMode(null)} />}
       {rulesOpen && id !== null && <FwRulesDialog connId={id} node={node} onClose={() => setRulesOpen(false)} />}
       {objects && id !== null && <FwObjectsDialog connId={id} onClose={() => setObjects(false)} />}
       <Section title={`Pare-feu de ${node || "…"}`}>

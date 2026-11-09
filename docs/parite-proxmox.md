@@ -49,7 +49,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | ✅ (jauges et historique heure à année) | M13 |
 | Notes du nœud | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
-| Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des interfaces et des modifications en attente validée en réel ; écriture : ⬜, banc d'essai requis) | M7 |
+| Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des interfaces et des modifications en attente validée en réel ; écriture livrée (M7-4, `docs/api/reseau-ecriture.md`) : préparer, appliquer avec verrous, annuler ; l'application n'a jamais été exécutée en réel) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME : voir plus haut) | M11 |
 | DNS, hôtes, fuseau horaire, heure | 🟡 (codé, jamais exécuté en réel ; synchronisation NTP ⬜) | M11 |
 | Mises à jour (apt) et dépôts | 🟡 (liste, actualiser, dépôts : activer / désactiver / ajouter un standard, codés et jamais exécutés en réel ; installer = commande à lancer dans la console du nœud, car l'API de Proxmox n'a pas d'installation ; dépôt personnalisé ⬜) | M11 |
