@@ -4,7 +4,7 @@ import { Logo } from "./Logo";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui";
 
-export type Page = "dashboard" | "connections" | "storage" | "backups" | "access" | "ceph" | "tasks" | "network";
+export type Page = "dashboard" | "connections" | "storage" | "backups" | "access" | "ceph" | "tasks" | "network" | "ha";
 type NavItem = { id: Page; label: string };
 // Pages d'usage courant (en haut). Les nouvelles pages s'ajoutent à la fin de cette liste : leur adresse (`#/<id>`) en découle.
 export const NAV: NavItem[] = [
@@ -14,6 +14,7 @@ export const NAV: NavItem[] = [
   { id: "ceph", label: "Ceph" },
   { id: "tasks", label: "Tâches" },
   { id: "network", label: "Réseau" },
+  { id: "ha", label: "Haute dispo" },
 ];
 // Réglages rarement utilisés : en bas de la barre, au-dessus de « Compte » et « Déconnexion ».
 export const NAV_BOTTOM: NavItem[] = [

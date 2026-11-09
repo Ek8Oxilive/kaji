@@ -30,10 +30,10 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
 | Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection : écriture non validée en réel) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
-| Réplication (jobs ZFS) | ⬜ | M8 |
+| Réplication (jobs ZFS) | 🟡 (lecture : jobs, état, journal, `docs/api/ha.md` ; écriture ⬜ ; pas de ZFS sur le cluster) | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
-| HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
+| HA : ressources, groupes ou règles, fencing | 🟡 (lecture : état, ressources, règles ; écriture ⬜ ; groupes remplacés par les règles) | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : écriture livrée (M7-3b), `docs/api/pare-feu-regles.md`) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
@@ -59,7 +59,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer et supprimer (volume vide) LVM / LVM-thin / répertoire / ZFS, codés et jamais exécutés en réel) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
 | Pare-feu du nœud | 🟡 (lecture seule) | M7 |
-| Réplication du nœud | ⬜ | M8 |
+| Réplication du nœud | 🟡 (lecture de l'état des jobs) | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
 | Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
