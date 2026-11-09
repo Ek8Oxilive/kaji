@@ -23,17 +23,17 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Résumé du cluster (nœuds, quorum, ressources) | ✅ | Dashboard |
 | Notes du datacenter | ⬜ | M15 |
-| Cluster : créer, joindre, liens corosync, retirer un nœud | ⬜ | M10 |
+| Cluster : créer, joindre, liens corosync, retirer un nœud | 🟡 (lecture : nœuds, votes, liens, totem, QDevice, quorum, Join Information, `docs/api/cluster.md` ; créer / joindre / retirer = commandes à copier, Kaji n'écrit pas : `docs/m10-cluster.md`, décision d'Enzo attendue) | M10 |
 | Options du datacenter (clavier, langue, console, proxy HTTP, préfixe MAC, migration, HA, tâches parallèles) | ⬜ | M15 |
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
 | Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | ✅ (validé en réel pour `dir` ; les autres types : non validés en réel) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
 | Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection : écriture non validée en réel) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
-| Réplication (jobs ZFS) | 🟡 (lecture : jobs, état, journal, `docs/api/ha.md` ; écriture ⬜ ; pas de ZFS sur le cluster) | M8 |
+| Réplication (jobs ZFS) | ✅ code (lecture + écriture : créer, modifier, supprimer, lancer maintenant, `docs/api/replication-ecriture.md` ; **jamais écrit en réel : pas de ZFS**, bloqueurs annoncés par `dry_run`) | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
-| HA : ressources, groupes ou règles, fencing | ✅ code (lecture + écriture : ressources, règles, migrer, relocaliser, `docs/api/ha-ecriture.md` ; verrous : < 3 nœuds = `COUPURE POSSIBLE`, machine de Kaji interdite ; **jamais écrit en réel** ; groupes remplacés par les règles) | M8 |
+| HA : ressources, groupes ou règles, fencing | ✅ (lecture + écriture : ressources, règles, migrer, relocaliser, `docs/api/ha-ecriture.md` ; verrous : < 3 nœuds = `COUPURE POSSIBLE`, machine de Kaji interdite ; **validé en réel le 2026-11-09 sur une VM jetable** ; groupes remplacés par les règles) | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : écriture livrée (M7-3b), `docs/api/pare-feu-regles.md`) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
@@ -69,7 +69,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
-| Réinitialiser (reset), suspendre, hiberner | ⬜ | M14 |
+| Réinitialiser (reset), suspendre, reprendre, hiberner | 🟡 (non validé en réel, `docs/api/alimentation-vm.md`) | M14 |
 | Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
@@ -78,7 +78,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
-| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir : ⬜) | M4 / M14 |
+| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir en modèle : 🟡 non validé en réel) | M4 / M14 |
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |

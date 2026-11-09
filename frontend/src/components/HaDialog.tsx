@@ -31,17 +31,17 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
   const [target, setTarget] = useState("");
   // Règle
   const [ruleName, setRuleName] = useState(""), [rtype, setRtype] = useState<"node-affinity" | "resource-affinity">(editingRule?.type === "resource-affinity" ? "resource-affinity" : "node-affinity"),
-    [rRes, setRRes] = useState<string[]>(editingRule?.resources ?? []), [rNodes, setRNodes] = useState(editingRule ? editingRule.nodes.map((n) => n.node + (n.priority !== null ? `:${n.priority}` : "")).join(",") : ""),
+    [rRes, setRRes] = useState<string[]>(editingRule?.resources ?? []), [nodeSel, setNodeSel] = useState<Record<string, string>>(() => Object.fromEntries((editingRule?.nodes ?? []).map((n) => [n.node, n.priority !== null ? String(n.priority) : ""]))),
     [strict, setStrict] = useState<Tri>(triOf(editingRule?.strict)), [affinity, setAffinity] = useState(editingRule?.affinity ?? ""), [disable, setDisable] = useState<Tri>(triOf(editingRule?.disable));
 
   const [preview, setPreview] = useState<HaPreview | null>(null), [moved, setMoved] = useState<HaMoveResult | null>(null);
   const [ackLive, setAckLive] = useState(false), [ackCut, setAckCut] = useState(false), [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false), [done, setDone] = useState(false), [err, setErr] = useState<string | null>(null);
-  useEffect(() => { setPreview(null); setAckLive(false); setAckCut(false); setTyped(""); setErr(null); }, [sid, state, maxRestart, maxRelocate, failback, comment, target, ruleName, rtype, rRes, rNodes, strict, affinity, disable]);
+  useEffect(() => { setPreview(null); setAckLive(false); setAckCut(false); setTyped(""); setErr(null); }, [sid, state, maxRestart, maxRelocate, failback, comment, target, ruleName, rtype, rRes, nodeSel, strict, affinity, disable]);
 
   const base = `/api/connections/${connId}/ha`;
   const target_ = k === "resource-edit" || k === "resource-delete" || k === "migrate" || k === "relocate" ? (mode as { resource: HaResource }).resource.sid : editingRule?.rule ?? (k === "rule-delete" ? mode.rule.rule : "");
-  const parseNodes = () => rNodes.split(",").map((s) => s.trim()).filter(Boolean).map((s) => { const [node, p] = s.split(":"); return p !== undefined && p !== "" ? { node, priority: Number(p) } : { node }; });
+  const parseNodes = () => Object.entries(nodeSel).map(([node, p]) => (p !== "" ? { node, priority: Number(p) } : { node }));
   const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
 
   /** Requête de l'action choisie ; `extra` porte dry_run / confirm / déverrouillages. */
@@ -94,7 +94,7 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
   const free = (guests.data ?? []).filter((g) => !g.template && g.vmid !== null && !inHa.has(`${g.type === "lxc" ? "ct" : "vm"}:${g.vmid}`));
   const title = { "resource-new": "Ajouter une machine à la HA", "resource-edit": `Modifier ${target_}`, "resource-delete": `Retirer ${target_} de la HA`, migrate: `Migrer ${target_}`, relocate: `Relocaliser ${target_}`,
     "rule-new": "Nouvelle règle HA", "rule-edit": `Modifier la règle ${target_}`, "rule-delete": `Supprimer la règle ${target_}` }[k];
-  const readyToLook = k === "resource-new" ? sid !== "" : k === "migrate" || k === "relocate" ? target !== "" : k === "rule-new" ? ruleName !== "" && rRes.length > 0 : true;
+  const readyToLook = k === "resource-new" ? sid !== "" : k === "migrate" || k === "relocate" ? target !== "" : k === "rule-new" ? ruleName !== "" && rRes.length > 0 && (rtype === "resource-affinity" || Object.keys(nodeSel).length > 0) : true;
   const select = (label: string, v: string, set: (s: string) => void, opts: [string, string][]) => (
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span><select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map(([val, text]) => <option key={val} value={val}>{text}</option>)}</select></label>);
   const triSel = (label: string, v: Tri, set: (t: Tri) => void) => select(label, v, (s) => set(s as Tri), [["", "Défaut de Proxmox"], ["yes", "Oui"], ["no", "Non"]]);
@@ -131,7 +131,13 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
           {(haRes.data ?? []).map((r) => (<label key={r.sid} className="mr-4 inline-flex items-center gap-2"><input type="checkbox" checked={rRes.includes(r.sid)} onChange={(e) => setRRes(e.target.checked ? [...rRes, r.sid] : rRes.filter((x) => x !== r.sid))} /><span className="font-mono">{r.sid}</span></label>))}
         </fieldset>
         {rtype === "node-affinity" ? <>
-          <Field label="Nœuds" value={rNodes} onChange={(e) => setRNodes(e.target.value)} hint={`nœud[:priorité], séparés par des virgules. Nœuds du cluster : ${(nodes.data ?? []).map((n) => n.node).join(", ") || "…"}`} />
+          <fieldset className="space-y-1.5 text-sm"><legend className="text-muted">Nœuds (priorité facultative : le plus grand nombre est préféré)</legend>
+            {(nodes.data ?? []).map((n) => (
+              <div key={n.node} className="flex items-center gap-3">
+                <label className="flex w-40 items-center gap-2"><input type="checkbox" checked={n.node in nodeSel} onChange={(e) => setNodeSel((cur) => { const c = { ...cur }; if (e.target.checked) c[n.node] = ""; else delete c[n.node]; return c; })} /><span className="font-mono">{n.node}</span></label>
+                <input className="field max-w-[8rem]" type="number" min={0} max={1000} placeholder="priorité" aria-label={`Priorité de ${n.node}`} disabled={!(n.node in nodeSel)} value={nodeSel[n.node] ?? ""} onChange={(e) => setNodeSel((cur) => ({ ...cur, [n.node]: e.target.value }))} />
+              </div>))}
+          </fieldset>
           {triSel("Stricte (aucun autre nœud autorisé)", strict, setStrict)}
         </> : select("Affinité", affinity, setAffinity, [["", "Choisir"], ["positive", "positive : sur le même nœud"], ["negative", "négative : sur des nœuds différents"]])}
         {triSel("Désactivée", disable, setDisable)}
