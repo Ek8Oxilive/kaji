@@ -350,8 +350,10 @@ def params_of(fields: dict, lists_as: str = ",") -> dict:
     return p
 
 
-def apply_locks(zones: list[dict], vnets: list[dict]) -> dict:
+def apply_locks(zones: list[dict], vnets: list[dict], routing: list[str] | None = None) -> dict:
     cut: list[str] = []
+    if routing:
+        cut.append(f"{', '.join(routing)} : contrôleurs ou fabrics de routage (BGP, EVPN, IS-IS, OSPF, OpenFabric) : une erreur peut isoler des nœuds")
     host = sorted(z["zone"] for z in zones if z["type"] not in (None, "simple") and z["state"] in ("new", "changed"))
     if host:
         cut.append(f"les zones {', '.join(host)} agissent sur le réseau des nœuds (VLAN, VXLAN, EVPN) : une erreur peut le couper")

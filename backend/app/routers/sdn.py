@@ -46,6 +46,13 @@ class Ctx:
             self.refuse("SDN : " + " ; ".join(lk["live"]) + ". Renvoie la requête avec acknowledge_live=true pour confirmer", status.HTTP_409_CONFLICT)
         return None
 
+    async def opt(self, path, /, **kw):
+        """Lecture facultative (droit ou fonction absente : liste vide, sans journal d'erreur)."""
+        try:
+            return await _px(self.db, self.factory, self.conn_id, "get", path, **kw)
+        except HTTPException:
+            return None
+
     async def zones(self):
         return shape_zones(await self.px("get", "/cluster/sdn/zones", pending=1))
 
@@ -333,7 +340,12 @@ async def _pending(ctx: Ctx):
     """Zones, VNets et sous-réseaux en attente (`{zones, vnets, subnets}` : identifiants)."""
     zones, vnets = await ctx.zones(), await ctx.vnets()
     subs = [s["subnet"] for v in vnets if v["state"] != "deleted" for s in await ctx.subnets(v["vnet"]) if s["state"]]
-    return zones, vnets, {"zones": [z["zone"] for z in zones if z["state"]], "vnets": [v["vnet"] for v in vnets if v["state"]], "subnets": subs}
+    from ..sdnextra import shape_controllers, shape_fabric_nodes, shape_fabrics
+    ctrls = shape_controllers(await ctx.opt("/cluster/sdn/controllers", pending=1))
+    fabs = shape_fabrics(await ctx.opt("/cluster/sdn/fabrics/fabric", pending=1))
+    fnodes = [f"{f['id']}/{n['node']}" for f in fabs if f["state"] != "deleted" for n in shape_fabric_nodes(await ctx.opt(f"/cluster/sdn/fabrics/node/{f['id']}", pending=1)) if n["state"]]
+    return zones, vnets, {"zones": [z["zone"] for z in zones if z["state"]], "vnets": [v["vnet"] for v in vnets if v["state"]], "subnets": subs,
+                          "controllers": [c["controller"] for c in ctrls if c["state"]], "fabrics": [f["id"] for f in fabs if f["state"]] + fnodes}
 
 
 def _has_pending(pend: dict) -> bool:
@@ -347,7 +359,7 @@ async def apply(body: Locks, conn_id: int, db: Session = Depends(get_db), factor
     zones, vnets, pend = await _pending(ctx)
     if not _has_pending(pend):
         ctx.refuse("Aucune modification SDN en attente", status.HTTP_409_CONFLICT)
-    lk = apply_locks(zones, vnets)
+    lk = apply_locks(zones, vnets, pend["controllers"] + pend["fabrics"])
     if (r := ctx.gate(body, lk, {"pending": pend})) is not None:
         return r
     upid = await ctx.px("put", "/cluster/sdn")
