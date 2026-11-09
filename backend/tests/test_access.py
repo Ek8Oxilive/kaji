@@ -176,7 +176,7 @@ def test_proxmox_down_returns_the_error_not_a_fake_unknown(api):
 def test_proxmox_is_only_asked_about_constant_paths(api):
     feats(api)
     asked = {req.url.params.get("path") for req in SEEN if req.url.path.endswith("/access/permissions")}
-    assert asked == set(needed_paths()) == {"/", "/nodes", "/pool", "/sdn/zones", "/storage", "/vms"}
+    assert asked == set(needed_paths()) == {"/", "/mapping/notifications", "/nodes", "/pool", "/sdn/zones", "/storage", "/vms"}
 
 
 # ---------- logique pure --------------------------------------------------------------------------------------------

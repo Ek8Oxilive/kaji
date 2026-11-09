@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { MetricsServers } from "../components/MetricsServers";
+import { NotificationsSection } from "../components/NotificationsSection";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -89,6 +90,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
             <div className="flex justify-end"><Button disabled={!notesChanged || busy !== null} onClick={() => save("notes", notes.trim() ? { description: notes } : { clear: ["description"] })}>{busy === "notes" ? "…" : "Enregistrer les notes"}</Button></div>
           </div>
         </section>
+        {id !== null && <NotificationsSection connId={id} />}
         {id !== null && <MetricsServers connId={id} />}
         {Object.keys(d.readonly).length > 0 && (
           <section className="space-y-3"><h2 className="text-lg font-semibold">Non modifiable dans Kaji</h2>

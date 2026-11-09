@@ -37,7 +37,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
 | Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : écriture livrée (M7-3b), `docs/api/pare-feu-regles.md`) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite, OpenTelemetry) | 🟡 (lister, ajouter, modifier, supprimer ; secrets en écriture seule, `docs/api/metriques.md` ; **InfluxDB désactivé validé en réel par l'interface** ; Graphite, OpenTelemetry et serveur actif jamais écrits en réel) | M13 |
-| Notifications : cibles et règles | ⬜ | M13 |
+| Notifications : cibles et règles | 🟡 (lecture : cibles, 4 types, règles, aucun secret affiché, `docs/api/notifications.md` ; écriture et test d'envoi ⬜, étape 2 du lot #151) | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | 🟡 (zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics, appliquer, annuler : code livré, `docs/api/sdn.md`, **non validé en réel : le token de Kaji n'a pas `SDN.Allocate`**) | M7 |
 | Correspondances de ressources (PCI, USB) | ⬜ | M14 |
 | Abonnement / support | ➖ | — |
