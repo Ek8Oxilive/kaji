@@ -255,6 +255,23 @@ def test_template_refused_when_already_a_template(api):
     assert tpl(c, cid, confirm=True, name="kaji-sandbox").status_code == 409 and writes() == []
 
 
+@pytest.mark.parametrize("lock", ["suspended", "backup", "migrate"])
+def test_template_refused_when_machine_is_locked(api, lock):
+    """Une VM hibernée sur disque est arrêtée mais verrouillée : ne pas la convertir."""
+    c, cid = api
+    cur("stopped")
+    STATE["cfg"] = {"name": "kaji-sandbox", "lock": lock}
+    r = tpl(c, cid, confirm=True, name="kaji-sandbox")
+    assert r.status_code == 409 and writes() == []
+
+
+@pytest.mark.parametrize("current", [None, ["running"], "stopped"])
+def test_template_with_unreadable_state_is_502_not_500(api, current):
+    c, cid = api
+    STATE["current"] = current
+    assert tpl(c, cid, confirm=True, name="kaji-sandbox").status_code == 502 and writes() == []
+
+
 def test_template_refused_when_protection_option_set(api):
     c, cid = api
     cur("stopped")

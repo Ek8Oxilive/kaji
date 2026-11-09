@@ -22,7 +22,7 @@ Réponse : `202 {upid, node, action}` (`upid` vaut `null` pour un LXC : Proxmox 
 
 ## Convertir en modèle : irréversible
 Refus, dans cet ordre, **sans aucun appel d'écriture** : machine de `KAJI_PROTECTED_VMIDS` (403, même confirmée) · `confirm` absent (400) ·
-machine non arrêtée, relue chez Proxmox (409) · déjà un modèle (409) · option `protection` (409) · nom retapé différent du nom réel, casse et espaces
+machine non arrêtée, relue chez Proxmox (409 ; état illisible : 502) · verrouillée par Proxmox (`lock` : VM hibernée sur disque, sauvegarde, migration ; 409) · déjà un modèle (409) · option `protection` (409) · nom retapé différent du nom réel, casse et espaces
 compris (400 ; `name` pour une VM, `hostname` pour un LXC). Chez Proxmox, les disques d'une VM sont **renommés `base-…`** et la machine ne démarre plus
 (elle se clone).
 

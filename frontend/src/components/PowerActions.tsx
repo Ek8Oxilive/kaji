@@ -40,7 +40,8 @@ export function PowerActions({ connId, guest, running, stopped, disabled }: { co
     const t = TEXT[op];
     try {
       const body = op === "template" ? { confirm: true, name: typed } : op === "reset" || op === "hibernate" ? { confirm: true } : {};
-      await runTask(connId, guest.node, () => api<{ upid: string }>(`${base}/${op}`, { method: "POST", body }), t.busy);
+      const { upid } = await api<{ upid: string | null }>(`${base}/${op}`, { method: "POST", body });
+      if (upid) await runTask(connId, guest.node, async () => ({ upid }), t.busy);      // un LXC converti en modèle ne renvoie pas de tâche : déjà fait
       toast("ok", `${name || guest.vmid} ${t.done}`);
       setOp(null); setTyped("");
     } catch (e) { setErr((e as Error).message); setBusy(false); return; }
@@ -54,7 +55,7 @@ export function PowerActions({ connId, guest, running, stopped, disabled }: { co
   const t = op ? TEXT[op] : null;
   return (
     <>
-      {isVm && running && !paused && <>{btn("suspend")}{btn("hibernate")}{btn("reset")}</>}
+      {isVm && running && state.data !== undefined && !paused && <>{btn("suspend")}{btn("hibernate")}{btn("reset")}</>}
       {paused && btn("resume")}
       {stopped && btn("template")}
       {op && t && (

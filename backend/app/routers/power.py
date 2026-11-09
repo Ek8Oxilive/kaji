@@ -160,11 +160,15 @@ async def convert_to_template(conn_id: int, body: TemplateBody | None = None, no
     if not body.confirm:
         refuse("Conversion irréversible en modèle : renvoie la requête avec confirm=true et le nom de la machine (name)", 400)
     current = await px("get", f"{base}/status/current")
-    if (current or {}).get("status") != "stopped":
+    if not isinstance(current, dict):
+        refuse("État de la machine illisible", 502)
+    if current.get("status") != "stopped":
         refuse("La machine doit être arrêtée avant d'être convertie en modèle", 409)
     cfg = await px("get", f"{base}/config", current=1)
     if not isinstance(cfg, dict):
         refuse("Configuration de la machine illisible", 502)
+    if cfg.get("lock"):                                           # ex. VM hibernée sur disque (verrou « suspended »), sauvegarde ou migration en cours
+        refuse(f"La machine est verrouillée par Proxmox ({str(cfg['lock'])[:30]}) : conversion refusée", 409)
     if str(cfg.get("template")) == "1":
         refuse("La machine est déjà un modèle", 409)
     if str(cfg.get("protection")) == "1":
