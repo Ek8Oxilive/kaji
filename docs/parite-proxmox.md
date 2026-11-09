@@ -69,7 +69,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
-| Réinitialiser (reset), suspendre, hiberner | ⬜ | M14 |
+| Réinitialiser (reset), suspendre, reprendre, hiberner | 🟡 (non validé en réel, `docs/api/alimentation-vm.md`) | M14 |
 | Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
@@ -78,7 +78,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
-| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir : ⬜) | M4 / M14 |
+| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; convertir en modèle : 🟡 non validé en réel) | M4 / M14 |
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |
