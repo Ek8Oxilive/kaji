@@ -92,12 +92,12 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           <p className="mr-auto text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? "En pause : figée en mémoire, à reprendre ou à arrêter de force" : "Arrêtée"}</p>
           <Button variant="ghost" onClick={() => setClone(true)} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
-            {stopped && <Button onClick={() => run(guest, "start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
+            {stopped && <Button onClick={() => run(guest, "start")} disabled={off} className="!px-3 !py-1.5" title="Démarre la machine">Démarrer</Button>}
             {running && <>
-              <Button variant="ghost" onClick={() => setPending("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
-              <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
+              <Button variant="ghost" onClick={() => setPending("reboot")} disabled={off} className="!px-3 !py-1.5" title="Redémarrage propre : le système s'arrête puis redémarre">Redémarrer</Button>
+              <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5" title="Extinction propre : demande au système de s'arrêter">Éteindre</Button>
             </>}
-            {alive && <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>}
+            {alive && <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)">Forcer</Button>}
             <PowerActions connId={connId} guest={guest} status={status} disabled={off} />
           </>}
         </div>

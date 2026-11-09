@@ -43,12 +43,12 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
         <div className="flex flex-wrap gap-1.5">
           <Button variant="ghost" onClick={onClone} disabled={creating} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
-            {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
+            {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5" title="Démarre la machine">Démarrer</Button>}
             {running && <>
-              <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
-              <Button variant="ghost" onClick={() => onAction("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
+              <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5" title="Redémarrage propre : le système s'arrête puis redémarre">Redémarrer</Button>
+              <Button variant="ghost" onClick={() => onAction("shutdown")} disabled={off} className="!px-3 !py-1.5" title="Extinction propre : demande au système de s'arrêter">Éteindre</Button>
             </>}
-            {alive && <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>}
+            {alive && <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)">Forcer</Button>}
           </>}
         </div>
       </div>

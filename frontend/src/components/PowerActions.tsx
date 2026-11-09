@@ -19,6 +19,15 @@ const TEXT: Record<PowerOp, { title: string; busy: string; done: string; text: s
   template: { title: "Convertir en modèle", busy: "Conversion", done: "convertie en modèle", danger: true, text: "" },
 };
 
+/** Infobulle au survol de chaque bouton (comme « Coupure brutale » sur Forcer). */
+const HINT: Record<PowerOp, string> = {
+  suspend: "Met la VM en pause : elle est figée en mémoire, à reprendre ensuite",
+  hibernate: "Écrit la mémoire sur disque et arrête la VM ; elle reprend là où elle en était au prochain démarrage",
+  reset: "Coupure brutale puis redémarrage, comme le bouton reset",
+  resume: "Reprend l'exécution de la VM en pause",
+  template: "Convertit la machine en modèle (irréversible) : elle ne démarre plus, elle se clone",
+};
+
 /** Le texte de la conversion dépend du type : les disques d'une VM sont renommés « base-… », le volume d'un conteneur aussi (ticket #206). */
 const templateText = (isVm: boolean) =>
   `Irréversible : la machine ne pourra plus démarrer, seulement être clonée. ${isVm ? "Les disques de la VM sont" : "Le volume du conteneur est"} renommé${isVm ? "s" : ""} « base-… » chez Proxmox.`;
@@ -64,7 +73,7 @@ export function PowerActions({ connId, guest, status, disabled }: { connId: numb
   };
 
   if (guest.template) return null;
-  const btn = (o: PowerOp, danger = false) => <Button variant={danger ? "danger" : "ghost"} onClick={() => setOp(o)} disabled={disabled} className="!px-3 !py-1.5">{TEXT[o].title}{o === "template" ? "…" : ""}</Button>;
+  const btn = (o: PowerOp, danger = false) => <Button variant={danger ? "danger" : "ghost"} onClick={() => setOp(o)} disabled={disabled} title={HINT[o]} className="!px-3 !py-1.5">{TEXT[o].title}{o === "template" ? "…" : ""}</Button>;
   const t = op ? TEXT[op] : null;
   return (
     <>

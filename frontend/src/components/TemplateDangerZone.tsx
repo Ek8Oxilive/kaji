@@ -23,7 +23,7 @@ export function TemplateDangerZone({ connId, guest, onDeleted }: { connId: numbe
       {cfg.error && <Notice kind="error">{(cfg.error as Error).message} — <button className="underline" onClick={() => cfg.refetch()}>réessayer</button></Notice>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted">Détruit le modèle et ses disques « base-… », sans retour possible. Les clones complets ne sont pas touchés ; Proxmox peut refuser si des clones liés en dépendent.</span>
-        <Button variant="danger" disabled={!cfg.data || guest.status !== "stopped"} onClick={() => setOpen(true)} className="!px-3 !py-1">Supprimer le modèle</Button>
+        <Button variant="danger" disabled={!cfg.data || guest.status !== "stopped"} onClick={() => setOpen(true)} title="Supprime le modèle et ses disques, sans retour possible" className="!px-3 !py-1">Supprimer le modèle</Button>
       </div>
       {cfg.data && open && createPortal(
         <DeleteGuestDialog cfg={cfg.data} name={name} node={guest.node} connId={connId} base={base} onClose={() => setOpen(false)}
