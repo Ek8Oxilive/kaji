@@ -16,3 +16,8 @@ Elle agrège cinq appels Proxmox : `/cluster/status`, `/cluster/config/nodes`, `
 Mise en forme **en liste blanche** : le schéma officiel de `nodes`, `totem` et `qdevice` est vide, seuls des champs connus et validés (noms, adresses, empreinte, bornes) sortent. Aucune clé d'authentification corosync n'est lue ni renvoyée. Aucune valeur de Proxmox n'est jamais copiée telle quelle dans une erreur.
 
 Page « Cluster » du menu : informations, nœuds, QDevice, et trois commandes **à copier** (`pvecm create`, `pvecm add … --fingerprint …`, `pvecm delnode`), préremplies avec le nom et l'information de jonction.
+
+## Constaté en réel (2026-11-09, cluster `Enzo-Cluster`, 2 nœuds)
+- `/cluster/config/nodes` renvoie `name`, `nodeid`, `quorum_votes`, `ring0_addr` mais **ni empreinte ni `pve_addr`** : Kaji prend l'empreinte du certificat de chaque nœud dans la liste de jonction (`/cluster/config/join` → `nodelist`).
+- `/cluster/config/totem` : `cluster_name`, `config_version`, `ip_version`, `link_mode`, `secauth`, `interface` (liens). `/cluster/config/qdevice` : objet vide sans QDevice.
+- Pas de QDevice, un seul lien (`link0`), quorum atteint ; la page affiche ces valeurs telles que Proxmox les donne.
