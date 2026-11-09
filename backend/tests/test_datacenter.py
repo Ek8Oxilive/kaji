@@ -64,7 +64,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
             else:
                 o[k] = v
         for k in dl:
-            o.pop(k, None)
+            if k == "description":
+                o[k] = ""                                                                                   # constaté en réel : Proxmox renvoie une chaîne vide, pas une clé absente
+            else:
+                o.pop(k, None)
     return httpx.Response(200, json={"data": None})
 
 
@@ -195,6 +198,13 @@ def test_clear_sends_delete_and_verifies(api):
     assert CALLS[-1][1] == {"delete": "keyboard,migration,max_workers"} and "keyboard" not in ST["opts"] and "migration" not in ST["opts"]
     j = c.get(url(cid)).json()
     assert j["keyboard"] is None and j["migration"] == {"type": None, "network": None}
+
+
+def test_removing_the_notes_succeeds_when_proxmox_returns_an_empty_string(api):
+    c, cid = api
+    r = c.put(url(cid), json={"clear": ["description"]})
+    assert r.status_code == 200 and r.json()["removed"] == ["description"] and CALLS[-1][1] == {"delete": "description"}
+    assert ST["opts"]["description"] == "" and r.json()["description"] == ""
 
 
 def test_stale_digest_is_refused_with_409_and_nothing_is_written(api):

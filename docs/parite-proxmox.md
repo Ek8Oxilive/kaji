@@ -22,9 +22,9 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Résumé du cluster (nœuds, quorum, ressources) | ✅ | Dashboard |
-| Notes du datacenter | 🟡 (codé : lecture et édition, `docs/api/datacenter.md` ; validation en réel à faire) | M15 |
+| Notes du datacenter | ✅ (lecture et édition, validées en réel le 2026-11-09, `docs/api/datacenter.md`) | M15 |
 | Cluster : créer, joindre, liens corosync, retirer un nœud | 🟡 (lecture : nœuds, votes, liens, totem, QDevice, quorum, Join Information, `docs/api/cluster.md` ; créer / joindre / retirer = commandes à copier, Kaji n'écrit pas : `docs/m10-cluster.md`, décision d'Enzo attendue) | M10 |
-| Options du datacenter (clavier, langue, console, proxy HTTP, e-mail d'envoi, préfixe MAC, migration, tâches parallèles) | 🟡 (codé : lecture et édition ; **HA, fencing, CRS, débits : affichés, non modifiables dans Kaji** ; plage des identifiants libres, style et droits des étiquettes, consentement, U2F / WebAuthn ⬜) | M15 |
+| Options du datacenter (clavier, langue, console, proxy HTTP, e-mail d'envoi, préfixe MAC, migration, tâches parallèles) | 🟡 (lecture et édition ; **clavier validé en réel**, les autres champs validés seulement par refus et faux Proxmox ; **HA, fencing, CRS, débits : affichés, non modifiables dans Kaji** ; plage des identifiants libres, style et droits des étiquettes, consentement, U2F / WebAuthn ⬜) | M15 |
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
 | Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | ✅ (validé en réel pour `dir` ; les autres types : non validés en réel) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
