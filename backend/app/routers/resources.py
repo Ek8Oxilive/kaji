@@ -12,6 +12,8 @@ from .cluster import Factory, _px
 
 router = APIRouter(tags=["resources"], dependencies=[Depends(current_user)])
 
+NODE_ARCH = {"x86_64": "amd64", "aarch64": "arm64", "armv7l": "armhf", "riscv64": "riscv64"}   # `uname -m` -> architecture du catalogue
+
 
 async def _optional(coro):
     """Une source facultative (SDN absent, droits insuffisants…) ne doit pas casser la liste."""
@@ -81,4 +83,9 @@ async def lxc_templates(conn_id: int, node: str = Path(pattern=NODE), db: Sessio
           "architecture": a.get("architecture"), "description": a.get("headline") or a.get("description")}
          for a in apl if a.get("type") == "lxc" and a.get("template")),
         key=lambda a: (a["section"] or "", a["template"]))[:300]
-    return {"storages": [s["storage"] for s in storages or [] if s.get("storage")], "local": local, "downloadable": downloadable}
+    # Architecture du nœud (noms du catalogue de Proxmox), pour ne proposer par défaut que les modèles utilisables (ticket #205).
+    st = await _optional(_px(db, factory, conn_id, "get", f"/nodes/{node}/status"))
+    kernel = st.get("current-kernel") if isinstance(st, dict) else None
+    machine = kernel.get("machine") if isinstance(kernel, dict) else None
+    return {"storages": [s["storage"] for s in storages or [] if s.get("storage")], "local": local, "downloadable": downloadable,
+            "node_architecture": NODE_ARCH.get(machine) if isinstance(machine, str) else None}

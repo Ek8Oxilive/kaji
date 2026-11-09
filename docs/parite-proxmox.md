@@ -69,7 +69,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
-| Réinitialiser (reset), suspendre, reprendre, hiberner | 🟡 (validé en réel le 2026-11-09, VM 115 : reset, suspendre, hiberner (réussi, sans agent invité) et reprendre (par l'API) ; **écart #201 : une VM suspendue n'affiche plus aucun bouton, « Reprendre » est introuvable dans l'interface** ; ✅ une fois corrigé ; `docs/api/alimentation-vm.md`) | M14 |
+| Réinitialiser (reset), suspendre, reprendre, hiberner | ✅ (validé en réel le 2026-11-09, VM 115 : reset, suspendre, reprendre (à la souris, #201 corrigé, « En pause »), hiberner (réussi, sans agent invité) ; Éteindre et Redémarrer ne sont pas proposés sur une VM en pause ; pas dans le menu des cartes ; `docs/api/alimentation-vm.md`) | M14 |
 | Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
@@ -78,7 +78,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
-| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; **convertir en modèle validé en réel le 2026-11-09** (VM 117 et LXC 119, refus compris) ; écarts d'interface : boutons de la fenêtre masqués #202, pas de « Supprimer » sur un modèle #203, démarrage d'un modèle non refusé par Kaji #204 ; `docs/api/alimentation-vm.md`) | M4 / M14 |
+| Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; **convertir en modèle validé en réel le 2026-11-09** (VM 117 et LXC 119, refus compris, à la souris) ; écarts corrigés et revérifiés le 2026-11-09 : fenêtre de conversion (#202), « Supprimer le modèle » (#203), démarrage d'un modèle refusé en 409 (#204) ; clone lié et suppression d'un modèle ayant des clones liés non essayés ; `docs/api/alimentation-vm.md`) | M4 / M14 |
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |
@@ -108,7 +108,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
 | **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ✅ (téléversement et téléchargement par URL validés en réel, avec sha256) | M5 |
-| Modèles LXC officiels (TurnKey, distributions) : télécharger | ✅ (validé en réel le 2026-11-09 : catalogue de 136 entrées, téléchargement d'Alpine en 2 s, 409 et 422 sans tâche, dialogue de l'assistant LXC ; écart cosmétique : architecture `arm64` proposée sur un nœud amd64, #205 ; `docs/api/modeles-lxc.md`) | M14 |
+| Modèles LXC officiels (TurnKey, distributions) : télécharger | ✅ (validé en réel le 2026-11-09 : catalogue de 136 entrées, téléchargement d'Alpine en 2 s, 409 et 422 sans tâche, dialogue de l'assistant LXC ; l'architecture du nœud filtre le catalogue (#205 corrigé, revérifié : 134 modèles amd64, 136 avec la case) ; `docs/api/modeles-lxc.md`) | M14 |
 | Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un fichier vers un autre stockage ou nœud : route codée (API Proxmox expérimentale, absente de l'interface de Proxmox), pas d'interface, validation en réel à faire, `docs/api/volumes.md`) | M5 |
 
 ## Transverses

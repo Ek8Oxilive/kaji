@@ -92,12 +92,16 @@ def test_invalid_node_rejected(api, node):
 
 # ---------- modèles LXC ----------
 
+MACHINE = {"v": "x86_64"}
+
+
 def _tpl_handler(request: httpx.Request) -> httpx.Response:
     p = request.url.path.removeprefix(BASE)
     CALLS.append(p)
     if p in FAIL:
         return httpx.Response(403, json={"data": None})
     data = {
+        "/nodes/enzo/status": {"pveversion": "pve-manager/9.1.9", "current-kernel": {"release": "6.17.2-1-pve", "machine": MACHINE["v"]}},
         "/nodes/enzo/storage": [{"storage": "local", "active": 1}, {"storage": "nfs", "active": 1}, {"storage": "off", "active": 0}],
         "/nodes/enzo/storage/local/content": [{"volid": "local:vztmpl/debian-12.tar.zst", "size": 5, "content": "vztmpl"},
                                               {"volid": "local:vztmpl/alpine-3.20.tar.zst", "size": 3, "content": "vztmpl"}],
@@ -132,6 +136,24 @@ def test_templates_local_sorted_and_downloadable_filtered(tpl):
     assert [d["template"] for d in r["downloadable"]] == ["ubuntu-24.04-standard_24.04-2_amd64.tar.zst", "turnkey-core.tar.gz"]
     assert r["downloadable"][0]["architecture"] == "amd64" and r["downloadable"][1]["architecture"] is None
     assert r["downloadable"][0]["description"] == "Ubuntu 24.04"                  # openvz et entrées sans nom écartés
+
+
+@pytest.mark.parametrize("machine,arch", [("x86_64", "amd64"), ("aarch64", "arm64"), ("armv7l", "armhf"), ("sparc64", None), ("", None)])
+def test_templates_report_the_node_architecture_in_catalogue_names(tpl, machine, arch):
+    """Essai réel (#205) : le catalogue propose de l'arm64 sur un nœud amd64 ; le frontend filtre sur cette architecture."""
+    c, cid = tpl
+    MACHINE["v"] = machine
+    try:
+        assert c.get(f"/api/connections/{cid}/nodes/enzo/templates").json()["node_architecture"] == arch
+    finally:
+        MACHINE["v"] = "x86_64"
+
+
+def test_templates_architecture_unknown_when_the_node_status_is_unreadable(tpl):
+    c, cid = tpl
+    FAIL.update({"/nodes/enzo/status": 1})
+    r = c.get(f"/api/connections/{cid}/nodes/enzo/templates").json()
+    assert r["node_architecture"] is None and len(r["local"]) == 2 and r["downloadable"] is not None   # le reste n'est pas touché
 
 
 def test_templates_survive_missing_catalogue_or_failing_storage(tpl):
