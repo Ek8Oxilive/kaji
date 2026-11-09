@@ -227,7 +227,7 @@ def test_confirm_is_required_and_strict(api):
 
 
 @pytest.mark.parametrize("b", [{"sid": "vm:1"}, {"sid": "qemu:100"}, {"sid": "vm:100,vm:101"}, {"sid": "vm:100", "state": "bogus"}, {"sid": "vm:100", "max_restart": 11},
-                               {"sid": "vm:100", "max_restart": -1}, {"sid": "vm:100", "max_restart": "1"}, {"sid": "vm:100", "failback": "1"}, {"sid": "vm:100", "comment": "a\nb"},
+                               {"sid": "vm:100", "max_restart": -1}, {"sid": "vm:100", "max_restart": "1"}, {"sid": "vm:100", "failback": "1"}, {"sid": "vm:100", "comment": "a\nb"}, {"sid": "vm:100", "comment": "règle"}, {"sid": "vm:100", "comment": "emoji \U0001F600"}, {"sid": "vm:100", "comment": "tab\tici"},
                                {"sid": "vm:100", "comment": "x" * 501}, {"sid": "../x"}, {}])
 def test_invalid_create_is_refused_without_any_call(api, b):
     c, cid = api
@@ -290,6 +290,15 @@ def test_update_resource_sends_digest_clear_and_verifies(api):
     assert r.status_code == 200 and r.json()["removed"] == ["comment", "max_relocate"]
     assert CALLS[-1] == ("PUT", "/cluster/ha/resources/vm:100", {"state": "stopped", "max_restart": "2", "delete": "comment,max_relocate", "digest": "d" * 40})
     assert ST["resources"]["vm:100"]["state"] == "stopped" and "comment" not in ST["resources"]["vm:100"]
+
+
+def test_accented_comments_are_refused_on_update_too(api):
+    c, cid = api
+    add_res("vm:100"); add_rule("r1")
+    assert c.put(url(cid, "/resources/vm:100"), json={"comment": "règle", **ok()}).status_code == 422
+    assert c.put(url(cid, "/rules/r1"), json={"type": "node-affinity", "comment": "naïf", **ok()}).status_code == 422
+    assert not CALLS
+    assert c.put(url(cid, "/resources/vm:100"), json={"comment": "regle sans accent !?#", **ok()}).status_code == 200
 
 
 def test_update_locks_and_refusals(api):
@@ -424,7 +433,7 @@ def test_disabled_rule_is_inert_and_rule_locks(api):
 @pytest.mark.parametrize("b", [
     {"resources": []}, {"resources": ["vm:100", "vm:100"]}, {"resources": ["bad"]}, {"nodes": []}, {"nodes": [{"node": "a b"}]}, {"nodes": [{"node": "enzo"}, {"node": "enzo"}]},
     {"nodes": [{"node": "enzo", "priority": -1}]}, {"nodes": [{"node": "enzo", "priority": 1001}]}, {"rule": "1bad"}, {"rule": "a b"}, {"rule": ""}, {"strict": "1"},
-    {"type": "group"}, {"affinity": "maybe"}, {"comment": "a\x00b"},
+    {"type": "group"}, {"affinity": "maybe"}, {"comment": "a\x00b"}, {"comment": "règle essai"}, {"comment": "naïf"},
     {"type": "resource-affinity", "affinity": "positive", "nodes": [{"node": "enzo"}], "resources": ["vm:100", "ct:101"]},
     {"type": "resource-affinity", "affinity": "positive", "resources": ["vm:100", "ct:101"], "strict": True},
     {"type": "resource-affinity", "resources": ["vm:100", "ct:101"]}, {"type": "resource-affinity", "affinity": "positive", "resources": ["vm:100"], "nodes": None},

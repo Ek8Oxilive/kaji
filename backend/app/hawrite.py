@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, StrictBool, StrictInt, field_validator, m
 SID = re.compile(r"^(vm|ct):[1-9][0-9]{2,8}$")
 NODE = re.compile(r"^[A-Za-z0-9]([A-Za-z0-9\-]{0,62})$")
 RULE = re.compile(r"^[A-Za-z][A-Za-z0-9_\-]{0,63}$")
-CLEAN = re.compile(r"[^\x00-\x1f\x7f]*")
+ASCII_TEXT = re.compile(r"[\x20-\x7e]*")
 PHRASE = "COUPURE POSSIBLE"
 STATE = Literal["started", "stopped", "enabled", "disabled", "ignored"]
 INACTIVE_STATES = ("disabled", "ignored")
@@ -35,8 +35,9 @@ def gtype_of(sid: str) -> str:
 
 
 def _comment(v):
-    if v is not None and not CLEAN.fullmatch(v):
-        raise ValueError("Caractère de contrôle interdit")
+    """Constaté en réel : Proxmox ALTÈRE les accents dans le commentaire d'une règle HA (« è » revient en U+FFFD). ASCII imprimable seulement."""
+    if v is not None and not ASCII_TEXT.fullmatch(v):
+        raise ValueError("Le commentaire HA ne peut contenir que des caractères ASCII imprimables (Proxmox altère les accents)")
     return v
 
 
