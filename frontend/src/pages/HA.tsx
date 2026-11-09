@@ -37,9 +37,13 @@ export function HA({ onGoConnections }: { onGoConnections: () => void }) {
       <Notice kind="ok">Avec deux nœuds, la HA est risquée : si un nœud tombe, l'autre perd le quorum et peut redémarrer de lui-même (chien de garde). Toute écriture HA est d'abord prévisualisée, et exige ici la phrase COUPURE POSSIBLE.</Notice>
 
       <section className="space-y-3"><h2 className="text-lg font-semibold">État</h2>
-        {status.error ? err(status.error) : (
-          <p className="text-sm text-muted">Quorum : {quorum ? (quorum.quorate ? "oui" : "NON") : "–"} · Chien de garde : {fencing?.armed_state ?? fencing?.status ?? "–"}
-            {(status.data ?? []).filter((s) => s.type === "service").length > 0 && ` · ${(status.data ?? []).filter((s) => s.type === "service").length} service(s) HA`}</p>)}
+        {status.error ? err(status.error) : (status.data ?? []).length === 0 ? <Empty>Aucun état HA.</Empty> : (
+          <Table head={["Type", "Nœud / machine", "État"]}>{(status.data ?? []).map((s, i) => (
+            <tr key={`${s.type}-${s.id}-${i}`} className="border-b border-line/60 last:border-0">
+              <td className="px-4 py-2 text-muted">{{ quorum: "Quorum", master: "Maître", lrm: "LRM", service: "Service", fencing: "Chien de garde" }[s.type]}</td>
+              <td className="px-4 py-2 font-mono">{s.type === "service" ? s.sid ?? "–" : s.node ?? "–"}</td>
+              <td className="px-4 py-2 text-muted">{s.status ?? s.state ?? "–"}{s.type === "service" && s.request_state ? ` · demandé : ${s.request_state}` : ""}</td></tr>))}</Table>)}
+        <p className="text-xs text-muted">Quorum : {quorum ? (quorum.quorate ? "oui" : "NON") : "–"} · Chien de garde : {fencing?.armed_state ?? fencing?.status ?? "–"}</p>
       </section>
 
       <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Ressources HA</h2><Button variant="ghost" onClick={() => setMode({ kind: "resource-new" })}>Ajouter une machine…</Button></div>

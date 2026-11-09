@@ -23,7 +23,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Résumé du cluster (nœuds, quorum, ressources) | ✅ | Dashboard |
 | Notes du datacenter | ⬜ | M15 |
-| Cluster : créer, joindre, liens corosync, retirer un nœud | ⬜ | M10 |
+| Cluster : créer, joindre, liens corosync, retirer un nœud | 🟡 (lecture : nœuds, votes, liens, totem, QDevice, quorum, Join Information, `docs/api/cluster.md` ; créer / joindre / retirer = commandes à copier, Kaji n'écrit pas : `docs/m10-cluster.md`, décision d'Enzo attendue) | M10 |
 | Options du datacenter (clavier, langue, console, proxy HTTP, préfixe MAC, migration, HA, tâches parallèles) | ⬜ | M15 |
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
 | Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | ✅ (validé en réel pour `dir` ; les autres types : non validés en réel) | M5 |

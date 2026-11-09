@@ -10,6 +10,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Machine } from "./pages/Machine";
 import { NodePage } from "./pages/Node";
 import { Sauvegardes } from "./pages/Sauvegardes";
+import { Cluster } from "./pages/Cluster";
 import { HA } from "./pages/HA";
 import { Reseau } from "./pages/Reseau";
 import { Stockage } from "./pages/Stockage";
@@ -45,6 +46,7 @@ export default function App() {
         : page === "tasks" ? <Taches onGoConnections={goConnections} />
         : page === "network" ? <Reseau onGoConnections={goConnections} />
         : page === "ha" ? <HA onGoConnections={goConnections} />
+        : page === "cluster" ? <Cluster onGoConnections={goConnections} />
         : <Dashboard onGoConnections={goConnections} onOpenGuest={(g) => go(guestHash(g))} onOpenNode={(n) => go(nodeHash(n))} />}
     </Layout>
   );
