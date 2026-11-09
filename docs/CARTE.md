@@ -127,7 +127,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/task_list.py` — Journal des tâches (lecture seule) : liste des tâches de tous… — GET /tasks
 - `backend/app/routers/token_write.py` — Créer, lister et révoquer des tokens d'API (utilisateurs du r… — GET /access/users/{userid}/tokens; POST /access/users/{userid}/tokens; DELETE /access/users/{userid}/tokens/{tokenid}
 - `backend/app/routers/user_write.py` — Écrire des utilisateurs (realm pve), des groupes et des appar… — POST /access/users; PUT /access/users/{userid}; GET /access/users/{userid}/impact; DELETE /access/users/{userid} (+3)
-- `backend/app/routers/volumes.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un… — PUT /nodes/{node}/storage/{storage}/backups/{volume}/protect; DELETE /nodes/{node}/storage/{storage}/files/{kind}/{name}; POST /nodes/{node}/storage/{storage}/prune/preview; POST /nodes/{node}/storage/{storage}/prune
+- `backend/app/routers/volumes.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un… — PUT /nodes/{node}/storage/{storage}/backups/{volume}/protect; DELETE /nodes/{node}/storage/{storage}/files/{kind}/{name}; POST /nodes/{node}/storage/{storage}/copy/{kind}/{name}; POST /nodes/{node}/storage/{storage}/prune/preview (+1)
 
 ## Frontend : pages
 - `frontend/src/pages/Acces.tsx` — Une requête de lecture + son squelette et son erreur ; `child…

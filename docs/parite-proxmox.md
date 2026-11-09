@@ -109,7 +109,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
 | **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ✅ (téléversement et téléchargement par URL validés en réel, avec sha256) | M5 |
 | Modèles LXC officiels (TurnKey, distributions) : télécharger | ✅ (validé en réel le 2026-11-09 : catalogue de 136 entrées, téléchargement d'Alpine en 2 s, 409 et 422 sans tâche, dialogue de l'assistant LXC ; écart cosmétique : architecture `arm64` proposée sur un nœud amd64, #205 ; `docs/api/modeles-lxc.md`) | M14 |
-| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un volume : ⬜) | M5 |
+| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un fichier vers un autre stockage ou nœud : route codée (API Proxmox expérimentale, absente de l'interface de Proxmox), pas d'interface, validation en réel à faire, `docs/api/volumes.md`) | M5 |
 
 ## Transverses
 
