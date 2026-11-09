@@ -35,7 +35,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Permissions : écriture, tokens API, double authentification, realms LDAP/AD/OpenID | 🟡 (session administrateur, écriture d'une ACL, utilisateurs, groupes, appartenances et tokens API livrés, non validés en réel ; double authentification, realms LDAP/AD/OpenID : ⬜) | M6 |
 | HA : ressources, groupes ou règles, fencing | ⬜ | M8 |
 | ACME (certificats automatiques) | 🟡 (comptes, domaines du nœud, commande, renouvellement codés, jamais exécutés en réel ; plugins DNS : lecture seule) | M11 |
-| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : ⬜) | M7 |
+| Pare-feu : règles, alias, IPSet, groupes de sécurité, options | 🟡 (lecture validée en réel ; alias, IPSets, groupes et options : écriture livrée et validée en réel sur objets inertes ; règles : écriture livrée (M7-3b), `docs/api/pare-feu-regles.md`) | M7 |
 | Serveurs de métriques (InfluxDB, Graphite) | ⬜ | M13 |
 | Notifications : cibles et règles | ⬜ | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | ⬜ | M7 |
@@ -82,7 +82,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
 | Réplication de la machine | ⬜ | M8 |
-| Pare-feu de la machine (règles, options, IPSet) | 🟡 (lecture seule : règles et options) | M7 |
+| Pare-feu de la machine (règles, options, IPSet) | 🟡 (options et règles en écriture ; IPSet de machine livré en M7-2) | M7 |
 | Permissions de la machine | ⬜ | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
