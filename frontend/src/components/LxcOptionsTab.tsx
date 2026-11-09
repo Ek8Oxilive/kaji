@@ -12,6 +12,8 @@ const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const intOk = (s: string, max: number) => s.trim() === "" || (/^\d+$/.test(s.trim()) && Number(s) <= max);
 const TZ = /^(host|[A-Za-z0-9_+-]{1,32}(\/[A-Za-z0-9_+-]{1,32}){0,2})$/;
 
+const ROOT_ONLY = "Modifiable seulement dans Proxmox (droit root@pam)."
+
 export function LxcOptionsTab({ connId, guest }: { connId: number; guest: Guest }) {
   const base = `/api/connections/${connId}/guests/${guest.node}/lxc/${guest.vmid}/options`;
   const qk = ["options", connId, guest.node, guest.vmid];
@@ -114,12 +116,12 @@ export function LxcOptionsTab({ connId, guest }: { connId: number; guest: Guest 
         <h3 className="font-semibold">Fonctionnalités</h3>
         {data.unprivileged === false && <Notice kind="error">Conteneur privilégié : il a un accès étendu à l'hôte. Son mode ne peut pas être changé ici.</Notice>}
         {check("Nesting", "Permet de lancer des conteneurs ou Docker dedans. Conseillé pour les Debian 12 récents.", nesting, setNesting, cleared.has("features"))}
-        {check("FUSE", "Systèmes de fichiers en espace utilisateur.", fuse, setFuse, cleared.has("features"))}
-        {check("keyctl", "Trousseau de clés du noyau (nécessaire à certains conteneurs applicatifs).", keyctl, setKeyctl, cleared.has("features"))}
+        {check("FUSE", "Systèmes de fichiers en espace utilisateur. " + ROOT_ONLY, fuse, setFuse, true)}
+        {check("keyctl", "Trousseau de clés du noyau (nécessaire à certains conteneurs applicatifs). " + ROOT_ONLY, keyctl, setKeyctl, true)}
         <div className="flex flex-wrap gap-4 text-sm"><span className="text-muted">Montages autorisés :</span>
-          {(["nfs", "cifs"] as LxcMount[]).map((m) => <label key={m} className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={mount.includes(m)} disabled={cleared.has("features")}
+          {(["nfs", "cifs"] as LxcMount[]).map((m) => <label key={m} className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={mount.includes(m)} disabled
             onChange={(e) => setMount((s) => e.target.checked ? [...s, m] : s.filter((x) => x !== m))} />{m}</label>)}</div>
-        <p className="text-xs text-muted">Sur un conteneur non privilégié, les montages exigent des droits que le jeton de Kaji n'a sans doute pas : Proxmox refusera alors la demande.</p>
+        <p className="text-xs text-muted">Montages : {ROOT_ONLY}</p>
         {defBtn("features", o.features !== null)}
       </div>
       <div className="panel space-y-3 p-5">

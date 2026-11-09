@@ -20,11 +20,14 @@ router = APIRouter(prefix="/api/connections/{conn_id}", tags=["cluster"],
 Factory = Callable[..., ProxmoxClient]
 
 
+FORBIDDEN_DETAIL = "Droits insuffisants pour cette opération"
+
+
 def http_error(e: Exception) -> HTTPException:
     """Traduit une erreur d'appel Proxmox en erreur HTTP lisible (sans jamais exposer de secret)."""
     if isinstance(e, httpx.HTTPStatusError):
         code = e.response.status_code
-        detail = {401: "Token refusé par Proxmox", 403: "Droits insuffisants pour cette opération"}.get(
+        detail = {401: "Token refusé par Proxmox", 403: FORBIDDEN_DETAIL}.get(
             code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
         return HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
     if isinstance(e, httpx.TimeoutException):
