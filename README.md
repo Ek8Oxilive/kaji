@@ -368,9 +368,13 @@ Informations de corosync en lecture seule.
 
 *Options du datacenter : clavier, langue, visionneuse de console, e-mail d'expédition, préfixe MAC, tâches parallèles, proxy, migration.*
 
-![Notes du datacenter et serveurs de métriques](docs/captures/datacenter-2.jpg)
+![Notes du datacenter et début des notifications](docs/captures/datacenter-2.jpg)
 
-*Notes du datacenter et serveurs de métriques.*
+*Notes du datacenter, puis la section **Notifications** qui commence.*
+
+![Notifications et serveurs de métriques](docs/captures/datacenter-3.jpg)
+
+*Section **Notifications** (lecture seule) : les cibles (ici `mail-to-root`, la cible intégrée de Proxmox, qui écrit à `root@pam`) avec la règle qui les utilise, et les règles (`default-matcher`). Aucun mot de passe ni jeton n'est affiché. Ajouter, modifier, supprimer ou tester une cible viendra ensuite. Dessous, les serveurs de métriques.*
 
 ![Ajouter un serveur de métriques (InfluxDB, Graphite…) ](docs/captures/datacenter-metriques.jpg)
 
@@ -416,13 +420,13 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
 
-![Mode administrateur (session temporaire) et liste des 26 droits dont Kaji a besoin](docs/captures/acces-1.jpg)
+![Mode administrateur (session temporaire) et liste des 27 droits dont Kaji a besoin](docs/captures/acces-1.jpg)
 
-*Mode administrateur (session temporaire) et liste des 26 droits dont Kaji a besoin.*
+*Mode administrateur (session temporaire) et liste des 27 droits dont Kaji a besoin.*
 
 ![Suite des droits ](docs/captures/acces-2.jpg)
 
-*Suite des droits : snapshots, clonage, migration, sauvegardes, console, HA, réplication, datacenter…*
+*Suite des droits : snapshots, clonage, migration, sauvegardes, console, HA, réplication, **notifications (lecture)**, datacenter…*
 
 ![Fin des droits, puis utilisateurs et groupes](docs/captures/acces-3.jpg)
 
