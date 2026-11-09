@@ -7,7 +7,7 @@ import { Notice } from "./ui";
 const PHRASE = "COUPURE POSSIBLE";
 type Locks = { cut: string[]; live: string[]; inert: boolean };
 type Preview = { locks: Locks; pending?: { zones: string[]; vnets: string[]; subnets: string[] } };
-export type SdnMode = { kind: "zone" } | { kind: "vnet"; zone?: string } | { kind: "subnet"; vnet: string } | { kind: "delete"; what: "zones" | "vnets" | "subnets"; id: string; vnet?: string } | { kind: "apply" } | { kind: "rollback" };
+export type SdnMode = { kind: "zone" } | { kind: "vnet"; zone?: string } | { kind: "subnet"; vnet: string } | { kind: "delete"; what: "zones" | "vnets" | "subnets" | "controllers" | "ipams" | "dns" | "fabrics"; id: string; vnet?: string } | { kind: "apply" } | { kind: "rollback" };
 const ZONE_TYPES = ["simple", "vlan", "qinq", "vxlan", "evpn"];
 
 /** SDN : tout s'écrit EN ATTENTE ; appliquer pousse la configuration sur tous les nœuds. Chaque action montre d'abord ses verrous. */

@@ -83,6 +83,12 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
   const fn = useQuery({ queryKey: ["fw-node", id, node], queryFn: () => api<FwNode>(`/api/connections/${id}/firewall/nodes/${encodeURIComponent(node)}`), enabled: id !== null && !!node, staleTime: 15_000 });
 
   const zones = useQuery({ queryKey: ["sdn", id, "zones"], queryFn: () => api<SdnZone[]>(`/api/connections/${id}/sdn/zones`), enabled: id !== null, staleTime: 15_000 });
+  const extra = useQuery({ queryKey: ["sdn", id, "extra"], enabled: id !== null, staleTime: 15_000, queryFn: async () => {
+    const g = <T,>(p: string) => api<T>(`/api/connections/${id}/sdn/${p}`).catch(() => [] as T);
+    const [controllers, ipams, dns, fabrics] = await Promise.all([g<{ controller: string; type: string | null; state: string | null }[]>("controllers"), g<{ ipam: string; type: string | null }[]>("ipams"),
+      g<{ dns: string; type: string | null }[]>("dns"), g<{ id: string; protocol: string | null; state: string | null }[]>("fabrics")]);
+    return { controllers, ipams, dns, fabrics };
+  } });
   const vnets = useQuery({ queryKey: ["sdn", id, "vnets"], queryFn: () => api<SdnVnet[]>(`/api/connections/${id}/sdn/vnets`), enabled: id !== null, staleTime: 15_000 });
   if (!active) return (
     <div className="mx-auto grid max-w-3xl place-items-center py-24 text-center"><div className="panel space-y-4 p-10">
@@ -133,6 +139,14 @@ export function Reseau({ onGoConnections }: { onGoConnections: () => void }) {
               <td className="px-4 py-2 text-muted">{z.state ?? "appliquée"}</td><td className="px-4 py-2 text-right"><button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={() => setSdnMode({ kind: "delete", what: "zones", id: z.zone })}>Supprimer</button></td></tr>))}</Table>)}
         {vnets.error ? <Notice kind="error">{(vnets.error as Error).message}</Notice> : (vnets.data ?? []).length > 0 && (
           <Table head={["VNet", "Zone", "Détails", "État", ""]}>{(vnets.data ?? []).map((v) => <VnetRow key={v.vnet} v={v} connId={id} onAddSubnet={() => setSdnMode({ kind: "subnet", vnet: v.vnet })} onDelete={() => setSdnMode({ kind: "delete", what: "vnets", id: v.vnet })} onDeleteSubnet={(s) => setSdnMode({ kind: "delete", what: "subnets", id: s, vnet: v.vnet })} />)}</Table>)}
+        {extra.data && (extra.data.controllers.length + extra.data.dns.length + extra.data.fabrics.length + extra.data.ipams.filter((i) => i.ipam !== "pve").length) > 0 && (
+          <Table head={["Objet", "Type", "État", ""]}>{[
+            ...extra.data.controllers.map((c) => ({ k: "controllers" as const, id: c.controller, label: `Contrôleur ${c.controller}`, type: c.type, state: c.state })),
+            ...extra.data.ipams.filter((i) => i.ipam !== "pve").map((i) => ({ k: "ipams" as const, id: i.ipam, label: `IPAM ${i.ipam}`, type: i.type, state: null })),
+            ...extra.data.dns.map((d) => ({ k: "dns" as const, id: d.dns, label: `DNS ${d.dns}`, type: d.type, state: null })),
+            ...extra.data.fabrics.map((f) => ({ k: "fabrics" as const, id: f.id, label: `Fabric ${f.id}`, type: f.protocol, state: f.state }))].map((o) => (
+            <tr key={o.k + o.id} className="border-b border-line/60 last:border-0"><td className="px-4 py-2">{o.label}</td><td className="px-4 py-2 text-muted">{o.type}</td><td className="px-4 py-2 text-muted">{o.state ?? "appliqué"}</td>
+              <td className="px-4 py-2 text-right"><button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={() => setSdnMode({ kind: "delete", what: o.k, id: o.id })}>Supprimer</button></td></tr>))}</Table>)}
       </Section>
 
       {sdnMode && id !== null && <SdnDialog connId={id} mode={sdnMode} onClose={() => setSdnMode(null)} />}
