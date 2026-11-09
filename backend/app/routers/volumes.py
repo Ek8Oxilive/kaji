@@ -10,7 +10,7 @@ from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
 from ..vmspec import STORAGE
-from ..volumespec import FILE_NAME, FileKind, Protect, PrunePreview, PruneRun, prune_params, shape_prune
+from ..volumespec import FILE_NAME, NODE_NAME, STORAGE_ID, CopyBody, CopyKind, FileKind, Protect, PrunePreview, PruneRun, copy_name_ok, prune_params, shape_prune
 from .actions import NODE
 from .auth import current_user
 from .cluster import Factory, _px
@@ -84,6 +84,45 @@ async def delete_file(conn_id: int, kind: FileKind = Path(), name: str = Path(pa
     upid = await c.px("delete", f"/nodes/{node}/storage/{storage}/content/{quote(volid, safe='')}")
     c.log("started", f"{kind} SUPPRIMÉ : {volid}", upid=_upid(upid))
     return {"upid": _upid(upid), "deleted": volid}
+
+
+# ---------------------------------------------------------------- copier un fichier
+@router.post("/copy/{kind}/{name}")
+async def copy_file(body: CopyBody, conn_id: int, kind: CopyKind = Path(), name: str = Path(max_length=210), node: str = Path(pattern=NODE),
+                    storage: str = Path(pattern=STORAGE.pattern), db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
+                    user: AdminUser = Depends(current_user)):
+    """Copie un fichier vers un autre stockage (et éventuellement un autre nœud). La source n'est JAMAIS supprimée. API Proxmox expérimentale :
+    source, destination et absence d'un fichier de même nom sont relues chez Proxmox avant d'appeler (409 si le fichier existe déjà)."""
+    target_name = body.target_name or name
+    dest_node = body.target_node or node
+    volid = f"{storage}:{kind}/{name}"
+    c = Ctx(db, factory, user, conn_id, "volume-copy", f"{volid}@{node}")
+    ctype = kind                                                          # le type de contenu Proxmox porte le même nom que le type de fichier
+    if not copy_name_ok(kind, name) or not copy_name_ok(kind, target_name):
+        c.refuse("Nom de fichier invalide pour ce type", 422)
+    if not STORAGE_ID.fullmatch(body.target_storage) or not NODE_NAME.fullmatch(dest_node):
+        c.refuse("Stockage ou nœud de destination invalide", 422)
+    if dest_node == node and body.target_storage == storage and target_name == name:
+        c.refuse("La destination est la source elle-même", 422)
+    target = f"{body.target_storage}:{kind}/{target_name}"
+    await c.find(node, storage, ctype, volid)
+    nodes = await c.px("get", "/nodes")
+    if not isinstance(nodes, list) or not any(isinstance(n, dict) and n.get("node") == dest_node for n in nodes):
+        c.refuse("Nœud de destination inconnu du cluster", 422)
+    accepting = await c.px("get", f"/nodes/{dest_node}/storage", content=ctype)
+    if not isinstance(accepting, list) or not any(isinstance(s, dict) and s.get("storage") == body.target_storage and s.get("active", 1) for s in accepting):
+        c.refuse("Ce stockage n'accepte pas ce type de fichier ou n'est pas actif sur le nœud de destination", 422)
+    present = await c.px("get", f"/nodes/{dest_node}/storage/{body.target_storage}/content", content=ctype)
+    if not isinstance(present, list):
+        c.refuse("Contenu de la destination illisible : copie refusée", 502)
+    if any(isinstance(v, dict) and v.get("volid") == target for v in present):
+        c.refuse("Un fichier de ce nom existe déjà sur la destination : copie refusée, rien n'est écrasé", 409)
+    if body.dry_run:
+        return {"dry_run": True, "source": volid, "target": target, "target_node": dest_node, "node": node}
+    params = {"target": target, **({"target_node": dest_node} if dest_node != node else {})}
+    upid = await c.px("post", f"/nodes/{node}/storage/{storage}/content/{quote(volid, safe='')}", **params)
+    c.log("started", f"{kind} COPIÉ : {volid} -> {dest_node}:{target}", upid=_upid(upid))
+    return {"upid": _upid(upid), "source": volid, "target": target, "target_node": dest_node, "node": node}
 
 
 # ---------------------------------------------------------------- élaguer les sauvegardes
