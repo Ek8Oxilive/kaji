@@ -30,7 +30,12 @@ export function TemplateCatalogDialog({ connId, node, storage, onClose }: { conn
   const items = tpls.data?.downloadable ?? [];
   const sections = useMemo(() => [...new Set(items.map((a) => a.section).filter((s): s is string => !!s))].sort(), [items]);
   const present = useMemo(() => new Set((tpls.data?.local ?? []).filter((l) => l.storage === target).map((l) => l.name)), [tpls.data, target]);
+  // Par défaut, seulement l'architecture du nœud : un modèle arm64 serait inutilisable sur un nœud amd64 (essai réel, ticket #205).
+  const [allArch, setAllArch] = useState(false);
+  const nodeArch = tpls.data?.node_architecture ?? null;
+  const otherArch = nodeArch !== null && items.some((a) => a.architecture && a.architecture !== nodeArch);
   const shown = items.filter((a) => (section === "all" || a.section === section)
+    && (allArch || nodeArch === null || !a.architecture || a.architecture === nodeArch)
     && `${a.template} ${a.os ?? ""} ${a.description ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
 
   const download = async (template: string) => {
@@ -64,6 +69,12 @@ export function TemplateCatalogDialog({ connId, node, storage, onClose }: { conn
           <label className="block text-xs text-muted">Recherche
             <input className="field mt-1" value={q} onChange={(e) => setQ(e.target.value)} placeholder="alpine, debian, turnkey…" /></label>
         </div>
+        {otherArch && (
+          <label className="flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={allArch} onChange={(e) => setAllArch(e.target.checked)} />
+            Afficher aussi les autres architectures (ce nœud est en {nodeArch})
+          </label>
+        )}
         {tpls.isLoading && <p className="text-sm text-muted">Chargement du catalogue…</p>}
         {tpls.isError && <Notice kind="error">Liste indisponible : {(tpls.error as Error).message}</Notice>}
         {tpls.isSuccess && tpls.data.downloadable === null && <Notice kind="error">Catalogue indisponible : le nœud n'a pas pu le lire (droits ou accès Internet).</Notice>}
@@ -74,7 +85,7 @@ export function TemplateCatalogDialog({ connId, node, storage, onClose }: { conn
             <li key={a.template} className="flex items-center justify-between gap-3 p-3 text-sm">
               <div className="min-w-0">
                 <p className="truncate font-medium">{a.template}</p>
-                <p className="truncate text-xs text-muted">{[a.section, a.description].filter(Boolean).join(" · ")}</p>
+                <p className="truncate text-xs text-muted">{[a.section, a.architecture, a.description].filter(Boolean).join(" · ")}</p>
               </div>
               {present.has(a.template)
                 ? <span className="shrink-0 text-xs text-muted">Déjà présent</span>

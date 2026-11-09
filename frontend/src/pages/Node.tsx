@@ -120,7 +120,7 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
                         onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) go(guestHash(g)); }}>
                         <td className="px-4 py-2"><a href={guestHash(g)} className="font-medium hover:underline focus-visible:underline">{g.name ?? `#${g.vmid}`}</a><span className="ml-2 text-xs text-muted">#{g.vmid}</span></td>
                         <td className="px-4 py-2 text-muted">{g.template ? "Modèle" : g.type === "qemu" ? "VM" : "LXC"}</td>
-                        <td className="px-4 py-2"><span className="flex items-center gap-1.5"><span className={`size-2 rounded-full ${run ? "bg-ok" : g.status === "stopped" ? "bg-muted" : "bg-warn"}`} />{run ? "En marche" : g.status === "stopped" ? "Arrêtée" : (g.status ?? "Inconnu")}</span></td>
+                        <td className="px-4 py-2"><span className="flex items-center gap-1.5"><span className={`size-2 rounded-full ${run ? "bg-ok" : g.status === "stopped" ? "bg-muted" : "bg-warn"}`} />{run ? "En marche" : g.status === "paused" ? "En pause" : g.status === "stopped" ? "Arrêtée" : (g.status ?? "Inconnu")}</span></td>
                         <td className="px-4 py-2 text-right tabular-nums text-muted">{run ? `${(g.cpu * 100).toFixed(0)} %` : "–"}</td>
                         <td className="px-4 py-2 text-right tabular-nums text-muted">{run ? bytes(g.mem) : "–"}</td>
                       </tr>

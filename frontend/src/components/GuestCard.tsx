@@ -9,10 +9,12 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
+  const paused = status === "paused";          // VM suspendue : « Reprendre » est sur la page de la machine (ticket #201)
+  const alive = running || paused;
   // Juste après un clonage ou une création, Proxmox met sa liste à jour avec retard : nom absent et état inconnu pendant quelques secondes.
   const creating = !guest.template && guest.name === null && (status === null || status === "unknown");
   const dot = creating ? "bg-muted animate-pulse" : busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
-  const text = creating ? "Création en cours" : busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
+  const text = creating ? "Création en cours" : busyLabel ?? (running ? "En marche" : paused ? "En pause" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
   const off = !!busyLabel;
   return (
     // Un clic n'importe où sur la carte (hors boutons et liens) ouvre la page de la machine ; le nom est un vrai lien, pour le clavier.
@@ -32,21 +34,21 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
       </div>
 
       <div className="space-y-2.5">
-        <Gauge label="CPU" value={running ? guest.cpu * 100 : 0} detail={running ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
-        <Gauge label="RAM" value={running ? pct(guest.mem, guest.maxmem) : 0} detail={running ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
+        <Gauge label="CPU" value={alive ? guest.cpu * 100 : 0} detail={alive ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
+        <Gauge label="RAM" value={alive ? pct(guest.mem, guest.maxmem) : 0} detail={alive ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
       </div>
 
       <div className="mt-auto space-y-3">
-        <p className="text-xs text-muted">{creating ? "Proxmox n'a pas encore actualisé cette machine." : running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
+        <p className="text-xs text-muted">{creating ? "Proxmox n'a pas encore actualisé cette machine." : running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? "En pause : ouvre la machine pour la reprendre" : "Arrêtée"}</p>
         <div className="flex flex-wrap gap-1.5">
           <Button variant="ghost" onClick={onClone} disabled={creating} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
-            {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
+            {stopped && <Button onClick={() => onAction("start")} disabled={off} className="!px-3 !py-1.5" title="Démarre la machine">Démarrer</Button>}
             {running && <>
-              <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
-              <Button variant="ghost" onClick={() => onAction("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
-              <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>
+              <Button variant="ghost" onClick={() => onAction("reboot")} disabled={off} className="!px-3 !py-1.5" title="Redémarrage propre : le système s'arrête puis redémarre">Redémarrer</Button>
+              <Button variant="ghost" onClick={() => onAction("shutdown")} disabled={off} className="!px-3 !py-1.5" title="Extinction propre : demande au système de s'arrêter">Éteindre</Button>
             </>}
+            {alive && <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)">Forcer</Button>}
           </>}
         </div>
       </div>

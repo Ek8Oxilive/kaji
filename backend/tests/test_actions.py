@@ -12,6 +12,7 @@ UPID = "UPID:enzo:0001A2B3:00C4D5E6:67890ABC:vzstart:105:kaji@pve!kaji:"
 CALLS = []
 FAIL = {}
 EXIT = {"v": "OK"}
+CFG = {"template": False, "unreadable": False}
 
 
 def _handler(request: httpx.Request) -> httpx.Response:
@@ -19,6 +20,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if FAIL.get("code"):
         return httpx.Response(FAIL["code"], json={"data": None})
     path = request.url.path
+    if request.method == "GET" and path.endswith("/config"):
+        if CFG["unreadable"]:
+            return httpx.Response(500, json={"data": None})
+        return httpx.Response(200, json={"data": {"template": 1, "hostname": "lab"} if CFG["template"] else {"hostname": "lab"}})
     if request.method == "POST" and "/status/" in path:
         return httpx.Response(200, json={"data": UPID})
     if path.endswith("/status"):
@@ -34,6 +39,7 @@ def api(client):
     CALLS.clear()
     FAIL.clear()
     EXIT["v"] = "OK"
+    CFG.update(template=False, unreadable=False)
     app.dependency_overrides[get_client_factory] = lambda: (
         lambda **kw: ProxmoxClient(**kw, transport=httpx.MockTransport(_handler))
     )
@@ -52,12 +58,46 @@ def test_requires_auth(client):
     assert client.get("/api/audit").status_code == 401
 
 
-@pytest.mark.parametrize("action", ["start", "shutdown", "reboot"])
+@pytest.mark.parametrize("action", ["shutdown", "reboot"])
 def test_safe_actions_call_proxmox_and_return_upid(api, action):
     c, cid = api
     r = c.post(url(cid, action))
     assert r.status_code == 202 and r.json()["upid"] == UPID
     assert CALLS == [("POST", f"/api2/json/nodes/enzo/lxc/105/status/{action}")]
+
+
+def test_start_reads_the_config_first_then_starts(api):
+    c, cid = api
+    r = c.post(url(cid, "start"))
+    assert r.status_code == 202 and r.json()["upid"] == UPID
+    assert CALLS == [("GET", "/api2/json/nodes/enzo/lxc/105/config"), ("POST", "/api2/json/nodes/enzo/lxc/105/status/start")]
+
+
+@pytest.mark.parametrize("gtype", ["qemu", "lxc"])
+def test_start_refuses_a_template_with_409_and_writes_nothing(api, gtype):
+    """Essai réel (#204) : Kaji acceptait (202) puis Proxmox échouait « you can't start a vm if it's a template »."""
+    c, cid = api
+    CFG["template"] = True
+    r = c.post(url(cid, "start", gtype=gtype))
+    assert r.status_code == 409 and "modèle" in r.json()["detail"]
+    assert [m for m, _ in CALLS] == ["GET"]                                          # aucune écriture
+    row = c.get("/api/audit").json()[0]
+    assert (row["action"], row["status"], row["detail"]) == ("start", "error", "machine modèle")
+
+
+def test_start_is_not_blocked_when_the_config_cannot_be_read(api):
+    """Config illisible : on ne bloque pas un démarrage légitime, Proxmox tranche."""
+    c, cid = api
+    CFG["unreadable"] = True
+    r = c.post(url(cid, "start"))
+    assert r.status_code == 202 and CALLS[-1] == ("POST", "/api2/json/nodes/enzo/lxc/105/status/start")
+
+
+def test_other_actions_never_read_the_config_nor_refuse_a_template(api):
+    c, cid = api
+    CFG["template"] = True
+    assert c.post(url(cid, "shutdown")).status_code == 202
+    assert [m for m, _ in CALLS] == ["POST"]
 
 
 def test_stop_requires_confirmation(api):

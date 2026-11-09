@@ -27,9 +27,22 @@ machine non arrêtée, relue chez Proxmox (409 ; état illisible : 502) · verro
 compris (400 ; `name` pour une VM, `hostname` pour un LXC). Chez Proxmox, les disques d'une VM sont **renommés `base-…`** et la machine ne démarre plus
 (elle se clone).
 
+## Démarrer un modèle (route générique `…/{type}/{vmid}/start`, `routers/actions.py`)
+Avant un `start`, Kaji relit la config (`GET …/config`) : si `template` vaut `1`, **409** « Une machine modèle ne démarre pas : clone-la, puis démarre la
+copie », **aucune écriture**, audit `start` en erreur (« machine modèle »). Config illisible : le démarrage n'est pas bloqué, Proxmox tranche. Les autres
+actions (`shutdown`, `reboot`, `stop`) ne lisent rien de plus. Ticket #204.
+
 ## Interface
-Page Machine : « Suspendre », « Hiberner », « Réinitialiser » (VM en marche), « Reprendre » (VM en pause, état relu toutes les 8 s), « Convertir en
-modèle… » (machine arrêtée, VM ou LXC, nom à retaper). Pas encore dans le menu des cartes de la liste (l'état « en pause » y est inconnu).
+Page Machine : « Suspendre », « Hiberner », « Réinitialiser » (VM en marche), « Reprendre » (VM en pause), « Convertir en modèle… » (machine arrêtée, VM ou
+LXC, nom à retaper). **Une VM suspendue est `paused` dans la liste des machines** (alors que `/power` dit `running` + `qmpstatus: paused`) : la carte affiche
+« En pause » et l'écran propose **Reprendre** et **Forcer** (ni Redémarrer ni Éteindre) ; les cartes de la liste, la page du nœud, le filtre d'état et la
+palette gèrent aussi `paused` (ticket #201). La liste de Proxmox met 6 à 10 s à changer d'état : la page se rafraîchit à 0, 4, 9 et 15 s après une action.
+Les fenêtres de confirmation sont rendues dans `document.body` (portail) : dans la carte d'en-tête, leurs boutons passaient sous la carte Notes (#202) ;
+Entrée dans le champ du nom valide. Le texte de la conversion distingue VM (« disques ») et conteneur (« volume », #206). Pas encore dans le menu des cartes
+de la liste.
+
+La page d'un **modèle** a une zone « Zone dangereuse » avec **Supprimer le modèle** (même fenêtre et même nom à retaper que pour une machine ordinaire,
+`DELETE …/guests/{node}/{type}/{vmid}`, #203).
 
 ## Validé en réel (2026-11-09, PC A, VM 115 sans système et clone jetable 117, LXC jetable 119)
 - **États observés** : VM suspendue = `GET …/power` renvoie `{"status":"running","qmpstatus":"paused","paused":true}` ; en revanche la **liste des machines**
@@ -44,7 +57,7 @@ modèle… » (machine arrêtée, VM ou LXC, nom à retaper). Pas encore dans le
   marche (409), déjà un modèle (409 « La machine est déjà un modèle »), chaque fois sans tâche. Conversion VM 117 : `qmtemplate` ok, disque
   `local-lvm:base-117-disk-0`, badge « Modèle ». **LXC 119** : toast « convertie en modèle » sans erreur, disque `base-119-disk-0`, tâche `vztemplate` ok.
   `template: true` n'apparaît dans `/guests` qu'une dizaine de secondes après la tâche.
-- **Démarrer un modèle** : Kaji l'accepte (202) et Proxmox échoue (« you can't start a vm if it's a template ») : **#204**.
+- **Démarrer un modèle** : Kaji l'acceptait (202) et Proxmox échouait (« you can't start a vm if it's a template ») : **corrigé (#204)**, voir « Démarrer un modèle » plus haut.
 - **Écarts d'interface** : fenêtre de conversion dont les boutons sont masqués sous la carte Notes (**#202**) ; pas de bouton « Supprimer » sur un modèle
   (**#203**, suppression faite par `DELETE …/guests/{node}/{type}/{vmid}?confirm=true&name=…`) ; texte « disques d'une VM » pour un LXC (**#206**).
 - Audit : `start`, `suspend`, `resume`, `reset`, `hibernate`, `stop`, `guest-template` (refus en erreur, succès en `started`), sans secret.

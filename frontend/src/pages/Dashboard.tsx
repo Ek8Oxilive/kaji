@@ -118,8 +118,8 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
         ...(st === "running" ? [
           c("reboot", "Redémarrer", () => setPending({ guest: x, action: "reboot" })),
           c("shutdown", "Éteindre", () => setPending({ guest: x, action: "shutdown" })),
-          c("stop", "Forcer l'arrêt de", () => setPending({ guest: x, action: "stop" })),
         ] : []),
+        ...(st === "running" || st === "paused" ? [c("stop", "Forcer l'arrêt de", () => setPending({ guest: x, action: "stop" }))] : []),
       ];
     }),
     ...n.map((x): Command => ({ id: `node-${x.node}`, group: "Navigation", label: `Ouvrir le nœud ${x.node}`, keywords: "serveur hôte", run: () => onOpenNode(x.node) })),
@@ -180,7 +180,7 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
           <h2 className="text-lg font-semibold">Machines <span className="text-sm font-normal text-muted">({visible.length})</span></h2>
           <div className="flex flex-wrap gap-2">
             <input className={`${sel} min-w-44`} placeholder="Rechercher…" aria-label="Rechercher une machine" value={q} onChange={(e) => setQ(e.target.value)} />
-            <select className={sel} aria-label="État" value={state} onChange={(e) => setState(e.target.value)}><option value="all">Tous les états</option><option value="running">En marche</option><option value="stopped">Arrêtées</option></select>
+            <select className={sel} aria-label="État" value={state} onChange={(e) => setState(e.target.value)}><option value="all">Tous les états</option><option value="running">En marche</option><option value="paused">En pause</option><option value="stopped">Arrêtées</option></select>
             <select className={sel} aria-label="Type" value={kind} onChange={(e) => setKind(e.target.value)}><option value="all">VM + LXC</option><option value="qemu">VM</option><option value="lxc">LXC</option></select>
             <select className={sel} aria-label="Nœud" value={node} onChange={(e) => setNode(e.target.value)}><option value="all">Tous les nœuds</option>{n.map((x) => <option key={x.node} value={x.node}>{x.node}</option>)}</select>
             {pools.length > 0 && <select className={sel} aria-label="Pool" value={pool} onChange={(e) => setPool(e.target.value)}><option value="all">Tous les pools</option><option value="none">Sans pool</option>{pools.map((p) => <option key={p} value={p}>{p}</option>)}</select>}
