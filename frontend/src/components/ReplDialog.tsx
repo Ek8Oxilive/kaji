@@ -23,7 +23,7 @@ export function ReplDialog({ connId, mode, onClose }: { connId: number; mode: Re
     [comment, setComment] = useState(job?.comment ?? ""), [disable, setDisable] = useState<Tri>(triOf(job?.disable)), [keep, setKeep] = useState(false), [typed, setTyped] = useState("");
   const [preview, setPreview] = useState<ReplPreview | null>(null), [ackLive, setAckLive] = useState(false);
   const [busy, setBusy] = useState(false), [done, setDone] = useState(false), [err, setErr] = useState<string | null>(null);
-  useEffect(() => { setPreview(null); setAckLive(false); setErr(null); }, [guest, target, schedule, rate, comment, disable, keep, typed]);
+  useEffect(() => { setPreview(null); setAckLive(false); setErr(null); }, [guest, target, schedule, rate, comment, disable, keep]);   // retaper le nom du job ne réinitialise pas l'aperçu
 
   const base = `/api/connections/${connId}/replication`;
   const chosen = (guests.data ?? []).find((g) => String(g.vmid) === guest);
