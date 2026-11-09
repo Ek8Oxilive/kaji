@@ -23,10 +23,15 @@ dans le tiroir d'un stockage qui accepte les modèles (stockage fixé). Recherch
 sur le stockage choisi, progression par `runTask` (30 min max). La liste est tronquée à 300 entrées côté `GET …/templates` ; le serveur, lui, valide sur
 le catalogue **complet**.
 
+**Architecture (ticket #205)** : `GET …/templates` renvoie aussi `node_architecture` (`amd64`, `arm64`, `armhf`, `riscv64`, ou `null`), déduite de
+`current-kernel.machine` de `GET /nodes/{node}/status` (`x86_64` → `amd64`, `aarch64` → `arm64`) ; statut illisible : `null`, le reste de la réponse n'est pas
+touché. Le dialogue ne montre par défaut que les modèles de cette architecture (et ceux sans architecture) ; la case « Afficher aussi les autres
+architectures » les rend visibles. Le serveur, lui, ne filtre pas le téléchargement.
+
 ## Validé en réel (2026-11-09, PC A, `local` du nœud `enzo2`)
 - **Redéploiement nécessaire** : le déploiement du jour n'avait pas la route (404) ; après `git pull` + build du CT 116 (`main` 6f74226), tout marche.
 - **Catalogue** : 136 entrées, sections `mail`, `system`, `turnkeylinux` ; champs observés `template`, `os`, `version`, `section`, `architecture`, `description` ;
-  la recherche « alpine » filtre (3 résultats). Écart **#205** : le modèle `arm64` est proposé sur un nœud amd64.
+  la recherche « alpine » filtre (3 résultats). Écart **#205** (corrigé, voir plus haut) : le modèle `arm64` était proposé sur un nœud amd64.
 - **Téléchargement** d'`alpine-3.23-default_20261105_amd64.tar.xz` : tâche `download` réussie en **2 s** (3 450 920 octets), `volid` =
   `local:vztmpl/alpine-3.23-default_20261105_amd64.tar.xz` (**identique au nom du catalogue**), bouton passé à « Déjà présent », modèle visible dans l'assistant LXC.
 - **409** (« Ce modèle est déjà présent sur ce stockage ») et **422** (`debian-99` : « Ce modèle ne figure pas dans le catalogue officiel de Proxmox » ; `../x` :

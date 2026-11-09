@@ -1,25 +1,33 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { api, type Guest } from "../lib/api";
 import type { PowerOp, PowerState } from "../lib/types/alimentation-vm";
 import { runTask } from "../lib/tasks";
-import { Button, Notice } from "./ui";
+import { Modal } from "./Modal";
+import { Button, Field, Notice } from "./ui";
 import { useToast } from "./Toast";
 
-const TEXT: Record<PowerOp, { title: string; verb: string; busy: string; done: string; text: string; danger: boolean }> = {
-  reset: { title: "Réinitialiser", verb: "Réinitialiser", busy: "Réinitialisation", done: "réinitialisée", danger: true,
+const TEXT: Record<PowerOp, { title: string; busy: string; done: string; text: string; danger: boolean }> = {
+  reset: { title: "Réinitialiser", busy: "Réinitialisation", done: "réinitialisée", danger: true,
     text: "Coupure brutale puis redémarrage, comme le bouton reset : les données non enregistrées dans la VM sont perdues." },
-  suspend: { title: "Suspendre", verb: "Suspendre", busy: "Suspension", done: "suspendue", danger: false,
+  suspend: { title: "Suspendre", busy: "Suspension", done: "suspendue", danger: false,
     text: "La VM est figée en mémoire (état « pause ») jusqu'à ce que tu la reprennes." },
-  hibernate: { title: "Hiberner", verb: "Hiberner", busy: "Hibernation", done: "hibernée", danger: true,
+  hibernate: { title: "Hiberner", busy: "Hibernation", done: "hibernée", danger: true,
     text: "La mémoire est écrite sur disque et la VM s'arrête ; elle reprend là où elle en était au prochain démarrage. Sans agent invité, Proxmox peut refuser." },
-  resume: { title: "Reprendre", verb: "Reprendre", busy: "Reprise", done: "reprise", danger: false, text: "La VM reprend son exécution." },
-  template: { title: "Convertir en modèle", verb: "Convertir en modèle", busy: "Conversion", done: "convertie en modèle", danger: true,
-    text: "Irréversible : la machine ne pourra plus démarrer, seulement être clonée. Les disques d'une VM sont renommés « base-… » chez Proxmox." },
+  resume: { title: "Reprendre", busy: "Reprise", done: "reprise", danger: false, text: "La VM reprend son exécution." },
+  template: { title: "Convertir en modèle", busy: "Conversion", done: "convertie en modèle", danger: true, text: "" },
 };
 
-/** Reset, suspendre, hiberner, reprendre (VM) et convertir en modèle (VM et LXC). Le serveur relit l'état de la machine et refuse si elle ne s'y prête pas. */
-export function PowerActions({ connId, guest, running, stopped, disabled }: { connId: number; guest: Guest; running: boolean; stopped: boolean; disabled: boolean }) {
+/** Le texte de la conversion dépend du type : les disques d'une VM sont renommés « base-… », le volume d'un conteneur aussi (ticket #206). */
+const templateText = (isVm: boolean) =>
+  `Irréversible : la machine ne pourra plus démarrer, seulement être clonée. ${isVm ? "Les disques de la VM sont" : "Le volume du conteneur est"} renommé${isVm ? "s" : ""} « base-… » chez Proxmox.`;
+
+/**
+ * Reset, suspendre, hiberner, reprendre (VM) et convertir en modèle (VM et LXC). Le serveur relit l'état de la machine et refuse si elle ne s'y prête pas.
+ * `status` : état de la liste des machines (`running`, `stopped`, `paused`…), après les actions rapides.
+ */
+export function PowerActions({ connId, guest, status, disabled }: { connId: number; guest: Guest; status: string | null; disabled: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [op, setOp] = useState<PowerOp | null>(null);
@@ -27,10 +35,14 @@ export function PowerActions({ connId, guest, running, stopped, disabled }: { co
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const isVm = guest.type === "qemu";
+  const stopped = status === "stopped";
+  // Proxmox met une VM suspendue en « paused » dans la liste (essai réel, ticket #201) ; `/power` le confirme avec `paused: true`.
+  const listPaused = status === "paused";
+  const running = status === "running";
   const base = `/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}`;
-  const state = useQuery({ queryKey: ["power", connId, guest.vmid], enabled: isVm && running && !guest.template, refetchInterval: 8000,
+  const state = useQuery({ queryKey: ["power", connId, guest.vmid], enabled: isVm && (running || listPaused) && !guest.template, refetchInterval: 8000,
     queryFn: () => api<PowerState>(`${base}/power`) });
-  const paused = isVm && running && state.data?.paused === true;
+  const paused = isVm && (listPaused || (running && state.data?.paused === true));
   const name = guest.name ?? "";
 
   const close = () => { if (!busy) { setOp(null); setTyped(""); setErr(null); } };
@@ -47,7 +59,8 @@ export function PowerActions({ connId, guest, running, stopped, disabled }: { co
     } catch (e) { setErr((e as Error).message); setBusy(false); return; }
     setBusy(false);
     qc.invalidateQueries({ queryKey: ["power", connId, guest.vmid] });
-    for (const ms of [0, 5_000, 12_000]) setTimeout(() => qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }), ms);
+    // La liste de Proxmox change d'état avec quelques secondes de retard (essai réel : 6 à 10 s).
+    for (const ms of [0, 4_000, 9_000, 15_000]) setTimeout(() => qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }), ms);
   };
 
   if (guest.template) return null;
@@ -58,23 +71,14 @@ export function PowerActions({ connId, guest, running, stopped, disabled }: { co
       {isVm && running && state.data !== undefined && !paused && <>{btn("suspend")}{btn("hibernate")}{btn("reset")}</>}
       {paused && btn("resume")}
       {stopped && btn("template")}
-      {op && t && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={close}>
-          <div role="dialog" aria-modal="true" aria-label={t.title} className="panel rise w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold">{t.title} « {name || `#${guest.vmid}`} » ?</h2>
-            <Notice kind={t.danger ? "error" : "ok"}>{t.text}</Notice>
-            {op === "template" && (
-              <label className="block text-xs text-muted">Retape <code>{name}</code> pour confirmer
-                <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="mt-1 w-full rounded border border-line bg-surface2 px-2 py-1 text-sm text-fg" /></label>
-            )}
-            {err && <Notice kind="error">{err}</Notice>}
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={close} disabled={busy}>Annuler</Button>
-              <Button variant={t.danger ? "danger" : "primary"} onClick={submit} disabled={busy || (op === "template" && (name === "" || typed !== name))}>{busy ? "En cours…" : t.verb}</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dans un portail : la carte d'en-tête crée son propre repère (animation), un `fixed` posé dedans passait sous la carte Notes (ticket #202). */}
+      {op && t && createPortal(
+        <Modal title={`${t.title} « ${name || `#${guest.vmid}`} » ?`} danger={t.danger} onClose={close} busy={busy} error={err}
+          canSubmit={op !== "template" || (name !== "" && typed === name)} submitLabel={t.title} onSubmit={submit}>
+          <Notice kind={t.danger ? "error" : "ok"}>{op === "template" ? templateText(isVm) : t.text}</Notice>
+          {op === "template" && <Field label={`Retape ${name} pour confirmer`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />}
+        </Modal>,
+        document.body)}
     </>
   );
 }

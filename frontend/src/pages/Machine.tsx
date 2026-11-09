@@ -14,6 +14,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Gauge } from "../components/Gauge";
 import { HardwareTab } from "../components/HardwareTab";
 import { SnapshotsTab } from "../components/SnapshotsTab";
+import { TemplateDangerZone } from "../components/TemplateDangerZone";
 import { Button, Notice } from "../components/ui";
 import type { GuestAction } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -57,10 +58,12 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
 
   const connId = active.id;
   const status = effectiveStatus(guest), running = status === "running", stopped = status === "stopped";
+  // Une VM suspendue est « paused » dans la liste de Proxmox (essai réel, ticket #201) : elle occupe sa mémoire, se reprend ou s'arrête de force.
+  const paused = status === "paused", alive = running || paused;
   const busyLabel = busy[`${guest.node}/${guest.type}/${guest.vmid}`], off = !!busyLabel;
   const name = guest.name ?? String(guest.vmid);
   const dot = busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
-  const text = busyLabel ?? (running ? "En marche" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
+  const text = busyLabel ?? (running ? "En marche" : paused ? "En pause" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
   const tabs = TABS.filter(([t]) => t !== "cloudinit" || guest.type === "qemu");
   const tab = tabs.some(([t]) => t === ref.tab) ? ref.tab : "hardware";
   void now;
@@ -81,21 +84,21 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Gauge label="CPU" value={running ? guest.cpu * 100 : 0} detail={running ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
-          <Gauge label="RAM" value={running ? pct(guest.mem, guest.maxmem) : 0} detail={running ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
+          <Gauge label="CPU" value={alive ? guest.cpu * 100 : 0} detail={alive ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
+          <Gauge label="RAM" value={alive ? pct(guest.mem, guest.maxmem) : 0} detail={alive ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : "Arrêtée"}</p>
+          <p className="mr-auto text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? "En pause : figée en mémoire, à reprendre ou à arrêter de force" : "Arrêtée"}</p>
           <Button variant="ghost" onClick={() => setClone(true)} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
           {!guest.template && <>
             {stopped && <Button onClick={() => run(guest, "start")} disabled={off} className="!px-3 !py-1.5">Démarrer</Button>}
             {running && <>
               <Button variant="ghost" onClick={() => setPending("reboot")} disabled={off} className="!px-3 !py-1.5">Redémarrer</Button>
               <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5">Éteindre</Button>
-              <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>
             </>}
-            <PowerActions connId={connId} guest={guest} running={running} stopped={stopped} disabled={off} />
+            {alive && <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale">Forcer</Button>}
+            <PowerActions connId={connId} guest={guest} status={status} disabled={off} />
           </>}
         </div>
       </header>
@@ -103,7 +106,10 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
       <NotesPanel url={`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/notes`} label="Notes" />
 
       {guest.template
-        ? <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">Cette machine est un modèle : elle ne se démarre pas et son matériel ne se modifie pas ici. Tu peux la cloner.</div>
+        ? <>
+          <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">Cette machine est un modèle : elle ne se démarre pas et son matériel ne se modifie pas ici. Tu peux la cloner.</div>
+          <TemplateDangerZone connId={connId} guest={guest} onDeleted={() => go("#/")} />
+        </>
         : <>
           <div role="tablist" className="flex flex-wrap gap-1 border-b border-line">
             {tabs.map(([id, label]) => (

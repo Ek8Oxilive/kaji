@@ -54,6 +54,17 @@ async def guest_action(
                      status="error", detail="confirmation manquante")
         raise HTTPException(status.HTTP_400_BAD_REQUEST,
                             f"« {action} » coupe brutalement la machine : renvoie la requête avec {{\"confirm\": true}}")
+    if action == "start":
+        # Un modèle ne démarre pas : refus net (409) au lieu d'une tâche qui échoue chez Proxmox (essai réel, ticket #204).
+        # Config illisible : on laisse Proxmox trancher, pour ne jamais bloquer un démarrage légitime.
+        try:
+            cfg = await _px(db, factory, conn_id, "get", f"/nodes/{node}/{gtype}/{vmid}/config", current=1)
+        except HTTPException:
+            cfg = None
+        if isinstance(cfg, dict) and str(cfg.get("template")) == "1":
+            audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target,
+                         status="error", detail="machine modèle")
+            raise HTTPException(status.HTTP_409_CONFLICT, "Une machine modèle ne démarre pas : clone-la, puis démarre la copie")
     try:
         upid = await _px(db, factory, conn_id, "post", f"/nodes/{node}/{gtype}/{vmid}/status/{action}")
     except HTTPException as e:

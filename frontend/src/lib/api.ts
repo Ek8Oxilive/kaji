@@ -81,6 +81,8 @@ export type MigratePreflight = {
 export type LxcTemplates = {
   storages: string[]; local: { volid: string; storage: string; name: string; size: number | null }[];
   downloadable: { template: string; os: string | null; version: string | null; section: string | null; architecture: string | null; description: string | null }[] | null;
+  /** Architecture du nœud en noms du catalogue (`amd64`, `arm64`…) ; `null` si inconnue. */
+  node_architecture?: string | null;
 };
 export type LxcCreateBody = {
   hostname: string; vmid?: number; template: string; memory: number; swap: number; cores: number;
