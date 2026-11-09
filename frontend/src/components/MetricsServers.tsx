@@ -47,7 +47,7 @@ function MetricsDialog({ connId, mode, onClose }: { connId: number; mode: Mode; 
       otel_compression: d.otel_compression ?? "", otel_max_body_size: d.otel_max_body_size?.toString() ?? "" });
     setDisable(d.disable); setVssl(((t === "influxdb" ? d.verify_certificate : d.otel_verify_ssl) ?? null) === null ? "" : (t === "influxdb" ? d.verify_certificate : d.otel_verify_ssl) ? "yes" : "no");
   }, [d, t]);
-  useEffect(() => { setPreview(null); setAck(false); setErr(null); }, [id, type, f, disable, vssl, clearSecret, typed]);
+  useEffect(() => { setPreview(null); setAck(false); setErr(null); }, [id, type, f, disable, vssl, clearSecret]);   // retaper l'identifiant à supprimer ne réinitialise pas l'aperçu
   const set = (key: string) => (v: string) => setF((cur) => ({ ...cur, [key]: v }));
   const txt = (label: string, key: string, hint?: string, kind: "text" | "number" | "password" = "text") => (
     <Field label={label} type={kind} value={f[key] ?? ""} onChange={(e) => set(key)(e.target.value)} hint={hint} autoComplete="off" />);
