@@ -78,7 +78,7 @@ export function FwRulesDialog({ connId, node, onClose }: { connId: number; node:
             </span>
           </li>))}</ul>))}
       {ready && (
-        <fieldset className="space-y-2 rounded-xl border border-line p-3 text-sm"><legend className="px-1 text-muted">Nouvelle règle (créée désactivée sauf si tu coches « active »)</legend>
+        <fieldset className="space-y-2 rounded-xl border border-line p-3 text-sm"><legend className="px-1 text-muted">Nouvelle règle (ajoutée en tête, désactivée sauf si tu coches « active »)</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <select aria-label="Sens" className="field" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>{(scope === "group" ? ["in", "out"] : scope === "guest" ? ["in", "out", "group"] : ["in", "out", "forward", "group"]).map((t) => <option key={t}>{t}</option>)}</select>
             <input aria-label="Action" className="field" list="fw-actions" value={f.action} onChange={(e) => setF({ ...f, action: e.target.value })} /><datalist id="fw-actions"><option>ACCEPT</option><option>DROP</option><option>REJECT</option></datalist>

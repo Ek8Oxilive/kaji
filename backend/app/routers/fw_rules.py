@@ -57,6 +57,8 @@ async def _run(op: str, sc: Scope, pos: int | None, body, conn_id: int, db: Sess
         refuse("Règle introuvable", status.HTTP_404_NOT_FOUND)
     if op == "move" and body.moveto >= len(rules):
         refuse("Position hors limites", 422)
+    if op == "move" and body.moveto == pos:
+        refuse("La règle est déjà à cette position", 422)
     if op == "create" and body.pos is not None and body.pos > len(rules):
         refuse("Position hors limites", 422)
     cur_clean = {k: v for k, v in (cur or {}).items() if k in FIELDS and v is not None}
@@ -108,7 +110,7 @@ async def _run(op: str, sc: Scope, pos: int | None, body, conn_id: int, db: Sess
     if op == "create":
         params["enable"] = params.get("enable", 0)
     if op == "move":
-        params["moveto"] = body.moveto
+        params["moveto"] = body.moveto + 1 if body.moveto > pos else body.moveto      # Proxmox : « placer avant la règle d'origine n° moveto »; Kaji : position finale
     if op == "update" and clear:
         params["delete"] = ",".join(("icmp-type" if k == "icmp_type" else k) for k in clear)
     if body.dry_run:
@@ -135,7 +137,7 @@ async def _run(op: str, sc: Scope, pos: int | None, body, conn_id: int, db: Sess
         row = after[pos] if pos < len(after) else {}
         ok = all(row.get(k) == (bool(v) if k == "enable" else v) for k, v in change.items())
     if ok and op == "move":
-        ok = after[body.moveto].get("action") == cur_clean.get("action") and after[body.moveto].get("dport") == cur_clean.get("dport")
+        ok = all(after[body.moveto].get(k) == cur_clean.get(k) for k in ("action", "dport", "source", "dest", "comment", "proto", "macro"))
     if not ok:
         refuse("Proxmox n'a pas appliqué la modification", status.HTTP_502_BAD_GATEWAY)
     log("started", ", ".join(f"{k}={v}" for k, v in sorted(params.items())) + ("" if not lk["inert"] else " ; niveau inactif : appliqué à l'activation"))
