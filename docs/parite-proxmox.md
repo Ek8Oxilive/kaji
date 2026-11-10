@@ -47,7 +47,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
 | Résumé (état, graphiques CPU, RAM, réseau, disque dans le temps) | ✅ (jauges et historique heure à année) | M13 |
-| Notes du nœud | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
+| Notes du nœud | ✅ (validé en réel le 2026-11-10 : écrire, relire, vider ; texte absent de l'audit) | M13 |
 | Shell du nœud (droit `Sys.Console` ; compte Unix du nœud demandé au `login:`) | 🟡 (codé, validation en réel à faire) | M9 |
 | Réseau : interfaces, bridges, bonds, VLAN, appliquer / annuler | 🟡 (lecture des interfaces et des modifications en attente validée en réel ; écriture livrée (M7-4, `docs/api/reseau-ecriture.md`) : préparer, appliquer avec verrous, annuler ; l'application n'a jamais été exécutée en réel) | M7 |
 | Certificats (personnalisés, ACME) | 🟡 (lecture ; personnalisé : installer / retirer codé, jamais exécuté en réel ; ACME : voir plus haut) | M11 |
@@ -86,7 +86,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Permissions de la machine | 🟡 (onglet « Permissions » : ACL sur la machine et héritées, écriture par la fenêtre de la page « Accès » ; `docs/api/onglets-machine.md` ; écriture jamais essayée en réel) | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
-| Étiquettes (tags) et notes | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
+| Étiquettes (tags) et notes | ✅ (validé en réel le 2026-11-10 sur la VM 115 : ajouter et retirer une étiquette, écrire et restaurer les notes, HTML affiché comme texte ; empreinte périmée entre étiquettes et notes corrigée) | M13 |
 | Résumé avec graphiques d'historique | ✅ (onglet « Performances ») | M13 |
 | Supprimer | ✅ (validé en réel : nom retapé exigé) | M4 |
 
