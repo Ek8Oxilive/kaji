@@ -5,7 +5,14 @@ import { NotificationsSection } from "../components/NotificationsSection";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
-import { CONSOLES, KEYBOARDS, LANGUAGES, type DatacenterOptions } from "../lib/types/datacenter";
+import { CONSOLES, KEYBOARDS, LANGUAGES, ORDERINGS, SHAPES, type DatacenterOptions, type TagColor } from "../lib/types/datacenter";
+
+/** Table des couleurs d'étiquettes : une ligne par étiquette, « nom couleur [couleur-du-texte] » (couleurs en hexadécimal, sans #). */
+const colorsToText = (m: TagColor[]) => m.map((c) => `${c.tag} ${c.color}${c.text ? " " + c.text : ""}`).join("\n");
+const textToColors = (s: string): TagColor[] => s.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+  const [tag = "", color = "", text] = l.split(/\s+/);
+  return { tag, color: color.replace(/^#/, ""), text: text ? text.replace(/^#/, "") : null };
+});
 
 const LABELS: Record<string, string> = { ha: "Haute disponibilité", fencing: "Mode de fencing", crs: "Ordonnancement des ressources", bwlimit: "Limites de débit", "next-id": "Plage des identifiants libres", "tag-style": "Style des étiquettes", replication: "Réplication" };
 
@@ -15,20 +22,22 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["datacenter", id], queryFn: () => api<DatacenterOptions>(`/api/connections/${id}/datacenter/options`), enabled: id !== null });
   const d = q.data;
-  const [f, setF] = useState({ keyboard: "", language: "", console: "", email_from: "", mac_prefix: "", max_workers: "", http_proxy: "", mtype: "", mnet: "" });
+  const [f, setF] = useState({ keyboard: "", language: "", console: "", email_from: "", mac_prefix: "", max_workers: "", http_proxy: "", mtype: "", mnet: "", idlo: "", idhi: "", tshape: "", tord: "", tcase: false, tcolors: "" });
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState<string | null>(null), [err, setErr] = useState<string | null>(null), [ok, setOk] = useState<string | null>(null);
   useEffect(() => {
     if (!d) return;
     setF({ keyboard: d.keyboard ?? "", language: d.language ?? "", console: d.console ?? "", email_from: d.email_from ?? "", mac_prefix: d.mac_prefix ?? "", max_workers: d.max_workers?.toString() ?? "",
-      http_proxy: d.http_proxy ?? "", mtype: d.migration.type ?? "", mnet: d.migration.network ?? "" });
+      http_proxy: d.http_proxy ?? "", mtype: d.migration.type ?? "", mnet: d.migration.network ?? "",
+      idlo: d.next_id.lower?.toString() ?? "", idhi: d.next_id.upper?.toString() ?? "", tshape: d.tag_style.shape ?? "", tord: d.tag_style.ordering ?? "", tcase: !!d.tag_style.case_sensitive, tcolors: colorsToText(d.tag_style.color_map) });
     setNotes(d.description ?? "");
   }, [d]);
   if (!active) return (
     <div className="mx-auto grid max-w-3xl place-items-center py-24 text-center"><div className="panel space-y-4 p-10">
       <h1 className="text-2xl font-semibold tracking-tight">Aucun cluster connecté</h1><Button onClick={onGoConnections}>Ajouter un cluster</Button></div></div>
   );
-  const set = (k: keyof typeof f) => (v: string) => setF((cur) => ({ ...cur, [k]: v }));
+  const set = (k: Exclude<keyof typeof f, "tcase">) => (v: string) => setF((cur) => ({ ...cur, [k]: v }));
+  const setCase = (v: boolean) => setF((cur) => ({ ...cur, tcase: v }));
   const insecureNew = f.mtype === "insecure" && d?.migration.type !== "insecure";
 
   /** Corps de la requête : seulement ce qui a changé ; un champ vidé qui avait une valeur est retiré (`clear`). */
@@ -42,6 +51,14 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
       if (!f.mtype && !f.mnet) clear.push("migration");
       else body.migration = { ...(f.mtype !== (d.migration.type ?? "") && f.mtype ? { type: f.mtype } : {}), ...(f.mnet !== (d.migration.network ?? "") ? { network: f.mnet } : {}) };
     }
+    const lo = f.idlo !== (d.next_id.lower?.toString() ?? ""), hi = f.idhi !== (d.next_id.upper?.toString() ?? "");
+    if (lo || hi) body.next_id = { ...(lo && f.idlo ? { lower: Number(f.idlo) } : {}), ...(hi && f.idhi ? { upper: Number(f.idhi) } : {}) };
+    const ts: Record<string, unknown> = {};
+    if (f.tshape !== (d.tag_style.shape ?? "") && f.tshape) ts.shape = f.tshape;
+    if (f.tord !== (d.tag_style.ordering ?? "") && f.tord) ts.ordering = f.tord;
+    if (f.tcase !== !!d.tag_style.case_sensitive) ts.case_sensitive = f.tcase;
+    if (f.tcolors.trim() !== colorsToText(d.tag_style.color_map)) ts.color_map = textToColors(f.tcolors);
+    if (Object.keys(ts).length) body.tag_style = ts;
     return { ...body, ...(clear.length ? { clear } : {}) };
   };
   const save = async (what: string, body: Record<string, unknown>) => {
@@ -55,7 +72,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
   };
   const changes = diff(), changed = Object.keys(changes).length > 0;
   const notesChanged = d ? notes !== (d.description ?? "") : false;
-  const sel = (label: string, k: keyof typeof f, opts: readonly string[]) => (
+  const sel = (label: string, k: Exclude<keyof typeof f, "tcase">, opts: readonly string[]) => (
     <label className="block space-y-1.5 text-sm"><span className="text-muted">{label}</span>
       <select className="field" value={f[k]} onChange={(e) => set(k)(e.target.value)}><option value="">Défaut de Proxmox</option>{opts.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>);
 
@@ -80,6 +97,22 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
                 <select className="field" value={f.mtype} onChange={(e) => set("mtype")(e.target.value)}><option value="">Défaut de Proxmox (sécurisé)</option><option value="secure">secure : tunnel SSH chiffré</option><option value="insecure">insecure : non chiffré</option></select></label>
               <Field label="Migration : réseau dédié (CIDR)" value={f.mnet} maxLength={43} placeholder="10.0.0.0/24" onChange={(e) => set("mnet")(e.target.value)} hint="Vide = réseau par défaut" />
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Identifiants libres : à partir de" type="number" min={100} max={999999999} value={f.idlo} onChange={(e) => set("idlo")(e.target.value)} hint="100 à 999 999 999 ; vide = défaut de Proxmox (100)" />
+              <Field label="Identifiants libres : jusqu'à" type="number" min={100} max={999999999} value={f.idhi} onChange={(e) => set("idhi")(e.target.value)} hint="Doit être supérieur au début de plage" />
+            </div>
+            {(d.next_id.lower !== null || d.next_id.upper !== null) && <div><Button variant="ghost" disabled={busy !== null} onClick={() => save("options", { clear: ["next_id"] })} className="!px-3 !py-1.5">Retirer la plage d'identifiants</Button></div>}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block space-y-1.5 text-sm"><span className="text-muted">Étiquettes : forme</span>
+                <select className="field" value={f.tshape} onChange={(e) => set("tshape")(e.target.value)}>{!d.tag_style.shape && <option value="">Défaut de Proxmox</option>}{SHAPES.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
+              <label className="block space-y-1.5 text-sm"><span className="text-muted">Étiquettes : ordre</span>
+                <select className="field" value={f.tord} onChange={(e) => set("tord")(e.target.value)}>{!d.tag_style.ordering && <option value="">Défaut de Proxmox</option>}{ORDERINGS.map((o) => <option key={o} value={o}>{o === "config" ? "config : ordre de la table" : "alphabetical : alphabétique"}</option>)}</select></label>
+              <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" checked={f.tcase} onChange={(e) => setCase(e.target.checked)} /><span>Distinguer majuscules et minuscules</span></label>
+            </div>
+            <label className="block space-y-1.5 text-sm"><span className="text-muted">Couleurs des étiquettes (une ligne par étiquette : nom couleur [couleur du texte])</span>
+              <textarea className="field min-h-[5rem] font-mono text-sm" value={f.tcolors} onChange={(e) => set("tcolors")(e.target.value)} placeholder={"prod ff0000 ffffff\ndev 00aa00"} maxLength={4000} />
+              <span className="block text-xs text-muted">Couleurs en hexadécimal à 6 chiffres, sans #. Vide = aucune couleur personnalisée.</span></label>
+            {(d.tag_style.shape || d.tag_style.ordering || d.tag_style.case_sensitive || d.tag_style.color_map.length > 0) && <div><Button variant="ghost" disabled={busy !== null} onClick={() => save("options", { clear: ["tag_style"] })} className="!px-3 !py-1.5">Retirer le style des étiquettes</Button></div>}
             {insecureNew && <Notice kind="error">La migration non chiffrée envoie la mémoire des machines <b>en clair</b> sur le réseau. À réserver à un réseau privé de confiance.</Notice>}
             <div className="flex justify-end"><Button disabled={!changed || busy !== null} onClick={() => save("options", changes)}>{busy === "options" ? "…" : insecureNew ? "Appliquer (migration non chiffrée)" : "Appliquer"}</Button></div>
           </div>

@@ -1,7 +1,8 @@
 """Options du datacenter Proxmox (Datacenter → Options et notes) : lecture tolérante et écriture en liste blanche (lot #150).
 
-Champs gérés : `keyboard`, `language`, `console`, `description` (notes du datacenter), `mac_prefix`, `migration` (`type`, `network`), `max_workers`, `email_from`, `http_proxy`.
-Lus mais JAMAIS écrits (risque élevé, hors périmètre) : `ha`, `fencing`, `crs`, `bwlimit`, `next-id`, `tag-style`, `replication`.
+Champs gérés : `keyboard`, `language`, `console`, `description` (notes du datacenter), `mac_prefix`, `migration` (`type`, `network`), `max_workers`, `email_from`, `http_proxy`,
+`next_id` (plage des identifiants libres : `lower`, `upper`) et `tag_style` (`shape`, `ordering`, `case_sensitive`, `color_map`).
+Lus mais JAMAIS écrits (risque élevé, hors périmètre) : `ha`, `fencing`, `crs`, `bwlimit`, `replication`.
 Le `PUT /cluster/options` de Proxmox n'a PAS de `digest` : Kaji calcule le sien (empreinte des valeurs lues) pour refuser, en 409, une modification faite sur un état périmé.
 Rien n'est transmis sans validation ; un champ inconnu est ignoré ; `http_proxy` : `http://hôte[:port]`, sans identifiants, ni boucle locale, ni adresse non spécifiée, de liaison locale ou multicast.
 """
@@ -23,12 +24,61 @@ EMAIL = re.compile(r"^[A-Za-z0-9._%+\-]{1,64}@[A-Za-z0-9.\-]{1,190}$")
 PROXY = re.compile(r"^http://(?P<host>[A-Za-z0-9.\-]{1,253}|\[[0-9A-Fa-f:]{2,39}\])(:(?P<port>[0-9]{1,5}))?/?$")
 TEXT_OK = re.compile(r"[^\x00-\x08\x0b\x0c\x0d\x0e-\x1f\x7f]*")                  # notes : \n et \t permis, tout autre caractère de contrôle refusé
 MAX_NOTES = 65536
-CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy")
-READONLY = ("ha", "fencing", "crs", "bwlimit", "next-id", "tag-style", "replication")
+CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style")
+READONLY = ("ha", "fencing", "crs", "bwlimit", "replication")
+DELNAME = {"next_id": "next-id", "tag_style": "tag-style"}      # nom Kaji -> nom Proxmox (pour `delete=`)
+KEY = {"next-id": "next_id", "tag-style": "tag_style"}          # nom Proxmox -> clé lue
+ID_MIN, ID_MAX = 100, 999_999_999
+SHAPES = ("full", "circle", "dense", "none")
+ORDERINGS = ("config", "alphabetical")
+TAG = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.+\-]{0,31}$")
+HEX6 = re.compile(r"^[0-9A-Fa-f]{6}$")
+MAX_COLORS = 50
 
 
 def _choice(v, allowed):
     return v if isinstance(v, str) and v in allowed else None
+
+
+def _props(v) -> dict:
+    """Une chaîne de propriétés Proxmox (`a=1,b=2`) ou un objet, selon la version."""
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str):
+        return dict(p.partition("=")[::2] for p in v.split(",") if "=" in p)
+    return {}
+
+
+def _int_in(v, lo: int, hi: int):
+    if isinstance(v, bool):
+        return None
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return None
+    return n if lo <= n <= hi else None
+
+
+def parse_next_id(v) -> dict:
+    d = _props(v)
+    return {"lower": _int_in(d.get("lower"), ID_MIN, ID_MAX), "upper": _int_in(d.get("upper"), ID_MIN, ID_MAX)}
+
+
+def parse_color_map(v) -> list[dict]:
+    """`tag:couleur[:couleur-du-texte];…` -> liste normalisée (couleurs en minuscules). Une entrée de forme inattendue est écartée."""
+    out: list[dict] = []
+    for e in (v.split(";") if isinstance(v, str) else []):
+        parts = e.split(":")
+        if len(parts) in (2, 3) and TAG.fullmatch(parts[0]) and HEX6.fullmatch(parts[1]) and (len(parts) == 2 or HEX6.fullmatch(parts[2])):
+            out.append({"tag": parts[0], "color": parts[1].lower(), "text": parts[2].lower() if len(parts) == 3 else None})
+    return out[:MAX_COLORS]
+
+
+def parse_tag_style(v) -> dict:
+    d = _props(v)
+    cs = d.get("case-sensitive")
+    return {"shape": _choice(d.get("shape"), SHAPES), "ordering": _choice(d.get("ordering"), ORDERINGS),
+            "case_sensitive": True if cs is True or str(cs).lower() in ("1", "true", "yes", "on") else None, "color_map": parse_color_map(d.get("color-map"))}
 
 
 def parse_migration(v) -> dict:
@@ -55,6 +105,7 @@ def shape_options(raw) -> dict:
         "max_workers": r["max_workers"] if isinstance(r.get("max_workers"), int) and not isinstance(r.get("max_workers"), bool) and 1 <= r["max_workers"] <= 1_000_000 else None,
         "email_from": r["email_from"] if isinstance(r.get("email_from"), str) and EMAIL.fullmatch(r["email_from"]) else None,
         "http_proxy": r["http_proxy"] if isinstance(r.get("http_proxy"), str) and PROXY.fullmatch(r["http_proxy"]) else None,
+        "next_id": parse_next_id(r.get("next-id")), "tag_style": parse_tag_style(r.get("tag-style")),
     }
     if out["migration"]["type"] is None and r.get("migration_unsecure") in (1, True, "1"):         # ancien réglage, remplacé par `migration`
         out["migration"]["type"] = "insecure"
@@ -101,6 +152,47 @@ class MigrationIn(BaseModel):
             raise ValueError("Réseau invalide (CIDR attendu, sans bits d'hôte)")
 
 
+class NextIdIn(BaseModel):
+    lower: StrictInt | None = Field(default=None, ge=ID_MIN, le=ID_MAX)
+    upper: StrictInt | None = Field(default=None, ge=ID_MIN, le=ID_MAX)
+
+
+class ColorIn(BaseModel):
+    tag: str = Field(max_length=32)
+    color: str = Field(max_length=6)
+    text: str | None = Field(default=None, max_length=6, description="Couleur du texte (facultative)")
+
+    @field_validator("tag")
+    @classmethod
+    def _tag(cls, v):
+        if not TAG.fullmatch(v):
+            raise ValueError("Étiquette invalide (lettres, chiffres, _ . + -, 32 caractères au plus)")
+        return v
+
+    @field_validator("color", "text")
+    @classmethod
+    def _hex(cls, v):
+        if v is None or v == "":
+            return None
+        if not HEX6.fullmatch(v):
+            raise ValueError("Couleur invalide (6 chiffres hexadécimaux, sans #)")
+        return v.lower()
+
+
+class TagStyleIn(BaseModel):
+    shape: Literal[SHAPES] | None = None                                          # type: ignore[valid-type]
+    ordering: Literal[ORDERINGS] | None = None                                    # type: ignore[valid-type]
+    case_sensitive: StrictBool | None = None
+    color_map: list[ColorIn] | None = Field(default=None, max_length=MAX_COLORS, description="Remplace toute la table des couleurs ; liste vide = la retirer")
+
+    @field_validator("color_map")
+    @classmethod
+    def _unique(cls, v):
+        if v is not None and len({c.tag.lower() for c in v}) != len(v):
+            raise ValueError("Étiquette en double dans les couleurs")
+        return v
+
+
 class DatacenterOptions(BaseModel):
     keyboard: Literal[KEYBOARDS] | None = None                                    # type: ignore[valid-type]
     language: Literal[LANGUAGES] | None = None                                    # type: ignore[valid-type]
@@ -111,7 +203,9 @@ class DatacenterOptions(BaseModel):
     max_workers: StrictInt | None = Field(default=None, ge=1, le=64)
     email_from: str | None = Field(default=None, max_length=254)
     http_proxy: str | None = Field(default=None, max_length=300)
-    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=9)             # type: ignore[valid-type]
+    next_id: NextIdIn | None = None
+    tag_style: TagStyleIn | None = None
+    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=11)             # type: ignore[valid-type]
     digest: str | None = Field(default=None, max_length=64, description="Empreinte lue par GET ; refus (409) si l'état a changé depuis")
     confirm: StrictBool = False
     dry_run: StrictBool = False
@@ -160,7 +254,26 @@ def build(body: DatacenterOptions, current: dict) -> tuple[dict, list[str], list
         typ = body.migration.type or cur.get("type") or "secure"
         net = cur.get("network") if body.migration.network is None else (body.migration.network or None)
         p["migration"] = f"type={typ}" + (f",network={net}" if net else "")
-    clash = [k for k in delete if k in p]
+    if body.next_id is not None and (body.next_id.lower is not None or body.next_id.upper is not None):
+        cur = current.get("next_id") or {}
+        lo = body.next_id.lower if body.next_id.lower is not None else cur.get("lower")
+        up = body.next_id.upper if body.next_id.upper is not None else cur.get("upper")
+        if lo is not None and up is not None and lo >= up:
+            raise ValueError("« lower » doit être inférieur à « upper »")
+        p["next-id"] = ",".join(f"{k}={v}" for k, v in (("lower", lo), ("upper", up)) if v is not None)
+    ts = body.tag_style
+    if ts is not None and (ts.shape is not None or ts.ordering is not None or ts.case_sensitive is not None or ts.color_map is not None):
+        cur = current.get("tag_style") or {}
+        shape, ordering = ts.shape or cur.get("shape"), ts.ordering or cur.get("ordering")
+        cs = ts.case_sensitive if ts.case_sensitive is not None else bool(cur.get("case_sensitive"))
+        cmap = [c.model_dump() for c in ts.color_map] if ts.color_map is not None else (cur.get("color_map") or [])
+        parts = ([f"shape={shape}"] if shape else []) + ([f"ordering={ordering}"] if ordering else []) + (["case-sensitive=1"] if cs else []) \
+            + (["color-map=" + ";".join(c["tag"] + ":" + c["color"] + (":" + c["text"] if c.get("text") else "") for c in cmap)] if cmap else [])
+        if parts:
+            p["tag-style"] = ",".join(parts)
+        elif "tag_style" not in delete:
+            delete.append("tag_style")                                  # plus aucun sous-réglage : on retire le réglage
+    clash = [k for k in delete if DELNAME.get(k, k) in p]
     if clash:
         raise ValueError("Réglage à la fois modifié et retiré")
     if not p and not delete:
