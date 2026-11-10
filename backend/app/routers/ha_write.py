@@ -82,6 +82,19 @@ def _comigrated(rules: list[dict], sid: str) -> set[str]:
     return group - {sid}
 
 
+def _ignored_by_strict_rules(rules: list[dict], sids: set[str], target: str) -> list[dict]:
+    """Règles de nœud strictes et actives qui visent une de `sids` mais n'autorisent pas `target` : la HA ignore alors la demande (rien ne bouge)."""
+    out = []
+    for r in rules:
+        if r["type"] != "node-affinity" or not r["strict"] or r["disable"]:
+            continue
+        hit = sorted(sids & set(r["resources"]))
+        allowed = [n["node"] for n in r["nodes"]]
+        if hit and target not in allowed:
+            out.append({"rule": r["rule"], "resources": hit, "nodes": allowed})
+    return out
+
+
 def _resource_ok(after: dict | None, params: dict, delete: list[str]) -> bool:
     if after is None:
         return False
@@ -221,7 +234,8 @@ async def _move(kind: str, body: MoveBody, conn_id: int, sid: str, db, factory, 
         c.refuse("La machine est déjà sur ce nœud", status.HTTP_409_CONFLICT)
     lk = locks(kind, len(st["cluster"]["nodes"]), existing=True, activates=True)
     together = sorted(_comigrated(st["rules"], sid))
-    out = c.gate(body, lk, {"params": {"node": body.node}, "from": guest["node"], "comigrated": together})
+    ignored = _ignored_by_strict_rules(st["rules"], {sid, *together}, body.node)
+    out = c.gate(body, lk, {"params": {"node": body.node}, "from": guest["node"], "comigrated": together, "ignored": ignored})
     if out:
         return out
     raw = await c.px("post", f"/cluster/ha/resources/{sid}/{kind}", node=body.node)
@@ -231,8 +245,8 @@ async def _move(kind: str, body: MoveBody, conn_id: int, sid: str, db, factory, 
                 for b in blocking_raw if isinstance(b, dict) and isinstance(b.get("sid"), str) and SID.fullmatch(b["sid"])][:64]
     co_raw = info.get("comigrated-resources") if isinstance(info.get("comigrated-resources"), list) else []
     comigrated = [x for x in co_raw if isinstance(x, str) and SID.fullmatch(x)][:64]
-    c.log("started", f"{kind} demandé vers {body.node} (asynchrone, décidé par la HA)")
-    return {"requested": body.node, "from": guest["node"], "blocking": blocking, "comigrated": comigrated, "locks": lk}
+    c.log("started", f"{kind} demandé vers {body.node} (asynchrone, décidé par la HA)" + (f" ; règles strictes qui vont l'ignorer : {','.join(i['rule'] for i in ignored)}" if ignored else ""))
+    return {"requested": body.node, "from": guest["node"], "blocking": blocking, "comigrated": comigrated, "ignored": ignored, "locks": lk}
 
 
 @router.post("/resources/{sid}/migrate")

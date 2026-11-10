@@ -382,6 +382,41 @@ def test_move_dry_run_announces_comigrated_resources(api):
     assert r.status_code == 200 and r.json()["comigrated"] == ["vm:103"] and r.json()["from"] == "enzo" and not CALLS
 
 
+def _strict_rule(**kw):
+    ST["rules"]["pin"] = {"rule": "pin", "type": "node-affinity", "resources": "vm:100", "nodes": "enzo", "strict": 1, **kw}
+
+
+@pytest.mark.parametrize("kind", ["migrate", "relocate"])
+def test_move_signals_strict_rule_that_forbids_target(api, kind):
+    c, cid = api
+    add_res("vm:100"); _strict_rule()
+    r = c.post(url(cid, f"/resources/vm:100/{kind}"), json={"node": "enzo2", "dry_run": True})
+    assert r.status_code == 200 and r.json()["ignored"] == [{"rule": "pin", "resources": ["vm:100"], "nodes": ["enzo"]}] and not CALLS
+    r = c.post(url(cid, f"/resources/vm:100/{kind}"), json={"node": "enzo2", **ok()})
+    assert r.status_code == 200 and r.json()["ignored"] == [{"rule": "pin", "resources": ["vm:100"], "nodes": ["enzo"]}]
+    assert CALLS == [("POST", f"/cluster/ha/resources/vm:100/{kind}", {"node": "enzo2"})]       # la demande part quand même : on signale, on ne bloque pas
+
+
+def test_move_does_not_signal_when_rule_allows_target_or_is_soft_or_disabled(api):
+    c, cid = api
+    add_res("vm:100")
+    for kw in ({"nodes": "enzo,enzo2"}, {"strict": 0}, {"disable": 1}):
+        ST["rules"].clear(); _strict_rule(**kw)
+        r = c.post(url(cid, "/resources/vm:100/migrate"), json={"node": "enzo2", "dry_run": True})
+        assert r.status_code == 200 and r.json()["ignored"] == [], kw
+    ST["rules"].clear(); _strict_rule(resources="vm:101")                                          # règle sur une autre machine
+    assert c.post(url(cid, "/resources/vm:100/migrate"), json={"node": "enzo2", "dry_run": True}).json()["ignored"] == []
+
+
+def test_move_signals_strict_rule_of_a_comigrated_resource(api):
+    c, cid = api
+    add_res("vm:100"); add_res("vm:103")
+    ST["rules"]["together"] = {"rule": "together", "type": "resource-affinity", "resources": "vm:100,vm:103", "affinity": "positive"}
+    ST["rules"]["pin"] = {"rule": "pin", "type": "node-affinity", "resources": "vm:103", "nodes": "enzo", "strict": 1}
+    r = c.post(url(cid, "/resources/vm:100/migrate"), json={"node": "enzo2", "dry_run": True})
+    assert r.json()["ignored"] == [{"rule": "pin", "resources": ["vm:103"], "nodes": ["enzo"]}]
+
+
 def test_move_to_offline_node_is_refused(api):
     c, cid = api
     add_res("vm:100")

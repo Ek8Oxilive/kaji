@@ -2,11 +2,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../lib/api";
 import type { Guest, NodeInfo } from "../lib/api";
-import type { HaMode, HaMoveResult, HaPreview, HaResource } from "../lib/types/ha";
+import type { HaIgnored, HaMode, HaMoveResult, HaPreview, HaResource } from "../lib/types/ha";
 import { Modal } from "./Modal";
 import { Field, Notice } from "./ui";
 
 const PHRASE = "COUPURE POSSIBLE";
+const ignoredText = (list: HaIgnored[], target: string) =>
+  `La HA va ignorer cette demande : ${list.map((i) => `la règle stricte « ${i.rule} » (${i.resources.join(", ")}) n'autorise que ${i.nodes.join(", ") || "aucun nœud"}`).join(" ; ")}. Rien ne bougera vers ${target || "ce nœud"} tant que cette règle existe : modifie-la ou désactive-la d'abord.`;
 const STATES = ["", "started", "stopped", "enabled", "disabled", "ignored"];
 type Tri = "" | "yes" | "no";
 const tri = (t: Tri) => (t === "yes" ? true : t === "no" ? false : undefined);
@@ -103,6 +105,7 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
     <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit>
       <Notice kind="ok">{k === "migrate" || k === "relocate" ? `Demande envoyée à la HA : ${moved?.from ?? "?"} → ${moved?.requested ?? target}. Le déplacement est asynchrone (suivre l'état HA).` : "Enregistré, relu chez Proxmox."}</Notice>
       {moved && moved.comigrated.length > 0 && <Notice kind="ok">Déplacées avec elle (affinité positive) : {moved.comigrated.join(", ")}.</Notice>}
+      {moved && (moved.ignored?.length ?? 0) > 0 && <Notice kind="error">{ignoredText(moved.ignored ?? [], moved.requested)}</Notice>}
       {moved && moved.blocking.length > 0 && <Notice kind="error">Bloquées : {moved.blocking.map((b) => `${b.sid}${b.cause ? ` (${b.cause})` : ""}`).join(", ")}.</Notice>}
     </Modal>);
 
@@ -147,6 +150,7 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
       {preview && (
         <div className="space-y-3 text-sm">
           {(preview.comigrated?.length ?? 0) > 0 && <Notice kind="error">Cette migration entraîne aussi (affinité positive) : {preview.comigrated?.join(", ")}.</Notice>}
+          {(preview.ignored?.length ?? 0) > 0 && <Notice kind="error">{ignoredText(preview.ignored ?? [], target)}</Notice>}
           {preview.locks.inert && <Notice kind="ok">Aucun verrou : rien ne bouge tout de suite.</Notice>}
           {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>Je comprends que cela s'applique tout de suite</span></label></Notice>}
           {cut && <Notice kind="error"><b>Coupure possible</b> : {preview.locks.cut.join(" ; ")}.
