@@ -76,7 +76,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
 | Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | ✅ validé en réel (VM 115 : démarrage automatique, tablette, ordre de démarrage, agent, protection avec confirmation, refus des valeurs invalides ; `docs/api/options.md`, lot #144) ; reste `vga`, `keyboard`, `tags`, `name`, `reboot` | M14 |
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
-| Cloud-init avancé (snippets `cicustom`) | ⬜ | M14 |
+| Cloud-init avancé (snippets `cicustom` : lire, choisir un snippet existant par partie, retirer ; téléversement impossible par l'API) | 🟡 (codé, `docs/api/cloudinit-avance.md` ; voir `docs/REPRISE.md` pour ce qui a été vu en réel) | M14 |
 | Snapshots (créer, supprimer, restaurer) | ✅ (validé en réel) | M4 |
 | Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; **convertir en modèle validé en réel le 2026-11-09** (VM 117 et LXC 119, refus compris, à la souris) ; écarts corrigés et revérifiés le 2026-11-09 : fenêtre de conversion (#202), « Supprimer le modèle » (#203), démarrage d'un modèle refusé en 409 (#204) ; clone lié et suppression d'un modèle ayant des clones liés non essayés ; `docs/api/alimentation-vm.md`) | M4 / M14 |
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
