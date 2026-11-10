@@ -96,6 +96,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/fw_objects.py` — Alias, IPSets (et entrées) et groupes de sécurité du pare-feu… — POST /firewall{prefix}/aliases; PUT /firewall{prefix}/aliases/{{name}}; DELETE /firewall{prefix}/aliases/{{name}}; POST /firewall{prefix}/ipsets (+5)
 - `backend/app/routers/fw_options.py` — Options du pare-feu (datacenter, nœud, machine) : écrire, ave… — PUT /firewall/cluster/options; PUT /firewall/nodes/{node}/options; PUT /firewall/guests/{node}/{gtype}/{vmid}/options
 - `backend/app/routers/fw_rules.py` — Règles du pare-feu (datacenter, nœud, machine, groupe de sécu…
+- `backend/app/routers/guest_storages.py` — Quels stockages utilise chaque machine (lecture seule, pour l… — GET /guest-storages
 - `backend/app/routers/guest_tags.py` — Étiquettes d'une VM ou d'un conteneur (droit `VM.Config.Optio… — PUT /guests/{node}/{gtype}/{vmid}/tags
 - `backend/app/routers/ha.py` — Haute disponibilité et réplication (LECTURE SEULE). Les écrit… — GET /ha/status; GET /ha/resources; GET /ha/rules; GET /replication (+2)
 - `backend/app/routers/ha_write.py` — Haute disponibilité en ÉCRITURE : ressources (`vm:ID` / `ct:I… — POST /ha/resources; PUT /ha/resources/{sid}; DELETE /ha/resources/{sid}; POST /ha/resources/{sid}/migrate (+4)
@@ -143,7 +144,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/pages/Ceph.tsx` — Couleur ET mot : l'état ne repose jamais sur la couleur seule
 - `frontend/src/pages/Cluster.tsx` — Commande à copier : Kaji ne crée, ne joint et ne retire aucun…
 - `frontend/src/pages/Connections.tsx` — 
-- `frontend/src/pages/Dashboard.tsx` — Regroupe les machines. Une machine à plusieurs étiquettes app…
+- `frontend/src/pages/Dashboard.tsx` — Regroupe les machines. Une machine à plusieurs étiquettes (ou…
 - `frontend/src/pages/Datacenter.tsx` — Table des couleurs d'étiquettes : une ligne par étiquette, «…
 - `frontend/src/pages/HA.tsx` — Page « HA » : haute disponibilité (M8-2) et réplication (M8-3…
 - `frontend/src/pages/Machine.tsx` — 
@@ -312,4 +313,5 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/tokens-ecriture.md` — Tokens d'API : lister, créer, révoquer
 - `docs/api/utilisateurs-ecriture.md` — Écrire des utilisateurs, des groupes et des appartenances
 - `docs/api/volumes.md` — Volumes d'un stockage : protéger, supprimer, élaguer
+- `docs/api/vue-par-stockage.md` — Tableau de bord : regroupement par stockage (M13, lot #252)
 - `docs/api/vues.md` — Vues du tableau de bord (M13)

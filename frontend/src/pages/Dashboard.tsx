@@ -31,16 +31,17 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 
 const Skeleton = ({ n, h = "h-40" }: { n: number; h?: string }) => <>{Array.from({ length: n }, (_, i) => <div key={i} className={`panel animate-pulse ${h}`} />)}</>;
 
-type GroupBy = "none" | "node" | "pool" | "tag" | "type";
-const GROUPS: GroupBy[] = ["none", "node", "pool", "tag", "type"];
+type GroupBy = "none" | "node" | "pool" | "tag" | "type" | "storage";
+const GROUPS: GroupBy[] = ["none", "node", "pool", "tag", "type", "storage"];
+type GuestStorages = { by_vmid: Record<string, string[]>; storages: string[]; errors: number };
 const readGroupBy = (): GroupBy => { try { const v = localStorage.getItem("kaji.groupBy"); return GROUPS.includes(v as GroupBy) ? (v as GroupBy) : "none"; } catch { return "none"; } };
 
-/** Regroupe les machines. Une machine à plusieurs étiquettes apparaît dans chacun de ses groupes ; sans valeur : « Sans … » en dernier. */
-function groupGuests(list: Guest[], by: GroupBy): { key: string; label: string; items: Guest[] }[] {
+/** Regroupe les machines. Une machine à plusieurs étiquettes (ou plusieurs stockages) apparaît dans chacun de ses groupes ; sans valeur : « Sans … » en dernier. */
+function groupGuests(list: Guest[], by: GroupBy, stores?: Record<string, string[]>): { key: string; label: string; items: Guest[] }[] {
   if (by === "none") return [{ key: "all", label: "", items: list }];
-  const keyOf = (g: Guest): string[] => by === "node" ? [g.node] : by === "pool" ? [g.pool ?? ""] : by === "type" ? [g.template ? "template" : g.type] : ((g.tags ?? []).length ? g.tags! : [""]);
-  const empty = by === "pool" ? "Sans pool" : "Sans étiquette";
-  const label = (k: string) => k === "" ? empty : by === "type" ? (k === "template" ? "Modèles" : k === "qemu" ? "Machines virtuelles" : "Conteneurs LXC") : by === "node" ? `Nœud ${k}` : k;
+  const keyOf = (g: Guest): string[] => by === "node" ? [g.node] : by === "pool" ? [g.pool ?? ""] : by === "type" ? [g.template ? "template" : g.type] : by === "storage" ? (stores?.[String(g.vmid)]?.length ? stores[String(g.vmid)] : [""]) : ((g.tags ?? []).length ? g.tags! : [""]);
+  const empty = by === "pool" ? "Sans pool" : by === "storage" ? "Sans disque identifié" : "Sans étiquette";
+  const label = (k: string) => k === "" ? empty : by === "type" ? (k === "template" ? "Modèles" : k === "qemu" ? "Machines virtuelles" : "Conteneurs LXC") : by === "node" ? `Nœud ${k}` : by === "storage" ? `Stockage ${k}` : k;
   const map = new Map<string, Guest[]>();
   for (const g of list) for (const k of keyOf(g)) map.set(k, [...(map.get(k) ?? []), g]);
   return [...map.entries()].sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "fr"))).map(([k, items]) => ({ key: k || "_", label: label(k), items }));
@@ -83,7 +84,8 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
   [guests.data, state, kind, node, pool, tag, q, busy, now]);
   const pools = useMemo(() => [...new Set((guests.data ?? []).map((g) => g.pool).filter((p): p is string => !!p))].sort(), [guests.data]);
   const tagList = useMemo(() => [...new Set((guests.data ?? []).flatMap((g) => g.tags ?? []))].sort(), [guests.data]);
-  const groups = useMemo(() => groupGuests(visible, groupBy), [visible, groupBy]);
+  const gstore = useQuery({ queryKey: ["guest-storages", id], queryFn: () => api<GuestStorages>(`/api/connections/${id}/guest-storages`), enabled: id !== null && groupBy === "storage", staleTime: 30_000 });
+  const groups = useMemo(() => groupGuests(visible, groupBy, gstore.data?.by_vmid), [visible, groupBy, gstore.data]);
 
   if (conns.isLoading) return <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4"><Skeleton n={4} h="h-24" /></div>;
   if (!active) return (
@@ -186,10 +188,12 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
             {pools.length > 0 && <select className={sel} aria-label="Pool" value={pool} onChange={(e) => setPool(e.target.value)}><option value="all">Tous les pools</option><option value="none">Sans pool</option>{pools.map((p) => <option key={p} value={p}>{p}</option>)}</select>}
             {tagList.length > 0 && <select className={sel} aria-label="Étiquette" value={tag} onChange={(e) => setTag(e.target.value)}><option value="all">Toutes les étiquettes</option><option value="none">Sans étiquette</option>{tagList.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
             <select className={sel} aria-label="Regrouper par" value={groupBy} onChange={(e) => { const v = e.target.value as GroupBy; setGroupBy(v); try { localStorage.setItem("kaji.groupBy", v); } catch { /* stockage indisponible */ } }}>
-              <option value="none">Sans regroupement</option><option value="node">Regrouper par nœud</option><option value="pool">Regrouper par pool</option><option value="tag">Regrouper par étiquette</option><option value="type">Regrouper par type</option>
+              <option value="none">Sans regroupement</option><option value="node">Regrouper par nœud</option><option value="pool">Regrouper par pool</option><option value="tag">Regrouper par étiquette</option><option value="type">Regrouper par type</option><option value="storage">Regrouper par stockage</option>
             </select>
           </div>
         </div>
+        {groupBy === "storage" && (gstore.isLoading ? <p className="text-xs text-muted">Lecture des stockages…</p> : gstore.error ? <Notice kind="error">{(gstore.error as Error).message}</Notice>
+          : (gstore.data?.errors ?? 0) > 0 ? <p className="text-xs text-muted">{gstore.data!.errors} stockage(s) illisible(s) : certaines machines peuvent apparaître sans disque identifié.</p> : null)}
         {guests.isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Skeleton n={6} h="h-52" /></div> : visible.length === 0
           ? <div className="panel p-6 text-muted">Aucune machine ne correspond aux filtres.</div>
           : groups.map((grp) => (
