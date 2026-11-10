@@ -536,6 +536,14 @@ Informations de corosync en lecture seule.
 
 *Ajouter un serveur de métriques (InfluxDB, Graphite…) : les secrets ne sont jamais affichés.*
 
+![Correspondances de ressources du datacenter](docs/captures/datacenter-correspondances.jpg)
+
+*Correspondances de ressources (PCI, USB, répertoires) : une correspondance donne un nom logique à un périphérique ou à un répertoire sur chaque nœud ; la liste est vide tant qu'aucune n'est créée.*
+
+![Ajouter une correspondance PCI](docs/captures/datacenter-correspondances-ajout.jpg)
+
+*Ajouter une correspondance PCI : l'entrée se remplit depuis le matériel détecté sur le nœud (chemin, identifiant, sous-système, groupe IOMMU) ; l'aperçu dit ce qui sera envoyé avant toute écriture.*
+
 ![Options du datacenter](docs/captures/datacenter-identifiants-etiquettes.jpg)
 
 *Options du datacenter, suite : **plage des identifiants libres** (début et fin, 100 à 999 999 999) et **style des étiquettes** (forme, ordre, casse, couleurs : une ligne par étiquette, « nom couleur [couleur du texte] »).*
