@@ -568,6 +568,26 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *Éteindre un nœud : machines arrêtées, perte de quorum, nom du nœud à retaper. Un nœud éteint ne se rallume pas depuis Kaji.*
 
+![Page d'un nœud](docs/captures/noeud-groupees-boutons.jpg)
+
+*Page d'un nœud, section Système : à côté de Redémarrer / Éteindre, **Actions groupées…** (démarrer, arrêter ou migrer plusieurs machines) et **Réveiller le nœud…** (Wake-on-LAN, grisé tant que le nœud est en ligne). Le message vert confirme l'action demandée à Proxmox.*
+
+![Actions groupées](docs/captures/noeud-groupees-protegee.jpg)
+
+*Actions groupées, **Arrêter** : une machine protégée est refusée par le serveur (« jamais en groupe ») et le bouton reste grisé, même confirmé.*
+
+![Actions groupées](docs/captures/noeud-groupees-demarrer.jpg)
+
+*Actions groupées, **Démarrer** : on coche les machines (jamais « toutes »), l'**Aperçu** liste ce qui sera envoyé à Proxmox.*
+
+![Actions groupées](docs/captures/noeud-groupees-arreter.jpg)
+
+*Actions groupées, **Arrêter** : arrêt forcé après un délai (en secondes) et nom du nœud à retaper avant de valider.*
+
+![Actions groupées](docs/captures/noeud-groupees-migrer.jpg)
+
+*Actions groupées, **Migrer** : nœud cible, migrations en parallèle, copie des disques locaux, puis nom du nœud à retaper.*
+
 ### Accès
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
