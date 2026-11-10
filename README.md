@@ -184,6 +184,10 @@ Mêmes onglets, adaptés aux conteneurs (pas de Cloud-init). Exemples avec le co
 
 *Onglet **Tâches** d'un conteneur : historique des démarrages, extinctions, etc.*
 
+![Onglet Performances d'un conteneur : CPU, mémoire, réseau et disque.](docs/captures/lxc-performances.jpg)
+
+*Onglet Performances d'un conteneur : CPU, mémoire, réseau et disque.*
+
 ### Fenêtres d'action d'une machine
 
 Chaque action ouvre une fenêtre. Les actions destructrices demandent une confirmation, et le nom de la machine est à retaper. Ces fenêtres ont été ouvertes puis fermées sans rien valider.
@@ -224,6 +228,58 @@ Chaque action ouvre une fenêtre. Les actions destructrices demandent une confir
 
 *Cloner : clone complet (le clone lié est réservé aux modèles), nœud, stockage et pool de destination.*
 
+![Modifier les processeurs : sockets, cœurs, type de processeur et limites.](docs/captures/vm-dialogue-processeurs.jpg)
+
+*Modifier les processeurs : sockets, cœurs, type de processeur et limites.*
+
+![Démarrage automatique : démarrer avec le nœud, ordre et délais.](docs/captures/vm-dialogue-demarrage.jpg)
+
+*Démarrage automatique : démarrer avec le nœud, ordre et délais.*
+
+![Agrandir un disque : la taille ne peut qu'augmenter (irréversible).](docs/captures/vm-dialogue-agrandir.jpg)
+
+*Agrandir un disque : la taille ne peut qu'augmenter (irréversible).*
+
+![Déplacer un disque vers un autre stockage.](docs/captures/vm-dialogue-deplacer.jpg)
+
+*Déplacer un disque vers un autre stockage.*
+
+![Détacher un disque : il reste en « non utilisé » et n'est pas détruit.](docs/captures/vm-dialogue-detacher.jpg)
+
+*Détacher un disque : il reste en « non utilisé » et n'est pas détruit.*
+
+![Éditeur de notes d'une machine.](docs/captures/vm-notes-editeur.jpg)
+
+*Éditeur de notes d'une machine.*
+
+![Liste des snapshots d'une machine.](docs/captures/vm-snapshots-liste.jpg)
+
+*Liste des snapshots d'une machine.*
+
+![Restaurer un snapshot : confirmation avec le nom de la machine à retaper.](docs/captures/vm-snapshot-restaurer.jpg)
+
+*Restaurer un snapshot : confirmation avec le nom de la machine à retaper.*
+
+![Supprimer un snapshot : confirmation explicite.](docs/captures/vm-snapshot-supprimer.jpg)
+
+*Supprimer un snapshot : confirmation explicite.*
+
+![Cloud-init : ajouter le lecteur de configuration.](docs/captures/vm-cloud-init-lecteur-1.jpg)
+
+*Cloud-init : ajouter le lecteur de configuration.*
+
+![Cloud-init : réglages et retrait du lecteur](docs/captures/vm-cloud-init-retrait.jpg)
+
+*Cloud-init : réglages (utilisateur, clés SSH, réseau, DNS) ; retirer le lecteur demande une confirmation.*
+
+![Une machine suspendue s'affiche « En pause » avec les boutons Reprendre et Forcer.](docs/captures/vm-en-pause.jpg)
+
+*Une machine suspendue s'affiche « En pause » avec les boutons Reprendre et Forcer.*
+
+![Page d'un modèle : cloner, et « Supprimer le modèle » (nom à retaper).](docs/captures/modele-page.jpg)
+
+*Page d'un modèle : cloner, et « Supprimer le modèle » (nom à retaper).*
+
 ### Stockage
 
 Les stockages du cluster, leur contenu, les ISO et les modèles.
@@ -251,6 +307,18 @@ Les stockages du cluster, leur contenu, les ISO et les modèles.
 ![Télécharger un fichier depuis une adresse http(s) par le nœud lui-même (les adresses local](docs/captures/stockage-url.jpg)
 
 *Télécharger un fichier depuis une adresse http(s) par le nœud lui-même (les adresses locales sont refusées).*
+
+![Modifier un stockage : contenus autorisés, nœuds, activation.](docs/captures/stockage-modifier.jpg)
+
+*Modifier un stockage : contenus autorisés, nœuds, activation.*
+
+![Retirer un stockage : Kaji ne supprime jamais les fichiers, seulement la déclaration.](docs/captures/stockage-retirer.jpg)
+
+*Retirer un stockage : Kaji ne supprime jamais les fichiers, seulement la déclaration.*
+
+![Élaguer les sauvegardes : aperçu de ce qui serait supprimé avant toute écriture.](docs/captures/stockage-elaguer.jpg)
+
+*Élaguer les sauvegardes : aperçu de ce qui serait supprimé avant toute écriture.*
 
 ### Sauvegardes
 
@@ -288,11 +356,23 @@ Le journal des tâches Proxmox, avec le compte qui les a lancées (« Kaji » si
 
 *Suite de la liste : créations, clonages, conversions, suppressions…*
 
+![Journal d'une tâche : sortie complète de Proxmox, sans secret.](docs/captures/taches-journal.jpg)
+
+*Journal d'une tâche : sortie complète de Proxmox, sans secret.*
+
 ### Ceph
 
 ![Page **Ceph** ](docs/captures/ceph.jpg)
 
 *Page **Ceph** : sur un cluster sans Ceph, la page explique comment l'installer et l'initialiser. Ce cluster n'a pas de Ceph : les fonctions d'écriture de Ceph n'ont donc été testées qu'avec un faux Proxmox.*
+
+![Fenêtre d'installation de Ceph (non validée en réel : pas de Ceph sur ce cluster).](docs/captures/ceph-installer.jpg)
+
+*Fenêtre d'installation de Ceph (non validée en réel : pas de Ceph sur ce cluster).*
+
+![Création d'un moniteur Ceph (non validée en réel).](docs/captures/ceph-moniteur.jpg)
+
+*Création d'un moniteur Ceph (non validée en réel).*
 
 ### Réseau et pare-feu
 
@@ -325,6 +405,14 @@ Interfaces des nœuds, pare-feu (datacenter, nœud, machine) et SDN. Tout change
 ![Ajouter une zone SDN (les VNets, sous-réseaux, contrôleurs et IPAM ont leurs propres fenêt](docs/captures/reseau-sdn-zone.jpg)
 
 *Ajouter une zone SDN (les VNets, sous-réseaux, contrôleurs et IPAM ont leurs propres fenêtres).*
+
+![SDN : créer un VNet, en attente tant qu'il n'est pas appliqué.](docs/captures/reseau-sdn-vnet.jpg)
+
+*SDN : créer un VNet, en attente tant qu'il n'est pas appliqué.*
+
+![SDN : appliquer ou annuler les changements en attente (verrou explicite).](docs/captures/reseau-sdn-appliquer.jpg)
+
+*SDN : appliquer ou annuler les changements en attente (verrou explicite).*
 
 ### HA et réplication
 
@@ -415,6 +503,14 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 ![Stockages et réseau du nœud](docs/captures/noeud-8.jpg)
 
 *Stockages et réseau du nœud.*
+
+![Éditeur des notes d'un nœud.](docs/captures/noeud-notes-editeur.jpg)
+
+*Éditeur des notes d'un nœud.*
+
+![Redémarrer un nœud : machines arrêtées, perte de quorum, machines protégées et nom à retaper.](docs/captures/noeud-redemarrer.jpg)
+
+*Redémarrer un nœud : machines arrêtées, perte de quorum, machines protégées et nom à retaper.*
 
 ### Accès
 
