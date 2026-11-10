@@ -300,6 +300,10 @@ Chaque action ouvre une fenêtre. Les actions destructrices demandent une confir
 
 *Cloud-init : section « Snippets personnalisés (avancé) » : pour chaque partie (user-data, network-config, meta-data, vendor-data), on choisit un snippet déjà présent dans un stockage « Snippets » du nœud, ou « Aucun » pour laisser Proxmox générer le fichier. Les snippets se déposent à la main : l'API Proxmox ne permet pas de les téléverser.*
 
+![Cloud-init : un snippet choisi pour user-data](docs/captures/vm-cloud-init-snippet-choisi.jpg)
+
+*Cloud-init : un snippet existant (ici un fichier d'essai de 37 octets dans un stockage « Snippets ») choisi pour la partie user-data, relu depuis Proxmox après enregistrement ; « Aucun » le retire.*
+
 ![Une machine suspendue s'affiche « En pause » avec les boutons Reprendre et Forcer.](docs/captures/vm-en-pause.jpg)
 
 *Une machine suspendue s'affiche « En pause » avec les boutons Reprendre et Forcer.*
