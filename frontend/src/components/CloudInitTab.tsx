@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { api, type CloudInit, type Guest, type StorageInfo } from "../lib/api";
+import { api, type Guest, type StorageInfo } from "../lib/api";
 import { bytes } from "../lib/format";
+import { CI_PARTS, CI_PART_LABEL, type CiPart, type CiSnippets, type CloudInitFull } from "../lib/types/cloudinit";
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
@@ -12,7 +13,8 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
   const qk = ["cloudinit", connId, guest.node, guest.vmid];
   const qc = useQueryClient();
   const toast = useToast();
-  const { data, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<CloudInit>(base), staleTime: 0 });
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<CloudInitFull>(base), staleTime: 0 });
+  const snippets = useQuery({ queryKey: ["ci-snippets", connId, guest.node, guest.vmid], retry: false, staleTime: 30_000, queryFn: () => api<CiSnippets>(`${base}/snippets`) });
   const stores = useQuery({ queryKey: ["storages", connId, guest.node, "images"], retry: false, staleTime: 30_000,
     queryFn: () => api<StorageInfo[]>(`/api/connections/${connId}/nodes/${guest.node}/storages?content=images`) });
 
@@ -31,6 +33,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [confirmDrop, setConfirmDrop] = useState(false);
+  const [custom, setCustom] = useState<Record<CiPart, string>>({ user: "", network: "", meta: "", vendor: "" });
 
   // Remplit le formulaire avec l'état réel. Le mot de passe n'est jamais lu : seul son état « défini » l'est.
   useEffect(() => {
@@ -39,6 +42,7 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
     setUser(data.user ?? ""); setKeys(data.ssh_keys ?? ""); setDns(data.nameserver ?? ""); setDomain(data.searchdomain ?? "");
     setUpgrade(data.upgrade ?? true); setMode(c ? c.mode : "unset"); setIp(c?.ip ?? ""); setGw(c?.gateway ?? "");
     setPassword(""); setDropPassword(false); setDropUpgrade(false);
+    setCustom({ user: data.custom?.user ?? "", network: data.custom?.network ?? "", meta: data.custom?.meta ?? "", vendor: data.custom?.vendor ?? "" });
   }, [data]);
 
   const chosen = storage || stores.data?.[0]?.storage || "";
@@ -64,6 +68,8 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
     else if (!cur || cur.mode !== mode || (mode === "static" && (cur.ip !== ip || (cur.gateway ?? "") !== gw)))
       body.ipconfig = { ipconfig0: { mode, ...(mode === "static" ? { ip, ...(gw ? { gateway: gw } : {}) } : {}) } };
     if (clear.length) body.clear = clear;
+    const changed = CI_PARTS.filter((p) => custom[p] !== (data.custom?.[p] ?? ""));
+    if (changed.length) body.custom = Object.fromEntries(changed.map((p) => [p, custom[p] || null]));
     if (Object.keys(body).length === 0) return setErr("Aucune modification.");
     send(body).then(() => { setPassword(""); });
   }
@@ -115,6 +121,27 @@ export function CloudInitTab({ connId, guest }: { connId: number; guest: Guest }
         <Field label="Domaine de recherche" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="lab.local" />
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={upgrade} onChange={(e) => setUpgrade(e.target.checked)} /> Mettre à jour les paquets au premier démarrage</label>
         {data.upgrade !== null && <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={dropUpgrade} onChange={(e) => setDropUpgrade(e.target.checked)} /> Ne plus définir ce réglage (valeur par défaut de Proxmox)</label>}
+        <fieldset className="space-y-3 rounded-xl border border-line p-4">
+          <legend className="px-1 text-sm font-medium">Snippets personnalisés (avancé)</legend>
+          <p className="text-xs text-muted">Un snippet remplace le fichier cloud-init que Proxmox génère pour cette partie. Les snippets se déposent à la main dans un stockage qui accepte le contenu « Snippets » : Proxmox ne permet pas de les téléverser par l'API, Kaji n'en crée donc pas.</p>
+          {snippets.isLoading && <p className="text-xs text-muted">Lecture des snippets du nœud…</p>}
+          {snippets.error && <Notice kind="error">{(snippets.error as Error).message}</Notice>}
+          {(snippets.data?.errors.length ?? 0) > 0 && <Notice kind="error">Stockage illisible : {snippets.data?.errors.join(", ")}.</Notice>}
+          {snippets.data && snippets.data.snippets.length === 0 && <p className="text-xs text-muted">Aucun snippet sur ce nœud (aucun stockage avec le contenu « Snippets », ou stockage vide).</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {CI_PARTS.map((p) => {
+              const known = snippets.data?.snippets ?? [];
+              const missing = custom[p] !== "" && !known.some((x) => x.volid === custom[p]);
+              return (
+                <label key={p} className="block space-y-1.5"><span className="text-sm text-muted">{CI_PART_LABEL[p]}</span>
+                  <select className="field" value={custom[p]} onChange={(e) => setCustom({ ...custom, [p]: e.target.value })}>
+                    <option value="">Aucun (généré par Proxmox)</option>
+                    {missing && <option value={custom[p]}>{custom[p]} (introuvable)</option>}
+                    {known.map((x) => <option key={x.volid} value={x.volid}>{x.volid}{x.size ? ` · ${bytes(x.size)}` : ""}</option>)}
+                  </select></label>);
+            })}
+          </div>
+        </fieldset>
         {err && <Notice kind="error">{err}</Notice>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button onClick={save} disabled={busy || !ipOk}>{busy ? "…" : "Enregistrer"}</Button>

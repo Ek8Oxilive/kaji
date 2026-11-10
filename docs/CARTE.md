@@ -82,7 +82,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/ceph_services.py` — Ceph, ÉCRITURE : moniteurs, gestionnaires, MDS, OSD (lot C3).… — POST /ceph/nodes/{node}/monitors; POST /ceph/nodes/{node}/managers; POST /ceph/nodes/{node}/mds; POST /ceph/nodes/{node}/osds (+4)
 - `backend/app/routers/ceph_write.py` — Ceph, ÉCRITURE : créer et modifier un pool (lot C2). Pas de s… — POST /ceph/pools; PUT /ceph/pools/{pool}
 - `backend/app/routers/clone.py` — Clonage d'une VM ou d'un LXC (complet, ou lié à partir d'un m… — POST //guests/{node}/{gtype}/{vmid}/clone
-- `backend/app/routers/cloudinit.py` — Cloud-init d'une VM : utilisateur, mot de passe, clés SSH, ré… — GET //guests/{node}/qemu/{vmid}/cloudinit; PATCH //guests/{node}/qemu/{vmid}/cloudinit; POST //guests/{node}/qemu/{vmid}/cloudinit/drive; DELETE //guests/{node}/qemu/{vmid}/cloudinit/drive
+- `backend/app/routers/cloudinit.py` — Cloud-init d'une VM : utilisateur, mot de passe, clés SSH, ré… — GET //guests/{node}/qemu/{vmid}/cloudinit/snippets; GET //guests/{node}/qemu/{vmid}/cloudinit; PATCH //guests/{node}/qemu/{vmid}/cloudinit; POST //guests/{node}/qemu/{vmid}/cloudinit/drive (+1)
 - `backend/app/routers/cluster.py` — Lecture de l'état d'un cluster Proxmox via une connexion enre… — GET /cluster/status; GET /nodes; GET /guests; GET /storages
 - `backend/app/routers/cluster_config.py` — Cluster Proxmox (corosync) en LECTURE SEULE : nœuds, totem, Q… — GET /cluster/config
 - `backend/app/routers/connections.py` —  — GET /api/connections; POST /api/connections; POST /api/connections/test; GET /api/connections/ (+3)
@@ -238,6 +238,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `frontend/src/lib/types/alimentation-vm.ts` — Alimentation avancée d'une VM et conversion en modèle (`docs/…
 - `frontend/src/lib/types/alimentation.ts` — Redémarrer / éteindre un nœud : forme des réponses de `docs/a…
 - `frontend/src/lib/types/ceph.ts` — Types de la page « Ceph » (lecture seule) : formes des répons…
+- `frontend/src/lib/types/cloudinit.ts` — Réponse de GET …/cloudinit : `custom` = snippets `cicustom` p…
 - `frontend/src/lib/types/cluster.ts` — Cluster (corosync) en lecture seule (`docs/api/cluster.md`)
 - `frontend/src/lib/types/datacenter.ts` — Options du datacenter (`docs/api/datacenter.md`)
 - `frontend/src/lib/types/disques.ts` — Disques d'un nœud : forme des réponses de `docs/api/disques.m…
@@ -274,6 +275,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/admin-session.md` — Session administrateur (socle de l'écriture des droits)
 - `docs/api/alimentation-vm.md` — Alimentation avancée d'une VM et conversion en modèle (lot #1…
 - `docs/api/ceph.md` — Ceph (lecture, écriture des pools, des moniteurs, des gestion…
+- `docs/api/cloudinit-avance.md` — Cloud-init avancé : snippets `cicustom` (VM, M14, ticket #238)
 - `docs/api/cluster.md` — Cluster en lecture (M10-1)
 - `docs/api/console.md` — Console web (noVNC, xterm.js)
 - `docs/api/datacenter.md` — Options et notes du datacenter (M15, lot #150)
