@@ -22,4 +22,4 @@ Onglet **Cloud-init** de la page Machine (VM avec lecteur cloud-init) : section 
 - Un stockage illisible (hors ligne) est signalé dans `errors`, il ne bloque pas les autres.
 
 ## Tests
-Faux Proxmox strict (`backend/tests/test_cloudinit_custom.py`) : digest vérifié, format et volumes vérifiés, 400 sinon ; 10 mutations tuées. Essais réels : voir `docs/REPRISE.md`.
+Faux Proxmox strict (`backend/tests/test_cloudinit_custom.py`) : digest vérifié, format et volumes vérifiés, 400 sinon ; 11 mutations tuées. **Essai réel (2026-11-10, VM 115)** : choisir un snippet pour `user` puis le retirer, par l'interface : accepté par Proxmox avec le token de Kaji, sans droit supplémentaire ; voir `docs/REPRISE.md`.
