@@ -7,8 +7,9 @@ export type ReplStatus = { id: string; last_sync: number | null; next_sync: numb
 
 /** Écriture HA (M8-2, `docs/api/ha-ecriture.md`) : aperçu `dry_run` et verrous décidés par le serveur. */
 export type HaLocks = { cut: string[]; live: string[]; inert: boolean };
-export type HaPreview = { dry_run: true; params?: Record<string, string | number>; remove?: string[]; from?: string; comigrated?: string[]; locks: HaLocks; phrase: string | null };
-export type HaMoveResult = { requested: string; from: string; blocking: { sid: string; cause: string | null }[]; comigrated: string[] };
+export type HaPreview = { dry_run: true; params?: Record<string, string | number>; remove?: string[]; from?: string; comigrated?: string[]; ignored?: HaIgnored[]; locks: HaLocks; phrase: string | null };
+export type HaIgnored = { rule: string; resources: string[]; nodes: string[] };
+export type HaMoveResult = { requested: string; from: string; blocking: { sid: string; cause: string | null }[]; comigrated: string[]; ignored?: HaIgnored[] };
 export type HaMode =
   | { kind: "resource-new" }
   | { kind: "resource-edit"; resource: HaResource }
