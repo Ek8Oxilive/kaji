@@ -4,6 +4,7 @@ import { api, type Guest, type HwConfig, type HwDisk, type HwNet, type HwUpdate 
 import { mem } from "../lib/format";
 import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, MigrateDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { useToast } from "./Toast";
+import { PassthroughPanel } from "./PassthroughPanel";
 import { Button, Notice } from "./ui";
 
 type Dialog =
@@ -130,6 +131,8 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
             ))}
           </Section>
 
+          {guest.type === "qemu" && <PassthroughPanel connId={connId} guest={guest} />}
+
           <Section title="Emplacement">
             <Row label="Nœud" action={<Button variant="ghost" onClick={() => setDlg({ k: "migrate" })} className="!px-3 !py-1">Migrer</Button>}>
               {guest.node} <span className="text-muted">· déplacer la machine vers un autre nœud du cluster</span>
@@ -142,7 +145,7 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
             </Row>
           </Section>
 
-          <p className="text-xs text-muted">Les ajouts de passthrough PCI/USB et d'autres options avancées ne sont pas gérés.</p>
+          <p className="text-xs text-muted">Les options avancées restantes (TPM, GPU virtuel, hotplug…) ne sont pas gérées.</p>
         </>}
 
       {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}

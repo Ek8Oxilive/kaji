@@ -93,6 +93,8 @@ FEATURES: tuple[Feature, ...] = (
     Feature("replication-write", "Gérer les jobs de réplication (créer, modifier, supprimer, lancer)", (("/vms", ("VM.Replicate",)),)),
     Feature("notifications-write", "Gérer les cibles et les règles de notification, tester une cible", (("/mapping/notifications", ("Mapping.Modify",)),)),
     Feature("notifications-read", "Voir les cibles et les règles de notification", (("/mapping/notifications", ("Mapping.Audit",)),)),
+    Feature("passthrough-write", "Ajouter ou retirer un périphérique PCI, USB ou un répertoire (par correspondance) d'une VM",
+            (("/vms", ("VM.Config.HWType",)), ("/mapping/pci", ("Mapping.Use",)), ("/mapping/usb", ("Mapping.Use",)), ("/mapping/dir", ("Mapping.Use",)))),
     Feature("mappings-write", "Gérer les correspondances de ressources PCI, USB et répertoires",
             (("/mapping/pci", ("Mapping.Modify",)), ("/mapping/usb", ("Mapping.Modify",)), ("/mapping/dir", ("Mapping.Modify",)))),
     Feature("mappings-read", "Voir les correspondances de ressources et le matériel PCI / USB des nœuds",
