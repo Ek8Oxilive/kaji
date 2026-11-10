@@ -148,6 +148,18 @@ Une page par machine, avec des onglets : Matériel, Options, Performances, Conso
 
 *Onglet **Tâches** : l'historique des tâches Proxmox de la machine, avec la durée de chacune.*
 
+![Onglet Réplication d'une machine](docs/captures/vm-replication.jpg)
+
+*Onglet **Réplication** : les jobs de la machine (ici aucun), avec le bouton « Nouveau job… ».*
+
+![Nouveau job de réplication, aperçu bloqué](docs/captures/vm-replication-nouveau-job.jpg)
+
+*Nouveau job de réplication : l'**aperçu** dit ce qui bloque sans rien écrire. Ici, aucun stockage ZFS sur le cluster et le disque est sur `local-lvm` : « Appliquer » reste grisé.*
+
+![Onglet Permissions d'une machine](docs/captures/vm-permissions.jpg)
+
+*Onglet **Permissions** : les droits qui s'appliquent à la machine, posés sur elle ou hérités de `/vms` et de `/`. « Modifier une ACL… » ouvre la fenêtre de la page Accès avec le chemin de la machine prérempli.*
+
 ### Page d'un conteneur LXC
 
 Mêmes onglets, adaptés aux conteneurs (pas de Cloud-init). Exemples avec le conteneur `dns-lxc` (#104).
