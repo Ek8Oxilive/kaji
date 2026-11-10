@@ -5,7 +5,7 @@ import { Button, Notice } from "./ui";
 
 const MAX = 8192;
 
-/** Notes d'une machine ou d'un nœud. Le texte est affiché tel quel (jamais interprété comme du HTML) ; le serveur exige le digest lu juste avant. */
+/** Notes d'une machine ou d'un nœud. Le texte est affiché tel quel (jamais interprété comme du HTML) ; le serveur exige le digest lu juste avant : on relit donc les notes à l'ouverture de l'éditeur (d'autres écrans, comme les étiquettes, modifient la même configuration). */
 export function NotesPanel({ url, label }: { url: string; label: string }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["notes", url], staleTime: 0, queryFn: () => api<{ notes: string; digest: string | null; empty: boolean }>(url) });
@@ -32,7 +32,7 @@ export function NotesPanel({ url, label }: { url: string; label: string }) {
     <section className="panel space-y-2 p-4" aria-label={label}>
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-semibold">{label}</h3>
-        {!edit && (q.data.digest || q.data.empty) && <Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={() => { setText(q.data!.notes); setErr(null); setEdit(true); }}>Modifier</Button>}
+        {!edit && (q.data.digest || q.data.empty) && <Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={async () => { setErr(null); const r = await q.refetch(); if (r.data) { setText(r.data.notes); setEdit(true); } }}>Modifier</Button>}
       </div>
       {!edit ? (q.data.notes.trim() ? <p className="whitespace-pre-wrap break-words text-sm">{q.data.notes}</p> : <p className="text-sm text-muted">Aucune note.</p>) : (
         <div className="space-y-2">
