@@ -27,6 +27,8 @@ DELETE /api/connections/{conn_id}/nodes/{node}/certificates/custom
 DELETE /api/connections/{conn_id}/nodes/{node}/network/interfaces/{iface}
 DELETE /api/connections/{conn_id}/nodes/{node}/storage/{storage}/backups/{volume}
 DELETE /api/connections/{conn_id}/nodes/{node}/storage/{storage}/files/{kind}/{name}
+DELETE /api/connections/{conn_id}/notifications/matchers/{name}
+DELETE /api/connections/{conn_id}/notifications/targets/{typ}/{name}
 DELETE /api/connections/{conn_id}/replication/{job}
 DELETE /api/connections/{conn_id}/sdn/controllers/{controller}
 DELETE /api/connections/{conn_id}/sdn/dns/{dns}
@@ -111,6 +113,8 @@ GET /api/connections/{conn_id}/nodes/{node}/templates
 GET /api/connections/{conn_id}/nodes/{node}/url-metadata
 GET /api/connections/{conn_id}/notifications
 GET /api/connections/{conn_id}/notifications/field-values
+GET /api/connections/{conn_id}/notifications/matchers/{name}
+GET /api/connections/{conn_id}/notifications/targets/{typ}/{name}
 GET /api/connections/{conn_id}/pools
 GET /api/connections/{conn_id}/replication
 GET /api/connections/{conn_id}/sdn/controllers
@@ -220,6 +224,9 @@ POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/download-url
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune/preview
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/upload
+POST /api/connections/{conn_id}/notifications/matchers
+POST /api/connections/{conn_id}/notifications/targets/{name}/test
+POST /api/connections/{conn_id}/notifications/targets/{typ}
 POST /api/connections/{conn_id}/replication
 POST /api/connections/{conn_id}/replication/{job}/now
 POST /api/connections/{conn_id}/sdn/apply
@@ -267,6 +274,8 @@ PUT /api/connections/{conn_id}/nodes/{node}/network/interfaces/{iface}
 PUT /api/connections/{conn_id}/nodes/{node}/notes
 PUT /api/connections/{conn_id}/nodes/{node}/storage/{storage}/backups/{volume}/protect
 PUT /api/connections/{conn_id}/nodes/{node}/time
+PUT /api/connections/{conn_id}/notifications/matchers/{name}
+PUT /api/connections/{conn_id}/notifications/targets/{typ}/{name}
 PUT /api/connections/{conn_id}/replication/{job}
 PUT /api/connections/{conn_id}/sdn/controllers/{controller}
 PUT /api/connections/{conn_id}/sdn/dns/{dns}
