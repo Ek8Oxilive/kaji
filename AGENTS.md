@@ -7,10 +7,10 @@ peuvent travailler en parallèle ; **le dépôt est le seul canal de coordinatio
 | Agent | Étiquette | Rôle |
 |---|---|---|
 | **PC A** | `agent:pc-a` | Valide en réel sur le cluster (lecture seule, ou écritures réversibles avec l'accord du propriétaire) et relit les PR des autres. Lots qui exigent le cluster. |
-| **PC B** | `agent:pc-b` | Développe **avec le faux Proxmox uniquement**, aucun accès au cluster réel. Lots codables sans le cluster (voir `docs/REPRISE.md`). |
+| **PC B** | `agent:pc-b` | Développe avec le faux Proxmox **et valide aussi en réel**, dans les mêmes limites que PC A (règle d'Enzo du 2026-11-10, voir §2). Lots codables sans le cluster en priorité (voir `docs/REPRISE.md`). |
 
-Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent **PC B** ne prend jamais un ticket
-`agent:pc-a`, et ne fait jamais de test réel.
+Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent ne prend jamais un ticket déjà pris
+par l'autre (commentaire « je prends » ou label de l'autre agent).
 
 ## 1. Comment on travaille
 - **Un ticket = un lot de travail** (GitHub Issues, rattaché à un milestone). Avant de commencer : commente « je prends »
@@ -19,18 +19,22 @@ Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer
 - **Jamais de commit direct sur `main`** (protégée). Une PR par lot, **rattachée au milestone**, avec la CI verte.
 - **Commits** : `type(Mx/zone): message` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`),
   terminés par la ligne `Co-Authored-By:` de ton modèle.
-- **Tu ne merges pas** : le propriétaire merge après vérification. Toutes les PR partent du même compte GitHub,
-  personne ne peut « approuver » : la vérification est une vraie relecture du code et des tests.
+- **Autonomie (règle d'Enzo, 2026-11-10) : PC A et PC B font la même chose, en boucle, jusqu'à ce qu'Enzo les arrête.** Un lot = ticket (« je prends » d'abord) → branche → code → **tests sur le VRAI Proxmox quand c'est possible** (lecture seule, ou écritures réversibles dans le bac à sable, par l'interface de Kaji déployée), **sur le faux Proxmox quand ce ne l'est pas** (ZFS, Ceph, PBS, droits manquants, actions dangereuses) ; le faux Proxmox strict reste obligatoire pour la CI, avec ses tests et mutations → carte + manifeste des routes → PR (dire ce qui a été vu en réel et ce qui ne l'a pas été) → CI verte → **tu merges toi-même** (`gh pr merge N --merge`) → tu redéploies (console du CT 116, commande de `docs/REPRISE.md`) → **tu testes dans l'interface web déployée** (chaque page, bouton et fenêtre du lot, lecture seule ou écritures réversibles dans le bac à sable) → tu vérifies que **rien n'a disparu** (`test_routes_manifest`, `git diff` des suppressions, pages et boutons existants) → **captures du README** de ce qui est nouveau, y compris ce que l'autre agent a ajouté (`REPRISE.md` étape 7) → lot suivant, sans attendre.
+- Toutes les PR partent du même compte GitHub, personne ne peut « approuver » : la vérification est une vraie relecture du code et des tests, à faire avant de merger (y compris pour les PR de l'autre agent, que tu peux relire et merger).
 - **Avant de demander une revue** : fusionne `main` dans ta branche et résous les conflits toi-même.
 - **Carte du projet** : régénère `docs/CARTE.md` (`python3 tools/carte.py > docs/CARTE.md`) avant chaque PR, et après avoir fusionné `main` (un test le vérifie). Mets aussi à jour la section « État » de `docs/REPRISE.md` si ton lot change l'état du projet.
 - **PR honnête** : liste précisément ce qui n'est **pas** testé (en réel, ou du tout). Une PR qui prétend tout tester
   alors que non sera refusée.
 
-## 2. Cluster Proxmox réel : interdit sauf mention contraire
+## 2. Cluster Proxmox réel : bac à sable seulement (PC A et PC B)
 - **Développe et teste avec le faux Proxmox** (`httpx.MockTransport`, voir `backend/tests/test_*.py`).
-- **Ne te connecte jamais au cluster réel** et ne lui envoie aucune requête, même en lecture, sauf si le propriétaire t'y
-  autorise explicitement dans le ticket. Les tests réels sont faits par un seul agent, dans un bac à sable
-  (pool `kaji-test`), pour que deux agents ne se marchent pas dessus.
+- **Règle d'Enzo (2026-11-10) : PC A et PC B travaillent tous les deux sur le vrai cluster**, par l'interface de Kaji déployée
+  (jamais en tapant le token) : lecture seule, et écritures **réversibles** dans le bac à sable (pool `kaji-test`, VM 115
+  `kaji-sandbox`, identifiants 117 à 119 pour des machines jetables), en remettant tout à l'identique.
+- **Interdits, quoi qu'il arrive** : le CT 116 `kaji-ct` (c'est Kaji) et les machines 100 à 114 (services d'Enzo) ; activer le pare-feu du
+  datacenter ou d'un nœud ; **appliquer** une configuration réseau ou SDN ; lire ou écrire un mot de passe, un token ou `KAJI_SECRET_KEY`.
+- **Un seul agent à la fois sur le cluster** : annonce-le dans le ticket (« essai réel en cours ») et nettoie avant de rendre la main,
+  pour que deux agents ne se marchent pas dessus. Compte-rendu honnête dans la PR de ce qui a été vu en réel et de ce qui ne l'a pas été.
 - Ne demande jamais le token Proxmox, la clé `KAJI_SECRET_KEY` ni le mot de passe admin, et ne les écris nulle part.
 
 ## 3. Sécurité : non négociable
