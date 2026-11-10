@@ -128,7 +128,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
                 <span className="block text-xs text-muted">Une par ligne (ou séparées par des virgules) : minuscules, chiffres, _ . + -. Vide = aucune.</span></label>
               <div className="space-y-3">
                 <label className="block space-y-1.5 text-sm"><span className="text-muted">Étiquettes : droits des utilisateurs</span>
-                  <select className="field" value={f.uallow} onChange={(e) => set("uallow")(e.target.value)}>{!d.user_tag_access.user_allow && <option value="">Défaut de Proxmox (free)</option>}{Object.entries(USER_ALLOW).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                  <select className="field" value={f.uallow} onChange={(e) => set("uallow")(e.target.value)}><option value="">Défaut de Proxmox (free)</option>{Object.entries(USER_ALLOW).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
                 {f.uallow === "list" && <Field label="Étiquettes permises" value={f.ulist} maxLength={4000} onChange={(e) => set("ulist")(e.target.value)} hint="Séparées par des virgules ou des espaces" />}
               </div>
             </div>
