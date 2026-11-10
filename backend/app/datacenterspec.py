@@ -1,7 +1,8 @@
 """Options du datacenter Proxmox (Datacenter → Options et notes) : lecture tolérante et écriture en liste blanche (lot #150).
 
 Champs gérés : `keyboard`, `language`, `console`, `description` (notes du datacenter), `mac_prefix`, `migration` (`type`, `network`), `max_workers`, `email_from`, `http_proxy`,
-`next_id` (plage des identifiants libres : `lower`, `upper`) et `tag_style` (`shape`, `ordering`, `case_sensitive`, `color_map`).
+`next_id` (plage des identifiants libres : `lower`, `upper`), `tag_style` (`shape`, `ordering`, `case_sensitive`, `color_map`),
+`registered_tags` (étiquettes réservées à `Sys.Modify`), `user_tag_access` (`user_allow`, `user_allow_list`) et `consent_text` (texte affiché avant la connexion).
 Lus mais JAMAIS écrits (risque élevé, hors périmètre) : `ha`, `fencing`, `crs`, `bwlimit`, `replication`.
 Le `PUT /cluster/options` de Proxmox n'a PAS de `digest` : Kaji calcule le sien (empreinte des valeurs lues) pour refuser, en 409, une modification faite sur un état périmé.
 Rien n'est transmis sans validation ; un champ inconnu est ignoré ; `http_proxy` : `http://hôte[:port]`, sans identifiants, ni boucle locale, ni adresse non spécifiée, de liaison locale ou multicast.
@@ -24,10 +25,14 @@ EMAIL = re.compile(r"^[A-Za-z0-9._%+\-]{1,64}@[A-Za-z0-9.\-]{1,190}$")
 PROXY = re.compile(r"^http://(?P<host>[A-Za-z0-9.\-]{1,253}|\[[0-9A-Fa-f:]{2,39}\])(:(?P<port>[0-9]{1,5}))?/?$")
 TEXT_OK = re.compile(r"[^\x00-\x08\x0b\x0c\x0d\x0e-\x1f\x7f]*")                  # notes : \n et \t permis, tout autre caractère de contrôle refusé
 MAX_NOTES = 65536
-CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style")
+CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style", "registered_tags", "user_tag_access", "consent_text")
 READONLY = ("ha", "fencing", "crs", "bwlimit", "replication")
-DELNAME = {"next_id": "next-id", "tag_style": "tag-style"}      # nom Kaji -> nom Proxmox (pour `delete=`)
-KEY = {"next-id": "next_id", "tag-style": "tag_style"}          # nom Proxmox -> clé lue
+DELNAME = {"next_id": "next-id", "tag_style": "tag-style", "registered_tags": "registered-tags", "user_tag_access": "user-tag-access", "consent_text": "consent-text"}   # nom Kaji -> nom Proxmox (pour `delete=`)
+KEY = {v: k for k, v in DELNAME.items()}                                                                                                      # nom Proxmox -> clé lue
+TAGNAME = re.compile(r"^[a-z0-9_][a-z0-9_\-+.]{0,63}$")
+USER_ALLOW = ("none", "list", "existing", "free")
+MAX_TAGS = 100
+MAX_CONSENT = 3000
 ID_MIN, ID_MAX = 100, 999_999_999
 SHAPES = ("full", "circle", "dense", "none")
 ORDERINGS = ("config", "alphabetical")
@@ -81,6 +86,22 @@ def parse_tag_style(v) -> dict:
             "case_sensitive": True if cs is True or str(cs).lower() in ("1", "true", "yes", "on") else None, "color_map": parse_color_map(d.get("color-map"))}
 
 
+def parse_tag_list(v) -> list[str]:
+    """`a;b;c` (chaîne) ou liste -> étiquettes valides en minuscules, sans doublon, 100 au plus ; les valeurs de forme inattendue sont écartées."""
+    items = v.split(";") if isinstance(v, str) else (v if isinstance(v, list) else [])
+    out: list[str] = []
+    for x in items:
+        x = x.strip().lower() if isinstance(x, str) else ""
+        if TAGNAME.fullmatch(x) and x not in out:
+            out.append(x)
+    return out[:MAX_TAGS]
+
+
+def parse_user_tag_access(v) -> dict:
+    d = _props(v)
+    return {"user_allow": _choice(d.get("user-allow"), USER_ALLOW), "user_allow_list": parse_tag_list(d.get("user-allow-list"))}
+
+
 def parse_migration(v) -> dict:
     """`migration` : objet (`{type, network}`) ou chaîne de propriétés (`type=secure,network=10.0.0.0/24`) selon la version."""
     d: dict = {}
@@ -106,6 +127,8 @@ def shape_options(raw) -> dict:
         "email_from": r["email_from"] if isinstance(r.get("email_from"), str) and EMAIL.fullmatch(r["email_from"]) else None,
         "http_proxy": r["http_proxy"] if isinstance(r.get("http_proxy"), str) and PROXY.fullmatch(r["http_proxy"]) else None,
         "next_id": parse_next_id(r.get("next-id")), "tag_style": parse_tag_style(r.get("tag-style")),
+        "registered_tags": parse_tag_list(r.get("registered-tags")), "user_tag_access": parse_user_tag_access(r.get("user-tag-access")),
+        "consent_text": _t(r.get("consent-text"), MAX_CONSENT),
     }
     if out["migration"]["type"] is None and r.get("migration_unsecure") in (1, True, "1"):         # ancien réglage, remplacé par `migration`
         out["migration"]["type"] = "insecure"
@@ -193,6 +216,21 @@ class TagStyleIn(BaseModel):
         return v
 
 
+class UserTagAccessIn(BaseModel):
+    user_allow: Literal[USER_ALLOW] | None = None                                 # type: ignore[valid-type]
+    user_allow_list: list[str] | None = Field(default=None, max_length=MAX_TAGS, description="Étiquettes permises quand user_allow vaut « list »")
+
+    @field_validator("user_allow_list")
+    @classmethod
+    def _lst(cls, v):
+        if v is None:
+            return v
+        out = [x.strip().lower() for x in v]
+        if any(not TAGNAME.fullmatch(x) for x in out):
+            raise ValueError("Étiquette invalide (minuscules, chiffres, _ . + -, 64 caractères au plus)")
+        return list(dict.fromkeys(out))
+
+
 class DatacenterOptions(BaseModel):
     keyboard: Literal[KEYBOARDS] | None = None                                    # type: ignore[valid-type]
     language: Literal[LANGUAGES] | None = None                                    # type: ignore[valid-type]
@@ -205,7 +243,10 @@ class DatacenterOptions(BaseModel):
     http_proxy: str | None = Field(default=None, max_length=300)
     next_id: NextIdIn | None = None
     tag_style: TagStyleIn | None = None
-    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=11)             # type: ignore[valid-type]
+    registered_tags: list[str] | None = Field(default=None, max_length=MAX_TAGS, description="Liste vide = retirer le réglage")
+    user_tag_access: UserTagAccessIn | None = None
+    consent_text: str | None = Field(default=None, max_length=MAX_CONSENT)
+    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=14)             # type: ignore[valid-type]
     digest: str | None = Field(default=None, max_length=64, description="Empreinte lue par GET ; refus (409) si l'état a changé depuis")
     confirm: StrictBool = False
     dry_run: StrictBool = False
@@ -213,6 +254,23 @@ class DatacenterOptions(BaseModel):
     @field_validator("description")
     @classmethod
     def _desc(cls, v):
+        if v is not None and not TEXT_OK.fullmatch(v):
+            raise ValueError("Caractère de contrôle interdit")
+        return v
+
+    @field_validator("registered_tags")
+    @classmethod
+    def _rtags(cls, v):
+        if v is None:
+            return v
+        out = [x.strip().lower() for x in v]
+        if any(not TAGNAME.fullmatch(x) for x in out):
+            raise ValueError("Étiquette invalide (minuscules, chiffres, _ . + -, 64 caractères au plus)")
+        return list(dict.fromkeys(out))
+
+    @field_validator("consent_text")
+    @classmethod
+    def _consent(cls, v):
         if v is not None and not TEXT_OK.fullmatch(v):
             raise ValueError("Caractère de contrôle interdit")
         return v
@@ -273,6 +331,26 @@ def build(body: DatacenterOptions, current: dict) -> tuple[dict, list[str], list
             p["tag-style"] = ",".join(parts)
         elif "tag_style" not in delete:
             delete.append("tag_style")                                  # plus aucun sous-réglage : on retire le réglage
+    if body.registered_tags is not None:
+        if body.registered_tags:
+            p["registered-tags"] = ";".join(body.registered_tags)
+        elif "registered_tags" not in delete:
+            delete.append("registered_tags")                            # liste vide : on retire le réglage
+    uta = body.user_tag_access
+    if uta is not None and (uta.user_allow is not None or uta.user_allow_list is not None):
+        cur = current.get("user_tag_access") or {}
+        allow = uta.user_allow or cur.get("user_allow")
+        lst = uta.user_allow_list if uta.user_allow_list is not None else (cur.get("user_allow_list") or [])
+        if allow is None:
+            raise ValueError("Précise « user_allow » (none, list, existing ou free)")
+        if allow == "list" and not lst:
+            raise ValueError("« list » exige au moins une étiquette dans « user_allow_list »")
+        p["user-tag-access"] = f"user-allow={allow}" + (f",user-allow-list={';'.join(lst)}" if allow == "list" else "")
+    if body.consent_text is not None:
+        if body.consent_text.strip():
+            p["consent-text"] = body.consent_text
+        elif "consent_text" not in delete:
+            delete.append("consent_text")                               # texte vide : on retire le réglage
     clash = [k for k in delete if DELNAME.get(k, k) in p]
     if clash:
         raise ValueError("Réglage à la fois modifié et retiré")

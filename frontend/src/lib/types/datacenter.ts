@@ -5,6 +5,7 @@ export const CONSOLES = ["applet", "vv", "html5", "xtermjs"] as const;
 
 export const SHAPES = ["full", "circle", "dense", "none"] as const;
 export const ORDERINGS = ["config", "alphabetical"] as const;
+export const USER_ALLOW: Record<string, string> = { none: "none : aucune étiquette", list: "list : seulement une liste", existing: "existing : étiquettes déjà utilisées", free: "free : étiquettes libres" };
 export type TagColor = { tag: string; color: string; text: string | null };
 export type TagStyle = { shape: string | null; ordering: string | null; case_sensitive: true | null; color_map: TagColor[] };
 
@@ -12,6 +13,7 @@ export type DatacenterOptions = {
   keyboard: string | null; language: string | null; console: string | null; description: string | null; mac_prefix: string | null; max_workers: number | null;
   email_from: string | null; http_proxy: string | null; migration: { type: "secure" | "insecure" | null; network: string | null };
   next_id: { lower: number | null; upper: number | null }; tag_style: TagStyle;
+  registered_tags: string[]; user_tag_access: { user_allow: string | null; user_allow_list: string[] }; consent_text: string | null;
   readonly: Record<string, string | null>; digest: string;
 };
 export type DatacenterPreview = { dry_run: true; params: Record<string, string | number>; remove: string[]; locks: { insecure: boolean } };
