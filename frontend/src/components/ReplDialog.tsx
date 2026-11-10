@@ -14,12 +14,12 @@ const triOf = (v: boolean | null | undefined): Tri => (v === true ? "yes" : v ==
  * Écriture de la réplication : créer, modifier, supprimer un job, lancer maintenant. Aperçu (`dry_run`) d'abord : le serveur annonce les bloqueurs (pas de ZFS, disque hors ZFS)
  * et les verrous. Supprimer sans conserver les copies exige de retaper le nom du job.
  */
-export function ReplDialog({ connId, mode, onClose }: { connId: number; mode: ReplMode; onClose: () => void }) {
+export function ReplDialog({ connId, mode, presetGuest, onClose }: { connId: number; mode: ReplMode; presetGuest?: number; onClose: () => void }) {
   const qc = useQueryClient();
   const k = mode.kind, job = mode.kind === "new" ? null : mode.job;
   const guests = useQuery({ queryKey: ["guests", connId], queryFn: () => api<Guest[]>(`/api/connections/${connId}/guests`), enabled: k === "new" });
   const cluster = useQuery({ queryKey: ["cluster-status", connId], queryFn: () => api<ClusterStatus>(`/api/connections/${connId}/cluster/status`), enabled: k === "new" });
-  const [guest, setGuest] = useState(""), [target, setTarget] = useState(""), [schedule, setSchedule] = useState(job?.schedule ?? ""), [rate, setRate] = useState(job?.rate?.toString() ?? ""),
+  const [guest, setGuest] = useState(presetGuest !== undefined ? String(presetGuest) : ""), [target, setTarget] = useState(""), [schedule, setSchedule] = useState(job?.schedule ?? ""), [rate, setRate] = useState(job?.rate?.toString() ?? ""),
     [comment, setComment] = useState(job?.comment ?? ""), [disable, setDisable] = useState<Tri>(triOf(job?.disable)), [keep, setKeep] = useState(false), [typed, setTyped] = useState("");
   const [preview, setPreview] = useState<ReplPreview | null>(null), [ackLive, setAckLive] = useState(false);
   const [busy, setBusy] = useState(false), [done, setDone] = useState(false), [err, setErr] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export function ReplDialog({ connId, mode, onClose }: { connId: number; mode: Re
     <Modal title={title} subtitle="Rien n'est écrit sans aperçu : le serveur dit ce qui bloque et ce qui est verrouillé." onClose={busy ? () => {} : onClose} onSubmit={run}
       submitLabel={k === "delete" ? "Supprimer" : k === "now" ? "Lancer" : "Appliquer"} danger={live || k === "delete"} busy={busy} error={err} canSubmit={ready} wide>
       {k === "new" && <>
-        {select("Machine à répliquer", guest, (s) => { setGuest(s); setTarget(""); }, [["", guests.isLoading ? "Chargement…" : "Choisir une machine"], ...(guests.data ?? []).filter((g) => !g.template && g.vmid !== null).map((g) => [String(g.vmid), `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
+        {presetGuest !== undefined ? <p className="text-sm"><span className="text-muted">Machine à répliquer</span> <b>{chosen ? `${chosen.name ?? chosen.vmid} (#${presetGuest})` : `#${presetGuest}`}</b></p> : select("Machine à répliquer", guest, (s) => { setGuest(s); setTarget(""); }, [["", guests.isLoading ? "Chargement…" : "Choisir une machine"], ...(guests.data ?? []).filter((g) => !g.template && g.vmid !== null).map((g) => [String(g.vmid), `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
         {select("Nœud cible", target, setTarget, [["", "Choisir un nœud"], ...(cluster.data?.nodes ?? []).filter((n) => n.online && n.name !== chosen?.node).map((n) => [n.name, n.name] as [string, string])])}
       </>}
       {(k === "new" || k === "edit") && <>

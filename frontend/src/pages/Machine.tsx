@@ -14,6 +14,8 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Gauge } from "../components/Gauge";
 import { HardwareTab } from "../components/HardwareTab";
 import { SnapshotsTab } from "../components/SnapshotsTab";
+import { ReplicationTab } from "../components/ReplicationTab";
+import { PermissionsTab } from "../components/PermissionsTab";
 import { TemplateDangerZone } from "../components/TemplateDangerZone";
 import { Button, Notice } from "../components/ui";
 import type { GuestAction } from "../lib/api";
@@ -23,8 +25,8 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
-type Tab = "hardware" | "options" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups" | "tasks";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["tasks", "Tâches"]];
+type Tab = "hardware" | "options" | "metrics" | "console" | "snapshots" | "cloudinit" | "backups" | "replication" | "permissions" | "tasks";
+const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["metrics", "Performances"], ["console", "Console"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["replication", "Réplication"], ["permissions", "Permissions"], ["tasks", "Tâches"]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -124,6 +126,8 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={running} />}
           {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
           {tab === "backups" && <BackupsTab connId={connId} guest={guest} />}
+          {tab === "replication" && <ReplicationTab connId={connId} guest={guest} />}
+          {tab === "permissions" && <PermissionsTab connId={connId} guest={guest} />}
           {tab === "tasks" && <GuestTasksTab connId={connId} guest={guest} />}
         </>}
 

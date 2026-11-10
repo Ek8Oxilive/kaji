@@ -81,9 +81,9 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Clone (complet, lié), convertir en modèle | ✅ (clone complet validé en réel, clone lié non ; **convertir en modèle validé en réel le 2026-11-09** (VM 117 et LXC 119, refus compris, à la souris) ; écarts corrigés et revérifiés le 2026-11-09 : fenêtre de conversion (#202), « Supprimer le modèle » (#203), démarrage d'un modèle refusé en 409 (#204) ; clone lié et suppression d'un modèle ayant des clones liés non essayés ; `docs/api/alimentation-vm.md`) | M4 / M14 |
 | Migration (en ligne, hors ligne, **distante** vers un autre cluster) | ✅ (hors ligne validée en réel ; à chaud non testée ; distante : ⬜) | M4 / M14 |
 | Sauvegarde et restauration de la machine | ✅ | M5 |
-| Réplication de la machine | ⬜ | M8 |
+| Réplication de la machine | 🟡 (onglet « Réplication » : jobs de la machine, nouveau / modifier / lancer / supprimer avec aperçu et verrous ; `docs/api/onglets-machine.md` ; ZFS absent : jamais écrit en réel) | M8 |
 | Pare-feu de la machine (règles, options, IPSet) | 🟡 (options et règles en écriture ; IPSet de machine livré en M7-2) | M7 |
-| Permissions de la machine | ⬜ | M6 |
+| Permissions de la machine | 🟡 (onglet « Permissions » : ACL sur la machine et héritées, écriture par la fenêtre de la page « Accès » ; `docs/api/onglets-machine.md` ; écriture jamais essayée en réel) | M6 |
 | Moniteur QEMU (`qm monitor`) | ⬜ | M14 |
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
 | Étiquettes (tags) et notes | 🟡 (lecture et édition codées, jamais exécutées en réel) | M13 |
