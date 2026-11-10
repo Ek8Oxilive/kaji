@@ -289,8 +289,9 @@ async def update_cloudinit(body: CloudInitUpdate, conn_id: int, node: str = Path
         params["delete"] = ",".join(delete)
     await c.px("put", f"{c.path}/config", **params)
     changed = sorted(k for k in params if k not in ("delete", "digest"))
-    c.log("started", "modifié : " + ", ".join(k if k not in ("cipassword", "sshkeys") else {"cipassword": "mot de passe", "sshkeys": "clés SSH"}[k] for k in changed)
-          + (f" · supprimé : {', '.join(delete)}" if delete else "") + (f" · {custom_note}" if custom_note else ""))
+    names = {"cipassword": "mot de passe", "sshkeys": "clés SSH"}
+    detail = [f"modifié : {', '.join(names.get(k, k) for k in changed)}" if changed else None, f"supprimé : {', '.join(delete)}" if delete else None, custom_note]
+    c.log("started", " · ".join(d for d in detail if d))                       # pas de « modifié : » vide quand on ne fait que retirer
     return {"changed": changed, "cleared": delete}
 
 

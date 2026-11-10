@@ -207,3 +207,12 @@ def test_audit_names_the_parts_not_the_files_and_logs_refusals(api):
     log = c.get("/api/audit").json()[::-1]
     assert [(e["action"], e["status"]) for e in log] == [("cloudinit-update", "started"), ("cloudinit-update", "error")]
     assert "snippets user=défini" in log[0]["detail"] and "ci-user.yaml" not in log[0]["detail"] and SECRET not in c.get("/api/audit").text
+
+
+def test_audit_detail_has_no_empty_modified_part_when_only_removing(api):
+    c, cid = api
+    ST["cfg"]["cicustom"] = f"user={U}"
+    c.patch(u(cid), json={"custom": {"user": None}})
+    c.patch(u(cid), json={"user": "kaji"})
+    log = [e["detail"] for e in c.get("/api/audit").json()[::-1]]
+    assert log == ["supprimé : cicustom · snippets user=retiré", "modifié : ciuser"]
