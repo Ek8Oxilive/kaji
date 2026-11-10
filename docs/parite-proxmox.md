@@ -61,7 +61,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Pare-feu du nœud | 🟡 (lecture seule) | M7 |
 | Réplication du nœud | 🟡 (lecture de l'état des jobs) | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
-| Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | ⬜ | M15 |
+| Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | 🟡 (liste de machines explicite, aperçu `dry_run`, protégées refusées, nom du nœud retapé ; `docs/api/actions-groupees.md`) | M15 |
 | Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
 
 ## Machine virtuelle (QEMU)

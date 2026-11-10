@@ -203,6 +203,7 @@ POST /api/connections/{conn_id}/nodes/{node}/aplinfo
 POST /api/connections/{conn_id}/nodes/{node}/apt/repositories
 POST /api/connections/{conn_id}/nodes/{node}/apt/update
 POST /api/connections/{conn_id}/nodes/{node}/backups
+POST /api/connections/{conn_id}/nodes/{node}/bulk
 POST /api/connections/{conn_id}/nodes/{node}/certificates/custom/check
 POST /api/connections/{conn_id}/nodes/{node}/console
 POST /api/connections/{conn_id}/nodes/{node}/disks/directory
@@ -224,6 +225,7 @@ POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/download-url
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune/preview
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/upload
+POST /api/connections/{conn_id}/nodes/{node}/wakeonlan
 POST /api/connections/{conn_id}/notifications/matchers
 POST /api/connections/{conn_id}/notifications/targets/{name}/test
 POST /api/connections/{conn_id}/notifications/targets/{typ}
