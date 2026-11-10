@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import audit
-from ..datacenterspec import DatacenterOptions, build, digest_of, shape_options
+from ..datacenterspec import DELNAME, KEY, DatacenterOptions, build, digest_of, parse_next_id, parse_tag_style, shape_options
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -32,7 +32,16 @@ def _same(k: str, got, want) -> bool:
     if k == "migration":
         typ, _, net = (want[len("type="):]).partition(",network=")
         return got == {"type": typ, "network": net or None}
+    if k == "next-id":
+        return got == parse_next_id(want)
+    if k == "tag-style":
+        return got == parse_tag_style(want)
     return got == want
+
+
+def _blank(v) -> bool:
+    """Réglage retiré : absent, chaîne vide, ou objet sans aucune valeur (constaté : les notes retirées reviennent en chaîne vide)."""
+    return v in (None, "") or (isinstance(v, dict) and not any(v.values()))
 
 
 @router.put("/options")
@@ -66,15 +75,15 @@ async def put_options(body: DatacenterOptions, conn_id: int, db: Session = Depen
         refuse("Migration non chiffrée : le trafic de migration (mémoire des machines) circulera en clair. Renvoie la requête avec confirm=true", status.HTTP_409_CONFLICT)
     send = dict(params)
     if delete:
-        send["delete"] = ",".join(delete)
+        send["delete"] = ",".join(DELNAME.get(k, k) for k in delete)
     await px("put", "/cluster/options", **send)
     fresh = _read(await px("get", "/cluster/options"))
     after = fresh
     for k, v in params.items():
-        if not _same(k, after.get(k), v):
+        if not _same(k, after.get(KEY.get(k, k)), v):
             refuse("Proxmox n'a pas appliqué la modification", status.HTTP_502_BAD_GATEWAY)
     for k in delete:
-        if after.get(k) not in (None, "", {"type": None, "network": None}):                # constaté en réel : les notes retirées reviennent en chaîne vide
+        if not _blank(after.get(k)):                # constaté en réel : les notes retirées reviennent en chaîne vide
             refuse("Proxmox n'a pas retiré le réglage", status.HTTP_502_BAD_GATEWAY)
     log("started", ", ".join(f"{k}={'défini' if k in ('description',) else v}" for k, v in sorted(params.items())) + (f" ; retiré : {','.join(delete)}" if delete else ""))
     return {"changed": sorted(params), "removed": delete, "locks": locks, **fresh}

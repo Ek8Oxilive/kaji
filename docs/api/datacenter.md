@@ -17,9 +17,11 @@ Préfixe `/api/connections/{conn_id}/datacenter`. Page « Datacenter » du menu.
 | `email_from` | adresse e-mail simple |
 | `http_proxy` | `http://hôte[:port]` : pas de `https`, **pas d'identifiants**, pas de chemin ni de paramètres ; boucle locale (`127.x`, `::1`, `localhost`, `*.localhost`), adresse non spécifiée, liaison locale et multicast refusées (un proxy du réseau privé reste permis) |
 | `migration` | `{type: secure|insecure, network: CIDR}` ; réseau sans bits d'hôte ; `network: ""` retire le réseau ; fusionné avec l'état lu (changer le type garde le réseau) |
-| `clear` | `keyboard`, `language`, `console`, `description`, `mac_prefix`, `migration`, `max_workers`, `email_from`, `http_proxy` (envoyé en `delete=`) |
+| `next_id` | **Plage des identifiants libres** : `{lower, upper}`, entiers 100 à 999 999 999 (booléens, chaînes et décimaux refusés), `lower` < `upper` (contrôlé aussi contre la valeur courante : changer `lower` seul garde `upper`) ; envoyé `next-id=lower=L,upper=U` |
+| `tag_style` | **Style des étiquettes** : `shape` (`full`, `circle`, `dense`, `none`), `ordering` (`config`, `alphabetical`), `case_sensitive` (booléen strict), `color_map` (liste `{tag, color, text?}` : étiquette `[A-Za-z0-9_][A-Za-z0-9_.+-]{0,31}`, couleurs de 6 chiffres hexadécimaux, 50 au plus, doublons refusés ; **remplace toute la table**, liste vide = la retirer) ; sous-réglages fusionnés avec l'état lu ; envoyé `tag-style=shape=…,ordering=…,case-sensitive=1,color-map=nom:couleur[:texte];…` |
+| `clear` | `keyboard`, `language`, `console`, `description`, `mac_prefix`, `migration`, `max_workers`, `email_from`, `http_proxy`, `next_id`, `tag_style` (envoyé en `delete=`, `next_id` et `tag_style` devenant `next-id` et `tag-style`) |
 
-**Lus mais jamais écrits** (`readonly` dans la lecture) : `ha`, `fencing`, `crs`, `bwlimit`, `next-id`, `tag-style`, `replication` : risque élevé (HA, fencing, ordonnancement) ou hors périmètre. Tout champ inconnu ou hors liste est **ignoré**, jamais transmis.
+**Lus mais jamais écrits** (`readonly` dans la lecture) : `ha`, `fencing`, `crs`, `bwlimit`, `replication` : risque élevé (HA, fencing, ordonnancement) ou hors périmètre. Tout champ inconnu ou hors liste est **ignoré**, jamais transmis.
 
 ## Verrous
 - **`digest`** : Proxmox n'a pas de `digest` pour ces options. Kaji calcule le sien (empreinte des valeurs lues) ; `GET` le renvoie, `PUT` accepte `digest` et répond **409** si l'état a changé depuis (rien n'est écrit). Facultatif pour l'API, toujours envoyé par la page.
