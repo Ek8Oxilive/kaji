@@ -16,6 +16,7 @@ DELETE /api/connections/{conn_id}/firewall/guests/{node}/{gtype}/{vmid}/ipsets/{
 DELETE /api/connections/{conn_id}/firewall/guests/{node}/{gtype}/{vmid}/rules/{pos}
 DELETE /api/connections/{conn_id}/firewall/nodes/{node}/rules/{pos}
 DELETE /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit/drive
+DELETE /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/passthrough/{ptype}/{key}
 DELETE /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}
 DELETE /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/disks/{key}
 DELETE /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}
@@ -82,6 +83,7 @@ GET /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit/snippets
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
+GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/passthrough
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/power
 GET /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 GET /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/metrics
@@ -182,6 +184,7 @@ POST /api/connections/{conn_id}/firewall/guests/{node}/{gtype}/{vmid}/rules
 POST /api/connections/{conn_id}/firewall/nodes/{node}/rules
 POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit/drive
 POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/hibernate
+POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/passthrough/{ptype}
 POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/reset
 POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/resume
 POST /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/suspend
@@ -269,6 +272,7 @@ PUT /api/connections/{conn_id}/firewall/guests/{node}/{gtype}/{vmid}/rules/{pos}
 PUT /api/connections/{conn_id}/firewall/nodes/{node}/options
 PUT /api/connections/{conn_id}/firewall/nodes/{node}/rules/{pos}
 PUT /api/connections/{conn_id}/firewall/nodes/{node}/rules/{pos}/move
+PUT /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/passthrough/{ptype}/{key}
 PUT /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/notes
 PUT /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/tags
 PUT /api/connections/{conn_id}/ha/resources/{sid}

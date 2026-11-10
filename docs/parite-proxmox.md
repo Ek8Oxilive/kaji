@@ -73,7 +73,8 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; démarrage depuis une ISO non testé) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; non validés en réel : déplacer, agrandir, ajouter une carte réseau) | M4 |
-| Matériel avancé : passthrough PCI et USB, TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ | M14 |
+| Matériel avancé : passthrough PCI et USB **par correspondance** (`hostpciN`, `usbN`, `virtiofsN`) | 🟡 (codé, `docs/api/passthrough.md` ; les périphériques bruts sont réservés à root@pam) | M14 |
+| Matériel avancé : TPM, disque EFI, port série, audio, GPU virtuel, hotplug | ⬜ (écran, série, audio, RNG, watchdog : ticket #225, PC B) | M14 |
 | Options (démarrage automatique, ordre de démarrage, OS, QEMU Agent, tablette, protection, mémoire NUMA…) | ✅ validé en réel (VM 115 : démarrage automatique, tablette, ordre de démarrage, agent, protection avec confirmation, refus des valeurs invalides ; `docs/api/options.md`, lot #144) ; reste `vga`, `keyboard`, `tags`, `name`, `reboot` | M14 |
 | Cloud-init (utilisateur, mot de passe, clés SSH, IP, DNS) | ✅ (validé en réel, mot de passe et clés SSH non essayés ; retirer `upgrade` : 🟡 non validé en réel, lot M14 #143) | M4 |
 | Cloud-init avancé (snippets `cicustom` : lire, choisir un snippet existant par partie, retirer ; téléversement impossible par l'API) | 🟡 (codé, `docs/api/cloudinit-avance.md` ; voir `docs/REPRISE.md` pour ce qui a été vu en réel) | M14 |
