@@ -39,7 +39,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Serveurs de métriques (InfluxDB, Graphite, OpenTelemetry) | 🟡 (lister, ajouter, modifier, supprimer ; secrets en écriture seule, `docs/api/metriques.md` ; **InfluxDB désactivé validé en réel par l'interface** ; Graphite, OpenTelemetry et serveur actif jamais écrits en réel) | M13 |
 | Notifications : cibles et règles | 🟡 (lecture validée en réel ; écriture des 4 types de cibles et des règles, test d'envoi : codés, **jamais écrits en réel**, `docs/api/notifications.md`) | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | 🟡 (zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics, appliquer, annuler : code livré, `docs/api/sdn.md`, **non validé en réel : le token de Kaji n'a pas `SDN.Allocate`**) | M7 |
-| Correspondances de ressources (PCI, USB) | ⬜ | M14 |
+| Correspondances de ressources (PCI, USB, répertoires : lire, créer, modifier, supprimer, matériel détecté ; **les utiliser dans une VM : ⬜**) | 🟡 (codé, `docs/api/correspondances.md` ; voir `docs/REPRISE.md` pour ce qui a été vu en réel) | M14 |
 | Abonnement / support | ➖ | — |
 
 ## Nœud

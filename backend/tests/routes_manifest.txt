@@ -22,6 +22,7 @@ DELETE /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}
 DELETE /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots/{name}
 DELETE /api/connections/{conn_id}/ha/resources/{sid}
 DELETE /api/connections/{conn_id}/ha/rules/{rule}
+DELETE /api/connections/{conn_id}/mappings/{mtype}/{mid}
 DELETE /api/connections/{conn_id}/metrics/servers/{sid}
 DELETE /api/connections/{conn_id}/nodes/{node}/certificates/custom
 DELETE /api/connections/{conn_id}/nodes/{node}/network/interfaces/{iface}
@@ -89,6 +90,8 @@ GET /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots
 GET /api/connections/{conn_id}/ha/resources
 GET /api/connections/{conn_id}/ha/rules
 GET /api/connections/{conn_id}/ha/status
+GET /api/connections/{conn_id}/mappings/{mtype}
+GET /api/connections/{conn_id}/mappings/{mtype}/{mid}
 GET /api/connections/{conn_id}/metrics/servers
 GET /api/connections/{conn_id}/metrics/servers/{sid}
 GET /api/connections/{conn_id}/nextid
@@ -97,6 +100,7 @@ GET /api/connections/{conn_id}/nodes/{node}/acme
 GET /api/connections/{conn_id}/nodes/{node}/bridges
 GET /api/connections/{conn_id}/nodes/{node}/disks
 GET /api/connections/{conn_id}/nodes/{node}/disks/smart
+GET /api/connections/{conn_id}/nodes/{node}/hardware/{htype}
 GET /api/connections/{conn_id}/nodes/{node}/hosts
 GET /api/connections/{conn_id}/nodes/{node}/isos
 GET /api/connections/{conn_id}/nodes/{node}/metrics
@@ -197,6 +201,7 @@ POST /api/connections/{conn_id}/ha/resources
 POST /api/connections/{conn_id}/ha/resources/{sid}/migrate
 POST /api/connections/{conn_id}/ha/resources/{sid}/relocate
 POST /api/connections/{conn_id}/ha/rules
+POST /api/connections/{conn_id}/mappings/{mtype}
 POST /api/connections/{conn_id}/metrics/servers
 POST /api/connections/{conn_id}/nodes/{node}/acme/order
 POST /api/connections/{conn_id}/nodes/{node}/acme/renew
@@ -267,6 +272,7 @@ PUT /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/notes
 PUT /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/tags
 PUT /api/connections/{conn_id}/ha/resources/{sid}
 PUT /api/connections/{conn_id}/ha/rules/{rule}
+PUT /api/connections/{conn_id}/mappings/{mtype}/{mid}
 PUT /api/connections/{conn_id}/metrics/servers/{sid}
 PUT /api/connections/{conn_id}/nodes/{node}/acme/config
 PUT /api/connections/{conn_id}/nodes/{node}/apt/repositories
