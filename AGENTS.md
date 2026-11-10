@@ -7,10 +7,10 @@ peuvent travailler en parallèle ; **le dépôt est le seul canal de coordinatio
 | Agent | Étiquette | Rôle |
 |---|---|---|
 | **PC A** | `agent:pc-a` | Valide en réel sur le cluster (lecture seule, ou écritures réversibles avec l'accord du propriétaire) et relit les PR des autres. Lots qui exigent le cluster. |
-| **PC B** | `agent:pc-b` | Développe **avec le faux Proxmox uniquement**, aucun accès au cluster réel. Lots codables sans le cluster (voir `docs/REPRISE.md`). |
+| **PC B** | `agent:pc-b` | Développe avec le faux Proxmox **et valide aussi en réel**, dans les mêmes limites que PC A (règle d'Enzo du 2026-11-10, voir §2). Lots codables sans le cluster en priorité (voir `docs/REPRISE.md`). |
 
-Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent **PC B** ne prend jamais un ticket
-`agent:pc-a`, et ne fait jamais de test réel.
+Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer**. Un agent ne prend jamais un ticket déjà pris
+par l'autre (commentaire « je prends » ou label de l'autre agent).
 
 ## 1. Comment on travaille
 - **Un ticket = un lot de travail** (GitHub Issues, rattaché à un milestone). Avant de commencer : commente « je prends »
@@ -26,11 +26,15 @@ Si le propriétaire ne t'a pas dit lequel tu es, **demande-le avant de commencer
 - **PR honnête** : liste précisément ce qui n'est **pas** testé (en réel, ou du tout). Une PR qui prétend tout tester
   alors que non sera refusée.
 
-## 2. Cluster Proxmox réel : interdit sauf mention contraire
+## 2. Cluster Proxmox réel : bac à sable seulement (PC A et PC B)
 - **Développe et teste avec le faux Proxmox** (`httpx.MockTransport`, voir `backend/tests/test_*.py`).
-- **Ne te connecte jamais au cluster réel** et ne lui envoie aucune requête, même en lecture, sauf si le propriétaire t'y
-  autorise explicitement dans le ticket. Les tests réels sont faits par un seul agent, dans un bac à sable
-  (pool `kaji-test`), pour que deux agents ne se marchent pas dessus.
+- **Règle d'Enzo (2026-11-10) : PC A et PC B travaillent tous les deux sur le vrai cluster**, par l'interface de Kaji déployée
+  (jamais en tapant le token) : lecture seule, et écritures **réversibles** dans le bac à sable (pool `kaji-test`, VM 115
+  `kaji-sandbox`, identifiants 117 à 119 pour des machines jetables), en remettant tout à l'identique.
+- **Interdits, quoi qu'il arrive** : le CT 116 `kaji-ct` (c'est Kaji) et les machines 100 à 114 (services d'Enzo) ; activer le pare-feu du
+  datacenter ou d'un nœud ; **appliquer** une configuration réseau ou SDN ; lire ou écrire un mot de passe, un token ou `KAJI_SECRET_KEY`.
+- **Un seul agent à la fois sur le cluster** : annonce-le dans le ticket (« essai réel en cours ») et nettoie avant de rendre la main,
+  pour que deux agents ne se marchent pas dessus. Compte-rendu honnête dans la PR de ce qui a été vu en réel et de ce qui ne l'a pas été.
 - Ne demande jamais le token Proxmox, la clé `KAJI_SECRET_KEY` ni le mot de passe admin, et ne les écris nulle part.
 
 ## 3. Sécurité : non négociable

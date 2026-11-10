@@ -7,7 +7,7 @@ Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main
 
 ## Rôle : Enzo l'annonce au démarrage, sinon DEMANDE « PC A ou PC B ? » avant tout
 - **PC A** (portable Linux, accès au vrai cluster en VPN) : sonde et valide en réel (lecture seule, écritures réversibles avec l'accord d'Enzo), relit les PR de PC B, prend les lots qui exigent le cluster.
-- **PC B** (autre PC, **faux Proxmox uniquement**, jamais le cluster) : code et teste sur faux Proxmox strict ; ne prend jamais un ticket `agent:pc-a`.
+- **PC B** (autre PC) : code et teste sur faux Proxmox strict, **et valide aussi en réel** dans le bac à sable (règle d'Enzo du 2026-11-10, `AGENTS.md` §2) ; ne prend pas un ticket déjà pris par PC A.
 - Phrases de départ à coller : « **Tu es PC A**, lot : … » / « **Tu es PC B**, lot : … ». Sans lot : prendre le suivant de la liste ci-dessous.
 - **Répartition suggérée** (Enzo décide) : A = M5 (il faut lire le stockage réel), M6, M7 et M8 (banc d'essai), M10 ; B = M13 notifications et métriques, M14, M15, M12 C4 si autorisé ; chacun relit l'autre.
 
