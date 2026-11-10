@@ -460,9 +460,29 @@ Informations de corosync en lecture seule.
 
 *Notes du datacenter, puis la section **Notifications** qui commence.*
 
-![Notifications et serveurs de métriques](docs/captures/datacenter-3.jpg)
+![Notifications : cibles et règles, avec les boutons d'écriture](docs/captures/datacenter-3.jpg)
 
-*Section **Notifications** (lecture seule) : les cibles (ici `mail-to-root`, la cible intégrée de Proxmox, qui écrit à `root@pam`) avec la règle qui les utilise, et les règles (`default-matcher`). Aucun mot de passe ni jeton n'est affiché. Ajouter, modifier, supprimer ou tester une cible viendra ensuite. Dessous, les serveurs de métriques.*
+*Section **Notifications** : les cibles (ici `mail-to-root`, la cible intégrée de Proxmox, qui écrit à `root@pam`) avec la règle qui les utilise, et les règles (`default-matcher`). Les éléments intégrés ne se suppriment pas. Boutons : ajouter, modifier, tester. Aucun mot de passe ni jeton n'est affiché. Dessous, les serveurs de métriques.*
+
+![Ajouter une cible de notification](docs/captures/notif-cible-creer-1.jpg)
+
+*Ajouter une cible de notification : type (sendmail, SMTP, Gotify ou webhook), destinataires, serveur, port, chiffrement. Le mot de passe est en écriture seule et les adresses locales sont refusées.*
+
+![Bas de la même fenêtre](docs/captures/notif-cible-creer-2.jpg)
+
+*Bas de la même fenêtre : case « Désactivée », **Aperçu** (ce qui serait envoyé à Proxmox, sans secret) puis **Appliquer**.*
+
+![Modifier la cible intégrée `mail-to-root`](docs/captures/notif-cible-modifier.jpg)
+
+*Modifier la cible intégrée `mail-to-root` : commentaire en ASCII seulement (Proxmox altère les accents).*
+
+![Tester une cible](docs/captures/notif-cible-tester.jpg)
+
+*Tester une cible : envoie un VRAI message, une fois par minute au plus, et il faut retaper le nom de la cible. Le bouton reste grisé tant que le nom n'est pas exact.*
+
+![Ajouter une règle](docs/captures/notif-regle-creer.jpg)
+
+*Ajouter une règle : cibles, gravités, champs, calendrier, mode et inversion.*
 
 ![Ajouter un serveur de métriques (InfluxDB, Graphite…) ](docs/captures/datacenter-metriques.jpg)
 
@@ -516,13 +536,13 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
 
-![Mode administrateur (session temporaire) et liste des 27 droits dont Kaji a besoin](docs/captures/acces-1.jpg)
+![Mode administrateur (session temporaire) et liste des 28 droits dont Kaji a besoin](docs/captures/acces-1.jpg)
 
-*Mode administrateur (session temporaire) et liste des 27 droits dont Kaji a besoin.*
+*Mode administrateur (session temporaire) et liste des 28 droits dont Kaji a besoin : 27 sont accordés, 1 manque.*
 
-![Suite des droits ](docs/captures/acces-2.jpg)
+![Suite des droits, avec le droit de notification manquant](docs/captures/acces-2.jpg)
 
-*Suite des droits : snapshots, clonage, migration, sauvegardes, console, HA, réplication, **notifications (lecture)**, datacenter…*
+*Suite des droits : snapshots, clonage, migration, sauvegardes, console, HA, réplication, **notifications (lecture et écriture)**, datacenter… Ici, le droit `Mapping.Modify` sur `/mapping/notifications` n'est pas accordé : l'écriture des notifications reste donc refusée tant qu'il manque, et la page affiche la commande pour le donner.*
 
 ![Fin des droits, puis utilisateurs et groupes](docs/captures/acces-3.jpg)
 
