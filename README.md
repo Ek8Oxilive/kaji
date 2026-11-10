@@ -524,6 +524,18 @@ Informations de corosync en lecture seule.
 
 *Ajouter un serveur de métriques (InfluxDB, Graphite…) : les secrets ne sont jamais affichés.*
 
+![Options du datacenter](docs/captures/datacenter-identifiants-etiquettes.jpg)
+
+*Options du datacenter, suite : **plage des identifiants libres** (début et fin, 100 à 999 999 999) et **style des étiquettes** (forme, ordre, casse, couleurs : une ligne par étiquette, « nom couleur [couleur du texte] »).*
+
+![Après « Appliquer »](docs/captures/datacenter-etiquettes-retirer.jpg)
+
+*Après « Appliquer », la valeur est relue chez Proxmox. Les boutons « Retirer la plage d'identifiants » et « Retirer le style des étiquettes » remettent les valeurs par défaut.*
+
+![Un début de plage supérieur à la fin est refusé par le serveur (« lower doit être inférieur à upper ») sans rien écrire.](docs/captures/datacenter-plage-refusee.jpg)
+
+*Un début de plage supérieur à la fin est refusé par le serveur (« lower doit être inférieur à upper ») sans rien écrire.*
+
 ### Page d'un nœud
 
 Tout ce qui concerne un serveur Proxmox : supervision, système, services, disques.
