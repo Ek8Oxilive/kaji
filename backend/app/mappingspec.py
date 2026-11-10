@@ -139,7 +139,7 @@ def build_params(mtype: str, body: MappingCreate | MappingUpdate, clear: list[st
 
 # ------------------------------------------------------------------ lecture
 def _text(v, n: int) -> str | None:
-    return v[:n] if isinstance(v, str) and v and not re.search(r"[\x00-\x1f\x7f]", v) else None
+    return v[:n] if isinstance(v, str) and re.fullmatch(r"[^\x00-\x1f\x7f]+", v) else None
 
 
 def _b(v) -> bool | None:

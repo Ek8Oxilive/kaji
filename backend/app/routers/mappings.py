@@ -88,14 +88,14 @@ async def _users(c: Ctx, mtype: str, mid: str) -> list[str]:
     if len(guests) > MAX_GUESTS:
         c.refuse(f"Plus de {MAX_GUESTS} VM : impossible de vérifier qu'aucune n'utilise cette correspondance", status.HTTP_409_CONFLICT)
     key = "dirid" if mtype == "dir" else "mapping"
-    pat = re.compile(rf"(?:^|,){key}={re.escape(mid)}(?:,|$)")
+    wanted = f"{key}={mid}"
     used = []
     for node, vmid in sorted(guests):
         try:
             cfg = await _px(c.db, c.factory, c.conn_id, "get", f"/nodes/{node}/qemu/{vmid}/config")
         except HTTPException:
             c.refuse(f"Impossible de lire la configuration de vm:{vmid} pour vérifier qu'elle n'utilise pas cette correspondance", status.HTTP_409_CONFLICT)
-        if isinstance(cfg, dict) and any(USERS[mtype].fullmatch(k) and isinstance(v, str) and pat.search(v) for k, v in cfg.items()):
+        if isinstance(cfg, dict) and any(USERS[mtype].fullmatch(k) and isinstance(v, str) and wanted in v.split(",") for k, v in cfg.items()):
             used.append(f"vm:{vmid}")
     return used
 
