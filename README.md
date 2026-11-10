@@ -68,6 +68,14 @@ Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
 
 *Regroupement **par pool** : ici le pool `kaji-test` (le bac à sable) et les machines sans pool.*
 
+![Regroupement **par stockage**](docs/captures/dashboard-par-stockage.jpg)
+
+*Regroupement **par stockage** : les machines sont classées selon le stockage qui porte leurs disques (ici tout est sur `local-lvm`). Une machine dont les disques sont sur plusieurs stockages apparaît dans chacun.*
+
+![Regroupement **par type**](docs/captures/dashboard-par-type.jpg)
+
+*Regroupement **par type** : conteneurs LXC d'un côté, machines virtuelles de l'autre (les modèles ont leur groupe). Les regroupements par nœud, pool, étiquette et stockage se choisissent dans la même liste.*
+
 ### Créer une machine
 
 Le bouton « + Nouvelle machine » propose une VM ou un conteneur LXC. Les captures s'arrêtent au récapitulatif : rien n'a été créé.
