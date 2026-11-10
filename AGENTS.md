@@ -19,8 +19,8 @@ par l'autre (commentaire « je prends » ou label de l'autre agent).
 - **Jamais de commit direct sur `main`** (protégée). Une PR par lot, **rattachée au milestone**, avec la CI verte.
 - **Commits** : `type(Mx/zone): message` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`),
   terminés par la ligne `Co-Authored-By:` de ton modèle.
-- **Tu ne merges pas** : le propriétaire merge après vérification. Toutes les PR partent du même compte GitHub,
-  personne ne peut « approuver » : la vérification est une vraie relecture du code et des tests.
+- **Autonomie (règle d'Enzo, 2026-11-10) : PC A et PC B font la même chose, en boucle, jusqu'à ce qu'Enzo les arrête.** Un lot = ticket (« je prends » d'abord) → branche → code + faux Proxmox → tests (et mutations) → carte + manifeste des routes → PR → CI verte → **tu merges toi-même** (`gh pr merge N --merge`) → tu redéploies (console du CT 116, commande de `docs/REPRISE.md`) → **tu testes dans l'interface web déployée** (chaque page, bouton et fenêtre du lot, lecture seule ou écritures réversibles dans le bac à sable) → tu vérifies que **rien n'a disparu** (`test_routes_manifest`, `git diff` des suppressions, pages et boutons existants) → **captures du README** de ce qui est nouveau, y compris ce que l'autre agent a ajouté (`REPRISE.md` étape 7) → lot suivant, sans attendre.
+- Toutes les PR partent du même compte GitHub, personne ne peut « approuver » : la vérification est une vraie relecture du code et des tests, à faire avant de merger (y compris pour les PR de l'autre agent, que tu peux relire et merger).
 - **Avant de demander une revue** : fusionne `main` dans ta branche et résous les conflits toi-même.
 - **Carte du projet** : régénère `docs/CARTE.md` (`python3 tools/carte.py > docs/CARTE.md`) avant chaque PR, et après avoir fusionné `main` (un test le vérifie). Mets aussi à jour la section « État » de `docs/REPRISE.md` si ton lot change l'état du projet.
 - **PR honnête** : liste précisément ce qui n'est **pas** testé (en réel, ou du tout). Une PR qui prétend tout tester

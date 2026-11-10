@@ -3,7 +3,7 @@
 > Enzo : **ouvre une session neuve par lot** (ou `/clear`) au lieu de reprendre l'ancienne conversation : reprendre recharge tout l'historique (≈ 20 % du contexte). Cette page et `docs/CARTE.md` suffisent pour repartir.
 
 Kaji = interface web (FastAPI + React) pour piloter le Proxmox perso d'Enzo ; but : **ne perdre aucune fonction de l'interface Proxmox**.
-Je suis **PC A** (valide en réel, relit PC B) ; Enzo merge toutes les PR. `main` est protégée : une PR par lot (ticket + jalon + `agent:pc-a`).
+Deux agents, **PC A** et **PC B**, qui font **la même chose** depuis le 2026-11-10 (`AGENTS.md` §1 « Autonomie » et §2) : code, merge de leurs PR, redéploiement, test dans l'interface web, vérification que rien n'a disparu, captures du README, lot suivant, jusqu'à ce qu'Enzo les arrête. `main` est protégée : une PR par lot (ticket + jalon + `agent:pc-a` ou `agent:pc-b`).
 
 ## Rôle : Enzo l'annonce au démarrage, sinon DEMANDE « PC A ou PC B ? » avant tout
 - **PC A** (portable Linux, accès au vrai cluster en VPN) : sonde et valide en réel (lecture seule, écritures réversibles avec l'accord d'Enzo), relit les PR de PC B, prend les lots qui exigent le cluster.
