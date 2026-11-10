@@ -14,10 +14,10 @@ const DANGEROUS = ["Permissions.Modify", "User.Modify", "Group.Allocate", "Realm
 const KIND_HINT = { user: "ex. bob@pve", group: "ex. staff", token: "ex. bob@pve!ci" } as const;
 
 /** Écrire UNE entrée d'ACL : aperçu, puis application avec l'identifiant retapé. Le serveur revérifie tous les interdits (chemins, rôles, identités protégées). */
-export function AclWriteDialog({ connId, onClose }: { connId: number; onClose: () => void }) {
+export function AclWriteDialog({ connId, presetPath, onClose }: { connId: number; presetPath?: string; onClose: () => void }) {
   const qc = useQueryClient();
   const roles = useQuery({ queryKey: ["access", connId, "roles"], queryFn: () => api<AccessRole[]>(`/api/connections/${connId}/access/roles`), staleTime: 60_000 });
-  const [f, setF] = useState<AclChange>({ action: "add", path: "", kind: "user", ugid: "", role: "", propagate: true });
+  const [f, setF] = useState<AclChange>({ action: "add", path: presetPath ?? "", kind: "user", ugid: "", role: "", propagate: true });
   const [preview, setPreview] = useState<AclPreview | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false), [loading, setLoading] = useState(false);
