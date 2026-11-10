@@ -544,6 +544,14 @@ Informations de corosync en lecture seule.
 
 *Ajouter une correspondance PCI : l'entrée se remplit depuis le matériel détecté sur le nœud (chemin, identifiant, sous-système, groupe IOMMU) ; l'aperçu dit ce qui sera envoyé avant toute écriture.*
 
+![Une correspondance PCI créée](docs/captures/datacenter-correspondances-liste.jpg)
+
+*Une correspondance PCI créée : nom, description et entrée (nœud, chemin, identifiant) ; Modifier et Supprimer à droite.*
+
+![Supprimer une correspondance](docs/captures/datacenter-correspondances-suppression.jpg)
+
+*Supprimer une correspondance : refusé tant qu'une VM la cite, aperçu puis identifiant à retaper.*
+
 ![Options du datacenter](docs/captures/datacenter-identifiants-etiquettes.jpg)
 
 *Options du datacenter, suite : **plage des identifiants libres** (début et fin, 100 à 999 999 999) et **style des étiquettes** (forme, ordre, casse, couleurs : une ligne par étiquette, « nom couleur [couleur du texte] »).*
