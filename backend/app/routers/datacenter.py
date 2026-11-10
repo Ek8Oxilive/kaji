@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import audit
-from ..datacenterspec import DELNAME, KEY, DatacenterOptions, build, digest_of, parse_next_id, parse_tag_style, shape_options
+from ..datacenterspec import DELNAME, KEY, DatacenterOptions, build, digest_of, parse_next_id, parse_tag_list, parse_tag_style, parse_user_tag_access, shape_options
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -25,8 +25,12 @@ async def get_options(conn_id: int, db: Session = Depends(get_db), factory: Fact
 
 
 def _same(k: str, got, want) -> bool:
-    if k == "description":
+    if k in ("description", "consent-text"):
         return (got or "").rstrip("\n") == want.rstrip("\n")
+    if k == "registered-tags":
+        return got == parse_tag_list(want)
+    if k == "user-tag-access":
+        return got == parse_user_tag_access(want)
     if k == "mac_prefix":
         return isinstance(got, str) and got.upper() == want.upper()
     if k == "migration":
@@ -41,7 +45,7 @@ def _same(k: str, got, want) -> bool:
 
 def _blank(v) -> bool:
     """Réglage retiré : absent, chaîne vide, ou objet sans aucune valeur (constaté : les notes retirées reviennent en chaîne vide)."""
-    return v in (None, "") or (isinstance(v, dict) and not any(v.values()))
+    return v in (None, "") or (isinstance(v, list) and not v) or (isinstance(v, dict) and not any(v.values()))
 
 
 @router.put("/options")
@@ -70,7 +74,7 @@ async def put_options(body: DatacenterOptions, conn_id: int, db: Session = Depen
     insecure = "migration" in params and params["migration"].startswith("type=insecure") and cur["migration"]["type"] != "insecure"
     locks = {"insecure": insecure}
     if body.dry_run:
-        return {"dry_run": True, "params": {k: ("défini" if k == "description" else v) for k, v in params.items()}, "remove": delete, "locks": locks}
+        return {"dry_run": True, "params": {k: ("défini" if k in ("description", "consent-text") else v) for k, v in params.items()}, "remove": delete, "locks": locks}
     if insecure and not body.confirm:
         refuse("Migration non chiffrée : le trafic de migration (mémoire des machines) circulera en clair. Renvoie la requête avec confirm=true", status.HTTP_409_CONFLICT)
     send = dict(params)
@@ -85,5 +89,5 @@ async def put_options(body: DatacenterOptions, conn_id: int, db: Session = Depen
     for k in delete:
         if not _blank(after.get(k)):                # constaté en réel : les notes retirées reviennent en chaîne vide
             refuse("Proxmox n'a pas retiré le réglage", status.HTTP_502_BAD_GATEWAY)
-    log("started", ", ".join(f"{k}={'défini' if k in ('description',) else v}" for k, v in sorted(params.items())) + (f" ; retiré : {','.join(delete)}" if delete else ""))
+    log("started", ", ".join(f"{k}={'défini' if k in ('description', 'consent-text') else v}" for k, v in sorted(params.items())) + (f" ; retiré : {','.join(delete)}" if delete else ""))
     return {"changed": sorted(params), "removed": delete, "locks": locks, **fresh}

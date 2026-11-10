@@ -5,7 +5,9 @@ import { NotificationsSection } from "../components/NotificationsSection";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
-import { CONSOLES, KEYBOARDS, LANGUAGES, ORDERINGS, SHAPES, type DatacenterOptions, type TagColor } from "../lib/types/datacenter";
+import { CONSOLES, KEYBOARDS, LANGUAGES, ORDERINGS, SHAPES, USER_ALLOW, type DatacenterOptions, type TagColor } from "../lib/types/datacenter";
+
+const tagsOf = (s: string) => [...new Set(s.split(/[\s,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean))];
 
 /** Table des couleurs d'étiquettes : une ligne par étiquette, « nom couleur [couleur-du-texte] » (couleurs en hexadécimal, sans #). */
 const colorsToText = (m: TagColor[]) => m.map((c) => `${c.tag} ${c.color}${c.text ? " " + c.text : ""}`).join("\n");
@@ -22,14 +24,15 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["datacenter", id], queryFn: () => api<DatacenterOptions>(`/api/connections/${id}/datacenter/options`), enabled: id !== null });
   const d = q.data;
-  const [f, setF] = useState({ keyboard: "", language: "", console: "", email_from: "", mac_prefix: "", max_workers: "", http_proxy: "", mtype: "", mnet: "", idlo: "", idhi: "", tshape: "", tord: "", tcase: false, tcolors: "" });
+  const [f, setF] = useState({ keyboard: "", language: "", console: "", email_from: "", mac_prefix: "", max_workers: "", http_proxy: "", mtype: "", mnet: "", idlo: "", idhi: "", tshape: "", tord: "", tcase: false, tcolors: "", rtags: "", uallow: "", ulist: "", consent: "" });
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState<string | null>(null), [err, setErr] = useState<string | null>(null), [ok, setOk] = useState<string | null>(null);
   useEffect(() => {
     if (!d) return;
     setF({ keyboard: d.keyboard ?? "", language: d.language ?? "", console: d.console ?? "", email_from: d.email_from ?? "", mac_prefix: d.mac_prefix ?? "", max_workers: d.max_workers?.toString() ?? "",
       http_proxy: d.http_proxy ?? "", mtype: d.migration.type ?? "", mnet: d.migration.network ?? "",
-      idlo: d.next_id.lower?.toString() ?? "", idhi: d.next_id.upper?.toString() ?? "", tshape: d.tag_style.shape ?? "", tord: d.tag_style.ordering ?? "", tcase: !!d.tag_style.case_sensitive, tcolors: colorsToText(d.tag_style.color_map) });
+      idlo: d.next_id.lower?.toString() ?? "", idhi: d.next_id.upper?.toString() ?? "", tshape: d.tag_style.shape ?? "", tord: d.tag_style.ordering ?? "", tcase: !!d.tag_style.case_sensitive, tcolors: colorsToText(d.tag_style.color_map),
+      rtags: d.registered_tags.join("\n"), uallow: d.user_tag_access.user_allow ?? "", ulist: d.user_tag_access.user_allow_list.join(", "), consent: d.consent_text ?? "" });
     setNotes(d.description ?? "");
   }, [d]);
   if (!active) return (
@@ -59,6 +62,11 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
     if (f.tcase !== !!d.tag_style.case_sensitive) ts.case_sensitive = f.tcase;
     if (f.tcolors.trim() !== colorsToText(d.tag_style.color_map)) ts.color_map = textToColors(f.tcolors);
     if (Object.keys(ts).length) body.tag_style = ts;
+    if (tagsOf(f.rtags).join(" ") !== d.registered_tags.join(" ")) body.registered_tags = tagsOf(f.rtags);
+    if (f.uallow !== (d.user_tag_access.user_allow ?? "") || (f.uallow === "list" && tagsOf(f.ulist).join(" ") !== d.user_tag_access.user_allow_list.join(" "))) {
+      if (f.uallow) body.user_tag_access = { user_allow: f.uallow, ...(f.uallow === "list" ? { user_allow_list: tagsOf(f.ulist) } : {}) }; else clear.push("user_tag_access");
+    }
+    if (f.consent !== (d.consent_text ?? "")) { if (f.consent.trim()) body.consent_text = f.consent; else clear.push("consent_text"); }
     return { ...body, ...(clear.length ? { clear } : {}) };
   };
   const save = async (what: string, body: Record<string, unknown>) => {
@@ -113,6 +121,19 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
               <textarea className="field min-h-[5rem] font-mono text-sm" value={f.tcolors} onChange={(e) => set("tcolors")(e.target.value)} placeholder={"prod ff0000 ffffff\ndev 00aa00"} maxLength={4000} />
               <span className="block text-xs text-muted">Couleurs en hexadécimal à 6 chiffres, sans #. Vide = aucune couleur personnalisée.</span></label>
             {(d.tag_style.shape || d.tag_style.ordering || d.tag_style.case_sensitive || d.tag_style.color_map.length > 0) && <div><Button variant="ghost" disabled={busy !== null} onClick={() => save("options", { clear: ["tag_style"] })} className="!px-3 !py-1.5">Retirer le style des étiquettes</Button></div>}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5 text-sm"><span className="text-muted">Étiquettes réservées (modifiables par Sys.Modify seulement)</span>
+                <textarea className="field min-h-[4rem] font-mono text-sm" value={f.rtags} onChange={(e) => set("rtags")(e.target.value)} placeholder={"prod\nsecurite"} maxLength={8000} />
+                <span className="block text-xs text-muted">Une par ligne (ou séparées par des virgules) : minuscules, chiffres, _ . + -. Vide = aucune.</span></label>
+              <div className="space-y-3">
+                <label className="block space-y-1.5 text-sm"><span className="text-muted">Étiquettes : droits des utilisateurs</span>
+                  <select className="field" value={f.uallow} onChange={(e) => set("uallow")(e.target.value)}>{!d.user_tag_access.user_allow && <option value="">Défaut de Proxmox (free)</option>}{Object.entries(USER_ALLOW).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                {f.uallow === "list" && <Field label="Étiquettes permises" value={f.ulist} maxLength={4000} onChange={(e) => set("ulist")(e.target.value)} hint="Séparées par des virgules ou des espaces" />}
+              </div>
+            </div>
+            <label className="block space-y-1.5 text-sm"><span className="text-muted">Texte de consentement (affiché à tous avant la connexion à Proxmox)</span>
+              <textarea className="field min-h-[4rem] text-sm" value={f.consent} onChange={(e) => set("consent")(e.target.value)} maxLength={3000} />
+              <span className="block text-xs text-muted">3000 caractères au plus. Vide = aucun texte. Le contenu n'est jamais copié dans le journal d'audit.</span></label>
             {insecureNew && <Notice kind="error">La migration non chiffrée envoie la mémoire des machines <b>en clair</b> sur le réseau. À réserver à un réseau privé de confiance.</Notice>}
             <div className="flex justify-end"><Button disabled={!changed || busy !== null} onClick={() => save("options", changes)}>{busy === "options" ? "…" : insecureNew ? "Appliquer (migration non chiffrée)" : "Appliquer"}</Button></div>
           </div>
