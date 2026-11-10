@@ -75,6 +75,7 @@ GET /api/connections/{conn_id}/firewall/cluster/groups/{name}
 GET /api/connections/{conn_id}/firewall/cluster/ipsets/{name}
 GET /api/connections/{conn_id}/firewall/guests/{node}/{gtype}/{vmid}
 GET /api/connections/{conn_id}/firewall/nodes/{node}
+GET /api/connections/{conn_id}/guest-storages
 GET /api/connections/{conn_id}/guests
 GET /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit

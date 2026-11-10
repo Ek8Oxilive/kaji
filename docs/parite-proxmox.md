@@ -117,7 +117,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (page « Tâches » et tiroir de journal ; pas de barre permanente) | M13 |
 | Recherche globale | ✅ (palette Ctrl+K, validée en réel) | M3 |
-| Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type ; par stockage ⬜) | M13 |
+| Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type, **stockage** (lot #252, `docs/api/vue-par-stockage.md`)) | M13 |
 | Thèmes clair / sombre | ✅ (sombre et Glass, mémorisés : validé en réel) | M3 |
 | Langues | ⬜ (français seulement) | M15 |
 | Tableau de bord temps réel | ✅ (flux SSE validé en réel : un instantané toutes les 5 s) | M3 |
