@@ -540,6 +540,14 @@ Informations de corosync en lecture seule.
 
 *Un début de plage supérieur à la fin est refusé par le serveur (« lower doit être inférieur à upper ») sans rien écrire.*
 
+![Options du datacenter](docs/captures/datacenter-etiquettes-droits-consentement.jpg)
+
+*Options du datacenter, fin : **étiquettes réservées** (une par ligne), **droits des utilisateurs sur les étiquettes** (none, list, existing, free ; avec `list`, la liste des étiquettes permises) et **texte de consentement** affiché à tous avant la connexion.*
+
+![Le mode `list` sans aucune étiquette est refusé par le serveur (« exige au moins une étiquette ») sans rien écrire. Le texte de consentement n'est jamais copié dans le journal d'audit.](docs/captures/datacenter-droits-refuses.jpg)
+
+*Le mode `list` sans aucune étiquette est refusé par le serveur (« exige au moins une étiquette ») sans rien écrire. Le texte de consentement n'est jamais copié dans le journal d'audit.*
+
 ### Page d'un nœud
 
 Tout ce qui concerne un serveur Proxmox : supervision, système, services, disques.
