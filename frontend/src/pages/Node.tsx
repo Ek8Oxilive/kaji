@@ -5,6 +5,7 @@ import { NotesPanel } from "../components/NotesPanel";
 import { NodeConsole } from "../components/ConsoleTab";
 import { NodeDisks } from "../components/NodeDisks";
 import { NodePower } from "../components/NodePower";
+import { NodeBulk } from "../components/NodeBulk";
 import { NodeSystem } from "../components/NodeSystem";
 import { Gauge } from "../components/Gauge";
 import { Button, Notice } from "../components/ui";
@@ -91,6 +92,7 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
 
       <Section title="Système">
         <NodePower connId={active.id} node={node} online={online} />
+        <NodeBulk connId={active.id} node={node} online={online} />
         <NodeSystem connId={active.id} node={node} online={online} />
       </Section>
 
