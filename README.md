@@ -60,6 +60,14 @@ Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
 
 *Le thème **Glass**. Le thème Sombre est le thème par défaut ; le choix se fait en haut à droite et il est mémorisé dans le navigateur.*
 
+![Filtres du tableau de bord (recherche, état, type, nœud, pool) et regroupement **par nœud**](docs/captures/dashboard-par-noeud.jpg)
+
+*Filtres du tableau de bord (recherche, état, type, nœud, pool) et regroupement **par nœud** : chaque nœud a sa liste de machines.*
+
+![Regroupement **par pool**](docs/captures/dashboard-par-pool.jpg)
+
+*Regroupement **par pool** : ici le pool `kaji-test` (le bac à sable) et les machines sans pool.*
+
 ### Créer une machine
 
 Le bouton « + Nouvelle machine » propose une VM ou un conteneur LXC. Les captures s'arrêtent au récapitulatif : rien n'a été créé.
@@ -159,6 +167,10 @@ Une page par machine, avec des onglets : Matériel, Options, Performances, Conso
 ![Onglet Permissions d'une machine](docs/captures/vm-permissions.jpg)
 
 *Onglet **Permissions** : les droits qui s'appliquent à la machine, posés sur elle ou hérités de `/vms` et de `/`. « Modifier une ACL… » ouvre la fenêtre de la page Accès avec le chemin de la machine prérempli.*
+
+![Étiquettes d'une machine](docs/captures/vm-etiquettes-editeur.jpg)
+
+*Étiquettes d'une machine : « Modifier » à côté du nom ouvre un champ pour ajouter une étiquette, puis Enregistrer.*
 
 ### Page d'un conteneur LXC
 
@@ -332,6 +344,10 @@ Les stockages du cluster, leur contenu, les ISO et les modèles.
 
 *Élaguer les sauvegardes : aperçu de ce qui serait supprimé avant toute écriture.*
 
+![Supprimer un fichier d'un stockage (ISO, modèle)](docs/captures/stockage-fichier-supprimer.jpg)
+
+*Supprimer un fichier d'un stockage (ISO, modèle) : suppression définitive, le nom du fichier est à retaper. Kaji ne vérifie pas si une machine l'utilise.*
+
 ### Sauvegardes
 
 Lire, lancer et planifier les sauvegardes.
@@ -425,6 +441,10 @@ Interfaces des nœuds, pare-feu (datacenter, nœud, machine) et SDN. Tout change
 ![SDN : appliquer ou annuler les changements en attente (verrou explicite).](docs/captures/reseau-sdn-appliquer.jpg)
 
 *SDN : appliquer ou annuler les changements en attente (verrou explicite).*
+
+![Supprimer une interface réseau](docs/captures/reseau-interface-supprimer.jpg)
+
+*Supprimer une interface réseau : préparer ne change rien, appliquer recharge le réseau. Pour l'interface d'administration, le verrou « coupure d'accès possible » exige une case et la phrase `COUPURE POSSIBLE`.*
 
 ### HA et réplication
 
@@ -544,6 +564,10 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *Redémarrer un nœud : machines arrêtées, perte de quorum, machines protégées et nom à retaper.*
 
+![Éteindre un nœud](docs/captures/noeud-eteindre.jpg)
+
+*Éteindre un nœud : machines arrêtées, perte de quorum, nom du nœud à retaper. Un nœud éteint ne se rallume pas depuis Kaji.*
+
 ### Accès
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
@@ -571,6 +595,14 @@ Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les p
 ![Fin des rôles et realms d'authentification](docs/captures/acces-6.jpg)
 
 *Fin des rôles et realms d'authentification.*
+
+![Ouvrir une session administrateur](docs/captures/acces-session-admin.jpg)
+
+*Ouvrir une session administrateur : un token créé pour l'occasion, valable 30 minutes, gardé en mémoire du serveur seulement. Les champs sont vides ici.*
+
+![Les rôles Proxmox se déplient pour montrer leurs privilèges (ici `PVEAuditor`, lecture seule).](docs/captures/acces-role-deplie.jpg)
+
+*Les rôles Proxmox se déplient pour montrer leurs privilèges (ici `PVEAuditor`, lecture seule).*
 
 ## Déploiement
 `docker compose up -d --build` lance le backend et le frontend (nginx). Guide complet, HTTPS, sauvegarde, mise à jour et mot de passe perdu : [docs/deploiement.md](docs/deploiement.md).
