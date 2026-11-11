@@ -102,7 +102,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Ressources, disques, points de montage, réseau, DNS | ✅ | M4 |
 | Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | 🟡 validé en réel (2026-11-08 et 2026-11-09) sauf **`keyctl`, `fuse` et `mount`** : Proxmox les refuse au token de Kaji (ils exigent `root@pam`) ; Kaji répond 403 avec un message clair pour les trois (`mount` observé le 2026-11-09, lot #164) ; nesting (interface), démarrage, tty, cmode, protection, fuseau OK ; cas « keyctl déjà actif puis changer nesting » non essayé (`docs/api/options.md`, lots #145 et #164) | M14 |
 | Snapshots, clone, migration, sauvegarde, restauration, suppression | ✅ | M4 / M5 |
-| Pare-feu, réplication, permissions, historique, tags | ⬜ | M7 / M8 / M6 / M13 |
+| Pare-feu (onglet de la machine : options, règles, alias, IPSets, `docs/api/pare-feu-machine.md`), réplication, permissions, historique (Performances), tags | 🟡 (réplication, permissions, historique et tags ✅ ; **pare-feu : onglet codé, voir `docs/REPRISE.md` pour le vu en réel**) | M7 / M8 / M6 / M13 |
 
 ## Stockage et fichiers
 
