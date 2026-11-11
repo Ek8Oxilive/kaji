@@ -7,7 +7,10 @@ export const WATCHDOG_MODELS = ["i6300esb", "ib700"] as const;
 export const WATCHDOG_ACTIONS = ["reset", "shutdown", "poweroff", "pause", "debug", "none"] as const;
 export type SerialKey = "serial0" | "serial1" | "serial2" | "serial3";
 export const SERIALS: SerialKey[] = ["serial0", "serial1", "serial2", "serial3"];
-export type DeviceKey = "vga" | "audio0" | "rng0" | "watchdog" | SerialKey;
+export const BIOS = ["seabios", "ovmf"] as const;
+export const EFI_TYPES = ["4m", "2m"] as const;
+export const TPM_VERSIONS = ["v2.0", "v1.2"] as const;
+export type DeviceKey = "vga" | "audio0" | "rng0" | "watchdog" | "bios" | "efidisk0" | "tpmstate0" | SerialKey;
 
 /** `socket` ; `device` = périphérique de l'hôte posé par root (lecture seule, chemin jamais renvoyé). */
 export type SerialState = "socket" | "device" | null;
@@ -16,6 +19,9 @@ export type DevicesState = {
   audio: { device: string | null; driver: string | null } | null;
   rng: { source: string | null; max_bytes: number | null; period: number | null } | null;
   watchdog: { model: string | null; action: string | null } | null;
+  bios: string | null;
+  efidisk: { storage: string | null; efitype: string | null; pre_enrolled_keys: boolean } | null;
+  tpm: { storage: string | null; version: string | null } | null;
 } & Record<SerialKey, SerialState>;
 export type DevicesResponse = { type: "qemu"; devices: DevicesState; pending: { key: string; value: unknown; pending: unknown; delete: boolean }[]; reboot_required: boolean };
 
@@ -24,6 +30,9 @@ export type DevicesPatch = {
   audio?: { device: string; driver?: string };
   rng?: { max_bytes?: number; period?: number };
   watchdog?: { model: string; action?: string };
+  bios?: string;
+  efidisk?: { storage: string; efitype?: string; pre_enrolled_keys?: boolean };
+  tpm?: { storage: string; version?: string };
   clear?: DeviceKey[];
 } & Partial<Record<SerialKey, "socket">>;
 export type DevicesResult = { changed: string[]; removed: string[] };

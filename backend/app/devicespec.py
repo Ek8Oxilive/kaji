@@ -1,4 +1,5 @@
-"""Périphériques d'une VM : carte d'affichage (`vga`), ports série (`serial0..3`), audio (`audio0`), générateur aléatoire (`rng0`), watchdog.
+"""Périphériques d'une VM : carte d'affichage (`vga`), ports série (`serial0..3`), audio (`audio0`), générateur aléatoire (`rng0`), watchdog,
+BIOS (`bios`), disque EFI (`efidisk0`) et TPM (`tpmstate0`, lot #268 : AJOUT seulement si absent, jamais de remplacement).
 Validation, lecture et construction des paramètres. Aucun réseau ici (lot #225).
 
 Liste blanche stricte. Choix de sécurité : un port série n'est JAMAIS un périphérique de l'hôte (`/dev/…`), seulement `socket` ; la source du
@@ -8,7 +9,9 @@ est LU (en lecture seule) et conservé : Kaji ne le réécrit pas. Pour `vga`, l
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field, StrictBool, StrictInt
+from pydantic import BaseModel, Field, StrictBool, StrictInt, field_validator
+
+from .vmspec import STORAGE
 
 VGA_TYPES = ("cirrus", "none", "qxl", "qxl2", "qxl3", "qxl4", "serial0", "serial1", "serial2", "serial3", "std", "virtio", "virtio-gl", "vmware")
 AUDIO_DEVICES = ("ich9-intel-hda", "intel-hda", "AC97")
@@ -17,8 +20,11 @@ WATCHDOG_MODELS = ("i6300esb", "ib700")
 WATCHDOG_ACTIONS = ("reset", "shutdown", "poweroff", "pause", "debug", "none")
 RNG_SOURCE = "/dev/urandom"
 SERIALS = ("serial0", "serial1", "serial2", "serial3")
-KEYS = ("vga", "audio0", "rng0", "watchdog") + SERIALS
-CLEARABLE = Literal["vga", "audio0", "rng0", "watchdog", "serial0", "serial1", "serial2", "serial3"]
+BIOS = ("seabios", "ovmf")
+EFI_TYPES = ("2m", "4m")
+TPM_VERSIONS = ("v1.2", "v2.0")
+KEYS = ("vga", "audio0", "rng0", "watchdog", "bios", "efidisk0", "tpmstate0") + SERIALS
+CLEARABLE = Literal["vga", "audio0", "rng0", "watchdog", "serial0", "serial1", "serial2", "serial3", "bios", "efidisk0", "tpmstate0"]
 EXTRA_PROP = re.compile(r"^[A-Za-z0-9_\-]{1,40}=[A-Za-z0-9_\-.]{0,40}$")
 SAFE_SOURCE = re.compile(r"^/dev/[a-z0-9]{1,20}$")
 
@@ -45,6 +51,33 @@ class Watchdog(BaseModel):
     action: Literal["reset", "shutdown", "poweroff", "pause", "debug", "none"] | None = None
 
 
+class Efidisk(BaseModel):
+    """Nouveau disque EFI (1 volume alloué sur `storage`). Refusé s'il en existe déjà un."""
+    storage: str = Field(max_length=40)
+    efitype: Literal["2m", "4m"] = "4m"
+    pre_enrolled_keys: StrictBool = False
+
+    @field_validator("storage")
+    @classmethod
+    def _st(cls, v):
+        if not STORAGE.fullmatch(v):
+            raise ValueError("Nom de stockage invalide")
+        return v
+
+
+class Tpm(BaseModel):
+    """Nouvel état TPM (1 volume alloué sur `storage`). Refusé s'il en existe déjà un."""
+    storage: str = Field(max_length=40)
+    version: Literal["v1.2", "v2.0"] = "v2.0"
+
+    @field_validator("storage")
+    @classmethod
+    def _st(cls, v):
+        if not STORAGE.fullmatch(v):
+            raise ValueError("Nom de stockage invalide")
+        return v
+
+
 class DevicesUpdate(BaseModel):
     """Seuls ces champs existent : tout autre champ est ignoré et jamais transmis à Proxmox."""
     vga: Vga | None = None
@@ -55,7 +88,10 @@ class DevicesUpdate(BaseModel):
     audio: Audio | None = None
     rng: Rng | None = None
     watchdog: Watchdog | None = None
-    clear: list[CLEARABLE] = Field(default=[], max_length=8, description="Réglages à retirer")
+    bios: Literal["seabios", "ovmf"] | None = None
+    efidisk: Efidisk | None = None
+    tpm: Tpm | None = None
+    clear: list[CLEARABLE] = Field(default=[], max_length=11, description="Réglages à retirer")
     confirm: StrictBool = False
 
 
@@ -118,10 +154,34 @@ def parse_watchdog(value) -> dict | None:
     return {"model": m if m in WATCHDOG_MODELS else None, "action": a if a in WATCHDOG_ACTIONS else None}
 
 
+def _volume_storage(v) -> str | None:
+    """`local-lvm:vm-115-disk-1,…` -> `local-lvm` (le nom du volume n'est pas renvoyé)."""
+    head = str(v or "").split(",")[0]
+    s, sep, _ = head.partition(":")
+    return s if sep and STORAGE.fullmatch(s) else None
+
+
+def parse_efidisk(value) -> dict | None:
+    if value is None:
+        return None
+    d = kv(value)
+    t = d.get("efitype")
+    return {"storage": _volume_storage(value), "efitype": t if t in EFI_TYPES else None, "pre_enrolled_keys": d.get("pre-enrolled-keys") in ("1", "true")}
+
+
+def parse_tpm(value) -> dict | None:
+    if value is None:
+        return None
+    d = kv(value)
+    v = d.get("version")
+    return {"storage": _volume_storage(value), "version": v if v in TPM_VERSIONS else None}
+
+
 def normalize_devices(cfg: dict, pending: list) -> dict:
     cfg = cfg if isinstance(cfg, dict) else {}
     devices = {"vga": parse_vga(cfg.get("vga")), "audio": parse_audio(cfg.get("audio0")), "rng": parse_rng(cfg.get("rng0")),
-               "watchdog": parse_watchdog(cfg.get("watchdog")), **{k: parse_serial(cfg.get(k)) for k in SERIALS}}
+               "watchdog": parse_watchdog(cfg.get("watchdog")), **{k: parse_serial(cfg.get(k)) for k in SERIALS},
+               "bios": cfg.get("bios") if cfg.get("bios") in BIOS else None, "efidisk": parse_efidisk(cfg.get("efidisk0")), "tpm": parse_tpm(cfg.get("tpmstate0"))}
     pend = [{"key": p["key"], "value": p.get("value"), "pending": p.get("pending"), "delete": bool(p.get("delete"))}
             for p in pending if isinstance(p, dict) and p.get("key") in KEYS and ("pending" in p or p.get("delete"))]
     return {"type": "qemu", "devices": devices, "pending": pend, "reboot_required": bool(pend)}
@@ -162,6 +222,17 @@ def build_params(body: DevicesUpdate, cfg: dict) -> tuple[dict, list[str]]:
         p["rng0"] = ",".join([f"source={RNG_SOURCE}"] + [f"{k}={v}" for k, v in merged.items() if v is not None])
     if body.watchdog is not None:
         p["watchdog"] = ",".join([f"model={body.watchdog.model}"] + ([f"action={body.watchdog.action}"] if body.watchdog.action else []))
+    if body.bios is not None:
+        p["bios"] = body.bios
+    if body.efidisk is not None:
+        if cfg.get("efidisk0") is not None:
+            raise ValueError("Un disque EFI existe déjà : retire-le d'abord (le volume reste en « non utilisé »)")
+        e = body.efidisk
+        p["efidisk0"] = f"{e.storage}:1,efitype={e.efitype}" + (",pre-enrolled-keys=1" if e.pre_enrolled_keys else "")
+    if body.tpm is not None:
+        if cfg.get("tpmstate0") is not None:
+            raise ValueError("Un état TPM existe déjà : retire-le d'abord (le volume reste en « non utilisé »)")
+        p["tpmstate0"] = f"{body.tpm.storage}:1,version={body.tpm.version}"
     delete = list(dict.fromkeys(body.clear))
     for k in delete:                                                         # retirer un port série ou un RNG posé par root : refusé
         if k in SERIALS and parse_serial(cfg.get(k)) == "device":
@@ -177,6 +248,14 @@ def build_params(body: DevicesUpdate, cfg: dict) -> tuple[dict, list[str]]:
 def risks(body: DevicesUpdate, cfg: dict) -> list[str]:
     """Pourquoi la demande exige une confirmation (relu chez Proxmox)."""
     out = []
+    if body.bios is not None and body.bios != (cfg.get("bios") or "seabios"):
+        out.append(f"bios={body.bios} : changer le BIOS d'une machine déjà installée peut l'empêcher de démarrer")
+    if "bios" in body.clear and cfg.get("bios") == "ovmf":
+        out.append("Retirer le réglage BIOS : la machine repasse à seabios, ce qui peut l'empêcher de démarrer si elle a été installée en UEFI")
+    if "efidisk0" in body.clear and cfg.get("efidisk0") is not None:
+        out.append("Retirer le disque EFI : les variables UEFI (ordre de démarrage, clés) sont détachées ; le volume reste en « non utilisé »")
+    if "tpmstate0" in body.clear and cfg.get("tpmstate0") is not None:
+        out.append("Retirer le TPM : son état (clés, secrets) est détaché ; un système chiffré avec le TPM ne pourra plus s'ouvrir")
     cur = parse_vga(cfg.get("vga")) or {}
     t = body.vga.type if body.vga else None
     if t == "none" and cur.get("type") != "none":
