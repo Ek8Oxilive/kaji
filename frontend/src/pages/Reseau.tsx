@@ -5,24 +5,18 @@ import { FwOptionsDialog } from "../components/FwOptionsDialog";
 import { NetWriteDialog, type NetMode } from "../components/NetWriteDialog";
 import { SdnDialog, type SdnMode } from "../components/SdnDialog";
 import { FwRulesDialog } from "../components/FwRulesDialog";
+import { Empty, Options, Rules, Table, yn } from "../components/FwViews";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
 import type { SdnSubnet, SdnVnet, SdnZone } from "../lib/types/sdn";
-import { isErr, type FwCluster, type FwNode, type FwOptions, type FwPart, type FwRule, type NetIface, type NetworkInfo } from "../lib/types/reseau";
+import { isErr, type FwCluster, type FwNode, type FwPart, type NetIface, type NetworkInfo } from "../lib/types/reseau";
 
 const TYPE_LABEL: Record<string, string> = { bridge: "Bridge", bond: "Bond", eth: "Carte", vlan: "VLAN", alias: "Alias", OVSBridge: "Bridge OVS", unknown: "Autre" };
-const yn = (v: boolean | null | undefined) => (v === null || v === undefined ? "–" : v ? "oui" : "non");
 
 function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
   return <section className="space-y-3"><h2 className="text-lg font-semibold">{title}</h2>{children}{hint && <p className="text-xs text-muted">{hint}</p>}</section>;
 }
-const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
-  <div className="overflow-x-auto rounded-xl border border-line"><table className="w-full min-w-[36rem] text-sm">
-    <thead><tr className="border-b border-line text-left text-xs text-muted">{head.map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr></thead><tbody>{children}</tbody></table></div>
-);
-const Empty = ({ children }: { children: ReactNode }) => <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">{children}</div>;
-
 function Iface({ i, onEdit, onDelete }: { i: NetIface; onEdit: () => void; onDelete: () => void }) {
   const managed = ["bridge", "bond", "vlan", "eth"].includes(i.type);
   const addr = i.cidr ?? i.address ?? i.cidr6 ?? i.address6 ?? "–";
@@ -38,24 +32,6 @@ function Iface({ i, onEdit, onDelete }: { i: NetIface; onEdit: () => void; onDel
     </tr>
   );
 }
-
-function Rules({ rules }: { rules: FwPart<FwRule[]> }) {
-  if (isErr(rules)) return <Notice kind="error">{rules.error}</Notice>;
-  if (rules.length === 0) return <Empty>Aucune règle.</Empty>;
-  return (
-    <Table head={["#", "Sens", "Action", "Source", "Destination", "Protocole", "Commentaire"]}>
-      {rules.map((r) => (
-        <tr key={r.pos} className={`border-b border-line/60 last:border-0 ${r.enable === false ? "opacity-50" : ""}`}>
-          <td className="px-4 py-2 tabular-nums text-muted">{r.pos}</td><td className="px-4 py-2">{r.type ?? "–"}</td>
-          <td className={`px-4 py-2 font-medium ${r.action === "ACCEPT" ? "text-ok" : r.action === "DROP" || r.action === "REJECT" ? "text-danger" : ""}`}>{r.action ?? "–"}</td>
-          <td className="px-4 py-2 text-muted">{r.source ?? "tous"}</td><td className="px-4 py-2 text-muted">{r.dest ?? "tous"}{r.dport ? `:${r.dport}` : ""}</td>
-          <td className="px-4 py-2 text-muted">{r.macro ?? r.proto ?? "–"}</td><td className="px-4 py-2 text-muted">{r.comment ?? ""}{r.enable === false ? " (désactivée)" : ""}</td>
-        </tr>))}
-    </Table>
-  );
-}
-const Options = ({ o }: { o: FwPart<FwOptions> }) => isErr(o) ? <Notice kind="error">{o.error}</Notice> : (
-  <p className="text-sm text-muted">{Object.entries(o).filter(([k]) => k !== "digest").map(([k, v]) => `${k} : ${v === null ? "–" : typeof v === "boolean" ? yn(v) : v}`).join(" · ") || "Aucune option définie."}</p>);
 
 function VnetRow({ v, connId, onAddSubnet, onDelete, onDeleteSubnet }: { v: SdnVnet; connId: number | null; onAddSubnet: () => void; onDelete: () => void; onDeleteSubnet: (s: string) => void }) {
   const subs = useQuery({ queryKey: ["sdn", connId, "subnets", v.vnet], queryFn: () => api<SdnSubnet[]>(`/api/connections/${connId}/sdn/vnets/${v.vnet}/subnets`), enabled: connId !== null });

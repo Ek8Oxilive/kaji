@@ -18,6 +18,7 @@ import { HardwareTab } from "../components/HardwareTab";
 import { SnapshotsTab } from "../components/SnapshotsTab";
 import { ReplicationTab } from "../components/ReplicationTab";
 import { PermissionsTab } from "../components/PermissionsTab";
+import { FirewallTab } from "../components/FirewallTab";
 import { TemplateDangerZone } from "../components/TemplateDangerZone";
 import { Button, Notice } from "../components/ui";
 import type { GuestAction } from "../lib/api";
@@ -27,8 +28,8 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
-type Tab = "hardware" | "options" | "devices" | "metrics" | "console" | "monitor" | "snapshots" | "cloudinit" | "backups" | "replication" | "permissions" | "tasks";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["devices", "Périphériques"], ["metrics", "Performances"], ["console", "Console"], ["monitor", "Moniteur"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["replication", "Réplication"], ["permissions", "Permissions"], ["tasks", "Tâches"]];
+type Tab = "hardware" | "options" | "devices" | "metrics" | "console" | "monitor" | "snapshots" | "cloudinit" | "backups" | "replication" | "firewall" | "permissions" | "tasks";
+const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["devices", "Périphériques"], ["metrics", "Performances"], ["console", "Console"], ["monitor", "Moniteur"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["replication", "Réplication"], ["firewall", "Pare-feu"], ["permissions", "Permissions"], ["tasks", "Tâches"]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -131,6 +132,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           {tab === "cloudinit" && guest.type === "qemu" && <CloudInitTab connId={connId} guest={guest} />}
           {tab === "backups" && <BackupsTab connId={connId} guest={guest} />}
           {tab === "replication" && <ReplicationTab connId={connId} guest={guest} />}
+          {tab === "firewall" && <FirewallTab connId={connId} guest={guest} />}
           {tab === "permissions" && <PermissionsTab connId={connId} guest={guest} />}
           {tab === "tasks" && <GuestTasksTab connId={connId} guest={guest} />}
         </>}

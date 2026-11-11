@@ -12,10 +12,10 @@ type Op = { label: string; method: "POST" | "PUT" | "DELETE"; path: string; body
 const EMPTY = { type: "in", action: "ACCEPT", proto: "", dport: "", source: "", dest: "", macro: "", comment: "", enable: false };
 
 /** Règles du pare-feu : ajouter, activer/désactiver, déplacer, supprimer. Chaque action passe par un aperçu (dry_run) des verrous décidés par le serveur. */
-export function FwRulesDialog({ connId, node, onClose }: { connId: number; node: string; onClose: () => void }) {
+export function FwRulesDialog({ connId, node, onClose, guest }: { connId: number; node: string; onClose: () => void; guest?: { gtype: "qemu" | "lxc"; vmid: number } }) {
   const qc = useQueryClient();
-  const [scope, setScope] = useState<Scope>("cluster");
-  const [vmid, setVmid] = useState(""), [gtype, setGtype] = useState<"qemu" | "lxc">("qemu"), [group, setGroup] = useState("");
+  const [scope, setScope] = useState<Scope>(guest ? "guest" : "cluster");
+  const [vmid, setVmid] = useState(guest ? String(guest.vmid) : ""), [gtype, setGtype] = useState<"qemu" | "lxc">(guest?.gtype ?? "qemu"), [group, setGroup] = useState("");
   const [f, setF] = useState(EMPTY);
   const [op, setOp] = useState<Op | null>(null), [locks, setLocks] = useState<Locks | null>(null);
   const [ackLive, setAckLive] = useState(false), [ackCut, setAckCut] = useState(false), [typed, setTyped] = useState("");
@@ -55,13 +55,14 @@ export function FwRulesDialog({ connId, node, onClose }: { connId: number; node:
   return (
     <Modal title="Règles du pare-feu" subtitle="Chaque action montre d'abord ses verrous ; rien n'est écrit sans ton accord explicite." wide onClose={busy ? () => {} : onClose}
       onSubmit={run} submitLabel={op ? `Appliquer : ${op.label}` : "Appliquer"} danger={cut || live} busy={busy} error={err} canSubmit={ok}>
-      <div className="flex flex-wrap gap-2 text-sm">
+      {guest && <p className="text-sm text-muted">Machine {guest.gtype === "qemu" ? "VM" : "LXC"} {guest.vmid} sur {node}.</p>}
+      {!guest && <div className="flex flex-wrap gap-2 text-sm">
         <select aria-label="Niveau" className="field !w-auto" value={scope} onChange={(e) => { setScope(e.target.value as Scope); reset(); }}>
           <option value="cluster">Datacenter</option><option value="node">Nœud {node}</option><option value="guest">Machine</option><option value="group">Groupe de sécurité</option></select>
         {scope === "guest" && <><select aria-label="Type" className="field !w-auto" value={gtype} onChange={(e) => setGtype(e.target.value as "qemu" | "lxc")}><option value="qemu">VM</option><option value="lxc">LXC</option></select>
           <input aria-label="Identifiant" placeholder="vmid" className="field !w-28" value={vmid} onChange={(e) => setVmid(e.target.value)} /></>}
         {scope === "group" && <input aria-label="Groupe" placeholder="nom du groupe" className="field !w-44" value={group} onChange={(e) => setGroup(e.target.value)} />}
-      </div>
+      </div>}
       {msg && <Notice kind="ok">{msg}</Notice>}
       {rules.error && <Notice kind="error">{(rules.error as Error).message}</Notice>}
       {ready && !rules.error && (list.length === 0 ? <p className="text-sm text-muted">Aucune règle.</p> : (

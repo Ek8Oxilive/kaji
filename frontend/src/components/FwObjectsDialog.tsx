@@ -13,13 +13,14 @@ const NAME = /^[A-Za-z][A-Za-z0-9_-]{1,63}$/, GROUP = /^[A-Za-z][A-Za-z0-9_-]{1,
 const ADDR = /^[0-9A-Fa-f:.]+(\/[0-9]{1,3})?$|^(dc\/|guest\/)?[A-Za-z][A-Za-z0-9_-]{1,63}$/;
 
 /** Alias, IPSets et groupes du datacenter. Un objet utilisé par un pare-feu ACTIF est verrouillé : le serveur le refuse tant que tu ne reconnais pas le risque. */
-export function FwObjectsDialog({ connId, onClose }: { connId: number; onClose: () => void }) {
+export function FwObjectsDialog({ connId, onClose, guest }: { connId: number; onClose: () => void; guest?: { node: string; gtype: "qemu" | "lxc"; vmid: number } }) {
   const qc = useQueryClient();
   const [act, setAct] = useState<Act>("alias-create");
   const [name, setName] = useState(""), [cidr, setCidr] = useState(""), [comment, setComment] = useState(""), [typed, setTyped] = useState("");
   const [nomatch, setNomatch] = useState(false), [members, setMembers] = useState(false), [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false), [done, setDone] = useState(false), [err, setErr] = useState<string | null>(null), [locked, setLocked] = useState<string | null>(null);
-  const base = `/api/connections/${connId}/firewall/cluster`;
+  const base = guest ? `/api/connections/${connId}/firewall/guests/${encodeURIComponent(guest.node)}/${guest.gtype}/${guest.vmid}` : `/api/connections/${connId}/firewall/cluster`;
+  const acts = (Object.keys(LABEL) as Act[]).filter((a) => !guest || !a.startsWith("group"));       // les groupes de sécurité n'existent qu'au datacenter
   const isGroup = act.startsWith("group"), needsCidr = ["alias-create", "alias-update", "entry-add", "entry-remove"].includes(act);
   const destructive = ["alias-delete", "ipset-delete", "entry-remove", "group-delete"].includes(act);
   const retype = act === "entry-remove" ? cidr : (act === "alias-update" || destructive) ? name : "";
@@ -42,7 +43,7 @@ export function FwObjectsDialog({ connId, onClose }: { connId: number; onClose: 
       else if (act === "entry-remove") await api(`${base}/ipsets/${name}/entries?${q({ cidr })}`, { method: "DELETE" });
       else if (act === "group-create") await api(`${base}/groups`, { method: "POST", body: { name, ...(comment ? { comment } : {}), confirm: true } });
       else await api(`${base}/groups/${name}?${q()}`, { method: "DELETE" });
-      await qc.invalidateQueries({ queryKey: ["fw-cluster", connId] });
+      await qc.invalidateQueries({ queryKey: ["fw-cluster", connId] }); await qc.invalidateQueries({ queryKey: ["fw-guest", connId] });
       setDone(true);
     } catch (e) {
       const m = (e as Error).message;
@@ -53,10 +54,10 @@ export function FwObjectsDialog({ connId, onClose }: { connId: number; onClose: 
 
   if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{LABEL[act]} : <code>{name}</code>. Relu chez Proxmox.</Notice></Modal>;
   return (
-    <Modal title="Objets du pare-feu" subtitle="Datacenter. Une écriture à la fois ; Proxmox est relu après chaque écriture." onClose={busy ? () => {} : onClose} onSubmit={run}
+    <Modal title="Objets du pare-feu" subtitle={`${guest ? `Machine ${guest.gtype === "qemu" ? "VM" : "LXC"} ${guest.vmid}` : "Datacenter"}. Une écriture à la fois ; Proxmox est relu après chaque écriture.`} onClose={busy ? () => {} : onClose} onSubmit={run}
       submitLabel="Appliquer" danger={destructive || !!locked} busy={busy} error={err} canSubmit={valid && (!locked || ack)}>
       <label className="block space-y-1 text-sm"><span className="text-muted">Action</span>
-        <select className="field" value={act} onChange={(e) => reset(e.target.value as Act)}>{(Object.keys(LABEL) as Act[]).map((a) => <option key={a} value={a}>{LABEL[a]}</option>)}</select></label>
+        <select className="field" value={act} onChange={(e) => reset(e.target.value as Act)}>{acts.map((a) => <option key={a} value={a}>{LABEL[a]}</option>)}</select></label>
       <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? "Nom du groupe (18 caractères au plus)" : act.startsWith("entry") ? "IPSet" : "Nom"}</span>
         <input className="field" value={name} onChange={(e) => setName(e.target.value.trim())} autoComplete="off" /></label>
       {needsCidr && <label className="block space-y-1 text-sm"><span className="text-muted">{act.startsWith("entry") ? "Adresse, réseau ou alias" : "Adresse ou réseau"}</span>

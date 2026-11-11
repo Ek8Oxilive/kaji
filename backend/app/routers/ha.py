@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/connections/{conn_id}", tags=["ha"], dependencie
 
 @router.get("/ha/status")
 async def ha_status(conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
-    """Quorum, maître du gestionnaire, états des LRM, chien de garde (fencing) et services HA."""
+    """Quorum, maître du gestionnaire, états des LRM, watchdog (fencing) et services HA."""
     return shape_ha_status(await _px_get(db, factory, conn_id, "/cluster/ha/status/current"))
 
 
