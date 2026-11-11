@@ -24,7 +24,8 @@ export function FwObjectsDialog({ connId, onClose, guest }: { connId: number; on
   const isGroup = act.startsWith("group"), needsCidr = ["alias-create", "alias-update", "entry-add", "entry-remove"].includes(act);
   const destructive = ["alias-delete", "ipset-delete", "entry-remove", "group-delete"].includes(act);
   const retype = act === "entry-remove" ? cidr : (act === "alias-update" || destructive) ? name : "";
-  const valid = (isGroup ? GROUP : NAME).test(name) && (!needsCidr || ADDR.test(cidr)) && (retype === "" || typed === retype);
+  const fieldsOk = (isGroup ? GROUP : NAME).test(name) && (!needsCidr || ADDR.test(cidr));
+  const valid = fieldsOk && (retype === "" || typed === retype);                      // le champ « Retape… » s'affiche dès que le nom est valide (avant, il exigeait d'avoir déjà retapé : jamais affiché)
 
   useEffect(() => { setLocked(null); setAck(false); setErr(null); setTyped(""); }, [act, name, cidr]);
   const reset = (a: Act) => { setAct(a); setName(""); setCidr(""); setComment(""); setNomatch(false); setMembers(false); };
@@ -66,7 +67,7 @@ export function FwObjectsDialog({ connId, onClose, guest }: { connId: number; on
         <input className="field" value={comment} maxLength={100} onChange={(e) => setComment(e.target.value)} autoComplete="off" /></label>}
       {act === "entry-add" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={nomatch} onChange={(e) => setNomatch(e.target.checked)} /><span>Exclure (nomatch)</span></label>}
       {act === "ipset-delete" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={members} onChange={(e) => setMembers(e.target.checked)} /><span>Supprimer aussi ses entrées s'il n'est pas vide</span></label>}
-      {valid && retype !== "" && <label className="block text-xs text-muted">Retape <code>{retype}</code> pour confirmer<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
+      {fieldsOk && retype !== "" && <label className="block text-xs text-muted">Retape <code>{retype}</code> pour confirmer<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
       {locked && <Notice kind="error">{locked}
         <label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>Je comprends que cela peut couper l'accès et je veux continuer</span></label></Notice>}
     </Modal>
