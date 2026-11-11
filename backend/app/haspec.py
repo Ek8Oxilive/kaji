@@ -1,6 +1,6 @@
 """Haute disponibilité (HA) et réplication Proxmox : mise en forme tolérante, en liste blanche, textes bornés (LECTURE).
 
-Rien n'est écrit ici. Particularités du cluster réel (2 nœuds) : le quorum est fragile, et activer la HA arme un chien de garde qui fait redémarrer un nœud qui perd le
+Rien n'est écrit ici. Particularités du cluster réel (2 nœuds) : le quorum est fragile, et activer la HA arme un watchdog qui fait redémarrer un nœud qui perd le
 quorum ; les groupes HA ont été remplacés par des règles (`/cluster/ha/groups` répond « migrated to rules »).
 """
 import re

@@ -34,16 +34,16 @@ export function HA({ onGoConnections }: { onGoConnections: () => void }) {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header><h1 className="text-2xl font-semibold tracking-tight">HA : haute disponibilité et réplication</h1><p className="text-muted">{active.name} · écritures verrouillées, avec aperçu</p></header>
-      <Notice kind="ok">Avec deux nœuds, la HA est risquée : si un nœud tombe, l'autre perd le quorum et peut redémarrer de lui-même (chien de garde). Toute écriture HA est d'abord prévisualisée, et exige ici la phrase COUPURE POSSIBLE.</Notice>
+      <Notice kind="ok">Avec deux nœuds, la HA est risquée : si un nœud tombe, l'autre perd le quorum et peut redémarrer de lui-même (watchdog). Toute écriture HA est d'abord prévisualisée, et exige ici la phrase COUPURE POSSIBLE.</Notice>
 
       <section className="space-y-3"><h2 className="text-lg font-semibold">État</h2>
         {status.error ? err(status.error) : (status.data ?? []).length === 0 ? <Empty>Aucun état HA.</Empty> : (
           <Table head={["Type", "Nœud / machine", "État"]}>{(status.data ?? []).map((s, i) => (
             <tr key={`${s.type}-${s.id}-${i}`} className="border-b border-line/60 last:border-0">
-              <td className="px-4 py-2 text-muted">{{ quorum: "Quorum", master: "Maître", lrm: "LRM", service: "Service", fencing: "Chien de garde" }[s.type]}</td>
+              <td className="px-4 py-2 text-muted">{{ quorum: "Quorum", master: "Maître", lrm: "LRM", service: "Service", fencing: "Watchdog" }[s.type]}</td>
               <td className="px-4 py-2 font-mono">{s.type === "service" ? s.sid ?? "–" : s.node ?? "–"}</td>
               <td className="px-4 py-2 text-muted">{s.status ?? s.state ?? "–"}{s.type === "service" && s.request_state ? ` · demandé : ${s.request_state}` : ""}</td></tr>))}</Table>)}
-        <p className="text-xs text-muted">Quorum : {quorum ? (quorum.quorate ? "oui" : "NON") : "–"} · Chien de garde : {fencing?.armed_state ?? fencing?.status ?? "–"}</p>
+        <p className="text-xs text-muted">Quorum : {quorum ? (quorum.quorate ? "oui" : "NON") : "–"} · Watchdog : {fencing?.armed_state ?? fencing?.status ?? "–"}</p>
       </section>
 
       <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Ressources HA</h2><Button variant="ghost" onClick={() => setMode({ kind: "resource-new" })}>Ajouter une machine…</Button></div>
