@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { AccountDialog } from "./AccountDialog";
 import { Logo } from "./Logo";
+import { TaskBar } from "./TaskBar";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { Button } from "./ui";
 
@@ -48,6 +49,7 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex justify-end p-3 md:pr-6"><ThemeSwitcher /></header>
         <main className="flex-1 p-4 pt-2 md:px-6">{children}</main>
+        {page !== "tasks" && <TaskBar onOpenTasks={() => onNavigate("tasks")} />}
       </div>
       {account && <AccountDialog onClose={() => setAccount(false)} onLoggedOut={onLogout} />}
     </div>
