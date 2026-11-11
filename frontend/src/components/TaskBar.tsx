@@ -33,6 +33,7 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
   const toggle = () => { saveOpen(!open); setOpen(!open); };
 
   return (
+    <>
     <footer aria-label="Barre de tâches" className="panel sticky bottom-0 z-30 mx-3 mb-3 !rounded-2xl p-2 md:mx-6">
       <div className="flex flex-wrap items-center gap-3 px-2 text-sm">
         <button onClick={toggle} aria-expanded={open} className="rounded-lg px-2 py-1 text-left font-medium hover:bg-surface2">
@@ -59,7 +60,9 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
           ))}
         </ul>
       )}
-      {sel && <TaskDrawer connId={id} task={sel} label={label(sel)} onClose={() => setSel(null)} />}
     </footer>
+    {/* Hors de la barre : son flou d'arrière-plan en ferait le repère des éléments `fixed`, et le tiroir resterait coincé dedans. */}
+    {sel && <TaskDrawer connId={id} task={sel} label={label(sel)} onClose={() => setSel(null)} />}
+    </>
   );
 }
