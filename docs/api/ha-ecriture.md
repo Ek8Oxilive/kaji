@@ -37,7 +37,7 @@ Création / modification : `{created|changed, removed, locks}`. Migrer / relocal
 Ajouter une machine (`stopped`), modifier (déplacements max., commentaire), créer puis modifier une règle `node-affinity` (nœuds, priorités, stricte), migrer `enzo` → `enzo2`, supprimer la règle, retirer la ressource ; verrous et phrase `COUPURE POSSIBLE` vus à l'écran. **Constaté** : le commentaire accentué d'une règle est altéré par Proxmox (corrigé : ASCII seulement) ; une **relocalisation vers `enzo` est ignorée par la HA tant qu'une règle stricte préfère `enzo2`** (la demande est acceptée, rien ne bouge, Kaji ne le signale pas encore).
 
 ## Validation
-Faux Proxmox strict (`backend/tests/test_ha_write.py`). **Rien n'a été écrit sur le cluster réel** : le cluster n'a que 2 nœuds (activer la HA arme le chien de garde). Les paramètres viennent du schéma d'API officiel de Proxmox (`apidoc.js`).
+Faux Proxmox strict (`backend/tests/test_ha_write.py`). **Rien n'a été écrit sur le cluster réel** : le cluster n'a que 2 nœuds (activer la HA arme le watchdog). Les paramètres viennent du schéma d'API officiel de Proxmox (`apidoc.js`).
 
 ## Demande ignorée par une règle stricte
 Quand une règle `node-affinity` **stricte et active** vise la machine (ou une machine qui partirait avec elle) et n'autorise pas le nœud demandé, la HA **ignore** la demande : Proxmox répond 200, rien ne bouge. Kaji ne bloque pas (c'est le comportement de Proxmox) mais **le signale** : `ignored[{rule, resources[], nodes[]}]` dans l'aperçu (`dry_run`) et dans la réponse, affiché en rouge dans la fenêtre Migrer / Relocaliser (avant et après l'envoi). Une règle non stricte, désactivée, ou qui autorise le nœud cible n'est pas signalée. L'audit ajoute les noms des règles à l'entrée `started`.

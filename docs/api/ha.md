@@ -4,7 +4,7 @@ Préfixe `/api/connections/{conn_id}`. Ce fichier décrit la lecture. L'écritur
 
 | Route | Contenu |
 |---|---|
-| `GET /ha/status` | Quorum, maître, LRM, chien de garde (`fencing`, `armed_state`), services HA (`sid`, `state`, `request_state`) |
+| `GET /ha/status` | Quorum, maître, LRM, watchdog (`fencing`, `armed_state`), services HA (`sid`, `state`, `request_state`) |
 | `GET /ha/resources` | Ressources HA : `sid` (`vm:100`, `ct:101`), `state`, `max_restart`, `max_relocate`, `failback`, `comment` |
 | `GET /ha/rules` | Règles HA : `node-affinity` (`nodes` avec priorité, `strict`) et `resource-affinity` (`affinity` positive/négative) |
 | `GET /replication` | Jobs de réplication : `id` (`100-0`), `guest`, `source`, `target`, `schedule`, `rate`, `disable`, `comment`, `remove_job` (job marqué pour suppression) |
@@ -14,7 +14,7 @@ Préfixe `/api/connections/{conn_id}`. Ce fichier décrit la lecture. L'écritur
 Mise en forme en liste blanche : identifiants validés (`vm:ID`, `ct:ID`, `ID-N`, noms de nœud), textes bornés sans caractère de contrôle, entrées étrangères écartées.
 
 ## Particularités du cluster réel (constatées en lecture, 2026-11-09)
-- **2 nœuds** (`enzo`, `enzo2`) : quorum fragile. Activer la HA arme un chien de garde ; si un nœud tombe, l'autre perd le quorum et redémarre de lui-même. Les écritures HA exigeront donc une phrase de confirmation.
+- **2 nœuds** (`enzo`, `enzo2`) : quorum fragile. Activer la HA arme un watchdog ; si un nœud tombe, l'autre perd le quorum et redémarre de lui-même. Les écritures HA exigeront donc une phrase de confirmation.
 - Les **groupes HA** n'existent plus (`/cluster/ha/groups` répond « migrated to rules ») : seules les **règles** existent.
 - Aucune ressource HA, aucune règle, aucun job de réplication. **Pas de stockage ZFS** (seulement `local` et `local-lvm`) : la réplication ne peut pas être créée sur ce cluster.
 - Page « HA » du menu : état, ressources, règles, jobs ; écritures : `docs/api/ha-ecriture.md` et `docs/api/replication-ecriture.md`.

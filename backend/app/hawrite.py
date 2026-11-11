@@ -4,7 +4,7 @@ Droit requis chez Proxmox : `Sys.Console` sur `/` pour toutes les routes d'écri
 
 Verrous (état relu chez Proxmox, jamais décidé par le navigateur) :
 - **interdit, même confirmé** : une machine de `KAJI_PROTECTED_VMIDS` (dont Kaji lui-même) ne peut ni entrer en HA, ni être migrée / relocalisée, ni figurer dans une règle ;
-- **coupure possible** (`acknowledge_cut_access=true` ET `type_name == "COUPURE POSSIBLE"`) : cluster à moins de 3 nœuds. La HA arme un chien de garde ; si un nœud tombe,
+- **coupure possible** (`acknowledge_cut_access=true` ET `type_name == "COUPURE POSSIBLE"`) : cluster à moins de 3 nœuds. La HA arme un watchdog ; si un nœud tombe,
   l'autre perd le quorum et redémarre. Toute écriture qui ACTIVE ou DÉPLACE de la HA est concernée ; retirer ou désactiver ne l'est pas ;
 - **en direct** (`acknowledge_live=true`) : modifier, migrer, relocaliser ou retirer ce que la HA gère déjà, créer une ressource qui sera démarrée / gérée tout de suite.
 `dry_run=true` renvoie les verrous et ce qui serait envoyé, sans rien écrire.
@@ -185,7 +185,7 @@ def locks(action: str, n_nodes: int, *, existing: bool, activates: bool) -> dict
     cut: list[str] = []
     live: list[str] = []
     if activates and n_nodes < MIN_NODES:
-        cut.append(f"le cluster n'a que {n_nodes} nœud(s) (moins de {MIN_NODES}) : la HA arme un chien de garde ; si un nœud tombe, l'autre perd le quorum "
+        cut.append(f"le cluster n'a que {n_nodes} nœud(s) (moins de {MIN_NODES}) : la HA arme un watchdog ; si un nœud tombe, l'autre perd le quorum "
                    "et redémarre tout seul")
     if action in ("migrate", "relocate"):
         live.append("la machine est déplacée tout de suite par la HA" + (" (arrêt puis redémarrage pour un déplacement par relocalisation)" if action == "relocate" else ""))

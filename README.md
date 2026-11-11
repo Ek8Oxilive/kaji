@@ -500,7 +500,7 @@ Haute disponibilité (ressources, règles) et réplication de stockage. Toute é
 
 ![État de la HA ](docs/captures/ha-1.jpg)
 
-*État de la HA : quorum, maître, chien de garde, gestionnaires (LRM). Avec deux nœuds, la page prévient du risque.*
+*État de la HA : quorum, maître, watchdog, gestionnaires (LRM). Avec deux nœuds, la page prévient du risque.*
 
 ![Ressources HA, règles HA et jobs de réplication](docs/captures/ha-2.jpg)
 
