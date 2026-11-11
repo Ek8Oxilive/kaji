@@ -672,6 +672,10 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *Actions groupées, **Migrer** : nœud cible, migrations en parallèle, copie des disques locaux, puis nom du nœud à retaper.*
 
+![Activer un dépôt apt](docs/captures/noeud-depot-activer.jpg)
+
+*Activer ou désactiver un dépôt de paquets demande une **confirmation** : Kaji relit les dépôts avant d'écrire et refuse si la configuration a bougé. Pour un dépôt « enterprise » sans abonnement, une case supplémentaire (« apt répondra 401 ») doit être cochée.*
+
 ### Accès
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
