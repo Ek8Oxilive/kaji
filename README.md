@@ -436,6 +436,14 @@ Le journal des tâches Proxmox, avec le compte qui les a lancées (« Kaji » si
 
 *Journal d'une tâche : sortie complète de Proxmox, sans secret.*
 
+![Barre de tâches permanente en bas de la page d'une machine](docs/captures/barre-de-taches.jpg)
+
+*Barre de tâches permanente, en bas de chaque page (ici, une machine) : tâches en cours et dernières tâches avec leur état, leur machine, leur nœud et leur durée. Repliable, elle défile au lieu de masquer la page.*
+
+![Journal d'une tâche ouvert depuis la barre](docs/captures/barre-de-taches-journal.jpg)
+
+*Un clic sur une tâche de la barre ouvre son journal en plein écran, comme dans la page « Tâches » (ici, la suppression d'un snapshot d'essai).*
+
 ### Ceph
 
 ![Page **Ceph** ](docs/captures/ceph.jpg)
