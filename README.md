@@ -128,6 +128,18 @@ Une page par machine, avec des onglets : Matériel, Options, Performances, Conso
 
 *Suite du Matériel : disques (agrandir, déplacer, détacher), cartes réseau, emplacement (migrer vers un autre nœud) et zone dangereuse (supprimer la machine).*
 
+![Périphériques PCI, USB et répertoires d'une VM](docs/captures/vm-passthrough-liste.jpg)
+
+*Matériel d'une VM, section « Périphériques PCI, USB et répertoires » : trois périphériques ajoutés par correspondance (PCI sans ROM, USB sans USB 3, répertoire en cache auto). Les changements ne s'appliquent qu'après un arrêt complet de la machine.*
+
+![Ajouter un périphérique PCI par correspondance](docs/captures/vm-passthrough-ajout.jpg)
+
+*Ajouter un périphérique PCI : on choisit une correspondance du datacenter et les options (PCIe, ROM, carte graphique principale) ; l'aperçu montre la ligne écrite dans la configuration.*
+
+![Retirer un périphérique](docs/captures/vm-passthrough-retrait.jpg)
+
+*Retirer un périphérique de la configuration de la VM : le périphérique lui-même et la correspondance ne sont pas touchés.*
+
 ![Onglet **Options** ](docs/captures/vm-options-1.jpg)
 
 *Onglet **Options** : démarrage au démarrage du nœud, ordre et délais.*

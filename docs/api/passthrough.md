@@ -23,5 +23,8 @@ Corps (POST et PUT) : `mapping` (obligatoire) puis, selon le type, `pcie`, `romb
 - **Écriture** : `digest` de la configuration lue renvoyé à Proxmox (refus si elle a changé), relecture et comparaison après écriture (502 sinon).
 - **Audit** : `passthrough-add|update|remove`, détail « hostpci0 : mapping=smbus » (identifiant de correspondance, pas de secret) ; refus audités.
 
+## Formats relus sur le nœud (2026-11-11)
+`usb[n]` : `host`, `mapping`, `usb3` · `virtiofs[n]` : `cache` (`auto`, `always`, `metadata`, `never`), `direct-io`, `dirid` (obligatoire), `expose-acl`, `expose-xattr` · `hostpci[n]` : `host`, `mapping`, `pcie`, `rombar`, `x-vga`, `mdev`, plus `driver` (`vfio`, `keep`), `legacy-igd`, `romfile`, `vendor-id`, `device-id`, `sub-vendor-id`, `sub-device-id` que Kaji **ne gère pas** (une option inconnue d'un périphérique existant est signalée dans `other` et n'est jamais réécrite par un ajout, mais un `PUT` remplace la valeur entière : elle est alors perdue).
+
 ## Tests
 Faux Proxmox strict (`backend/tests/test_passthrough.py`) : format des propriétés, hôte brut refusé aux non-root (403), digest, configuration fusionnée ; 16 mutations tuées. Essais réels : voir `docs/REPRISE.md`.
