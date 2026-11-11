@@ -18,7 +18,7 @@ PWD = "un-mot-de-passe-solide"
 SECRET = "s3cr3t-value-xyz"
 BODY = {"name": "lab", "host": "10.0.0.5", "user": "kaji@pve", "token_id": "kaji", "token_secret": SECRET}
 DIGEST = "a" * 40
-ALLOWED = {"vga", "serial0", "serial1", "serial2", "serial3", "audio0", "rng0", "watchdog", "delete", "digest"}
+ALLOWED = {"vga", "serial0", "serial1", "serial2", "serial3", "audio0", "rng0", "watchdog", "bios", "efidisk0", "tpmstate0", "delete", "digest"}
 VGA = re.compile(r"^(type=)?(cirrus|none|qxl[234]?|serial[0-3]|std|virtio|virtio-gl|vmware)(,memory=\d{1,3})?(,clipboard=vnc)?(,[A-Za-z0-9_-]+=[A-Za-z0-9_.-]*)*$|^type=[a-z0-9-]+(,.*)?$")
 FORMATS = {
     "vga": VGA,
@@ -105,7 +105,8 @@ def test_read_defaults_are_null_and_never_writes(api):
     r = c.get(u(cid))
     assert r.status_code == 200
     assert r.json() == {"type": "qemu", "pending": [], "reboot_required": False, "devices": {
-        "vga": None, "audio": None, "rng": None, "watchdog": None, "serial0": None, "serial1": None, "serial2": None, "serial3": None}}
+        "vga": None, "audio": None, "rng": None, "watchdog": None, "serial0": None, "serial1": None, "serial2": None, "serial3": None,
+        "bios": None, "efidisk": None, "tpm": None}}
     assert writes() == []
 
 
@@ -137,8 +138,8 @@ def test_read_unknown_vga_type_is_not_trusted(api):
 
 def test_clear_list_is_bounded(api):
     c, cid = api
-    assert patch(c, cid, clear=["vga"] * 9).status_code == 422 and not writes()
-    assert patch(c, cid, clear=["vga"] * 8).status_code == 200
+    assert patch(c, cid, clear=["vga"] * 12).status_code == 422 and not writes()
+    assert patch(c, cid, clear=["vga"] * 11).status_code == 200
 
 
 def test_read_rng_source_is_filtered(api):

@@ -28,6 +28,18 @@ changements s'appliquent **au prochain démarrage** de la VM.
 - **Machine de `KAJI_PROTECTED_VMIDS`** : toute modification refusée (409), même confirmée ; la lecture reste permise.
 - `digest` relu et renvoyé (refus de Proxmox si la configuration a changé entre-temps) ; config illisible : 502 ; erreur Proxmox traduite sans fuite.
 
+## BIOS, disque EFI et TPM (lot #268)
+Mêmes routes (`GET` / `PATCH …/qemu/{vmid}/devices`), champs en plus :
+
+| Champ | Valeurs | Envoyé à Proxmox |
+|---|---|---|
+| `bios` | `seabios` ou `ovmf` | `bios=…` ; **confirmation** si la valeur change (une machine installée peut ne plus démarrer) |
+| `efidisk` | `{storage, efitype: 4m (défaut) \| 2m, pre_enrolled_keys: bool}` | `efidisk0=STOCKAGE:1,efitype=4m[,pre-enrolled-keys=1]` (alloue un volume) |
+| `tpm` | `{storage, version: v2.0 (défaut) \| v1.2}` | `tpmstate0=STOCKAGE:1,version=v2.0` (alloue un volume) |
+| `clear` | `bios`, `efidisk0`, `tpmstate0` en plus | `delete=…` ; **confirmation** si le réglage existe (le volume reste en « non utilisé », à supprimer dans l'onglet Matériel) |
+
+**Ajout seulement si absent** : un disque EFI ou un TPM existant n'est jamais remplacé (422, « retire-le d'abord ») pour ne pas orpheliner un volume. Stockage validé (`[A-Za-z0-9][A-Za-z0-9_-]{0,39}`), taille toujours « un volume par défaut » (`:1`), aucun chemin. La lecture renvoie `bios`, `efidisk` (`storage`, `efitype`, `pre_enrolled_keys`) et `tpm` (`storage`, `version`) **sans le nom du volume**.
+
 ## Pas encore essayé en réel
 - `vga` avec `memory` et `clipboard`, `audio0` avec `driver`, `rng0` avec `max_bytes` / `period`, `watchdog` avec `action`, `serial1` à `serial3` ;
 - appliquer `vga: none` ou `vga: serialN` avec `confirm` (console graphique perdue : volontairement non essayé sur la VM d'essai) ;
