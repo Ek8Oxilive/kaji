@@ -1,7 +1,7 @@
 # Périphériques d'une VM : affichage, ports série, audio, RNG, watchdog (lot #225)
 
-> **Non validé en réel** (PC B, faux Proxmox strict). Fichiers : `routers/devices.py`, `devicespec.py`, `tests/test_devices.py`, `components/DevicesTab.tsx`
-> (onglet « Périphériques » de la page Machine, VM seulement), `lib/types/peripheriques.ts`. Passthrough PCI/USB, TPM et disque EFI : lot suivant.
+> **Validé en réel le 2026-11-10** sur la VM 115 (arrêtée), par l'interface : `vga=vmware`, `serial0=socket`, `audio0` (`ich9-intel-hda`), `rng0` (`/dev/urandom`), `watchdog` (`i6300esb`) écrits en une demande, relus à l'identique, puis tous retirés (`delete`) : état d'origine. Refus constatés : port série hôte (422), type d'affichage hors liste (422), `vga: none` sans `confirm` (400), demande vide (400), conteneur (405). Un champ `source` envoyé au RNG est ignoré (la source reste `/dev/urandom`).
+> Fichiers : `routers/devices.py`, `devicespec.py`, `tests/test_devices.py`, `components/DevicesTab.tsx`, `lib/types/peripheriques.ts`. Passthrough PCI / USB : voir `docs/api/passthrough.md` ; TPM et disque EFI : lot suivant.
 
 | Route | Rôle |
 |---|---|
@@ -28,8 +28,14 @@ changements s'appliquent **au prochain démarrage** de la VM.
 - **Machine de `KAJI_PROTECTED_VMIDS`** : toute modification refusée (409), même confirmée ; la lecture reste permise.
 - `digest` relu et renvoyé (refus de Proxmox si la configuration a changé entre-temps) ; config illisible : 502 ; erreur Proxmox traduite sans fuite.
 
-## Non validé en réel (essais du ticket #225, VM 115 arrêtée)
-- l'acceptation par Proxmox de chaque format (`vga=type=vmware,memory=32,clipboard=vnc`, `audio0`, `rng0` avec `source=/dev/urandom`, `watchdog`, `serialN=socket`) ;
-- le droit réellement requis (`VM.Config.HWType`) et d'éventuelles restrictions `root@pam` (rng, série) pour le token de Kaji : un 403 sera traduit en 502 générique ;
-- la forme de `vga` renvoyée par `GET …/config` (courte `std` ou longue) et les valeurs par défaut affichées ;
-- l'interface n'a pas été ouverte dans un navigateur (seul `npm run build` la valide).
+## Pas encore essayé en réel
+- `vga` avec `memory` et `clipboard`, `audio0` avec `driver`, `rng0` avec `max_bytes` / `period`, `watchdog` avec `action`, `serial1` à `serial3` ;
+- appliquer `vga: none` ou `vga: serialN` avec `confirm` (console graphique perdue : volontairement non essayé sur la VM d'essai) ;
+- relecture d'un réglage posé par root avec une source de l'hôte (aucun sur ce cluster : testé seulement avec le faux Proxmox) ;
+- le comportement d'une VM **en marche** (les changements s'appliquent au prochain démarrage ; la VM 115 est restée arrêtée).
+
+## Constaté en réel (2026-11-10)
+- Proxmox accepte les formats `vga=type=vmware`, `serial0=socket`, `audio0=device=ich9-intel-hda`, `rng0=source=/dev/urandom`, `watchdog=model=i6300esb` et `delete=vga,audio0,rng0,watchdog,serial0` ; le token de Kaji a le droit de les écrire.
+- Après l'écriture, la relecture donne `vga` = `vmware` et les autres réglages à l'identique ; VM arrêtée : le changement est direct, `pending` reste vide.
+- Interface ouverte et utilisée dans le navigateur (onglet, formulaire, enregistrement, relecture).
+
