@@ -82,6 +82,7 @@ GET /api/connections/{conn_id}/guests
 GET /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit/snippets
+GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/devices
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/passthrough
 GET /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/power
@@ -143,6 +144,7 @@ GET /api/health
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit
+PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/devices
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 POST /api/auth/login

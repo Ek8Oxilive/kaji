@@ -1,0 +1,180 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { api, type Guest } from "../lib/api";
+import { confirmReasons } from "../lib/confirmRisk";
+import { AUDIO_DEVICES, SERIALS, VGA_TYPES, WATCHDOG_ACTIONS, WATCHDOG_MODELS, type DeviceKey, type DevicesPatch, type DevicesResponse, type DevicesResult } from "../lib/types/peripheriques";
+import { useToast } from "./Toast";
+import { Button, Notice } from "./ui";
+
+const intOk = (s: string, min: number, max: number) => s.trim() === "" || (/^\d+$/.test(s.trim()) && Number(s) >= min && Number(s) <= max);
+const num = (s: string) => (s.trim() === "" ? null : Number(s));
+
+/**
+ * Onglet « Périphériques » (VM) : carte d'affichage, ports série (socket seulement), audio, générateur aléatoire, watchdog.
+ * Le serveur relit la machine, décide des confirmations et refuse tout ce qui toucherait un périphérique de l'hôte.
+ */
+export function DevicesTab({ connId, guest }: { connId: number; guest: Guest }) {
+  const base = `/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/qemu/${guest.vmid}/devices`;
+  const qk = ["devices", connId, guest.node, guest.vmid];
+  const qc = useQueryClient();
+  const toast = useToast();
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<DevicesResponse>(base), staleTime: 0 });
+  const [vgaType, setVgaType] = useState(""); const [vgaMem, setVgaMem] = useState(""); const [clip, setClip] = useState(false);
+  const [serial, setSerial] = useState<Record<string, boolean>>({});
+  const [audioOn, setAudioOn] = useState(false); const [audioDev, setAudioDev] = useState("ich9-intel-hda"); const [audioDrv, setAudioDrv] = useState("");
+  const [rngOn, setRngOn] = useState(false); const [rngBytes, setRngBytes] = useState(""); const [rngPeriod, setRngPeriod] = useState("");
+  const [wdOn, setWdOn] = useState(false); const [wdModel, setWdModel] = useState("i6300esb"); const [wdAction, setWdAction] = useState("");
+  const [cleared, setCleared] = useState<Set<DeviceKey>>(new Set());
+  const [busy, setBusy] = useState(false); const [err, setErr] = useState<string | null>(null);
+  const [risk, setRisk] = useState<string[] | null>(null);
+
+  // Remplit le formulaire avec l'état réel relu chez Proxmox.
+  useEffect(() => {
+    if (!data) return;
+    const d = data.devices;
+    setVgaType(d.vga?.type ?? ""); setVgaMem(d.vga?.memory?.toString() ?? ""); setClip(d.vga?.clipboard === "vnc");
+    setSerial(Object.fromEntries(SERIALS.map((k) => [k, d[k] === "socket"])));
+    setAudioOn(!!d.audio); setAudioDev(d.audio?.device ?? "ich9-intel-hda"); setAudioDrv(d.audio?.driver ?? "");
+    setRngOn(!!d.rng); setRngBytes(d.rng?.max_bytes?.toString() ?? ""); setRngPeriod(d.rng?.period?.toString() ?? "");
+    setWdOn(!!d.watchdog); setWdModel(d.watchdog?.model ?? "i6300esb"); setWdAction(d.watchdog?.action ?? "");
+    setCleared(new Set()); setRisk(null);
+  }, [data]);
+
+  const valid = intOk(vgaMem, 4, 512) && intOk(rngBytes, 0, 1_000_000) && intOk(rngPeriod, 1, 3_600_000);
+
+  /** Ne contient que ce qui a changé : le serveur ignore de toute façon ce qui est identique. */
+  const patch = useMemo((): DevicesPatch | null => {
+    if (!data) return null;
+    const d = data.devices; const p: DevicesPatch = {}; const clear: DeviceKey[] = [];
+    // carte d'affichage
+    const v: NonNullable<DevicesPatch["vga"]> = {};
+    if (vgaType && vgaType !== d.vga?.type) v.type = vgaType;
+    if (num(vgaMem) !== null && num(vgaMem) !== d.vga?.memory) v.memory = Number(vgaMem);
+    if (clip !== (d.vga?.clipboard === "vnc") && clip) v.clipboard = "vnc";
+    if (Object.keys(v).length) p.vga = v;
+    // ports série : seulement socket ; un port « device » (hôte) n'est pas modifiable ici
+    for (const k of SERIALS) {
+      if (d[k] === "device") continue;
+      if (serial[k] && d[k] !== "socket") p[k] = "socket";
+      if (!serial[k] && d[k] === "socket") clear.push(k);
+    }
+    // audio
+    if (audioOn && (audioDev !== d.audio?.device || (audioDrv && audioDrv !== d.audio?.driver))) p.audio = { device: audioDev, ...(audioDrv ? { driver: audioDrv } : {}) };
+    if (!audioOn && d.audio) clear.push("audio0");
+    // RNG (source toujours /dev/urandom ; une source d'hôte posée par root reste en lecture seule)
+    const hostSrc = !!d.rng && d.rng.source !== null && d.rng.source !== "/dev/urandom";
+    if (rngOn && !hostSrc) {
+      const r: NonNullable<DevicesPatch["rng"]> = {};
+      if (num(rngBytes) !== null && num(rngBytes) !== d.rng?.max_bytes) r.max_bytes = Number(rngBytes);
+      if (num(rngPeriod) !== null && num(rngPeriod) !== d.rng?.period) r.period = Number(rngPeriod);
+      if (!d.rng || Object.keys(r).length) p.rng = r;
+    }
+    if (!rngOn && d.rng && !hostSrc) clear.push("rng0");
+    // watchdog
+    if (wdOn && (wdModel !== d.watchdog?.model || (wdAction && wdAction !== d.watchdog?.action))) p.watchdog = { model: wdModel, ...(wdAction ? { action: wdAction } : {}) };
+    if (!wdOn && d.watchdog) clear.push("watchdog");
+    // « Valeur par défaut » de la carte d'affichage
+    if (cleared.has("vga")) { delete p.vga; clear.push("vga"); }
+    if (clear.length) p.clear = [...new Set(clear)];
+    return Object.keys(p).length ? p : null;
+  }, [data, vgaType, vgaMem, clip, serial, audioOn, audioDev, audioDrv, rngOn, rngBytes, rngPeriod, wdOn, wdModel, wdAction, cleared]);
+  // Une confirmation ne vaut que pour la demande qui l'a provoquée.
+  const patchKey = JSON.stringify(patch);
+  useEffect(() => { setRisk(null); }, [patchKey]);
+
+  const save = async (confirm: boolean) => {
+    if (!patch) return setErr("Aucune modification.");
+    setBusy(true); setErr(null);
+    try {
+      await api<DevicesResult>(base, { method: "PATCH", body: { ...patch, ...(confirm ? { confirm: true } : {}) } });
+      toast("ok", "Enregistré : ces réglages ne s'appliquent qu'au prochain démarrage de la VM");
+      await qc.invalidateQueries({ queryKey: qk });
+    } catch (e) {
+      const reasons = !confirm ? confirmReasons(e) : null;
+      if (reasons) setRisk(reasons); else setErr((e as Error).message);
+    } finally { setBusy(false); }
+  };
+
+  if (isLoading) return <div className="panel h-40 animate-pulse" />;
+  if (error || !data) return <Notice kind="error">{(error as Error | null)?.message ?? "Périphériques illisibles"} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>;
+  const d = data.devices;
+  const box = "mt-0.5 size-4 accent-[var(--accent)]";
+  const hostRng = !!d.rng && d.rng.source !== null && d.rng.source !== "/dev/urandom";
+  const toggleVgaDefault = () => setCleared((s) => { const n = new Set(s); if (n.has("vga")) n.delete("vga"); else n.add("vga"); return n; });
+
+  return (
+    <div className="space-y-5">
+      {data.pending.length > 0 && <Notice kind="ok">Changements en attente (appliqués au prochain démarrage) : {data.pending.map((p) => p.key).join(", ")}.</Notice>}
+      <div className="panel space-y-3 p-5">
+        <h3 className="font-semibold">Carte d'affichage</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <label className="block space-y-1.5"><span className="text-sm text-muted">Type</span>
+            <select className="field" value={vgaType} onChange={(e) => setVgaType(e.target.value)} disabled={cleared.has("vga")}>
+              <option value="">Par défaut (std)</option>{VGA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+          <label className="block space-y-1.5"><span className="text-sm text-muted">Mémoire vidéo (Mo)</span>
+            <input className="field" value={vgaMem} onChange={(e) => setVgaMem(e.target.value)} inputMode="numeric" placeholder="4 à 512" disabled={cleared.has("vga")} aria-invalid={!intOk(vgaMem, 4, 512)} /></label>
+          <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" className={box} checked={clip} onChange={(e) => setClip(e.target.checked)} disabled={cleared.has("vga")} />Presse-papiers VNC</label>
+        </div>
+        <p className="text-xs text-muted">« none » ou un port série retire l'affichage de la console graphique : le serveur demande une confirmation.</p>
+        {d.vga !== null && <button type="button" className="text-xs text-muted underline" onClick={toggleVgaDefault}>{cleared.has("vga") ? "Annuler" : "Valeur par défaut"}</button>}
+      </div>
+      <div className="panel space-y-3 p-5">
+        <h3 className="font-semibold">Ports série</h3>
+        <div className="flex flex-wrap gap-4">
+          {SERIALS.map((k) => (
+            <label key={k} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={d[k] === "device" ? true : !!serial[k]} disabled={d[k] === "device"}
+                onChange={(e) => setSerial((s) => ({ ...s, [k]: e.target.checked }))} />{k}{d[k] === "device" && <span className="text-xs text-muted"> (périphérique de l'hôte : seulement dans Proxmox)</span>}
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted">Seul le mode « socket » est proposé (console série par Proxmox) ; jamais un périphérique de l'hôte.</p>
+      </div>
+      <div className="panel space-y-3 p-5">
+        <h3 className="font-semibold">Audio</h3>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={audioOn} onChange={(e) => setAudioOn(e.target.checked)} /><span>Carte son virtuelle</span></label>
+        {audioOn && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Appareil</span>
+              <select className="field" value={audioDev} onChange={(e) => setAudioDev(e.target.value)}>{AUDIO_DEVICES.map((a) => <option key={a}>{a}</option>)}</select></label>
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Pilote</span>
+              <select className="field" value={audioDrv} onChange={(e) => setAudioDrv(e.target.value)}><option value="">Par défaut (spice)</option><option>spice</option><option>none</option></select></label>
+          </div>
+        )}
+      </div>
+      <div className="panel space-y-3 p-5">
+        <h3 className="font-semibold">Générateur aléatoire (RNG)</h3>
+        {hostRng && <Notice kind="error">Source d'hôte posée par root : lecture seule, à modifier dans Proxmox.</Notice>}
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={rngOn} disabled={hostRng} onChange={(e) => setRngOn(e.target.checked)} /><span>Fournir de l'entropie à la VM<span className="block text-xs text-muted">Source : /dev/urandom (non modifiable).</span></span></label>
+        {rngOn && !hostRng && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Octets max par période</span>
+              <input className="field" value={rngBytes} onChange={(e) => setRngBytes(e.target.value)} inputMode="numeric" placeholder="1024" aria-invalid={!intOk(rngBytes, 0, 1_000_000)} /></label>
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Période (ms)</span>
+              <input className="field" value={rngPeriod} onChange={(e) => setRngPeriod(e.target.value)} inputMode="numeric" placeholder="1000" aria-invalid={!intOk(rngPeriod, 1, 3_600_000)} /></label>
+          </div>
+        )}
+      </div>
+      <div className="panel space-y-3 p-5">
+        <h3 className="font-semibold">Watchdog</h3>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={wdOn} onChange={(e) => setWdOn(e.target.checked)} /><span>Watchdog matériel virtuel<span className="block text-xs text-muted">Le système invité doit le piloter ; sinon l'action se déclenche.</span></span></label>
+        {wdOn && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Modèle</span>
+              <select className="field" value={wdModel} onChange={(e) => setWdModel(e.target.value)}>{WATCHDOG_MODELS.map((m) => <option key={m}>{m}</option>)}</select></label>
+            <label className="block space-y-1.5"><span className="text-sm text-muted">Action</span>
+              <select className="field" value={wdAction} onChange={(e) => setWdAction(e.target.value)}><option value="">Par défaut (reset)</option>{WATCHDOG_ACTIONS.map((a) => <option key={a}>{a}</option>)}</select></label>
+          </div>
+        )}
+      </div>
+      {risk && (
+        <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn" role="alert">
+          <p className="font-medium">Confirmation requise</p>
+          <ul className="list-disc space-y-1 pl-5">{risk.map((r) => <li key={r}>{r}</li>)}</ul>
+        </div>
+      )}
+      {err && <Notice kind="error">{err}</Notice>}
+      <Button variant={risk ? "danger" : "primary"} onClick={() => save(!!risk)} disabled={busy || !patch || !valid}>{busy ? "…" : risk ? "Confirmer et enregistrer" : "Enregistrer"}</Button>
+    </div>
+  );
+}
