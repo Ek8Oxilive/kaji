@@ -272,3 +272,12 @@ def test_audit_records_writes_and_refusals_without_secrets(api):
     log = c.get("/api/audit").json()[::-1]
     assert [(e["action"], e["status"]) for e in log] == [("passthrough-add", "started"), ("passthrough-add", "error"), ("passthrough-remove", "started")]
     assert log[0]["detail"] == "hostpci0 : mapping=smbus" and SECRET not in c.get("/api/audit").text
+
+
+def test_update_refuses_a_device_with_options_kaji_does_not_manage(api):
+    """Un PUT remplace la valeur entière : une option inconnue (ex. driver=keep) serait perdue en silence, donc refus 409 ; retirer reste possible."""
+    c, cid = api
+    ST["cfg"]["hostpci0"] = "mapping=gpu,pcie=1,driver=keep"
+    r = c.put(u(cid, "/pci/hostpci0"), json={"mapping": "gpu", "pcie": False})
+    assert r.status_code == 409 and "driver" in r.json()["detail"] and not CALLS and ST["cfg"]["hostpci0"] == "mapping=gpu,pcie=1,driver=keep"
+    assert c.delete(u(cid, "/pci/hostpci0?confirm=true")).status_code == 200 and "hostpci0" not in ST["cfg"]

@@ -89,6 +89,8 @@ async def _prepare(c: Ctx, ptype: str, body: Device, key: str | None):
             c.refuse("Périphérique introuvable", status.HTTP_404_NOT_FOUND)
         if cur["raw"]:
             c.refuse("Périphérique brut (hôte) : réservé à root@pam, Kaji ne le modifie pas", status.HTTP_409_CONFLICT)
+        if cur["other"]:
+            c.refuse(f"Ce périphérique porte des options que Kaji ne gère pas ({', '.join(cur['other'])}) : un remplacement les perdrait, modifie-le dans Proxmox", status.HTTP_409_CONFLICT)
     mapping = next((m for m in shape_list(await c.px("get", f"/cluster/mapping/{ptype}"), ptype) if m["id"] == body.mapping), None)
     if mapping is None:
         c.refuse("Correspondance introuvable (crée-la d'abord dans la page Datacenter)", status.HTTP_422_UNPROCESSABLE_ENTITY)
