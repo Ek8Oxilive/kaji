@@ -160,6 +160,18 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 *Suite de l'onglet : **générateur aléatoire** (source toujours `/dev/urandom`, non modifiable) et **watchdog** matériel virtuel (modèle, action). Une demande qui retirerait l'affichage de la console (`none`) exige une confirmation décidée par le serveur.*
 
+![Carte **Démarrage et sécurité**](docs/captures/vm-efi-tpm-ajout.jpg)
+
+*Carte **Démarrage et sécurité** : BIOS (`seabios` ou `ovmf`), **ajout d'un disque EFI** (stockage, taille des variables, clés pré-enrôlées) et **d'un TPM virtuel** (stockage, version).*
+
+![Changer le BIOS exige une **confirmation décidée par le serveur**](docs/captures/vm-efi-tpm-confirmation.jpg)
+
+*Changer le BIOS exige une **confirmation décidée par le serveur** : rien n'est écrit tant qu'on ne clique pas sur « Confirmer et enregistrer ».*
+
+![Une fois créés](docs/captures/vm-efi-tpm-present.jpg)
+
+*Une fois créés, le disque EFI et le TPM sont affichés (« Présent sur… »). Un existant n'est jamais remplacé : on peut seulement le **retirer** (confirmation), son volume reste alors en « non utilisé » dans l'onglet Matériel.*
+
 ![Onglet **Performances** ](docs/captures/vm-performances.jpg)
 
 *Onglet **Performances** : processeur, mémoire, réseau et disque, sur l'heure, le jour, la semaine, le mois ou l'année (exemple sur une VM en marche).*

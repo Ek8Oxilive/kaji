@@ -40,6 +40,9 @@ Mêmes routes (`GET` / `PATCH …/qemu/{vmid}/devices`), champs en plus :
 
 **Ajout seulement si absent** : un disque EFI ou un TPM existant n'est jamais remplacé (422, « retire-le d'abord ») pour ne pas orpheliner un volume. Stockage validé (`[A-Za-z0-9][A-Za-z0-9_-]{0,39}`), taille toujours « un volume par défaut » (`:1`), aucun chemin. La lecture renvoie `bios`, `efidisk` (`storage`, `efitype`, `pre_enrolled_keys`) et `tpm` (`storage`, `version`) **sans le nom du volume**.
 
+## Validé en réel (BIOS, disque EFI, TPM, 2026-11-10)
+Sur la VM 115 (arrêtée), par l'interface : `bios=ovmf` (confirmation demandée), `efidisk0=local-lvm:1,efitype=4m,pre-enrolled-keys=1` et `tpmstate0=local-lvm:1,version=v2.0` créés (deux volumes alloués), relus, puis retirés avec confirmation (`delete`), `bios` retiré (`delete=bios`) et **les deux volumes « non utilisés » détruits** par l'onglet Matériel : état d'origine (un seul volume `disk-0`). Refus constatés : second disque EFI et second TPM (422), stockage invalide (422), retrait sans confirmation (400).
+
 ## Pas encore essayé en réel
 - `vga` avec `memory` et `clipboard`, `audio0` avec `driver`, `rng0` avec `max_bytes` / `period`, `watchdog` avec `action`, `serial1` à `serial3` ;
 - appliquer `vga: none` ou `vga: serialN` avec `confirm` (console graphique perdue : volontairement non essayé sur la VM d'essai) ;
