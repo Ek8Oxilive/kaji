@@ -46,7 +46,7 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
         <button onClick={onOpenTasks} className="ml-auto rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface2 hover:text-fg">Toutes les tâches</button>
       </div>
       {open && (
-        <ul className="mt-1 max-h-48 divide-y divide-line overflow-y-auto" aria-label="Dernières tâches">
+        <ul className="mt-1 max-h-[6.75rem] divide-y divide-line overflow-y-auto" aria-label="Dernières tâches">
           {rows.length === 0 && !tasks.isLoading && <li className="px-3 py-2 text-xs text-muted">Aucune tâche récente.</li>}
           {rows.map((t) => (
             <li key={t.upid}>
