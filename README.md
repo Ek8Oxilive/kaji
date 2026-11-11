@@ -474,6 +474,22 @@ Interfaces des nœuds, pare-feu (datacenter, nœud, machine) et SDN. Tout change
 
 *Options du pare-feu : les modifications dangereuses sont verrouillées, et l'aperçu dit pourquoi.*
 
+![Onglet Pare-feu d'une machine](docs/captures/pare-feu-machine-onglet.jpg)
+
+*Onglet Pare-feu d'une machine (VM et LXC) : options, règles, alias et IPSets de la machine, avec un rappel que le pare-feu ne filtre rien tant que celui du datacenter est désactivé.*
+
+![Options du pare-feu d'une machine](docs/captures/pare-feu-machine-options.jpg)
+
+*Options du pare-feu d'une machine (DHCP, filtres IP et MAC, NDP, annonces de routeur, politiques) : l'aperçu des verrous annonce qu'aucun n'est levé tant que le niveau est désactivé.*
+
+![Règles du pare-feu d'une machine](docs/captures/pare-feu-machine-regle.jpg)
+
+*Règles du pare-feu d'une machine : la machine est préremplie, la règle créée (désactivée par défaut) est relue chez Proxmox.*
+
+![Suppression d'un alias du pare-feu d'une machine](docs/captures/pare-feu-machine-suppression.jpg)
+
+*Supprimer un alias de la machine : le nom est à retaper pour confirmer, « Appliquer » reste grisé tant que ce n'est pas fait.*
+
 ![Règles du pare-feu (datacenter, nœud, machine, groupe) ](docs/captures/reseau-regles.jpg)
 
 *Règles du pare-feu (datacenter, nœud, machine, groupe) : chaque action montre d'abord ses verrous.*
