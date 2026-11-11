@@ -514,6 +514,10 @@ Haute disponibilité (ressources, règles) et réplication de stockage. Toute é
 
 *Nouvelle règle HA : affinité de nœuds (avec priorités) ou affinité de ressources.*
 
+![Migration ignorée par une règle stricte](docs/captures/ha-regle-stricte.jpg)
+
+*Migrer une machine de la HA : si une règle de nœud stricte n'autorise pas le nœud demandé, la fenêtre prévient que la HA va ignorer la demande (rien ne bougera tant que la règle existe) ; le verrou « coupure possible » reste affiché.*
+
 ![Nouveau job de réplication ](docs/captures/ha-replication.jpg)
 
 *Nouveau job de réplication : machine, nœud cible, planification, débit maximal (exige du stockage ZFS).*
