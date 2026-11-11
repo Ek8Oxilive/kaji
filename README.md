@@ -118,7 +118,7 @@ Le bouton « + Nouvelle machine » propose une VM ou un conteneur LXC. Les captu
 
 ### Page d'une machine virtuelle
 
-Une page par machine, avec des onglets : Matériel, Options, Performances, Console, Snapshots, Cloud-init, Sauvegardes, Tâches. Exemples avec la VM de test `kaji-sandbox` (#115).
+Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM), Performances, Console, Snapshots, Cloud-init, Sauvegardes, Tâches. Exemples avec la VM de test `kaji-sandbox` (#115).
 
 ![Onglet **Matériel** ](docs/captures/vm-materiel-1.jpg)
 
@@ -151,6 +151,14 @@ Une page par machine, avec des onglets : Matériel, Options, Performances, Conso
 ![Fin des Options ](docs/captures/vm-options-3.jpg)
 
 *Fin des Options : hotplug, description et bouton « Enregistrer ».*
+
+![Onglet Périphériques d'une machine](docs/captures/vm-peripheriques-1.jpg)
+
+*Onglet **Périphériques** (VM) : carte d'affichage (type, mémoire, presse-papiers), **ports série en mode socket seulement** (jamais un périphérique de l'hôte) et carte son virtuelle. Les changements sont lus chez Proxmox après l'enregistrement.*
+
+![Générateur aléatoire et watchdog](docs/captures/vm-peripheriques-2.jpg)
+
+*Suite de l'onglet : **générateur aléatoire** (source toujours `/dev/urandom`, non modifiable) et **watchdog** matériel virtuel (modèle, action). Une demande qui retirerait l'affichage de la console (`none`) exige une confirmation décidée par le serveur.*
 
 ![Onglet **Performances** ](docs/captures/vm-performances.jpg)
 
