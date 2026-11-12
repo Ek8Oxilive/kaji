@@ -36,6 +36,7 @@ actions (`shutdown`, `reboot`, `stop`) ne lisent rien de plus. Ticket #204.
 marche » ; VM en pause (`running` + `qmpstatus` `paused` ou `suspended`) : **409** « La VM est en pause : reprends-la au lieu de la démarrer ». **Aucune écriture**, audit
 `start` en erreur (« machine déjà en marche » / « machine en pause »). Arrêtée, hibernée (verrou `suspended`), état vide ou illisible : le démarrage passe. Avant ce correctif,
 Kaji répondait 202 puis la tâche échouait chez Proxmox (« already running », constaté en réel le 2026-11-12).
+**Validé en réel le 2026-11-12** (VM 115) : démarrée (202), second démarrage 409 « La machine est déjà en marche », VM suspendue puis démarrage 409 « La VM est en pause : reprends-la… », reprise, arrêt.
 
 ## Interface
 Page Machine : « Suspendre », « Hiberner », « Réinitialiser » (VM en marche), « Reprendre » (VM en pause), « Convertir en modèle… » (machine arrêtée, VM ou
