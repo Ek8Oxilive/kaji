@@ -41,7 +41,7 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
       </div>
 
       <div className="mt-auto space-y-3">
-        <p className="text-xs text-muted">{creating ? tr("Proxmox n'a pas encore actualisé cette machine.") : running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? tr("En pause : ouvre la machine pour la reprendre") : tr("Arrêtée")}</p>
+        <p className="text-xs text-muted">{creating ? tr("Proxmox n'a pas encore actualisé cette machine.") : running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? tr("En pause : reprends-la avec « Plus d'actions »") : tr("Arrêtée")}</p>
         <div className="flex flex-wrap gap-1.5">
           <Button variant="ghost" onClick={onClone} disabled={creating} className="!px-3 !py-1.5" title={guest.template ? tr("Créer une machine à partir de ce modèle") : tr("Copier cette machine")}>{tr("Cloner")}</Button>
           {!guest.template && <>
