@@ -120,6 +120,28 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
   const running = guest.status === "running";
   const c = useConsole(`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/console`, (m) => ({ kind: m }));
   const live = c.state === "open" || c.state === "connecting";
+  const [spiceBusy, setSpiceBusy] = useState(false), [spiceMsg, setSpiceMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  /** Demande un ticket SPICE à Kaji et enregistre le fichier `.vv` reçu : le navigateur ne le lance pas lui-même, `virt-viewer` doit être installé. Le ticket n'est valable que ~40 s. */
+  const openSpice = async () => {
+    setSpiceBusy(true); setSpiceMsg(null);
+    try {
+      const res = await fetch(`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/spice`, { method: "POST", credentials: "same-origin" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { detail?: string } | null;
+        throw new Error(typeof body?.detail === "string" ? tr(body.detail) : tr("Erreur {status}", { status: res.status }));
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url; a.download = `kaji-${guest.type}-${guest.vmid}.vv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setSpiceMsg({ ok: true, text: tr("Fichier .vv enregistré : ouvre-le tout de suite avec virt-viewer (le ticket n'est valable que quelques secondes).") });
+    } catch (e) {
+      setSpiceMsg({ ok: false, text: (e as Error).message });
+    } finally {
+      setSpiceBusy(false);
+    }
+  };
   return (
     <div className="space-y-4">
       {!running && <Notice kind="error">{tr("La machine doit être en marche pour ouvrir sa console.")}</Notice>}
@@ -128,8 +150,10 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
           {guest.type === "lxc" ? tr("Ouvrir le terminal") : tr("Ouvrir la console")}
         </Button>
         {guest.type === "lxc" && <Button variant="ghost" onClick={() => c.start("vnc")} disabled={!running} className="!px-3 !py-1.5">{tr("Écran (noVNC)")}</Button>}
+        <Button variant="ghost" onClick={() => void openSpice()} disabled={!running || spiceBusy} title={tr("Télécharge un fichier .vv à ouvrir avec virt-viewer (remote-viewer). Une VM doit avoir une carte d'affichage qxl (onglet Périphériques).")} className="!px-3 !py-1.5">{spiceBusy ? "…" : "SPICE (virt-viewer)"}</Button>
         {guest.type === "qemu" && <Button variant="ghost" onClick={() => c.start("term")} disabled={!running || live} title={tr("Terminal sur le port série de la VM (type socket, onglet Périphériques)")} className="!px-3 !py-1.5">{tr("Terminal série")}</Button>}
       </Screen>
+      {spiceMsg && <Notice kind={spiceMsg.ok ? "ok" : "error"}>{spiceMsg.text}</Notice>}
       <p className="text-xs text-muted">{tr("Une console donne un accès complet à la machine. Elle est journalisée (ouverture et fermeture, jamais ce que tu tapes ni ce qui s'affiche), se ferme après 30 min d'inactivité ou 8 h, et au plus 4 sont ouvertes en même temps.")}</p>
     </div>
   );
