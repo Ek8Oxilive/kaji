@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { TlsPinDialog } from "../components/TlsPinDialog";
 import { Button, Field, Notice } from "../components/ui";
 import { api, type Connection, type ProbeResult } from "../lib/api";
 
@@ -18,6 +19,7 @@ export function Connections() {
   const [busy, setBusy] = useState(false);
   const [probes, setProbes] = useState<Record<number, ProbeResult>>({});
   const [confirmDel, setConfirmDel] = useState<number | null>(null);
+  const [pinFor, setPinFor] = useState<Connection | null>(null);
 
   const load = useCallback(() => api<Connection[]>("/api/connections").then(setItems).catch((e) => setFormError(e.message)), []);
   useEffect(() => { load(); }, [load]);
@@ -60,11 +62,13 @@ export function Connections() {
                 <h2 className="truncate font-medium">{c.name}</h2>
                 <p className="truncate text-sm text-muted">{c.host}:{c.port} · {c.user}!{c.token_id}</p>
               </div>
-              {!c.verify_ssl && <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-muted">{tr("SSL non vérifié")}</span>}
+              {c.tls_pinned ? <span className="shrink-0 rounded-full border border-ok/40 bg-ok/10 px-2 py-0.5 text-xs text-ok">{tr("Certificat épinglé")}</span>
+                : !c.verify_ssl && <span className="shrink-0 rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-xs text-warn">{tr("SSL non vérifié")}</span>}
             </div>
             {probes[c.id] && <ProbeBadge r={probes[c.id]} />}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => probe(c.id)}>{tr("Tester")}</Button>
+              <Button variant="ghost" onClick={() => setPinFor(c)}>{c.tls_pinned ? tr("Certificat…") : tr("Épingler le certificat…")}</Button>
               {confirmDel === c.id
                 ? <><Button variant="danger" onClick={() => remove(c.id)}>{tr("Confirmer la suppression")}</Button><Button variant="ghost" onClick={() => setConfirmDel(null)}>{tr("Annuler")}</Button></>
                 : <Button variant="danger" onClick={() => setConfirmDel(c.id)}>{tr("Supprimer")}</Button>}
@@ -93,6 +97,7 @@ export function Connections() {
           <Button type="submit" disabled={busy}>{tr("Enregistrer")}</Button>
         </div>
       </form>
+      {pinFor && <TlsPinDialog connId={pinFor.id} name={pinFor.name} onClose={() => { setPinFor(null); load(); }} />}
     </div>
   );
 }

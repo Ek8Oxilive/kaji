@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # Derrière un reverse proxy : prend l'IP ajoutée par le proxy (dernière valeur de X-Forwarded-For) pour le
     # limiteur de connexions. À n'activer QUE derrière un proxy de confiance : sinon l'en-tête est falsifiable.
     kaji_trust_proxy: bool = False
+    # Jeton de première configuration (facultatif) : tant qu'aucun compte n'existe, `POST /api/auth/setup` l'exige. Sans lui, le premier qui atteint le port crée le compte admin.
+    kaji_setup_token: str = ""
     # Les entrées d'audit plus anciennes sont supprimées (0 = conserver indéfiniment)
     kaji_audit_retention_days: int = 365
     # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")

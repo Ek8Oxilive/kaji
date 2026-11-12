@@ -447,5 +447,12 @@
  "la première commande doit afficher la ligne « sourcedir /etc/chrony/sources.d » : sinon ce nœud n'a pas la configuration Debian habituelle, n'écris rien et ajoute les lignes dans /etc/chrony/chrony.conf à la main": "the first command must print the line “sourcedir /etc/chrony/sources.d”: otherwise this node does not have the usual Debian configuration, write nothing and add the lines to /etc/chrony/chrony.conf by hand",
  "NTS : le serveur doit le proposer ; sinon chrony n'utilisera pas cette source": "NTS: the server must offer it; otherwise chrony will not use this source",
  "sans « iburst » : la première synchronisation sera plus lente": "without “iburst”: the first synchronisation will be slower",
- "adresse du réseau local : le serveur doit être joignable depuis le nœud": "local network address: the server must be reachable from the node"
+ "adresse du réseau local : le serveur doit être joignable depuis le nœud": "local network address: the server must be reachable from the node",
+ "Le certificat de Proxmox ne correspond pas à celui épinglé (ou n'est pas approuvé) : vérifie-le sur la page Connexions avant de continuer": "Proxmox's certificate does not match the pinned one (or is not trusted): check it on the Connections page before continuing",
+ "Confirmation requise (renvoie la requête avec confirm=true) : après avoir comparé l'empreinte à celle de ton nœud": "Confirmation required (resend the request with confirm=true): after comparing the fingerprint with your node's",
+ "Proxmox injoignable : impossible de lire son certificat": "Proxmox unreachable: its certificate cannot be read",
+ "Le certificat présenté n'est plus celui que tu as vu : relis son empreinte avant de l'épingler": "The presented certificate is no longer the one you saw: re-read its fingerprint before pinning it",
+ "Confirmation requise (renvoie la requête avec confirm=true) : sans épingle, le certificat de Proxmox n'est plus vérifié comme avant": "Confirmation required (resend the request with confirm=true): without a pin, Proxmox's certificate is no longer verified as before",
+ "Aucun certificat n'est épinglé pour cette connexion": "No certificate is pinned for this connection",
+ "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid"
 }

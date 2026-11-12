@@ -70,6 +70,8 @@ class ConnectionOut(BaseModel):
     user: str
     token_id: str
     verify_ssl: bool
+    tls_pinned: bool = False                  # certificat de Proxmox épinglé (`app/tlspin.py`)
+    tls_fingerprint: str | None = None        # son empreinte SHA-256 (publique)
 
 
 Factory = Callable[..., ProxmoxClient]
@@ -98,7 +100,7 @@ async def probe(factory: Factory, **params) -> dict:
 def _params(c: Connection) -> dict:
     return dict(host=c.host, port=c.port, user=c.user, token_id=c.token_id,
                 token_secret=decrypt(get_settings().kaji_secret_key, c.token_secret_enc),
-                verify_ssl=c.verify_ssl)
+                verify_ssl=c.verify_ssl, pinned_cert=c.tls_cert_pem or None)
 
 
 def _get_or_404(db: Session, conn_id: int) -> Connection:
@@ -143,7 +145,9 @@ def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depend
     changes = body.model_dump(exclude_unset=True)
     if "token_secret" in changes:
         c.token_secret_enc = encrypt(get_settings().kaji_secret_key, changes.pop("token_secret"))
-    merged = ConnectionBase(**{**ConnectionOut.model_validate(c).model_dump(exclude={"id"}), **changes})
+    merged = ConnectionBase(**{**ConnectionOut.model_validate(c).model_dump(exclude={"id", "tls_pinned", "tls_fingerprint"}), **changes})
+    if c.tls_cert_pem and (merged.host != c.host or merged.port != c.port):
+        c.tls_cert_pem = None                 # autre serveur : le certificat épinglé ne vaut plus rien, il faut l'épingler de nouveau
     for k, v in merged.model_dump().items():
         setattr(c, k, v)
     try:

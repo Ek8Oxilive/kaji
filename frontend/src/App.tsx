@@ -30,7 +30,7 @@ export default function App() {
 
   if (failed) return <div className="grid min-h-full place-items-center p-6 text-center text-muted">{tr("Impossible de joindre le serveur Kaji. Vérifie que le backend tourne.")}</div>;
   if (!status) return <div className="grid min-h-full place-items-center text-muted">{tr("Chargement…")}</div>;
-  if (!status.authenticated) return <AuthScreen setup={status.setup_required} onDone={refresh} />;
+  if (!status.authenticated) return <AuthScreen setup={status.setup_required} tokenRequired={status.setup_token_required} onDone={refresh} />;
 
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
   // Les pages Machine et Nœud ne sont pas dans la barre latérale : elles gardent « Dashboard » allumé. Adresse inconnue : tableau de bord.

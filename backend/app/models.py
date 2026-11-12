@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -23,7 +23,18 @@ class Connection(Base):
     token_id: Mapped[str] = mapped_column(String(100))
     token_secret_enc: Mapped[str] = mapped_column(String)
     verify_ssl: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Certificat PUBLIC du serveur Proxmox épinglé (PEM), ou NULL : voir `app/tlspin.py`. Quand il est posé, il est le seul accepté.
+    tls_cert_pem: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    @property
+    def tls_pinned(self) -> bool:
+        return bool(self.tls_cert_pem)
+
+    @property
+    def tls_fingerprint(self) -> str | None:
+        from .tlspin import fingerprint_of_pem
+        return fingerprint_of_pem(self.tls_cert_pem) if self.tls_cert_pem else None
 
 
 class AdminUser(Base):

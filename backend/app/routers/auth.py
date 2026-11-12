@@ -31,6 +31,7 @@ class Credentials(BaseModel):
 
 class SetupRequest(Credentials):
     password: str = Field(min_length=12, max_length=256)
+    setup_token: str | None = Field(default=None, max_length=256, description="Jeton de première configuration (`KAJI_SETUP_TOKEN`), s'il est défini")
 
 
 class PasswordChange(BaseModel):
@@ -95,13 +96,24 @@ def _has_admin(db: Session) -> bool:
 
 @router.get("/status")
 def auth_status(request: Request, db: Session = Depends(get_db)):
-    return {"setup_required": not _has_admin(db), "authenticated": _session_of(request, db) is not None}
+    setup_required = not _has_admin(db)
+    return {"setup_required": setup_required, "authenticated": _session_of(request, db) is not None,
+            "setup_token_required": setup_required and bool(get_settings().kaji_setup_token)}
 
 
 @router.post("/setup", status_code=status.HTTP_201_CREATED)
-def setup(body: SetupRequest, response: Response, db: Session = Depends(get_db)):
+def setup(body: SetupRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     if _has_admin(db):
         raise HTTPException(status.HTTP_409_CONFLICT, "Le compte admin existe déjà")
+    expected = get_settings().kaji_setup_token
+    if expected:
+        key = f"setup:{_ip(request)}"
+        if throttle.blocked(key):
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Trop de tentatives, réessaie plus tard")
+        if not secrets.compare_digest((body.setup_token or "").encode(), expected.encode()):          # temps constant : pas de devinette octet par octet
+            throttle.fail(key)
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Jeton de première configuration manquant ou invalide")
+        throttle.reset(key)
     user = AdminUser(username=body.username, password_hash=hash_password(body.password))
     db.add(user)
     db.commit()

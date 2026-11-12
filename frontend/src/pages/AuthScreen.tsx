@@ -5,10 +5,11 @@ import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 
 import { tr } from "../lib/i18n";
-export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => void }) {
+export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: boolean; tokenRequired?: boolean; onDone: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [setupToken, setSetupToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +19,7 @@ export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => vo
     if (setup && password !== confirm) return setError(tr("Les deux mots de passe ne correspondent pas"));
     setBusy(true);
     try {
-      await api(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: { username, password } });
+      await api(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: setup && tokenRequired ? { username, password, setup_token: setupToken } : { username, password } });
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -42,6 +43,8 @@ export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => vo
         <Field label={tr("Mot de passe")} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 12 : 1}
           hint={setup ? tr("12 caractères minimum") : undefined} />
+        {setup && tokenRequired && <Field label={tr("Jeton de première configuration")} type="password" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} autoComplete="off" required
+          hint={tr("Défini par KAJI_SETUP_TOKEN dans le fichier .env du serveur")} />}
         {setup && <Field label={tr("Confirmer le mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
         {error && <Notice kind="error">{error}</Notice>}
         <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : setup ? tr("Créer le compte") : "Se connecter"}</Button>

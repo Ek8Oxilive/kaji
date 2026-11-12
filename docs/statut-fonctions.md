@@ -23,12 +23,13 @@ Le serveur le dit déjà dans l'interface (« non validé en réel ») et verrou
 - **Cluster : créer, joindre, retirer un nœud** (verrous et aperçu essayés en réel, aucune écriture) ; redémarrer / éteindre un nœud ; Wake-on-LAN.
 - **Certificats** (personnalisé, ACME), services sensibles, disques (GPT, effacer, LVM, répertoire), ajout d'un dépôt apt standard ou personnalisé.
 - **Notifications** : SMTP, webhook, envoi de test ; serveur de métriques actif ou OpenTelemetry.
+- **Épinglage du certificat de Proxmox** (page Connexions), **jeton de première configuration** (`KAJI_SETUP_TOKEN`) et **HTTPS Caddy** : testés avec de vrais handshakes TLS / sur faux Proxmox ; voir `docs/securite.md` pour ce qui a été vu en réel.
 - Options avancées de VM peu courantes (`vga: none`, `pcie`, `x-vga`, `mdev`, réplication de machine), VM en marche pour le passthrough, shell du nœud.
 
 ## 3. Limites connues (non couvert, ou refusé par Proxmox)
 - **Moniteur QEMU** : Proxmox 9 le refuse au jeton de Kaji (réservé à `root@pam`) : fonction inutilisable en l'état.
 - **LXC `keyctl`, `fuse`, `mount`** : réservés à `root@pam` chez Proxmox.
 - **Détruire un CephFS** : pas d'API chez Proxmox (ligne de commande). Migration **vers un autre cluster** : non faite.
-- **Double authentification** pour se connecter à Kaji : non fournie. **HTTPS** : non fourni (à mettre devant). Voir `docs/securite.md`.
+- **Double authentification** pour se connecter à Kaji : non fournie. **HTTPS** : option fournie (`docker-compose.tls.yml`, Caddy) mais **non testée en réel** et pas activée sur le déploiement actuel. Voir `docs/securite.md`.
 - Vu seulement sur Chrome / Brave : pas de Safari ni de vrai téléphone ; qualité de l'anglais relue par échantillon.
 - Les messages du serveur construits avec des valeurs (certains refus) restent en français.
