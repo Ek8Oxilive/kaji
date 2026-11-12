@@ -1,6 +1,6 @@
 # Moniteur QEMU d'une VM, en lecture seule (lot #273)
 
-> **Non validé en réel au moment du code** (faux Proxmox strict) ; essais réels : voir « Validé en réel » plus bas une fois faits. Fichiers :
+> **Essai réel le 2026-11-11 (PC B, Proxmox 9.1.9, VM 115) : Proxmox refuse le moniteur au token de Kaji** (voir « Constaté en réel »). Les garde-fous de Kaji sont validés ; la fonction elle-même ne marche pas avec ce token. Fichiers :
 > `routers/monitor.py`, `monitorspec.py`, `tests/test_monitor.py`, `components/MonitorTab.tsx` (onglet « Moniteur » de la page Machine, VM seulement),
 > `lib/types/moniteur.ts`. La route a la forme de la route générique `{action}` de `actions.py` (`ORDER = 90`) : `monitor.py` garde l'ordre par défaut et passe avant.
 
@@ -26,7 +26,13 @@ Droit Proxmox : `VM.Monitor` sur `/vms/{vmid}`. Audit : `qemu-monitor` (**la com
 Onglet « Moniteur » (VM) : liste des commandes autorisées (« info status — État d'exécution »), bouton Exécuter (grisé si la VM n'est pas en marche), sortie en
 lecture seule.
 
-## Non validé en réel
-- l'acceptation par Proxmox de `POST …/monitor` avec le token de Kaji (droit `VM.Monitor`, éventuelle restriction `root@pam`) ;
-- la sortie réelle de chaque commande (les noms de commandes viennent de la documentation de QEMU) ;
-- l'interface n'a pas été ouverte dans un navigateur au moment du code.
+## Constaté en réel (2026-11-11, Proxmox 9.1.9, VM 115 démarrée puis arrêtée de force)
+- **Proxmox répond 403 aux 21 commandes** (`POST /nodes/enzo/qemu/115/monitor`), alors que le token a `PVEVMAdmin` sur `/vms`, `Sys.Modify` et `Sys.Console` sur `/`.
+  **`VM.Monitor` n'existe plus** : aucun des 22 rôles, `Administrator` compris, ne le contient. Le moniteur semble donc réservé à `root@pam`, comme `keyctl` et `fuse`
+  d'un conteneur. Kaji répond **403** avec le message fixe « Proxmox refuse le moniteur QEMU au token de Kaji … Utilise `qm monitor` sur le nœud, dans la console. »
+  (sans le message brut de Proxmox) ; audit `qemu-monitor` en erreur avec le même texte. Un 403 sur la lecture de l'état reste un 502 générique.
+- **Garde-fous de Kaji validés** (par l'API, VM arrêtée) : 422 pour `quit`, `system_powerdown`, `info block;quit`, `info registers`, commande vide, `drive_del scsi0`,
+  `human-monitor-command` (audit « commande hors liste blanche », aucun appel à Proxmox) ; 409 VM arrêtée ; 422 pour un conteneur ; liste de 21 commandes ;
+  onglet : avertissement « La VM doit être en marche » et bouton grisé quand la VM est arrêtée ; VM en marche : l'erreur s'affiche dans l'onglet.
+- **Jamais vu en réel** : la sortie d'une commande (aucune n'a réussi). Les noms de commandes viennent de la documentation de QEMU.
+- Pour que la fonction serve, il faudrait un token `root@pam` : **à ne pas faire** (règle du dépôt : pas de token `root@pam`). À garder tel quel, ou à retirer si Enzo préfère.
