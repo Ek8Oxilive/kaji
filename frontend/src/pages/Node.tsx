@@ -6,6 +6,7 @@ import { NodeConsole } from "../components/ConsoleTab";
 import { NodeDisks } from "../components/NodeDisks";
 import { NodeFirewall } from "../components/NodeFirewall";
 import { NodePower } from "../components/NodePower";
+import { NodeReplication } from "../components/NodeReplication";
 import { NodeBulk } from "../components/NodeBulk";
 import { NodeSystem } from "../components/NodeSystem";
 import { Gauge } from "../components/Gauge";
@@ -103,6 +104,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
 
       <Section title="Pare-feu">
         <NodeFirewall connId={active.id} node={node} />
+      </Section>
+
+      <Section title="Réplication">
+        <NodeReplication connId={active.id} node={node} />
       </Section>
 
       <Section title="Machines" count={mine.length}>
