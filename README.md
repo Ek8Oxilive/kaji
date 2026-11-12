@@ -76,6 +76,26 @@ Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
 
 *Regroupement **par type** : conteneurs LXC d'un côté, machines virtuelles de l'autre (les modèles ont leur groupe). Les regroupements par nœud, pool, étiquette et stockage se choisissent dans la même liste.*
 
+### Thèmes : Sombre, Glass, Clair et Auto
+
+Quatre thèmes (`docs/themes.md`) : **Sombre**, **Glass**, **Clair** (contrastes WCAG AA vérifiés) et **Auto**, qui suit le réglage clair / sombre du système. Le sélecteur est en haut de chaque page (dans le menu ☰ sur petit écran) et dans la palette de commandes (Ctrl K).
+
+![Tableau de bord en thème clair](docs/captures/theme-clair-tableau-de-bord.jpg)
+
+*Tableau de bord en thème Clair : cartes blanches, accent bleu foncé, pastilles d'état lisibles sur fond clair.*
+
+![Graphiques en thème clair](docs/captures/theme-clair-graphiques.jpg)
+
+*Graphiques du nœud en thème Clair : les deux séries (bleu et orange) ont leurs propres teintes, plus foncées, pour rester distinctes sur fond blanc.*
+
+![Assistant de création en thème clair](docs/captures/theme-clair-fenetre.jpg)
+
+*Fenêtres, champs et avertissements en thème Clair.*
+
+![Menu avec les quatre thèmes](docs/captures/theme-clair-menu.jpg)
+
+*Dans le menu ☰ d'un petit écran, le sélecteur propose Sombre, Glass, Clair et Auto.*
+
 ### Petits écrans et langue (français / anglais)
 
 Sous 768 px (téléphone, petit PC), la barre latérale devient une barre du haut avec un menu ☰ qui ouvre un tiroir de navigation ; la barre de tâches est repliée par défaut. Le sélecteur **FR | EN** est à côté du thème ; le choix est gardé dans le navigateur (`docs/interface-mobile.md`, `docs/interface-langue.md`).
