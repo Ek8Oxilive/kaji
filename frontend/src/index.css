@@ -16,8 +16,8 @@
 }
 
 /* Séries des graphiques : emplacements 1 (bleu) et 2 (orange) de la palette catégorielle, teintes pour fond sombre, validées avec
-   scripts/validate_palette.js sur les deux surfaces (écart CVD 26,8 ; contraste >= 3:1). Identiques dans les deux thèmes (tous deux sombres). */
-:root, :root[data-theme="dark"], :root[data-theme="glass"] { --series-1: #3987e5; --series-2: #d95926; }
+   scripts/validate_palette.js sur les deux surfaces (écart CVD 26,8 ; contraste >= 3:1). Identiques dans les thèmes sombres ; le thème clair a ses propres teintes (plus foncées, contraste >= 3:1 sur blanc). */
+:root, :root[data-theme="dark"], :root[data-theme="glass"] { --series-1: #3987e5; --series-2: #d95926; --code-bg: rgb(0 0 0 / 0.35); }
 
 :root,
 :root[data-theme="dark"] {
@@ -37,6 +37,29 @@
   --blur: 0px;
   --radius: 0.875rem;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --page-bg: var(--canvas);
+}
+
+/* Thème clair : contrastes WCAG AA vérifiés (texte courant >= 4,5:1 sur --surface et --canvas ; accent, ok, warn, danger et séries >= 4,5:1 sur blanc, canvas et surface2). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --series-1: #1d5fc0; --series-2: #b8470f;
+  --code-bg: rgb(15 23 42 / 0.06);
+  --canvas: #f3f5f9;
+  --surface: #ffffff;
+  --surface2: #eef1f6;
+  --option-bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #566174;
+  --line: #d5dce8;
+  --accent: #0369a1;
+  --accentfg: #ffffff;
+  --ok: #047857;
+  --warn: #9a4508;
+  --danger: #b91c1c;
+  --blur: 0px;
+  --radius: 0.875rem;
+  --shadow: 0 1px 2px rgb(15 23 42 / 0.08), 0 8px 24px -12px rgb(15 23 42 / 0.2);
   --page-bg: var(--canvas);
 }
 

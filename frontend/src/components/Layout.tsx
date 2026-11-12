@@ -62,7 +62,7 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
         <Logo />
-        <div className="ml-auto flex items-center gap-1.5"><LanguageSwitcher /><ThemeSwitcher compact /></div>
+        <div className="ml-auto"><LanguageSwitcher /></div>
       </header>
       {menu && (
         <div className="fixed inset-0 z-50 bg-black/60 md:hidden" onClick={() => setMenu(false)}>
@@ -71,6 +71,7 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
             <div className="flex items-center justify-between"><Logo />
               <button onClick={() => setMenu(false)} aria-label={tr("Fermer le menu")} autoFocus className="grid size-10 place-items-center rounded-xl text-muted hover:bg-surface2 hover:text-fg">✕</button></div>
             {nav}
+            <ThemeSwitcher />
           </aside>
         </div>
       )}

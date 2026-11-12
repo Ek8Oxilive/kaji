@@ -122,7 +122,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Recherche globale | ✅ (palette Ctrl+K, validée en réel) | M3 |
 | Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type, **stockage** (lot #252, `docs/api/vue-par-stockage.md`)) | M13 |
 | Thèmes clair / sombre | ✅ (sombre et Glass, mémorisés : validé en réel) | M3 |
-| Langues | ⬜ (français seulement) | M15 |
+| Langues | ✅ (français et anglais, sélecteur FR \| EN, `docs/interface-langue.md` ; messages du serveur construits avec des valeurs : français) | M15 |
 | Tableau de bord temps réel | ✅ (flux SSE validé en réel : un instantané toutes les 5 s) | M3 |
 | Journal d'audit des actions de Kaji | ✅ (Kaji uniquement : hors Proxmox) | M1 |
 

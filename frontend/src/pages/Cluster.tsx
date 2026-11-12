@@ -19,7 +19,7 @@ function Cmd({ label, cmd, where }: { label: string; cmd: string; where: string 
   return (
     <div className="space-y-1.5 rounded-xl border border-line bg-surface2 p-3 text-sm">
       <div className="flex items-center justify-between gap-3"><div><b>{label}</b> <span className="text-muted">· {where}</span></div><Button variant="ghost" onClick={copy}>{copied ? tr("Copié") : tr("Copier")}</Button></div>
-      <code className="block overflow-x-auto whitespace-pre rounded-lg bg-black/30 px-3 py-2 font-mono text-xs">{cmd}</code>
+      <code className="block overflow-x-auto whitespace-pre rounded-lg bg-[var(--code-bg)] px-3 py-2 font-mono text-xs">{cmd}</code>
     </div>
   );
 }

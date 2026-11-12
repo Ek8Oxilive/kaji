@@ -98,7 +98,7 @@ export function TaskDrawer({ connId, task, label, onClose }: { connId: number; t
         {detail.error && <Notice kind="error">{(detail.error as Error).message}</Notice>}
         {logError && <Notice kind="error">{tr("Journal illisible : {logError}", { logError })}</Notice>}
         <div ref={box} onScroll={(e) => { const el = e.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
-          className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-line bg-black/40 p-3 font-mono text-xs leading-relaxed" aria-label={tr("Journal de la tâche")} tabIndex={0}>
+          className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-line bg-[var(--code-bg)] p-3 font-mono text-xs leading-relaxed" aria-label={tr("Journal de la tâche")} tabIndex={0}>
           {lines.length === 0 && !logError ? <p className="text-muted">{running ? tr("En attente de sortie…") : tr("Journal vide.")}</p>
             : lines.map((l, i) => <div key={l.n ?? i} className="whitespace-pre-wrap break-all">{l.t}</div>)}
           {capped && <p className="mt-2 text-warn">{tr("Journal tronqué : seules les {p} premières lignes sont affichées.", { p: LOG_MAX.toLocaleString(locale()) })}</p>}
