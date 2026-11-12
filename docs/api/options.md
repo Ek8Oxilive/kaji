@@ -54,6 +54,12 @@ protection de Kaji. Les réglages inoffensifs (par exemple `onboot`, ou `protect
 Action `options` (cible `qemu/{vmid}@{node}`) : succès (réglages et valeurs, **sans le texte de la description**), refus et erreur. Configuration
 illisible : 502. Erreur de Proxmox : 502 traduit, sans secret.
 
+## Validé en réel : `keyboard` et `reboot` (2026-11-12, PC B, VM 115 arrêtée, par l'API et l'interface, tout retiré ensuite)
+- `keyboard` : `fr` puis `de` écrits et relus à l'identique par Proxmox ; valeur inconnue (`evil`) ou mauvaise casse (`FR`) : 422 sans appel ; l'onglet Options affiche le sélecteur (25 dispositions + « Par défaut »).
+- `reboot` : `reboot=0` sans `confirm` : 400 « Confirmation requise : reboot=0 : un redémarrage lancé depuis le système invité ARRÊTERA la machine » ; avec `confirm` : écrit et relu (`false`) ; **déjà à 0 : aucune confirmation redemandée** ; `reboot=1` : écrit sans confirmation ; valeur non booléenne (`"0"`) : 422 ; **l'interface** affiche le panneau « Confirmation requise » au clic sur Enregistrer (non confirmé : rien d'écrit).
+- Retrait des deux (`clear: [keyboard, reboot]`) : les deux repassent à « non défini » ; aucun changement en attente (VM arrêtée). Audit : `keyboard=de`, `reboot=0`, `reboot=1`, `retiré : keyboard,reboot`, sans secret. État final : identique à l'origine.
+- **Pas vu en réel** : machine de `KAJI_PROTECTED_VMIDS` (couvert par les tests : aucune machine protégée n'est un bac à sable), effet d'un `reboot=0` sur une VM en marche (un redémarrage depuis l'invité l'arrêterait : non essayé, la VM 115 n'a pas de système), effet réel d'une disposition de clavier dans la console VNC.
+
 ## Non validé en réel (à essayer dans le bac à sable, VM 115 arrêtée)
 - l'acceptation par Proxmox des chaînes construites (`startup=order=1,up=30,down=60`, `agent=enabled=1,fstrim_cloned_disks=1`, `hotplug=disk,network,usb`) ;
 - `protection=1` fait refuser la suppression par Proxmox **et** par Kaji ; `protection=0` sans `confirm` : 400 ;
