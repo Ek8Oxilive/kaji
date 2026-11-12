@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { Modal } from "./Modal";
 import { Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const PHRASE = "COUPURE POSSIBLE";
 type Locks = { cut: string[]; live: string[]; inert: boolean };
 type Preview = { locks: Locks; pending?: { zones: string[]; vnets: string[]; subnets: string[] } };
@@ -43,7 +44,7 @@ export function SdnDialog({ connId, mode, onClose }: { connId: number; mode: Sdn
     try {
       await send({ confirm: true, ...(ackLive ? { acknowledge_live: true } : {}), ...(ackCut ? { acknowledge_cut_access: true, type_name: typed } : {}) });
       await qc.invalidateQueries({ queryKey: ["sdn", connId] });
-      setDone(mode.kind === "apply" ? "Configuration SDN appliquée sur les nœuds." : mode.kind === "rollback" ? "Modifications SDN annulées." : "Enregistré EN ATTENTE : rien n'est appliqué tant que tu n'as pas cliqué sur « Appliquer ».");
+      setDone(mode.kind === "apply" ? tr("Configuration SDN appliquée sur les nœuds.") : mode.kind === "rollback" ? tr("Modifications SDN annulées.") : tr("Enregistré EN ATTENTE : rien n'est appliqué tant que tu n'as pas cliqué sur « Appliquer »."));
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
@@ -51,26 +52,26 @@ export function SdnDialog({ connId, mode, onClose }: { connId: number; mode: Sdn
   const form = mode.kind === "zone" || mode.kind === "vnet" || mode.kind === "subnet";
   const ready = !!preview && (!cut || (ackCut && typed === PHRASE)) && (!live || cut || ackLive);
   const inp = (label: string, v: string, set: (s: string) => void, ph = "") => <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span><input className="field" value={v} placeholder={ph} onChange={(e) => set(e.target.value)} /></label>;
-  const title = { zone: "Ajouter une zone SDN", vnet: "Ajouter un VNet", subnet: "Ajouter un sous-réseau", delete: "Supprimer (en attente)", apply: "Appliquer le SDN", rollback: "Annuler les modifications SDN" }[mode.kind];
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{done}</Notice></Modal>;
+  const title = { zone: tr("Ajouter une zone SDN"), vnet: tr("Ajouter un VNet"), subnet: tr("Ajouter un sous-réseau"), delete: tr("Supprimer (en attente)"), apply: tr("Appliquer le SDN"), rollback: tr("Annuler les modifications SDN") }[mode.kind];
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{done}</Notice></Modal>;
   return (
-    <Modal title={title} subtitle="Tout est écrit en attente ; appliquer pousse la configuration sur tous les nœuds." onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel="Confirmer" danger={cut || live} busy={busy} error={err} canSubmit={ready}>
-      {mode.kind === "zone" && <>{inp("Identifiant (8 caractères max, minuscules)", id, setId, "zone1")}
-        <label className="block space-y-1 text-sm"><span className="text-muted">Type</span><select className="field" value={type} onChange={(e) => setType(e.target.value)}>{ZONE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
-        {(type === "vlan" || type === "qinq") && inp("Bridge", bridge, setBridge, "vmbr0")}{type === "qinq" && inp("Tag de service", tag, setTag)}{type === "vxlan" && inp("Pairs (IP)", peers, setPeers)}
-        {type === "evpn" && <>{inp("Contrôleur", controller, setController)}{inp("VRF VXLAN", vrf, setVrf)}</>}</>}
-      {mode.kind === "vnet" && <>{inp("Identifiant", id, setId, "vnet1")}{inp("Zone", zone, setZone)}{inp("Alias", alias, setAlias)}{inp("Tag (zones VLAN)", tag, setTag)}</>}
-      {mode.kind === "subnet" && <>{inp(`Sous-réseau de ${mode.vnet} (CIDR)`, cidr, setCidr, "10.99.0.0/24")}{inp("Passerelle", gw, setGw)}<label className="flex gap-2 text-sm"><input type="checkbox" checked={snat} onChange={(e) => setSnat(e.target.checked)} />SNAT</label></>}
-      {mode.kind === "delete" && <p className="text-sm">Supprimer <b>{mode.id}</b> de la configuration en attente.</p>}
-      {form && <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm" onClick={look}>Aperçu des verrous</button>}
-      {preview?.pending && <p className="text-xs text-muted">En attente : zones {preview.pending.zones.join(", ") || "–"} · VNets {preview.pending.vnets.join(", ") || "–"} · sous-réseaux {preview.pending.subnets.join(", ") || "–"}</p>}
+    <Modal title={title} subtitle={tr("Tout est écrit en attente ; appliquer pousse la configuration sur tous les nœuds.")} onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel={tr("Confirmer")} danger={cut || live} busy={busy} error={err} canSubmit={ready}>
+      {mode.kind === "zone" && <>{inp(tr("Identifiant (8 caractères max, minuscules)"), id, setId, "zone1")}
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Type")}</span><select className="field" value={type} onChange={(e) => setType(e.target.value)}>{ZONE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
+        {(type === "vlan" || type === "qinq") && inp(tr("Bridge"), bridge, setBridge, "vmbr0")}{type === "qinq" && inp(tr("Tag de service"), tag, setTag)}{type === "vxlan" && inp("Pairs (IP)", peers, setPeers)}
+        {type === "evpn" && <>{inp(tr("Contrôleur"), controller, setController)}{inp("VRF VXLAN", vrf, setVrf)}</>}</>}
+      {mode.kind === "vnet" && <>{inp(tr("Identifiant"), id, setId, "vnet1")}{inp(tr("Zone"), zone, setZone)}{inp(tr("Alias"), alias, setAlias)}{inp("Tag (zones VLAN)", tag, setTag)}</>}
+      {mode.kind === "subnet" && <>{inp(tr("Sous-réseau de {vnet} (CIDR)", { vnet: mode.vnet }), cidr, setCidr, "10.99.0.0/24")}{inp(tr("Passerelle"), gw, setGw)}<label className="flex gap-2 text-sm"><input type="checkbox" checked={snat} onChange={(e) => setSnat(e.target.checked)} />{tr("SNAT")}</label></>}
+      {mode.kind === "delete" && <p className="text-sm">{tr("Supprimer")}{" "}<b>{mode.id}</b>{" "}{tr("de la configuration en attente.")}</p>}
+      {form && <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm" onClick={look}>{tr("Aperçu des verrous")}</button>}
+      {preview?.pending && <p className="text-xs text-muted">{tr("En attente : zones {p} · VNets {p2} · sous-réseaux {p3}", { p: preview.pending.zones.join(", ") || "–", p2: preview.pending.vnets.join(", ") || "–", p3: preview.pending.subnets.join(", ") || "–" })}</p>}
       {preview && (
         <div className="space-y-3 text-sm">
-          {preview.locks.inert && <Notice kind="ok">Aucun verrou : enregistré en attente, sans effet tant qu'il n'est pas appliqué.</Notice>}
-          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>Je comprends que la configuration sera poussée sur les nœuds</span></label></Notice>}
-          {cut && <Notice kind="error"><b>Coupure possible</b> : {preview.locks.cut.join(" ; ")}.
-            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>Je comprends que cela peut couper des machines ou le réseau des nœuds</span></label>
-            <label className="mt-2 block text-xs">Retape <code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
+          {preview.locks.inert && <Notice kind="ok">{tr("Aucun verrou : enregistré en attente, sans effet tant qu'il n'est pas appliqué.")}</Notice>}
+          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>{tr("Je comprends que la configuration sera poussée sur les nœuds")}</span></label></Notice>}
+          {cut && <Notice kind="error"><b>{tr("Coupure possible")}</b> : {preview.locks.cut.join(" ; ")}.
+            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>{tr("Je comprends que cela peut couper des machines ou le réseau des nœuds")}</span></label>
+            <label className="mt-2 block text-xs">{tr("Retape")}{" "}<code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
         </div>)}
     </Modal>
   );

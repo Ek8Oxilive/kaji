@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -7,7 +8,7 @@ export class ApiError extends Error {
 function messageOf(body: unknown, status: number): string {
   const d = (body as { detail?: unknown } | null)?.detail;
   if (typeof d === "string") return d;
-  if (Array.isArray(d)) return d.map((e) => (e as { msg?: string }).msg ?? "Valeur invalide").join(" · ");
+  if (Array.isArray(d)) return d.map((e) => (e as { msg?: string }).msg ?? tr("Valeur invalide")).join(" · ");
   return `Erreur ${status}`;
 }
 

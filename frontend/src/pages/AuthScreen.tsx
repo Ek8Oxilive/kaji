@@ -4,6 +4,7 @@ import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 
+import { tr } from "../lib/i18n";
 export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +15,7 @@ export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => vo
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (setup && password !== confirm) return setError("Les deux mots de passe ne correspondent pas");
+    if (setup && password !== confirm) return setError(tr("Les deux mots de passe ne correspondent pas"));
     setBusy(true);
     try {
       await api(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: { username, password } });
@@ -32,18 +33,18 @@ export function AuthScreen({ setup, onDone }: { setup: boolean; onDone: () => vo
       <form onSubmit={submit} className="panel w-full max-w-sm space-y-5 p-7">
         <Logo />
         <div>
-          <h1 className="text-lg font-semibold">{setup ? "Bienvenue" : "Connexion"}</h1>
+          <h1 className="text-lg font-semibold">{setup ? tr("Bienvenue") : tr("Connexion")}</h1>
           <p className="text-sm text-muted">
-            {setup ? "Crée le compte administrateur de ton dashboard." : "Accède à ton dashboard Proxmox."}
+            {setup ? tr("Crée le compte administrateur de ton dashboard.") : tr("Accède à ton dashboard Proxmox.")}
           </p>
         </div>
-        <Field label="Identifiant" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required minLength={3} autoFocus />
-        <Field label="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+        <Field label={tr("Identifiant")} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required minLength={3} autoFocus />
+        <Field label={tr("Mot de passe")} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 12 : 1}
-          hint={setup ? "12 caractères minimum" : undefined} />
-        {setup && <Field label="Confirmer le mot de passe" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
+          hint={setup ? tr("12 caractères minimum") : undefined} />
+        {setup && <Field label={tr("Confirmer le mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
         {error && <Notice kind="error">{error}</Notice>}
-        <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : setup ? "Créer le compte" : "Se connecter"}</Button>
+        <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : setup ? tr("Créer le compte") : "Se connecter"}</Button>
       </form>
     </main>
   );

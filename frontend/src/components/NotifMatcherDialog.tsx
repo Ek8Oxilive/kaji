@@ -5,6 +5,7 @@ import { SEVERITIES, type NotifMatcher, type NotifMatcherDetail, type NotifPrevi
 import { Modal } from "./Modal";
 import { Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 export type MatcherMode = { kind: "new" } | { kind: "edit" | "delete"; matcher: NotifMatcher };
 const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
@@ -41,30 +42,30 @@ export function NotifMatcherDialog({ connId, mode, targets, onClose }: { connId:
   const look = async () => { setErr(null); try { const r = request({ dry_run: true }); setPreview(await api<NotifPreview>(r.path, r.init)); } catch (e) { setErr((e as Error).message); } };
   const run = async () => {
     setBusy(true); setErr(null);
-    try { const r = request({ confirm: true }); await api(r.path, r.init); await qc.invalidateQueries({ queryKey: ["notifications", connId] }); setDone(k === "delete" ? "Règle supprimée." : "Enregistré, relu chez Proxmox."); } catch (e) { setErr((e as Error).message); }
+    try { const r = request({ confirm: true }); await api(r.path, r.init); await qc.invalidateQueries({ queryKey: ["notifications", connId] }); setDone(k === "delete" ? tr("Règle supprimée.") : tr("Enregistré, relu chez Proxmox.")); } catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
   const ready = !!preview && (k !== "delete" || typed === m?.name);
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{done}</Notice></Modal>;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{done}</Notice></Modal>;
   return (
-    <Modal title={k === "new" ? "Ajouter une règle" : k === "edit" ? `Modifier ${m!.name}` : `Supprimer ${m!.name}`} subtitle="Une règle envoie les notifications qui correspondent vers ses cibles." onClose={busy ? () => {} : onClose}
-      onSubmit={run} submitLabel={k === "delete" ? "Supprimer" : "Appliquer"} danger={k === "delete"} busy={busy} error={err} canSubmit={ready} wide>
-      {k === "delete" ? <Notice kind="error">La règle <code>{m!.name}</code> sera supprimée. Retape <code>{m!.name}</code> pour confirmer.<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>
-        : k === "edit" && !d ? <p className="text-sm text-muted">Chargement…</p> : <>
-        {k === "new" && <Field label="Nom" value={name} onChange={(e) => setName(e.target.value)} maxLength={64} hint="Lettre puis lettres, chiffres, . _ -" autoComplete="off" />}
-        <fieldset className="space-y-1 text-sm"><legend className="text-muted">Cibles (au moins une)</legend>
+    <Modal title={k === "new" ? tr("Ajouter une règle") : k === "edit" ? tr("Modifier {name}", { name: m!.name }) : tr("Supprimer {name}", { name: m!.name })} subtitle={tr("Une règle envoie les notifications qui correspondent vers ses cibles.")} onClose={busy ? () => {} : onClose}
+      onSubmit={run} submitLabel={k === "delete" ? tr("Supprimer") : tr("Appliquer")} danger={k === "delete"} busy={busy} error={err} canSubmit={ready} wide>
+      {k === "delete" ? <Notice kind="error">{tr("La règle")}{" "}<code>{m!.name}</code>{" "}{tr("sera supprimée. Retape")}{" "}<code>{m!.name}</code>{" "}{tr("pour confirmer.")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>
+        : k === "edit" && !d ? <p className="text-sm text-muted">{tr("Chargement…")}</p> : <>
+        {k === "new" && <Field label={tr("Nom")} value={name} onChange={(e) => setName(e.target.value)} maxLength={64} hint={tr("Lettre puis lettres, chiffres, . _ -")} autoComplete="off" />}
+        <fieldset className="space-y-1 text-sm"><legend className="text-muted">{tr("Cibles (au moins une)")}</legend>
           {targets.map((t) => <label key={t.name} className="mr-4 inline-flex items-center gap-2"><input type="checkbox" checked={tgs.includes(t.name)} onChange={() => toggle(tgs, setTgs, t.name)} /><span className="font-mono">{t.name}</span></label>)}</fieldset>
-        <fieldset className="space-y-1 text-sm"><legend className="text-muted">Gravités (vide = toutes)</legend>
+        <fieldset className="space-y-1 text-sm"><legend className="text-muted">{tr("Gravités (vide = toutes)")}</legend>
           {SEVERITIES.map((s) => <label key={s} className="mr-4 inline-flex items-center gap-2"><input type="checkbox" checked={sev.includes(s)} onChange={() => toggle(sev, setSev, s)} />{s}</label>)}</fieldset>
-        <label className="block space-y-1.5 text-sm"><span className="text-muted">Champs (une ligne chacun : <code>exact:type=vzdump</code> ou <code>regex:hostname=^pve</code>)</span><textarea className="field min-h-[4rem] font-mono text-xs" value={fields} onChange={(e) => setFields(e.target.value)} /></label>
-        <label className="block space-y-1.5 text-sm"><span className="text-muted">Calendrier (une ligne chacun, ex. <code>mon..fri 08-18</code>)</span><textarea className="field min-h-[3rem] font-mono text-xs" value={cal} onChange={(e) => setCal(e.target.value)} /></label>
-        <div className="grid gap-4 sm:grid-cols-2"><label className="block space-y-1.5 text-sm"><span className="text-muted">Mode</span><select className="field" value={mmode} onChange={(e) => setMmode(e.target.value as typeof mmode)}><option value="">Défaut (toutes les conditions)</option><option value="all">all : toutes les conditions</option><option value="any">any : une suffit</option></select></label>
-          <Field label="Commentaire" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} hint="ASCII uniquement" autoComplete="off" /></div>
-        <label className="flex gap-2 text-sm"><input type="checkbox" checked={invert} onChange={(e) => setInvert(e.target.checked)} />Inverser la correspondance</label>
-        <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span><b>Désactivée</b></span></label>
+        <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Champs (une ligne chacun :")}{" "}<code>{tr("exact:type=vzdump")}</code>{" "}{tr("ou")}{" "}<code>{tr("regex:hostname=^pve")}</code>)</span><textarea className="field min-h-[4rem] font-mono text-xs" value={fields} onChange={(e) => setFields(e.target.value)} /></label>
+        <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Calendrier (une ligne chacun, ex.")}{" "}<code>{tr("mon..fri 08-18")}</code>)</span><textarea className="field min-h-[3rem] font-mono text-xs" value={cal} onChange={(e) => setCal(e.target.value)} /></label>
+        <div className="grid gap-4 sm:grid-cols-2"><label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Mode")}</span><select className="field" value={mmode} onChange={(e) => setMmode(e.target.value as typeof mmode)}><option value="">{tr("Défaut (toutes les conditions)")}</option><option value="all">{tr("all : toutes les conditions")}</option><option value="any">{tr("any : une suffit")}</option></select></label>
+          <Field label={tr("Commentaire")} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} hint={tr("ASCII uniquement")} autoComplete="off" /></div>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={invert} onChange={(e) => setInvert(e.target.checked)} />{tr("Inverser la correspondance")}</label>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span><b>{tr("Désactivée")}</b></span></label>
       </>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k === "new" ? !name || tgs.length === 0 : k === "edit" ? !d : false} onClick={look}>Aperçu</button>
-      {preview && <Notice kind="ok">{k === "delete" ? <>Sera supprimé : <code>{m!.name}</code></> : <>Sera envoyé : <code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <> · retiré : <code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k === "new" ? !name || tgs.length === 0 : k === "edit" ? !d : false} onClick={look}>{tr("Aperçu")}</button>
+      {preview && <Notice kind="ok">{k === "delete" ? <>{tr("Sera supprimé :")}{" "}<code>{m!.name}</code></> : <>{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
     </Modal>
   );
 }

@@ -62,6 +62,7 @@ par l'autre (commentaire « je prends » ou label de l'autre agent).
 - Frontend : `frontend/src/pages`, `components`, `lib`. Données : TanStack Query ; attente d'une tâche Proxmox :
   `lib/tasks.ts` (`runTask`, `LONG_TASK_SECONDS` pour les opérations longues).
 - **Types frontend** : crée un fichier par domaine (`frontend/src/lib/types/<domaine>.ts`) au lieu d'ajouter à `api.ts`.
+- **Langue de l'interface (français / anglais, demande d'Enzo du 2026-11-12)** : tout texte visible du frontend passe par `tr("Texte français")` (JSX, `title=`, `placeholder=`, messages `toast`…) et reçoit sa traduction dans `frontend/src/lib/en.json` (mêmes `{variables}`). `backend/tests/test_i18n.py` échoue sinon (`docs/interface-langue.md`).
 - **Documentation d'API** : un fichier par fonction dans `docs/api/<fonction>.md`. **Ne modifie pas le README** pour
   documenter une route (c'est la première source de conflits).
 

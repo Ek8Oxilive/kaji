@@ -8,29 +8,30 @@ import { Modal } from "./Modal";
 import { Button, Field, Notice } from "./ui";
 import { useToast } from "./Toast";
 
+import { tr } from "../lib/i18n";
 const TEXT: Record<PowerOp, { title: string; busy: string; done: string; text: string; danger: boolean }> = {
-  reset: { title: "Réinitialiser", busy: "Réinitialisation", done: "réinitialisée", danger: true,
-    text: "Coupure brutale puis redémarrage, comme le bouton reset : les données non enregistrées dans la VM sont perdues." },
-  suspend: { title: "Suspendre", busy: "Suspension", done: "suspendue", danger: false,
-    text: "La VM est figée en mémoire (état « pause ») jusqu'à ce que tu la reprennes." },
-  hibernate: { title: "Hiberner", busy: "Hibernation", done: "hibernée", danger: true,
-    text: "La mémoire est écrite sur disque et la VM s'arrête ; elle reprend là où elle en était au prochain démarrage. Sans agent invité, Proxmox peut refuser." },
-  resume: { title: "Reprendre", busy: "Reprise", done: "reprise", danger: false, text: "La VM reprend son exécution." },
-  template: { title: "Convertir en modèle", busy: "Conversion", done: "convertie en modèle", danger: true, text: "" },
+  reset: { get title() { return tr("Réinitialiser"); }, get busy() { return tr("Réinitialisation"); }, get done() { return tr("réinitialisée"); }, danger: true,
+    get text() { return tr("Coupure brutale puis redémarrage, comme le bouton reset : les données non enregistrées dans la VM sont perdues."); } },
+  suspend: { get title() { return tr("Suspendre"); }, get busy() { return tr("Suspension"); }, done: "suspendue", danger: false,
+    get text() { return tr("La VM est figée en mémoire (état « pause ») jusqu'à ce que tu la reprennes."); } },
+  hibernate: { get title() { return tr("Hiberner"); }, get busy() { return tr("Hibernation"); }, get done() { return tr("hibernée"); }, danger: true,
+    get text() { return tr("La mémoire est écrite sur disque et la VM s'arrête ; elle reprend là où elle en était au prochain démarrage. Sans agent invité, Proxmox peut refuser."); } },
+  resume: { get title() { return tr("Reprendre"); }, get busy() { return tr("Reprise"); }, done: "reprise", danger: false, get text() { return tr("La VM reprend son exécution."); } },
+  template: { get title() { return tr("Convertir en modèle"); }, get busy() { return tr("Conversion"); }, get done() { return tr("convertie en modèle"); }, danger: true, text: "" },
 };
 
 /** Infobulle au survol de chaque bouton (comme « Coupure brutale » sur Forcer). */
 const HINT: Record<PowerOp, string> = {
-  suspend: "Met la VM en pause : elle est figée en mémoire, à reprendre ensuite",
-  hibernate: "Écrit la mémoire sur disque et arrête la VM ; elle reprend là où elle en était au prochain démarrage",
-  reset: "Coupure brutale puis redémarrage, comme le bouton reset",
-  resume: "Reprend l'exécution de la VM en pause",
-  template: "Convertit la machine en modèle (irréversible) : elle ne démarre plus, elle se clone",
+  get suspend() { return tr("Met la VM en pause : elle est figée en mémoire, à reprendre ensuite"); },
+  get hibernate() { return tr("Écrit la mémoire sur disque et arrête la VM ; elle reprend là où elle en était au prochain démarrage"); },
+  get reset() { return tr("Coupure brutale puis redémarrage, comme le bouton reset"); },
+  get resume() { return tr("Reprend l'exécution de la VM en pause"); },
+  get template() { return tr("Convertit la machine en modèle (irréversible) : elle ne démarre plus, elle se clone"); },
 };
 
 /** Le texte de la conversion dépend du type : les disques d'une VM sont renommés « base-… », le volume d'un conteneur aussi (ticket #206). */
 const templateText = (isVm: boolean) =>
-  `Irréversible : la machine ne pourra plus démarrer, seulement être clonée. ${isVm ? "Les disques de la VM sont" : "Le volume du conteneur est"} renommé${isVm ? "s" : ""} « base-… » chez Proxmox.`;
+  (isVm ? tr("Irréversible : la machine ne pourra plus démarrer, seulement être clonée. Les disques de la VM sont renommés « base-… » chez Proxmox.") : tr("Irréversible : la machine ne pourra plus démarrer, seulement être clonée. Le volume du conteneur est renommé « base-… » chez Proxmox."));
 
 /**
  * Reset, suspendre, hiberner, reprendre (VM) et convertir en modèle (VM et LXC). Le serveur relit l'état de la machine et refuse si elle ne s'y prête pas.
@@ -85,7 +86,7 @@ export function PowerActions({ connId, guest, status, disabled }: { connId: numb
         <Modal title={`${t.title} « ${name || `#${guest.vmid}`} » ?`} danger={t.danger} onClose={close} busy={busy} error={err}
           canSubmit={op !== "template" || (name !== "" && typed === name)} submitLabel={t.title} onSubmit={submit}>
           <Notice kind={t.danger ? "error" : "ok"}>{op === "template" ? templateText(isVm) : t.text}</Notice>
-          {op === "template" && <Field label={`Retape ${name} pour confirmer`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />}
+          {op === "template" && <Field label={tr("Retape {name} pour confirmer", { name })} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />}
         </Modal>,
         document.body)}
     </>

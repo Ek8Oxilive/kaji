@@ -1,6 +1,7 @@
+import { tr } from "../i18n";
 export type MType = "pci" | "usb" | "dir";
 export const MTYPES: MType[] = ["pci", "usb", "dir"];
-export const MTYPE_LABEL: Record<MType, string> = { pci: "PCI", usb: "USB", dir: "Répertoires" };
+export const MTYPE_LABEL: Record<MType, string> = { pci: "PCI", usb: "USB", get dir() { return tr("Répertoires"); } };
 
 /** Entrée d'une correspondance (une par nœud et par périphérique). Seules les propriétés du type sont utilisées. */
 export type MapEntry = { node: string; path: string | null; id: string | null; iommugroup: number | null; subsystem_id: string | null; description: string | null };

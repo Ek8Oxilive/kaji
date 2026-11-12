@@ -8,11 +8,12 @@ import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
+import { tr, T } from "../lib/i18n";
 const OS = [
-  ["l26", "Linux (noyau 2.6 et plus)"], ["win11", "Windows 11 / 2022 (UEFI + TPM)"], ["win10", "Windows 10 / 2016 / 2019"],
-  ["win8", "Windows 8 / 2012"], ["win7", "Windows 7 / 2008"], ["l24", "Linux (noyau 2.4)"], ["other", "Autre"],
+  ["l26", T("Linux (noyau 2.6 et plus)")], ["win11", "Windows 11 / 2022 (UEFI + TPM)"], ["win10", "Windows 10 / 2016 / 2019"],
+  ["win8", "Windows 8 / 2012"], ["win7", "Windows 7 / 2008"], ["l24", "Linux (noyau 2.4)"], ["other", T("Autre")],
 ] as const;
-const STEPS = ["Général", "Matériel", "Réseau", "Récapitulatif"];
+const STEPS = [T("Général"), T("Matériel"), T("Réseau"), T("Récapitulatif")];
 const MEM = [512, 1024, 2048, 4096, 8192, 16384];
 
 const Select = ({ label, hint, children, ...p }: { label: string; hint?: string; children: ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) => (
@@ -80,8 +81,8 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
   });
 
   const create = () => run(async () => {
-    const t = await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/qemu`, { method: "POST", body: body() }), "Création");
-    toast("ok", `Machine « ${f.name} » créée (#${f.vmid})${t.warnings ? WARN_SUFFIX : ""}`);
+    const t = await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/qemu`, { method: "POST", body: body() }), tr("Création"));
+    toast("ok", tr("Machine « {name} » créée (#{vmid}){p}", { name: f.name, vmid: f.vmid, p: t.warnings ? tr(WARN_SUFFIX) : "" }));
     await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
   });
 
@@ -89,13 +90,13 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
 
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">   {/* pas de fermeture au clic sur le fond : un formulaire en plusieurs étapes ne doit pas se perdre par accident */}
-      <div role="dialog" aria-modal="true" aria-label="Créer une machine virtuelle" className="panel rise flex max-h-[92vh] w-full max-w-2xl flex-col">
+      <div role="dialog" aria-modal="true" aria-label={tr("Créer une machine virtuelle")} className="panel rise flex max-h-[92vh] w-full max-w-2xl flex-col">
         <header className="space-y-4 border-b border-line p-6 pb-4">
-          <h2 className="text-xl font-semibold tracking-tight">Nouvelle machine virtuelle</h2>
-          <ol className="flex gap-2 text-sm" aria-label="Étapes">
+          <h2 className="text-xl font-semibold tracking-tight">{tr("Nouvelle machine virtuelle")}</h2>
+          <ol className="flex gap-2 text-sm" aria-label={tr("Étapes")}>
             {STEPS.map((s, i) => (
               <li key={s} aria-current={i === step ? "step" : undefined} className={`flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 ${i === step ? "bg-accent text-accentfg font-medium" : i < step ? "text-ok" : "text-muted"}`}>
-                <span className="grid size-5 shrink-0 place-items-center rounded-full border border-current text-xs">{i < step ? "✓" : i + 1}</span><span className="hidden truncate sm:inline">{s}</span>
+                <span className="grid size-5 shrink-0 place-items-center rounded-full border border-current text-xs">{i < step ? "✓" : i + 1}</span><span className="hidden truncate sm:inline">{tr(s)}</span>
               </li>
             ))}
           </ol>
@@ -103,88 +104,88 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
 
         <div className="space-y-4 overflow-y-auto p-6">
           {step === 0 && <>
-            <Select label="Nœud" value={f.node} onChange={(e) => set("node", e.target.value)}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}</Select>
+            <Select label={tr("Nœud")} value={f.node} onChange={(e) => set("node", e.target.value)}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}</Select>
             <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-              <Field label="Nom" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="ma-vm" hint="Lettres, chiffres, - et . (sans espace)" autoFocus />
-              <Field label="Identifiant" type="number" min={100} value={f.vmid} onChange={(e) => set("vmid", e.target.value)} hint={nextId.data ? `Libre : ${nextId.data.vmid}` : undefined} />
+              <Field label={tr("Nom")} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder={tr("ma-vm")} hint={tr("Lettres, chiffres, - et . (sans espace)")} autoFocus />
+              <Field label={tr("Identifiant")} type="number" min={100} value={f.vmid} onChange={(e) => set("vmid", e.target.value)} hint={nextId.data ? tr("Libre : {vmid}", { vmid: nextId.data.vmid }) : undefined} />
             </div>
             <PoolField connId={connId} value={f.pool} onChange={(v) => set("pool", v)} />
-            {!f.pool && <Notice kind="error">Aucun pool choisi : la machine sera créée hors de tout pool.</Notice>}
-            <Select label="Système d'exploitation" value={f.ostype} onChange={(e) => set("ostype", e.target.value)}>{OS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
-            <Field label="Description (facultatif)" value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={200} />
+            {!f.pool && <Notice kind="error">{tr("Aucun pool choisi : la machine sera créée hors de tout pool.")}</Notice>}
+            <Select label={tr("Système d'exploitation")} value={f.ostype} onChange={(e) => set("ostype", e.target.value)}>{OS.map(([v, l]) => <option key={v} value={v}>{tr(l)}</option>)}</Select>
+            <Field label={tr("Description (facultatif)")} value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={200} />
           </>}
 
           {step === 1 && <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Cœurs" type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
-              <Field label="Sockets" type="number" min={1} max={8} value={f.sockets} onChange={(e) => set("sockets", e.target.value)} />
+              <Field label={tr("Cœurs")} type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
+              <Field label={tr("Sockets")} type="number" min={1} max={8} value={f.sockets} onChange={(e) => set("sockets", e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Field label="Mémoire (Mo)" type="number" min={16} step={256} value={f.memory} onChange={(e) => set("memory", e.target.value)} />
+              <Field label={tr("Mémoire (Mo)")} type="number" min={16} step={256} value={f.memory} onChange={(e) => set("memory", e.target.value)} />
               <div className="flex flex-wrap gap-1.5">{MEM.map((m) => <button key={m} type="button" onClick={() => set("memory", String(m))} className={`rounded-lg border px-2.5 py-1 text-xs transition ${f.memory === String(m) ? "border-accent text-accent" : "border-line text-muted hover:text-fg"}`}>{m >= 1024 ? `${m / 1024} Go` : `${m} Mo`}</button>)}</div>
             </div>
-            <Field label="Type de CPU" list="wiz-cpu" value={f.cpu} onChange={(e) => set("cpu", e.target.value)} />
+            <Field label={tr("Type de CPU")} list="wiz-cpu" value={f.cpu} onChange={(e) => set("cpu", e.target.value)} />
             <datalist id="wiz-cpu">{["x86-64-v2-AES", "host", "x86-64-v3", "x86-64-v4", "kvm64"].map((t) => <option key={t} value={t} />)}</datalist>
             <div className="space-y-3 rounded-xl border border-line p-4">
-              <Check checked={!f.noDisk} onChange={(v) => set("noDisk", !v)}>Ajouter un disque</Check>
+              <Check checked={!f.noDisk} onChange={(v) => set("noDisk", !v)}>{tr("Ajouter un disque")}</Check>
               {!f.noDisk && (
                 <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-                  <Select label="Stockage" value={f.storage} onChange={(e) => set("storage", e.target.value)} hint={stores.isError ? "Liste indisponible" : undefined}>
+                  <Select label={tr("Stockage")} value={f.storage} onChange={(e) => set("storage", e.target.value)} hint={stores.isError ? tr("Liste indisponible") : undefined}>
                     {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
                   </Select>
-                  <Field label="Taille (Go)" type="number" min={1} max={65536} value={f.size} onChange={(e) => set("size", e.target.value)} />
+                  <Field label={tr("Taille (Go)")} type="number" min={1} max={65536} value={f.size} onChange={(e) => set("size", e.target.value)} />
                 </div>
               )}
-              {f.noDisk && win11 && <p className="text-sm text-danger">Windows 11 demande un disque (il héberge aussi le disque EFI et le TPM).</p>}
+              {f.noDisk && win11 && <p className="text-sm text-danger">{tr("Windows 11 demande un disque (il héberge aussi le disque EFI et le TPM).")}</p>}
             </div>
-            <Select label="Image ISO (facultatif)" value={f.iso} onChange={(e) => set("iso", e.target.value)} hint={isos.isError ? "Liste indisponible" : "Monte l'image dans un lecteur CD/DVD et la place dans l'ordre de démarrage."}>
-              <option value="">Aucune</option>{isos.data?.map((i) => <option key={i.volid} value={i.volid}>{i.volid.replace(/^.*:iso\//, "")} · {i.storage}</option>)}
+            <Select label={tr("Image ISO (facultatif)")} value={f.iso} onChange={(e) => set("iso", e.target.value)} hint={isos.isError ? tr("Liste indisponible") : tr("Monte l'image dans un lecteur CD/DVD et la place dans l'ordre de démarrage.")}>
+              <option value="">{tr("Aucune")}</option>{isos.data?.map((i) => <option key={i.volid} value={i.volid}>{i.volid.replace(/^.*:iso\//, "")} · {i.storage}</option>)}
             </Select>
-            <Check checked={f.agent} onChange={(v) => set("agent", v)}>Agent invité QEMU <span className="block text-xs text-muted">À activer si l'agent est installé dans la machine (arrêt propre, adresse IP visible).</span></Check>
-            {win11 && <Notice kind="ok">Windows 11 : UEFI, TPM v2 et disque EFI seront ajoutés automatiquement.</Notice>}
+            <Check checked={f.agent} onChange={(v) => set("agent", v)}>{tr("Agent invité QEMU")}{" "}<span className="block text-xs text-muted">{tr("À activer si l'agent est installé dans la machine (arrêt propre, adresse IP visible).")}</span></Check>
+            {win11 && <Notice kind="ok">{tr("Windows 11 : UEFI, TPM v2 et disque EFI seront ajoutés automatiquement.")}</Notice>}
           </>}
 
           {step === 2 && <>
-            <Check checked={!f.noNet} onChange={(v) => set("noNet", !v)}>Ajouter une carte réseau</Check>
+            <Check checked={!f.noNet} onChange={(v) => set("noNet", !v)}>{tr("Ajouter une carte réseau")}</Check>
             {!f.noNet && <>
-              <Select label="Réseau (bridge ou VNet SDN)" value={f.bridge} onChange={(e) => set("bridge", e.target.value)} hint={bridges.isError ? "Liste indisponible" : undefined}>
-                <optgroup label="Bridges">{bridges.data?.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>
-                {bridges.data?.some((b) => b.kind === "vnet") && <optgroup label="VNets SDN">{bridges.data.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>}
+              <Select label={tr("Réseau (bridge ou VNet SDN)")} value={f.bridge} onChange={(e) => set("bridge", e.target.value)} hint={bridges.isError ? tr("Liste indisponible") : undefined}>
+                <optgroup label={tr("Bridges")}>{bridges.data?.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>
+                {bridges.data?.some((b) => b.kind === "vnet") && <optgroup label={tr("VNets SDN")}>{bridges.data.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>}
               </Select>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Select label="Modèle" value={f.model} onChange={(e) => set("model", e.target.value)} hint="virtio est le plus rapide (pilote requis sous Windows)">
+                <Select label={tr("Modèle")} value={f.model} onChange={(e) => set("model", e.target.value)} hint={tr("virtio est le plus rapide (pilote requis sous Windows)")}>
                   {["virtio", "e1000", "e1000e", "rtl8139", "vmxnet3"].map((m) => <option key={m} value={m}>{m}</option>)}
                 </Select>
-                <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={f.tag} onChange={(e) => set("tag", e.target.value)} placeholder="aucun" />
+                <Field label={tr("Étiquette VLAN")} type="number" min={1} max={4094} value={f.tag} onChange={(e) => set("tag", e.target.value)} placeholder={tr("aucun")} />
               </div>
-              <Check checked={f.firewall} onChange={(v) => set("firewall", v)}>Firewall Proxmox activé</Check>
+              <Check checked={f.firewall} onChange={(v) => set("firewall", v)}>{tr("Firewall Proxmox activé")}</Check>
             </>}
           </>}
 
           {step === 3 && <>
             <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2 text-sm">
               {([
-                ["Nom", `${f.name} (#${f.vmid})`], ["Nœud", f.node], ["Pool", f.pool || "aucun"], ["Système", OS.find(([v]) => v === f.ostype)?.[1] ?? f.ostype],
-                ["Processeur", `${int(f.cores) * int(f.sockets)} vCPU (${f.sockets} × ${f.cores}) · ${f.cpu}`], ["Mémoire", `${f.memory} Mo`],
-                ["Disque", f.noDisk ? "aucun" : `${f.size} Go sur ${f.storage}`], ["ISO", f.iso || "aucune"],
-                ["Réseau", f.noNet ? "aucune carte" : `${f.model} sur ${f.bridge}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
+                [tr("Nom"), `${f.name} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || "aucun"], [tr("Système"), tr(OS.find(([v]) => v === f.ostype)?.[1] ?? f.ostype)],
+                [tr("Processeur"), `${int(f.cores) * int(f.sockets)} vCPU (${f.sockets} × ${f.cores}) · ${f.cpu}`], [tr("Mémoire"), `${f.memory} Mo`],
+                [tr("Disque"), f.noDisk ? "aucun" : tr("{size} Go sur {storage}", { size: f.size, storage: f.storage })], ["ISO", f.iso || "aucune"],
+                [tr("Réseau"), f.noNet ? tr("aucune carte") : `${f.model} sur ${f.bridge}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
               ] as const).map(([k, v]) => <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="break-words">{v}</dd></div>)}
             </dl>
-            {!f.pool && <Notice kind="error">Cette machine sera créée hors de tout pool.</Notice>}
-            <Check checked={f.start} onChange={(v) => set("start", v)}>Démarrer la machine après sa création</Check>
-            {busy && <p className="text-sm text-muted">Création en cours, cela peut prendre quelques secondes…</p>}
+            {!f.pool && <Notice kind="error">{tr("Cette machine sera créée hors de tout pool.")}</Notice>}
+            <Check checked={f.start} onChange={(v) => set("start", v)}>{tr("Démarrer la machine après sa création")}</Check>
+            {busy && <p className="text-sm text-muted">{tr("Création en cours, cela peut prendre quelques secondes…")}</p>}
           </>}
 
           {error && <Notice kind="error">{error}</Notice>}
         </div>
 
         <footer className="flex items-center justify-between gap-2 border-t border-line p-4 px-6">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Annuler</Button>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>{tr("Annuler")}</Button>
           <div className="flex gap-2">
-            {step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={busy}>Précédent</Button>}
+            {step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={busy}>{tr("Précédent")}</Button>}
             {step < 3
-              ? <Button onClick={() => setStep(step + 1)} disabled={!valid[step]}>Suivant</Button>
-              : <Button onClick={create} disabled={busy || !valid.every(Boolean)}>{busy ? "…" : "Créer la machine"}</Button>}
+              ? <Button onClick={() => setStep(step + 1)} disabled={!valid[step]}>{tr("Suivant")}</Button>
+              : <Button onClick={create} disabled={busy || !valid.every(Boolean)}>{busy ? "…" : tr("Créer la machine")}</Button>}
           </div>
         </footer>
       </div>

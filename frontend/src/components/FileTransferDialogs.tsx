@@ -6,9 +6,10 @@ import { LONG_TASK_SECONDS, waitTask } from "../lib/tasks";
 import { Modal } from "./Modal";
 import { Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Kind = "iso" | "vztmpl";
-const KIND_LABEL: Record<Kind, string> = { iso: "Image ISO", vztmpl: "Modèle de conteneur" };
-const EXT: Record<Kind, string> = { iso: ".iso ou .img", vztmpl: ".tar.gz, .tar.xz, .tar.zst ou .tar.bz2" };
+const KIND_LABEL: Record<Kind, string> = { iso: "Image ISO", get vztmpl() { return tr("Modèle de conteneur"); } };
+const EXT: Record<Kind, string> = { get iso() { return tr(".iso ou .img"); }, get vztmpl() { return tr(".tar.gz, .tar.xz, .tar.zst ou .tar.bz2"); } };
 const ALGOS: Record<string, number> = { sha256: 64, sha512: 128, sha384: 96, sha224: 56, sha1: 40, md5: 32 };
 const MAX_UPLOAD = 20 * 1024 ** 3;
 
@@ -25,10 +26,10 @@ function useRefresh(connId: number, storage: string, node: string) {
 function Checksum({ algo, setAlgo, value, setValue }: { algo: string; setAlgo: (a: string) => void; value: string; setValue: (v: string) => void }) {
   return (
     <div className="grid grid-cols-[8rem_1fr] gap-2">
-      <label className="block space-y-1 text-sm"><span className="text-muted">Somme de contrôle</span>
-        <select className="field" value={algo} onChange={(e) => setAlgo(e.target.value)}><option value="">aucune</option>{Object.keys(ALGOS).map((a) => <option key={a}>{a}</option>)}</select></label>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Somme de contrôle")}</span>
+        <select className="field" value={algo} onChange={(e) => setAlgo(e.target.value)}><option value="">{tr("aucune")}</option>{Object.keys(ALGOS).map((a) => <option key={a}>{a}</option>)}</select></label>
       <label className="block space-y-1 text-sm"><span className="text-muted">&nbsp;</span>
-        <input className="field" disabled={!algo} value={value} onChange={(e) => setValue(e.target.value.trim())} placeholder="Valeur attendue (hexadécimal)" autoComplete="off" /></label>
+        <input className="field" disabled={!algo} value={value} onChange={(e) => setValue(e.target.value.trim())} placeholder={tr("Valeur attendue (hexadécimal)")} autoComplete="off" /></label>
     </div>
   );
 }
@@ -46,7 +47,7 @@ export function UploadDialog({ connId, node, storage, kinds, onClose }: Target) 
   const [err, setErr] = useState<string | null>(null);
   const busy = sent !== null || waiting;
   const okName = !!file && /^[A-Za-z0-9][A-Za-z0-9._+()-]{0,200}$/.test(file.name) && !file.name.includes("..");
-  const nameHint = file && !okName ? "Nom de fichier refusé : lettres, chiffres, . _ + ( ) - seulement ; renomme le fichier." : null;
+  const nameHint = file && !okName ? tr("Nom de fichier refusé : lettres, chiffres, . _ + ( ) - seulement ; renomme le fichier.") : null;
   const tooBig = !!file && file.size > MAX_UPLOAD;
 
   const submit = () => {
@@ -58,7 +59,7 @@ export function UploadDialog({ connId, node, storage, kinds, onClose }: Target) 
     xhr.open("POST", `/api/connections/${connId}/nodes/${encodeURIComponent(node)}/storage/${encodeURIComponent(storage)}/upload?${q}`);
     xhr.withCredentials = true;
     xhr.upload.onprogress = (e) => setSent(e.loaded);
-    xhr.onerror = () => { setErr("Envoi interrompu"); setSent(null); };
+    xhr.onerror = () => { setErr(tr("Envoi interrompu")); setSent(null); };
     xhr.onload = async () => {
       let body: { upid?: string; detail?: unknown } | null = null;
       try { body = JSON.parse(xhr.responseText); } catch { /* corps illisible */ }
@@ -68,26 +69,26 @@ export function UploadDialog({ connId, node, storage, kinds, onClose }: Target) 
       setSent(null); setWaiting(true);
       try {
         const t = await waitTask(connId, node, body.upid, LONG_TASK_SECONDS);
-        if (!t) throw new Error("L'import prend trop de temps (voir l'onglet Tâches)");
-        if (!t.ok) throw new Error(`Le nœud a refusé le fichier (${t.exitstatus ?? "erreur"})`);
+        if (!t) throw new Error(tr("L'import prend trop de temps (voir l'onglet Tâches)"));
+        if (!t.ok) throw new Error(tr("Le nœud a refusé le fichier ({p})", { p: t.exitstatus ?? "erreur" }));
         refresh(); onClose();
-      } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Erreur"); setWaiting(false); }
+      } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : tr("Erreur")); setWaiting(false); }
     };
     xhr.send(file);
   };
 
   return (
-    <Modal title={`Téléverser vers ${storage}`} subtitle={`Nœud ${node}. Le fichier passe par Kaji sans y être enregistré.`} onClose={busy ? () => {} : onClose}
-      onSubmit={submit} submitLabel="Téléverser" busy={busy} error={err} canSubmit={okName && !tooBig && sumOk(algo, sum)}>
+    <Modal title={tr("Téléverser vers {storage}", { storage })} subtitle={tr("Nœud {node}. Le fichier passe par Kaji sans y être enregistré.", { node })} onClose={busy ? () => {} : onClose}
+      onSubmit={submit} submitLabel={tr("Téléverser")} busy={busy} error={err} canSubmit={okName && !tooBig && sumOk(algo, sum)}>
       {kinds.length > 1 && (
-        <label className="block space-y-1 text-sm"><span className="text-muted">Type de fichier</span>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Type de fichier")}</span>
           <select className="field" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>{kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}</select></label>
       )}
-      <label className="block space-y-1 text-sm"><span className="text-muted">Fichier ({EXT[kind]})</span>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Fichier ({p})", { p: EXT[kind] })}</span>
         <input type="file" className="field" disabled={busy} accept={kind === "iso" ? ".iso,.img" : ".gz,.xz,.zst,.bz2"} onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label>
       {file && <p className="text-xs text-muted">{file.name} · {bytes(file.size)}</p>}
       {nameHint && <Notice kind="error">{nameHint}</Notice>}
-      {tooBig && <Notice kind="error">Fichier trop gros (20 Gio au plus).</Notice>}
+      {tooBig && <Notice kind="error">{tr("Fichier trop gros (20 Gio au plus).")}</Notice>}
       <Checksum algo={algo} setAlgo={setAlgo} value={sum} setValue={setSum} />
       {sent !== null && file && (
         <div role="progressbar" aria-valuenow={Math.round((sent / file.size) * 100)} aria-valuemin={0} aria-valuemax={100} className="space-y-1">
@@ -95,7 +96,7 @@ export function UploadDialog({ connId, node, storage, kinds, onClose }: Target) 
           <p className="text-xs text-muted">{bytes(sent)} / {bytes(file.size)}</p>
         </div>
       )}
-      {waiting && <p className="text-sm text-muted">Envoyé. Le nœud vérifie et enregistre le fichier…</p>}
+      {waiting && <p className="text-sm text-muted">{tr("Envoyé. Le nœud vérifie et enregistre le fichier…")}</p>}
     </Modal>
   );
 }
@@ -131,32 +132,32 @@ export function UrlDownloadDialog({ connId, node, storage, kinds, onClose }: Tar
       const { upid } = await api<{ upid: string }>(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/storage/${encodeURIComponent(storage)}/download-url`, {
         method: "POST", body: { url, filename: name, content: kind, verify_certificates: verify, ...(algo ? { checksum_algorithm: algo, checksum: sum } : {}) } });
       const t = await waitTask(connId, node, upid, LONG_TASK_SECONDS);
-      if (!t) throw new Error("Le téléchargement prend trop de temps (voir l'onglet Tâches)");
-      if (!t.ok) throw new Error(`Téléchargement échoué (${t.exitstatus ?? "erreur"})`);
+      if (!t) throw new Error(tr("Le téléchargement prend trop de temps (voir l'onglet Tâches)"));
+      if (!t.ok) throw new Error(tr("Téléchargement échoué ({p})", { p: t.exitstatus ?? "erreur" }));
       refresh(); onClose();
     } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
 
   return (
-    <Modal title={`Télécharger vers ${storage}`} subtitle={`Le nœud ${node} télécharge le fichier lui-même.`} onClose={busy ? () => {} : onClose}
-      onSubmit={submit} submitLabel="Télécharger" busy={busy} error={err} canSubmit={okUrl && okName && sumOk(algo, sum)}>
+    <Modal title={tr("Télécharger vers {storage}", { storage })} subtitle={tr("Le nœud {node} télécharge le fichier lui-même.", { node })} onClose={busy ? () => {} : onClose}
+      onSubmit={submit} submitLabel={tr("Télécharger")} busy={busy} error={err} canSubmit={okUrl && okName && sumOk(algo, sum)}>
       {kinds.length > 1 && (
-        <label className="block space-y-1 text-sm"><span className="text-muted">Type de fichier</span>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Type de fichier")}</span>
           <select className="field" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>{kinds.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}</select></label>
       )}
-      <label className="block space-y-1 text-sm"><span className="text-muted">Adresse (http ou https)</span>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Adresse (http ou https)")}</span>
         <div className="flex gap-2">
-          <input className="field" value={url} onChange={(e) => { setUrl(e.target.value.trim()); setMeta(null); }} placeholder="https://…/debian.iso" autoComplete="off" />
-          <button type="button" className="rounded-xl border border-line bg-surface2 px-3 text-sm disabled:opacity-50" disabled={!okUrl || checking || busy} onClick={inspect}>{checking ? "…" : "Vérifier"}</button>
+          <input className="field" value={url} onChange={(e) => { setUrl(e.target.value.trim()); setMeta(null); }} placeholder={tr("https://…/debian.iso")} autoComplete="off" />
+          <button type="button" className="rounded-xl border border-line bg-surface2 px-3 text-sm disabled:opacity-50" disabled={!okUrl || checking || busy} onClick={inspect}>{checking ? "…" : tr("Vérifier")}</button>
         </div>
-        <span className="block text-xs text-muted">Les adresses locales (127.0.0.1, localhost…) sont refusées.</span></label>
-      {meta && <p className="text-xs text-muted">Trouvé : {meta.filename ?? "nom inconnu"} · {meta.size != null ? bytes(meta.size) : "taille inconnue"} · {meta.mimetype ?? "type inconnu"}</p>}
-      <label className="block space-y-1 text-sm"><span className="text-muted">Nom du fichier ({EXT[kind]})</span>
+        <span className="block text-xs text-muted">{tr("Les adresses locales (127.0.0.1, localhost…) sont refusées.")}</span></label>
+      {meta && <p className="text-xs text-muted">{tr("Trouvé : {p} · {p2} · {p3}", { p: meta.filename ?? "nom inconnu", p2: meta.size != null ? bytes(meta.size) : "taille inconnue", p3: meta.mimetype ?? "type inconnu" })}</p>}
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Nom du fichier ({p})", { p: EXT[kind] })}</span>
         <input className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" /></label>
       <Checksum algo={algo} setAlgo={setAlgo} value={sum} setValue={setSum} />
-      <label className="flex gap-2 text-sm"><input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} /><span>Vérifier le certificat du site</span></label>
-      {!verify && <Notice kind="error">Sans vérification du certificat, le fichier peut venir d'un autre serveur que celui annoncé : utilise une somme de contrôle.</Notice>}
-      {busy && <p className="text-sm text-muted">Téléchargement en cours sur le nœud… (suivi aussi dans l'onglet Tâches)</p>}
+      <label className="flex gap-2 text-sm"><input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} /><span>{tr("Vérifier le certificat du site")}</span></label>
+      {!verify && <Notice kind="error">{tr("Sans vérification du certificat, le fichier peut venir d'un autre serveur que celui annoncé : utilise une somme de contrôle.")}</Notice>}
+      {busy && <p className="text-sm text-muted">{tr("Téléchargement en cours sur le nœud… (suivi aussi dans l'onglet Tâches)")}</p>}
     </Modal>
   );
 }

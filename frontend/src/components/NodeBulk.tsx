@@ -7,6 +7,7 @@ import type { BulkAction, BulkPlan, BulkResult } from "../lib/types/groupees";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 /**
  * Actions groupées d'un nœud : démarrer, arrêter ou migrer une SÉLECTION de machines (jamais « toutes » : la liste est explicite), avec aperçu `dry_run`
  * avant toute écriture, machines protégées refusées par le serveur, nom du nœud retapé. Sur un nœud hors ligne : Wake-on-LAN (nom retapé).
@@ -18,8 +19,8 @@ export function NodeBulk({ connId, node, online }: { connId: number; node: strin
     <div className="space-y-2">
       {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
       <div className="flex flex-wrap gap-2">
-        <Button variant="ghost" disabled={!online} onClick={() => { setMsg(null); setOpen(true); }} className="!px-3 !py-1.5" title="Démarrer, arrêter ou migrer plusieurs machines de ce nœud en une fois">Actions groupées…</Button>
-        <Button variant="ghost" disabled={online} onClick={() => { setMsg(null); setWake(true); }} className="!px-3 !py-1.5" title="Envoie un paquet Wake-on-LAN : seulement pour un nœud hors ligne">Réveiller le nœud…</Button>
+        <Button variant="ghost" disabled={!online} onClick={() => { setMsg(null); setOpen(true); }} className="!px-3 !py-1.5" title={tr("Démarrer, arrêter ou migrer plusieurs machines de ce nœud en une fois")}>{tr("Actions groupées…")}</Button>
+        <Button variant="ghost" disabled={online} onClick={() => { setMsg(null); setWake(true); }} className="!px-3 !py-1.5" title={tr("Envoie un paquet Wake-on-LAN : seulement pour un nœud hors ligne")}>{tr("Réveiller le nœud…")}</Button>
       </div>
       {open && <BulkDialog connId={connId} node={node} onClose={() => setOpen(false)} onDone={(t) => { setMsg({ kind: "ok", text: t }); setOpen(false); }} />}
       {wake && <WakeDialog connId={connId} node={node} onClose={() => setWake(false)} onDone={(t) => { setMsg({ kind: "ok", text: t }); setWake(false); }} />}
@@ -48,7 +49,7 @@ function BulkDialog({ connId, node, onClose, onDone }: { connId: number; node: s
     setBusy(true); setErr(null);
     try {
       const r = await api<BulkResult>(url, { method: "POST", body: body({ confirm: true, type_name: typed, accept_running: accept }) });
-      onDone(`${BULK_LABEL[action]} : ${r.vmids.length} machine(s) demandée(s) à Proxmox${r.upid ? " (tâche lancée)" : ""}. L'avancement est dans la page « Tâches ».`);
+      onDone(tr("{p} : {length} machine(s) demandée(s) à Proxmox{p2}. L'avancement est dans la page « Tâches ».", { p: BULK_LABEL[action], length: r.vmids.length, p2: r.upid ? tr(" (tâche lancée)") : "" }));
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
@@ -59,36 +60,35 @@ function BulkDialog({ connId, node, onClose, onDone }: { connId: number; node: s
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span><select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</select></label>);
 
   return (
-    <Modal title={`Actions groupées sur « ${node} »`} subtitle="Choisis les machines : rien n'est envoyé sans aperçu, et jamais « toutes les machines »." onClose={busy ? () => {} : onClose} onSubmit={run}
+    <Modal title={tr("Actions groupées sur « {node} »", { node })} subtitle={tr("Choisis les machines : rien n'est envoyé sans aperçu, et jamais « toutes les machines ».")} onClose={busy ? () => {} : onClose} onSubmit={run}
       submitLabel={BULK_LABEL[action]} danger={action !== "startall"} busy={busy} error={err} canSubmit={ready} wide>
-      {sel("Action", action, (s) => setAction(s as BulkAction), [["startall", "Démarrer les machines choisies"], ["stopall", "Arrêter les machines choisies"], ["migrateall", "Migrer les machines choisies vers un autre nœud"]])}
-      <fieldset className="space-y-1 text-sm"><legend className="text-muted">Machines de ce nœud ({picked.length} choisie(s))</legend>
+      {sel(tr("Action"), action, (s) => setAction(s as BulkAction), [["startall", tr("Démarrer les machines choisies")], ["stopall", tr("Arrêter les machines choisies")], ["migrateall", tr("Migrer les machines choisies vers un autre nœud")]])}
+      <fieldset className="space-y-1 text-sm"><legend className="text-muted">{tr("Machines de ce nœud ({length} choisie(s))", { length: picked.length })}</legend>
         <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-line p-2">
-          {guests.isLoading ? <p className="text-muted">Chargement…</p> : mine.length === 0 ? <p className="text-muted">Aucune machine sur ce nœud.</p> : mine.map((g) => (
+          {guests.isLoading ? <p className="text-muted">{tr("Chargement…")}</p> : mine.length === 0 ? <p className="text-muted">{tr("Aucune machine sur ce nœud.")}</p> : mine.map((g) => (
             <label key={g.vmid} className="flex items-center gap-2"><input type="checkbox" checked={picked.includes(g.vmid!)} onChange={() => toggle(g.vmid!)} />
               <span className="font-mono text-xs text-muted">{g.type === "lxc" ? "ct" : "vm"}:{g.vmid}</span><span>{g.name ?? ""}</span>
-              <span className="ml-auto text-xs text-muted">{g.status === "running" ? "en marche" : g.status === "paused" ? "en pause" : "arrêtée"}</span></label>))}
+              <span className="ml-auto text-xs text-muted">{g.status === "running" ? tr("en marche") : g.status === "paused" ? tr("en pause") : tr("arrêtée")}</span></label>))}
         </div>
       </fieldset>
       {action === "stopall" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={forceStop} onChange={(e) => setForceStop(e.target.checked)} /><span>Forcer l'arrêt après le délai</span></label>
-        <label className="block space-y-1 text-sm"><span className="text-muted">Délai (secondes)</span><input className="field" type="number" min={10} max={7200} value={timeout} onChange={(e) => setTimeoutS(e.target.value)} /></label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={forceStop} onChange={(e) => setForceStop(e.target.checked)} /><span>{tr("Forcer l'arrêt après le délai")}</span></label>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Délai (secondes)")}</span><input className="field" type="number" min={10} max={7200} value={timeout} onChange={(e) => setTimeoutS(e.target.value)} /></label>
       </div>}
       {action === "migrateall" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {sel("Nœud cible", target, setTarget, [["", others.length ? "Choisir un nœud" : "Aucun autre nœud en ligne"], ...others.map((n) => [n.name, n.name] as [string, string])])}
-        <label className="block space-y-1 text-sm"><span className="text-muted">Migrations en parallèle (1 à 8)</span><input className="field" type="number" min={1} max={8} value={workers} onChange={(e) => setWorkers(e.target.value)} /></label>
-        <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} /><span>Copier aussi les disques locaux</span></label>
+        {sel(tr("Nœud cible"), target, setTarget, [["", others.length ? tr("Choisir un nœud") : tr("Aucun autre nœud en ligne")], ...others.map((n) => [n.name, n.name] as [string, string])])}
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Migrations en parallèle (1 à 8)")}</span><input className="field" type="number" min={1} max={8} value={workers} onChange={(e) => setWorkers(e.target.value)} /></label>
+        <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} /><span>{tr("Copier aussi les disques locaux")}</span></label>
       </div>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={picked.length === 0 || (action === "migrateall" && !target)} onClick={look}>Aperçu</button>
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={picked.length === 0 || (action === "migrateall" && !target)} onClick={look}>{tr("Aperçu")}</button>
       {plan && (
         <div className="space-y-3 text-sm">
-          {plan.blocked && <Notice kind="error"><b>Bloqué</b> : {plan.blocked}.</Notice>}
-          {plan.apply.length > 0 && <p><b>{plan.apply.length} machine(s) concernée(s)</b> : <span className="text-muted">{plan.apply.map((g) => `${g.name ?? "#" + g.vmid} (${g.vmid})`).join(", ")}</span></p>}
-          {plan.skipped.length > 0 && <p className="text-muted">Ignorées : {plan.skipped.map((g) => `${g.name ?? "#" + g.vmid} (${g.reason})`).join(", ")}.</p>}
+          {plan.blocked && <Notice kind="error"><b>{tr("Bloqué")}</b> : {plan.blocked}.</Notice>}
+          {plan.apply.length > 0 && <p><b>{tr("{length} machine(s) concernée(s)", { length: plan.apply.length })}</b> : <span className="text-muted">{plan.apply.map((g) => `${g.name ?? "#" + g.vmid} (${g.vmid})`).join(", ")}</span></p>}
+          {plan.skipped.length > 0 && <p className="text-muted">{tr("Ignorées : {p}.", { p: plan.skipped.map((g) => `${g.name ?? "#" + g.vmid} (${g.reason})`).join(", ") })}</p>}
           {!plan.blocked && plan.needs_accept_running && <Notice kind="error"><label className="flex gap-2"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} />
-            <span>{plan.running.length} machine(s) en marche seront migrées à chaud (les conteneurs sont redémarrés). Je confirme.</span></label></Notice>}
-          {!plan.blocked && needName && <label className="block text-xs text-muted">Retape <code>{node}</code> pour confirmer
-            <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
+            <span>{tr("{length} machine(s) en marche seront migrées à chaud (les conteneurs sont redémarrés). Je confirme.", { length: plan.running.length })}</span></label></Notice>}
+          {!plan.blocked && needName && <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{node}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
         </div>)}
     </Modal>
   );
@@ -98,13 +98,13 @@ function WakeDialog({ connId, node, onClose, onDone }: { connId: number; node: s
   const [typed, setTyped] = useState(""), [busy, setBusy] = useState(false), [err, setErr] = useState<string | null>(null);
   const run = async () => {
     setBusy(true); setErr(null);
-    try { await api(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/wakeonlan`, { method: "POST", body: { confirm: true, type_name: typed } }); onDone(`Paquet Wake-on-LAN demandé pour « ${node} » : il peut mettre quelques minutes à apparaître en ligne.`); }
+    try { await api(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/wakeonlan`, { method: "POST", body: { confirm: true, type_name: typed } }); onDone(tr("Paquet Wake-on-LAN demandé pour « {node} » : il peut mettre quelques minutes à apparaître en ligne.", { node })); }
     catch (e) { setErr((e as Error).message); }
     setBusy(false);
   };
   return (
-    <Modal title={`Réveiller « ${node} » ?`} subtitle="Wake-on-LAN : l'adresse MAC doit être déclarée dans la configuration du nœud chez Proxmox." onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel="Réveiller" busy={busy} error={err} canSubmit={typed === node && !busy}>
-      <label className="block text-xs text-muted">Retape <code>{node}</code> pour confirmer<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>
+    <Modal title={tr("Réveiller « {node} » ?", { node })} subtitle={tr("Wake-on-LAN : l'adresse MAC doit être déclarée dans la configuration du nœud chez Proxmox.")} onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel={tr("Réveiller")} busy={busy} error={err} canSubmit={typed === node && !busy}>
+      <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{node}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>
     </Modal>
   );
 }

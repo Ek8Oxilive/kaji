@@ -10,20 +10,21 @@ import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
 import { Field } from "./ui";
 
+import { tr, locale } from "../lib/i18n";
 const enc = encodeURIComponent;
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "–");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" }) : "–");
 const guestKey = (g: Pick<Guest, "node" | "type" | "vmid">) => `${g.node}/${g.type}/${g.vmid}`;
 const warn = "rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn";
 
 // ------------------------------------------------------------------------------------------------ lancer une sauvegarde
 
 export const MODES: { id: BackupMode; label: string; hint: string }[] = [
-  { id: "snapshot", label: "Instantané", hint: "La machine reste en marche (recommandé)." },
-  { id: "suspend", label: "Suspension", hint: "La machine est mise en pause pendant la copie." },
-  { id: "stop", label: "Arrêt", hint: "La machine est ARRÊTÉE pendant la copie, puis redémarrée." },
+  { id: "snapshot", get label() { return tr("Instantané"); }, get hint() { return tr("La machine reste en marche (recommandé)."); } },
+  { id: "suspend", get label() { return tr("Suspension"); }, get hint() { return tr("La machine est mise en pause pendant la copie."); } },
+  { id: "stop", get label() { return tr("Arrêt"); }, get hint() { return tr("La machine est ARRÊTÉE pendant la copie, puis redémarrée."); } },
 ];
 export const COMPRESS: { id: BackupCompress; label: string }[] = [
-  { id: "zstd", label: "zstd (rapide, recommandé)" }, { id: "gzip", label: "gzip" }, { id: "lzo", label: "lzo (très rapide)" }, { id: "none", label: "Aucune" },
+  { id: "zstd", get label() { return tr("zstd (rapide, recommandé)"); } }, { id: "gzip", label: "gzip" }, { id: "lzo", get label() { return tr("lzo (très rapide)"); } }, { id: "none", get label() { return tr("Aucune"); } },
 ];
 
 export function LaunchBackupDialog({ connId, guests, stores, initial, onClose }: { connId: number; guests: Guest[]; stores: BackupStore[]; initial?: string; onClose: () => void }) {
@@ -48,28 +49,28 @@ export function LaunchBackupDialog({ connId, guests, stores, initial, onClose }:
     : null;
 
   return (
-    <Modal title="Lancer une sauvegarde" subtitle="Sauvegarde manuelle : elle ne supprime jamais d'anciennes sauvegardes."
-      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Lancer la sauvegarde"
+    <Modal title={tr("Lancer une sauvegarde")} subtitle={tr("Sauvegarde manuelle : elle ne supprime jamais d'anciennes sauvegardes.")}
+      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Lancer la sauvegarde")}
       onSubmit={() => run(async () => {
         if (!guest || !body) return;
-        await runTask(connId, guest.node, () => api<BackupCreateResult>(`/api/connections/${connId}/nodes/${enc(guest.node)}/backups`, { method: "POST", body }), "Sauvegarde", LONG_TASK_SECONDS);
-        toast("ok", `Sauvegarde de « ${guest.name ?? guest.vmid} » terminée`);
+        await runTask(connId, guest.node, () => api<BackupCreateResult>(`/api/connections/${connId}/nodes/${enc(guest.node)}/backups`, { method: "POST", body }), tr("Sauvegarde"), LONG_TASK_SECONDS);
+        toast("ok", tr("Sauvegarde de « {p} » terminée", { p: guest.name ?? guest.vmid }));
         await qc.invalidateQueries({ queryKey: ["backups", connId] });
       })}>
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Machine</span>
+        <span className="text-sm text-muted">{tr("Machine")}</span>
         <select className="field" value={key} onChange={(e) => { setKey(e.target.value); setStorage(""); }} autoFocus>
           {guests.map((g) => <option key={guestKey(g)} value={guestKey(g)}>{g.name ?? g.vmid} · #{g.vmid} · {g.type === "qemu" ? "VM" : "LXC"} · {g.node}</option>)}
         </select>
       </label>
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Stockage de destination</span>
+        <span className="text-sm text-muted">{tr("Stockage de destination")}</span>
         <select className="field" value={chosen} onChange={(e) => setStorage(e.target.value)} disabled={options.length === 0}>
-          {options.length === 0 && <option value="">Aucun stockage de sauvegarde pour ce nœud</option>}
-          {options.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.shared ? " (partagé)" : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
+          {options.length === 0 && <option value="">{tr("Aucun stockage de sauvegarde pour ce nœud")}</option>}
+          {options.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.shared ? tr(" (partagé)") : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
         </select>
       </label>
-      <fieldset className="space-y-2" aria-label="Mode de sauvegarde">
+      <fieldset className="space-y-2" aria-label={tr("Mode de sauvegarde")}>
         {MODES.map((m) => (
           <label key={m.id} className="flex items-start gap-2 text-sm">
             <input type="radio" name="mode" className="mt-0.5 size-4 accent-[var(--accent)]" checked={mode === m.id} onChange={() => { setMode(m.id); setStopOk(false); }} />
@@ -79,18 +80,18 @@ export function LaunchBackupDialog({ connId, guests, stores, initial, onClose }:
       </fieldset>
       {mode === "stop" && (
         <div className={`${warn} space-y-2`}>
-          <p>Le mode « Arrêt » <strong>éteint la machine</strong> pendant toute la sauvegarde. Ses services seront indisponibles.</p>
+          <p>{tr("Le mode « Arrêt »")}{" "}<strong>{tr("éteint la machine")}</strong>{" "}{tr("pendant toute la sauvegarde. Ses services seront indisponibles.")}</p>
           <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={stopOk} onChange={(e) => setStopOk(e.target.checked)} />
-            <span>Je comprends que « {guest?.name ?? guest?.vmid} » sera arrêtée pendant la sauvegarde.</span></label>
+            <span>{tr("Je comprends que « {p} » sera arrêtée pendant la sauvegarde.", { p: guest?.name ?? guest?.vmid })}</span></label>
         </div>
       )}
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Compression</span>
+        <span className="text-sm text-muted">{tr("Compression")}</span>
         <select className="field" value={compress} onChange={(e) => setCompress(e.target.value as BackupCompress)}>{COMPRESS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
       </label>
-      <Field label="Notes (facultatif)" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={200}
-        hint={notesOk ? "Une seule ligne. Proxmox y remplace {{guestname}}, {{vmid}}, {{node}}, {{cluster}}." : "Une seule ligne, sans antislash."} aria-invalid={!notesOk} />
-      {busy && <p className="text-sm text-muted">Sauvegarde en cours, cela peut durer longtemps. Tu peux fermer cette fenêtre : elle continue en arrière-plan et la liste se mettra à jour.</p>}
+      <Field label={tr("Notes (facultatif)")} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={200}
+        hint={notesOk ? tr("Une seule ligne. Proxmox y remplace {{guestname}}, {{vmid}}, {{node}}, {{cluster}}.") : tr("Une seule ligne, sans antislash.")} aria-invalid={!notesOk} />
+      {busy && <p className="text-sm text-muted">{tr("Sauvegarde en cours, cela peut durer longtemps. Tu peux fermer cette fenêtre : elle continue en arrière-plan et la liste se mettra à jour.")}</p>}
     </Modal>
   );
 }
@@ -120,39 +121,35 @@ export function RestoreDialog({ connId, backup, nodes, guestName, onClose }: { c
   const origin = backup.vmid != null ? `${guestName ?? "machine"} #${backup.vmid}` : "machine inconnue";
 
   return (
-    <Modal title="Restaurer vers une nouvelle machine" subtitle={`${origin} · ${when(backup.date)} · ${backup.storage}`}
-      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Restaurer"
+    <Modal title={tr("Restaurer vers une nouvelle machine")} subtitle={`${origin} · ${when(backup.date)} · ${backup.storage}`}
+      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Restaurer")}
       onSubmit={() => run(async () => {
         let res: RestoreResult | undefined;
-        await runTask(connId, node, async () => (res = await api<RestoreResult>(`${base}/nodes/${enc(node)}/restore`, { method: "POST", body })), "Restauration", LONG_TASK_SECONDS);
-        toast("ok", `Machine #${res?.vmid ?? "?"} créée à partir de la sauvegarde (arrêtée)`);
+        await runTask(connId, node, async () => (res = await api<RestoreResult>(`${base}/nodes/${enc(node)}/restore`, { method: "POST", body })), tr("Restauration"), LONG_TASK_SECONDS);
+        toast("ok", tr("Machine #{p} créée à partir de la sauvegarde (arrêtée)", { p: res?.vmid ?? "?" }));
         await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
       })}>
-      <p className="rounded-xl border border-ok/40 bg-ok/10 p-3 text-sm text-ok">
-        La restauration crée {lxc ? <>un <strong>nouveau conteneur</strong>, qui reste <strong>arrêté</strong></> : <>une <strong>nouvelle machine</strong>, qui reste <strong>arrêtée</strong></>}.
-        Elle ne remplace jamais une machine existante : un identifiant déjà utilisé est refusé.
-      </p>
+      <p className="rounded-xl border border-ok/40 bg-ok/10 p-3 text-sm text-ok">{tr("La restauration crée")}{" "}{lxc ? <>{tr("un")}{" "}<strong>{tr("nouveau conteneur")}</strong>{tr(", qui reste")}{" "}<strong>{tr("arrêté")}</strong></> : <>{tr("une")}{" "}<strong>{tr("nouvelle machine")}</strong>{tr(", qui reste")}{" "}<strong>{tr("arrêtée")}</strong></>}{tr(". Elle ne remplace jamais une machine existante : un identifiant déjà utilisé est refusé.")}</p>
       <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
         {targets.length > 1
-          ? <label className="block space-y-1.5"><span className="text-sm text-muted">Nœud</span>
+          ? <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Nœud")}</span>
               <select className="field" value={node} onChange={(e) => { setNode(e.target.value); setStorage(""); }}>{targets.map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}</select></label>
-          : <div className="space-y-1.5"><span className="text-sm text-muted">Nœud</span><p className="field !bg-transparent">{backup.node}</p></div>}
-        <Field label="Identifiant" type="number" min={100} value={vmid} onChange={(e) => setVmid(e.target.value)} placeholder={nextId.data ? String(nextId.data.vmid) : ""}
-          hint={nextId.data ? `Vide : le prochain libre (${nextId.data.vmid})` : "Vide : le prochain libre"} aria-invalid={!idOk} />
+          : <div className="space-y-1.5"><span className="text-sm text-muted">{tr("Nœud")}</span><p className="field !bg-transparent">{backup.node}</p></div>}
+        <Field label={tr("Identifiant")} type="number" min={100} value={vmid} onChange={(e) => setVmid(e.target.value)} placeholder={nextId.data ? String(nextId.data.vmid) : ""}
+          hint={nextId.data ? tr("Vide : le prochain libre ({vmid})", { vmid: nextId.data.vmid }) : tr("Vide : le prochain libre")} aria-invalid={!idOk} />
       </div>
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Stockage de destination des disques</span>
+        <span className="text-sm text-muted">{tr("Stockage de destination des disques")}</span>
         <select className="field" value={storage} onChange={(e) => setStorage(e.target.value)} autoFocus>
-          <option value="">Choisir un stockage…</option>
+          <option value="">{tr("Choisir un stockage…")}</option>
           {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
         </select>
       </label>
       <PoolField connId={connId} value={pool} onChange={setPool} />
-      <p className="-mt-2 text-xs text-muted">Selon les droits du token, Proxmox peut n'autoriser la création que dans certains pools.</p>
+      <p className="-mt-2 text-xs text-muted">{tr("Selon les droits du token, Proxmox peut n'autoriser la création que dans certains pools.")}</p>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={unique} onChange={(e) => setUnique(e.target.checked)} />
-        <span>Nouvelles adresses MAC (recommandé)
-          <span className="block text-xs text-muted">Sans cela, la machine restaurée garde les adresses de l'originale : doublon sur le réseau tant qu'elle existe.</span></span></label>
-      {busy && <p className="text-sm text-muted">Restauration en cours, cela peut durer longtemps. Tu peux fermer cette fenêtre : elle continue en arrière-plan.</p>}
+        <span>{tr("Nouvelles adresses MAC (recommandé)")}<span className="block text-xs text-muted">{tr("Sans cela, la machine restaurée garde les adresses de l'originale : doublon sur le réseau tant qu'elle existe.")}</span></span></label>
+      {busy && <p className="text-sm text-muted">{tr("Restauration en cours, cela peut durer longtemps. Tu peux fermer cette fenêtre : elle continue en arrière-plan.")}</p>}
     </Modal>
   );
 }
@@ -167,16 +164,16 @@ export function DeleteBackupDialog({ connId, backup, onClose }: { connId: number
   const url = `/api/connections/${connId}/nodes/${enc(backup.node)}/storage/${enc(backup.storage)}/backups/${enc(backup.name)}?confirm=true&name=${enc(typed)}`;
 
   return (
-    <Modal title="Supprimer cette sauvegarde ?" subtitle={backup.storage} danger onClose={onClose} busy={busy} error={error}
-      canSubmit={typed === backup.name} submitLabel="Supprimer définitivement"
+    <Modal title={tr("Supprimer cette sauvegarde ?")} subtitle={backup.storage} danger onClose={onClose} busy={busy} error={error}
+      canSubmit={typed === backup.name} submitLabel={tr("Supprimer définitivement")}
       onSubmit={() => run(async () => {
         const r = await api<BackupDeleteResult>(url, { method: "DELETE" });
-        if (r.upid) await runTask(connId, backup.node, async () => ({ upid: r.upid as string }), "Suppression", 600);
-        toast("ok", "Sauvegarde supprimée");
+        if (r.upid) await runTask(connId, backup.node, async () => ({ upid: r.upid as string }), tr("Suppression"), 600);
+        toast("ok", tr("Sauvegarde supprimée"));
         await qc.invalidateQueries({ queryKey: ["backups", connId] });
       })}>
-      <p className="text-sm text-muted">Le fichier est détruit sur <strong className="text-fg">{backup.storage}</strong>. <strong className="text-fg">Cette action est irréversible</strong> : il n'y a pas de corbeille.</p>
-      <Field label="Retape le nom exact du fichier pour confirmer" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} autoFocus
+      <p className="text-sm text-muted">{tr("Le fichier est détruit sur")}{" "}<strong className="text-fg">{backup.storage}</strong>. <strong className="text-fg">{tr("Cette action est irréversible")}</strong>{" "}{tr(": il n'y a pas de corbeille.")}</p>
+      <Field label={tr("Retape le nom exact du fichier pour confirmer")} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" spellCheck={false} autoFocus
         hint={backup.name} aria-invalid={typed !== "" && typed !== backup.name} />
     </Modal>
   );

@@ -6,6 +6,7 @@ import { useActiveConnection } from "../lib/connection";
 import { duration, taskLabel } from "../lib/taskLabels";
 import type { TaskList, TaskRow } from "../lib/types/taches";
 
+import { tr } from "../lib/i18n";
 const OPEN_KEY = "kaji-taskbar-open";
 const SHOWN = 6;                                                   // tâches récentes montrées dans la barre
 const smallScreen = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
@@ -36,20 +37,18 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
 
   return (
     <>
-    <footer aria-label="Barre de tâches" className="panel sticky bottom-0 z-30 mx-2 mb-2 !rounded-2xl p-2 sm:mx-3 sm:mb-3 md:mx-6">
+    <footer aria-label={tr("Barre de tâches")} className="panel sticky bottom-0 z-30 mx-2 mb-2 !rounded-2xl p-2 sm:mx-3 sm:mb-3 md:mx-6">
       <div className="flex flex-wrap items-center gap-3 px-2 text-sm">
-        <button onClick={toggle} aria-expanded={open} className="rounded-lg px-2 py-1 text-left font-medium hover:bg-surface2">
-          {open ? "▾" : "▸"} Tâches
-        </button>
+        <button onClick={toggle} aria-expanded={open} className="rounded-lg px-2 py-1 text-left font-medium hover:bg-surface2">{tr("{p} Tâches", { p: open ? "▾" : "▸" })}</button>
         <span className="text-xs text-muted" role="status">
-          {tasks.isLoading ? "Chargement…" : tasks.error ? "Tâches illisibles" : running ? `${running} en cours` : "Aucune tâche en cours"}
-          {failed > 0 && ` · ${failed} échec${failed > 1 ? "s" : ""} récent${failed > 1 ? "s" : ""}`}
+          {tasks.isLoading ? tr("Chargement…") : tasks.error ? tr("Tâches illisibles") : running ? tr("{running} en cours", { running }) : tr("Aucune tâche en cours")}
+          {failed > 0 && (failed > 1 ? tr(" · {failed} échecs récents", { failed }) : tr(" · {failed} échec récent", { failed }))}
         </span>
-        <button onClick={onOpenTasks} className="ml-auto rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface2 hover:text-fg">Toutes les tâches</button>
+        <button onClick={onOpenTasks} className="ml-auto rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface2 hover:text-fg">{tr("Toutes les tâches")}</button>
       </div>
       {open && (
-        <ul className="mt-1 max-h-[6.75rem] divide-y divide-line overflow-y-auto" aria-label="Dernières tâches">
-          {rows.length === 0 && !tasks.isLoading && <li className="px-3 py-2 text-xs text-muted">Aucune tâche récente.</li>}
+        <ul className="mt-1 max-h-[6.75rem] divide-y divide-line overflow-y-auto" aria-label={tr("Dernières tâches")}>
+          {rows.length === 0 && !tasks.isLoading && <li className="px-3 py-2 text-xs text-muted">{tr("Aucune tâche récente.")}</li>}
           {rows.map((t) => (
             <li key={t.upid}>
               <button onClick={() => setSel(t)} className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-left text-xs hover:bg-surface2">

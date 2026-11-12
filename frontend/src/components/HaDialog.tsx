@@ -6,9 +6,10 @@ import type { HaIgnored, HaMode, HaMoveResult, HaPreview, HaResource } from "../
 import { Modal } from "./Modal";
 import { Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const PHRASE = "COUPURE POSSIBLE";
 const ignoredText = (list: HaIgnored[], target: string) =>
-  `La HA va ignorer cette demande : ${list.map((i) => `la règle stricte « ${i.rule} » (${i.resources.join(", ")}) n'autorise que ${i.nodes.join(", ") || "aucun nœud"}`).join(" ; ")}. Rien ne bougera vers ${target || "ce nœud"} tant que cette règle existe : modifie-la ou désactive-la d'abord.`;
+  tr("La HA va ignorer cette demande : {p}. Rien ne bougera vers {p2} tant que cette règle existe : modifie-la ou désactive-la d'abord.", { p: list.map((i) => tr("la règle stricte « {rule} » ({p}) n'autorise que {p2}", { rule: i.rule, p: i.resources.join(", "), p2: i.nodes.join(", ") || tr("aucun nœud") })).join(" ; "), p2: target || tr("ce nœud") });
 const STATES = ["", "started", "stopped", "enabled", "disabled", "ignored"];
 type Tri = "" | "yes" | "no";
 const tri = (t: Tri) => (t === "yes" ? true : t === "no" ? false : undefined);
@@ -94,68 +95,68 @@ export function HaDialog({ connId, mode, onClose }: { connId: number; mode: HaMo
   const ready = !!preview && (!cut || (ackCut && typed === PHRASE)) && (!live || cut || ackLive);
   const inHa = useMemo(() => new Set((haRes.data ?? []).map((r) => r.sid)), [haRes.data]);
   const free = (guests.data ?? []).filter((g) => !g.template && g.vmid !== null && !inHa.has(`${g.type === "lxc" ? "ct" : "vm"}:${g.vmid}`));
-  const title = { "resource-new": "Ajouter une machine à la HA", "resource-edit": `Modifier ${target_}`, "resource-delete": `Retirer ${target_} de la HA`, migrate: `Migrer ${target_}`, relocate: `Relocaliser ${target_}`,
-    "rule-new": "Nouvelle règle HA", "rule-edit": `Modifier la règle ${target_}`, "rule-delete": `Supprimer la règle ${target_}` }[k];
+  const title = { "resource-new": tr("Ajouter une machine à la HA"), "resource-edit": `Modifier ${target_}`, "resource-delete": tr("Retirer {target_} de la HA", { target_ }), migrate: `Migrer ${target_}`, relocate: `Relocaliser ${target_}`,
+    "rule-new": tr("Nouvelle règle HA"), "rule-edit": tr("Modifier la règle {target_}", { target_ }), "rule-delete": tr("Supprimer la règle {target_}", { target_ }) }[k];
   const readyToLook = k === "resource-new" ? sid !== "" : k === "migrate" || k === "relocate" ? target !== "" : k === "rule-new" ? ruleName !== "" && rRes.length > 0 && (rtype === "resource-affinity" || Object.keys(nodeSel).length > 0) : true;
   const select = (label: string, v: string, set: (s: string) => void, opts: [string, string][]) => (
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span><select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map(([val, text]) => <option key={val} value={val}>{text}</option>)}</select></label>);
-  const triSel = (label: string, v: Tri, set: (t: Tri) => void) => select(label, v, (s) => set(s as Tri), [["", "Défaut de Proxmox"], ["yes", "Oui"], ["no", "Non"]]);
+  const triSel = (label: string, v: Tri, set: (t: Tri) => void) => select(label, v, (s) => set(s as Tri), [["", tr("Défaut de Proxmox")], ["yes", tr("Oui")], ["no", tr("Non")]]);
 
   if (done) return (
-    <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit>
-      <Notice kind="ok">{k === "migrate" || k === "relocate" ? `Demande envoyée à la HA : ${moved?.from ?? "?"} → ${moved?.requested ?? target}. Le déplacement est asynchrone (suivre l'état HA).` : "Enregistré, relu chez Proxmox."}</Notice>
-      {moved && moved.comigrated.length > 0 && <Notice kind="ok">Déplacées avec elle (affinité positive) : {moved.comigrated.join(", ")}.</Notice>}
+    <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit>
+      <Notice kind="ok">{k === "migrate" || k === "relocate" ? tr("Demande envoyée à la HA : {p} → {p2}. Le déplacement est asynchrone (suivre l'état HA).", { p: moved?.from ?? "?", p2: moved?.requested ?? target }) : tr("Enregistré, relu chez Proxmox.")}</Notice>
+      {moved && moved.comigrated.length > 0 && <Notice kind="ok">{tr("Déplacées avec elle (affinité positive) : {p}.", { p: moved.comigrated.join(", ") })}</Notice>}
       {moved && (moved.ignored?.length ?? 0) > 0 && <Notice kind="error">{ignoredText(moved.ignored ?? [], moved.requested)}</Notice>}
-      {moved && moved.blocking.length > 0 && <Notice kind="error">Bloquées : {moved.blocking.map((b) => `${b.sid}${b.cause ? ` (${b.cause})` : ""}`).join(", ")}.</Notice>}
+      {moved && moved.blocking.length > 0 && <Notice kind="error">{tr("Bloquées : {p}.", { p: moved.blocking.map((b) => `${b.sid}${b.cause ? ` (${b.cause})` : ""}`).join(", ") })}</Notice>}
     </Modal>);
 
   return (
-    <Modal title={title} subtitle="Rien n'est écrit sans aperçu : le serveur dit quels verrous s'appliquent." onClose={busy ? () => {} : onClose} onSubmit={run}
-      submitLabel={k === "resource-delete" || k === "rule-delete" ? "Supprimer" : "Appliquer"} danger={cut || live || k === "resource-delete" || k === "rule-delete"} busy={busy} error={err} canSubmit={ready} wide>
-      {k === "resource-new" && select("Machine", sid, setSid, [["", guests.isLoading ? "Chargement…" : "Choisir une machine"], ...free.map((g) => [`${g.type === "lxc" ? "ct" : "vm"}:${g.vmid}`, `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
+    <Modal title={title} subtitle={tr("Rien n'est écrit sans aperçu : le serveur dit quels verrous s'appliquent.")} onClose={busy ? () => {} : onClose} onSubmit={run}
+      submitLabel={k === "resource-delete" || k === "rule-delete" ? tr("Supprimer") : tr("Appliquer")} danger={cut || live || k === "resource-delete" || k === "rule-delete"} busy={busy} error={err} canSubmit={ready} wide>
+      {k === "resource-new" && select(tr("Machine"), sid, setSid, [["", guests.isLoading ? tr("Chargement…") : tr("Choisir une machine")], ...free.map((g) => [`${g.type === "lxc" ? "ct" : "vm"}:${g.vmid}`, `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
       {(k === "resource-new" || k === "resource-edit") && <>
-        {select("État demandé", state, setState, STATES.map((s) => [s, s || (editingRes ? "Ne pas changer" : "Défaut (started)")]))}
+        {select(tr("État demandé"), state, setState, STATES.map((s) => [s, s || (editingRes ? tr("Ne pas changer") : tr("Défaut (started)"))]))}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Redémarrages max." type="number" min={0} max={10} value={maxRestart} onChange={(e) => setMaxRestart(e.target.value)} hint="Vide = défaut de Proxmox (retire le réglage en modification)" />
-          <Field label="Déplacements max." type="number" min={0} max={10} value={maxRelocate} onChange={(e) => setMaxRelocate(e.target.value)} />
+          <Field label={tr("Redémarrages max.")} type="number" min={0} max={10} value={maxRestart} onChange={(e) => setMaxRestart(e.target.value)} hint={tr("Vide = défaut de Proxmox (retire le réglage en modification)")} />
+          <Field label={tr("Déplacements max.")} type="number" min={0} max={10} value={maxRelocate} onChange={(e) => setMaxRelocate(e.target.value)} />
         </div>
-        {triSel("Retour sur le nœud préféré (failback)", failback, setFailback)}
-        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint="ASCII uniquement : Proxmox altère les accents des commentaires HA" />
+        {triSel(tr("Retour sur le nœud préféré (failback)"), failback, setFailback)}
+        <Field label={tr("Commentaire")} value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint={tr("ASCII uniquement : Proxmox altère les accents des commentaires HA")} />
       </>}
-      {(k === "migrate" || k === "relocate") && select("Nœud cible", target, setTarget, [["", "Choisir un nœud"], ...(nodes.data ?? []).map((n) => [n.node, n.node] as [string, string])])}
-      {k === "resource-delete" && <Notice kind="error">La machine n'est pas touchée : seule sa gestion par la HA s'arrête. Refusé tant qu'une règle la cite.</Notice>}
-      {k === "rule-delete" && <Notice kind="error">Les machines ne sont pas touchées : la règle disparaît, la HA les place alors sans cette contrainte.</Notice>}
+      {(k === "migrate" || k === "relocate") && select(tr("Nœud cible"), target, setTarget, [["", tr("Choisir un nœud")], ...(nodes.data ?? []).map((n) => [n.node, n.node] as [string, string])])}
+      {k === "resource-delete" && <Notice kind="error">{tr("La machine n'est pas touchée : seule sa gestion par la HA s'arrête. Refusé tant qu'une règle la cite.")}</Notice>}
+      {k === "rule-delete" && <Notice kind="error">{tr("Les machines ne sont pas touchées : la règle disparaît, la HA les place alors sans cette contrainte.")}</Notice>}
       {(k === "rule-new" || k === "rule-edit") && <>
-        {k === "rule-new" && <Field label="Nom de la règle" value={ruleName} maxLength={64} onChange={(e) => setRuleName(e.target.value)} hint="Lettre puis lettres, chiffres, _ ou -" />}
-        {k === "rule-new" ? select("Type", rtype, (s) => setRtype(s as typeof rtype), [["node-affinity", "node-affinity : placer sur des nœuds"], ["resource-affinity", "resource-affinity : garder ensemble ou séparées"]])
-          : <p className="text-sm text-muted">Type : <code>{rtype}</code> (non modifiable)</p>}
-        <fieldset className="space-y-1 text-sm"><legend className="text-muted">Machines de la règle (déjà gérées par la HA)</legend>
-          {(haRes.data ?? []).length === 0 && <p className="text-muted">Aucune ressource HA : ajoute d'abord une machine à la HA.</p>}
+        {k === "rule-new" && <Field label={tr("Nom de la règle")} value={ruleName} maxLength={64} onChange={(e) => setRuleName(e.target.value)} hint={tr("Lettre puis lettres, chiffres, _ ou -")} />}
+        {k === "rule-new" ? select(tr("Type"), rtype, (s) => setRtype(s as typeof rtype), [["node-affinity", tr("node-affinity : placer sur des nœuds")], ["resource-affinity", tr("resource-affinity : garder ensemble ou séparées")]])
+          : <p className="text-sm text-muted">{tr("Type :")}{" "}<code>{rtype}</code>{" "}{tr("(non modifiable)")}</p>}
+        <fieldset className="space-y-1 text-sm"><legend className="text-muted">{tr("Machines de la règle (déjà gérées par la HA)")}</legend>
+          {(haRes.data ?? []).length === 0 && <p className="text-muted">{tr("Aucune ressource HA : ajoute d'abord une machine à la HA.")}</p>}
           {(haRes.data ?? []).map((r) => (<label key={r.sid} className="mr-4 inline-flex items-center gap-2"><input type="checkbox" checked={rRes.includes(r.sid)} onChange={(e) => setRRes(e.target.checked ? [...rRes, r.sid] : rRes.filter((x) => x !== r.sid))} /><span className="font-mono">{r.sid}</span></label>))}
         </fieldset>
         {rtype === "node-affinity" ? <>
-          <fieldset className="space-y-1.5 text-sm"><legend className="text-muted">Nœuds (priorité facultative : le plus grand nombre est préféré)</legend>
+          <fieldset className="space-y-1.5 text-sm"><legend className="text-muted">{tr("Nœuds (priorité facultative : le plus grand nombre est préféré)")}</legend>
             {(nodes.data ?? []).map((n) => (
               <div key={n.node} className="flex items-center gap-3">
                 <label className="flex w-40 items-center gap-2"><input type="checkbox" checked={n.node in nodeSel} onChange={(e) => setNodeSel((cur) => { const c = { ...cur }; if (e.target.checked) c[n.node] = ""; else delete c[n.node]; return c; })} /><span className="font-mono">{n.node}</span></label>
-                <input className="field max-w-[8rem]" type="number" min={0} max={1000} placeholder="priorité" aria-label={`Priorité de ${n.node}`} disabled={!(n.node in nodeSel)} value={nodeSel[n.node] ?? ""} onChange={(e) => setNodeSel((cur) => ({ ...cur, [n.node]: e.target.value }))} />
+                <input className="field max-w-[8rem]" type="number" min={0} max={1000} placeholder={tr("priorité")} aria-label={tr("Priorité de {node}", { node: n.node })} disabled={!(n.node in nodeSel)} value={nodeSel[n.node] ?? ""} onChange={(e) => setNodeSel((cur) => ({ ...cur, [n.node]: e.target.value }))} />
               </div>))}
           </fieldset>
-          {triSel("Stricte (aucun autre nœud autorisé)", strict, setStrict)}
-        </> : select("Affinité", affinity, setAffinity, [["", "Choisir"], ["positive", "positive : sur le même nœud"], ["negative", "négative : sur des nœuds différents"]])}
-        {triSel("Désactivée", disable, setDisable)}
-        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint="ASCII uniquement : Proxmox altère les accents des commentaires HA" />
+          {triSel(tr("Stricte (aucun autre nœud autorisé)"), strict, setStrict)}
+        </> : select(tr("Affinité"), affinity, setAffinity, [["", tr("Choisir")], ["positive", tr("positive : sur le même nœud")], ["negative", tr("négative : sur des nœuds différents")]])}
+        {triSel(tr("Désactivée"), disable, setDisable)}
+        <Field label={tr("Commentaire")} value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} hint={tr("ASCII uniquement : Proxmox altère les accents des commentaires HA")} />
       </>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>Aperçu des verrous</button>
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>{tr("Aperçu des verrous")}</button>
       {preview && (
         <div className="space-y-3 text-sm">
-          {(preview.comigrated?.length ?? 0) > 0 && <Notice kind="error">Cette migration entraîne aussi (affinité positive) : {preview.comigrated?.join(", ")}.</Notice>}
+          {(preview.comigrated?.length ?? 0) > 0 && <Notice kind="error">{tr("Cette migration entraîne aussi (affinité positive) : {p}.", { p: preview.comigrated?.join(", ") })}</Notice>}
           {(preview.ignored?.length ?? 0) > 0 && <Notice kind="error">{ignoredText(preview.ignored ?? [], target)}</Notice>}
-          {preview.locks.inert && <Notice kind="ok">Aucun verrou : rien ne bouge tout de suite.</Notice>}
-          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>Je comprends que cela s'applique tout de suite</span></label></Notice>}
-          {cut && <Notice kind="error"><b>Coupure possible</b> : {preview.locks.cut.join(" ; ")}.
-            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>Je comprends qu'un nœud peut redémarrer tout seul et couper l'accès à Proxmox et à Kaji</span></label>
-            <label className="mt-2 block text-xs">Retape <code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
+          {preview.locks.inert && <Notice kind="ok">{tr("Aucun verrou : rien ne bouge tout de suite.")}</Notice>}
+          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>{tr("Je comprends que cela s'applique tout de suite")}</span></label></Notice>}
+          {cut && <Notice kind="error"><b>{tr("Coupure possible")}</b> : {preview.locks.cut.join(" ; ")}.
+            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>{tr("Je comprends qu'un nœud peut redémarrer tout seul et couper l'accès à Proxmox et à Kaji")}</span></label>
+            <label className="mt-2 block text-xs">{tr("Retape")}{" "}<code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
         </div>)}
     </Modal>
   );

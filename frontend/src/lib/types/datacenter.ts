@@ -1,3 +1,4 @@
+import { tr } from "../i18n";
 /** Options du datacenter (`docs/api/datacenter.md`). */
 export const KEYBOARDS = ["de", "de-ch", "da", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "ja", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "sv", "sl", "tr"] as const;
 export const LANGUAGES = ["ar", "ca", "da", "de", "en", "es", "eu", "fa", "fr", "hr", "he", "it", "ja", "ka", "kr", "nb", "nl", "nn", "pl", "pt_BR", "ru", "sl", "sv", "tr", "ukr", "zh_CN", "zh_TW"] as const;
@@ -5,7 +6,7 @@ export const CONSOLES = ["applet", "vv", "html5", "xtermjs"] as const;
 
 export const SHAPES = ["full", "circle", "dense", "none"] as const;
 export const ORDERINGS = ["config", "alphabetical"] as const;
-export const USER_ALLOW: Record<string, string> = { none: "none : aucune étiquette", list: "list : seulement une liste", existing: "existing : étiquettes déjà utilisées", free: "free : étiquettes libres" };
+export const USER_ALLOW: Record<string, string> = { get none() { return tr("none : aucune étiquette"); }, get list() { return tr("list : seulement une liste"); }, get existing() { return tr("existing : étiquettes déjà utilisées"); }, get free() { return tr("free : étiquettes libres"); } };
 export type TagColor = { tag: string; color: string; text: string | null };
 export type TagStyle = { shape: string | null; ordering: string | null; case_sensitive: true | null; color_map: TagColor[] };
 

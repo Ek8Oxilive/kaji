@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { Button } from "./ui";
 
+import { tr } from "../lib/i18n";
 export function ConfirmDialog({ title, children, confirmLabel, danger, onConfirm, onCancel }: {
   title: string; children: ReactNode; confirmLabel: string; danger?: boolean; onConfirm: () => void; onCancel: () => void;
 }) {
@@ -15,7 +16,7 @@ export function ConfirmDialog({ title, children, confirmLabel, danger, onConfirm
         <h2 className="text-lg font-semibold">{title}</h2>
         <div className="text-sm text-muted">{children}</div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>Annuler</Button>
+          <Button variant="ghost" onClick={onCancel}>{tr("Annuler")}</Button>
           <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} autoFocus>{confirmLabel}</Button>
         </div>
       </div>

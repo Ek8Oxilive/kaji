@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import type { RepoInfo } from "../lib/types/systeme";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Plan = { kind: "toggle"; path: string; index: number; enabled: boolean; label: string } | { kind: "add"; handle: string; label: string };
 
 /** Dépôts apt : activer / désactiver / ajouter. Le serveur relit l'état, vérifie le digest et impose `accept_risk` quand il y a un risque. */
@@ -38,7 +39,7 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
   return (
     <div className="space-y-3 text-sm">
       {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
-      {!repos.digest && <Notice kind="error">Empreinte des dépôts illisible : modification désactivée.</Notice>}
+      {!repos.digest && <Notice kind="error">{tr("Empreinte des dépôts illisible : modification désactivée.")}</Notice>}
       {repos.files.map((f) => (
         <div key={f.path}>
           <div className="text-xs text-muted">{f.path}</div>
@@ -46,26 +47,26 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
             <div key={x.index} className="flex flex-wrap items-center gap-2 py-0.5">
               <span className={`min-w-0 flex-1 break-all ${x.enabled ? "" : "text-muted line-through"}`}>{x.types.join(" ")} {x.uris.join(" ")} {x.suites.join(" ")} {x.components.join(" ")}</span>
               {f.path && repos.digest && <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={busy}
-                onClick={() => setPlan({ kind: "toggle", path: f.path!, index: x.index, enabled: !x.enabled, label: `${x.enabled ? "Désactivation" : "Activation"} du dépôt ${x.components.join(" ")}` })}>{x.enabled ? "Désactiver" : "Activer"}</Button>}
+                onClick={() => setPlan({ kind: "toggle", path: f.path!, index: x.index, enabled: !x.enabled, label: tr("{p} du dépôt {p2}", { p: x.enabled ? tr("Désactivation") : tr("Activation"), p2: x.components.join(" ") }) })}>{x.enabled ? tr("Désactiver") : tr("Activer")}</Button>}
             </div>))}
         </div>))}
-      {repos.errors > 0 && <p className="text-danger">{repos.errors} fichier(s) de dépôts illisible(s).</p>}
+      {repos.errors > 0 && <p className="text-danger">{tr("{errors} fichier(s) de dépôts illisible(s).", { errors: repos.errors })}</p>}
       {repos.digest && addable.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-2">
-          <span className="text-xs text-muted">Ajouter un dépôt standard :</span>
+          <span className="text-xs text-muted">{tr("Ajouter un dépôt standard :")}</span>
           {addable.map((s) => <Button key={s.handle} variant="ghost" className="!px-2 !py-1 text-xs" title={s.description ?? ""} disabled={busy}
-            onClick={() => setPlan({ kind: "add", handle: s.handle!, label: `Ajout du dépôt ${s.name}` })}>{s.name}</Button>)}
+            onClick={() => setPlan({ kind: "add", handle: s.handle!, label: tr("Ajout du dépôt {name}", { name: s.name }) })}>{s.name}</Button>)}
         </div>)}
       {plan && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={busy ? undefined : close}>
           <div role="dialog" aria-modal="true" aria-label={plan.label} className="panel rise w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold">{plan.label} sur {node} ?</h2>
-            <p className="text-sm text-muted">Les paquets proposés par apt changent. Kaji relit les dépôts avant d'écrire et refuse si la configuration a bougé entre-temps.</p>
+            <h2 className="text-lg font-semibold">{tr("{label} sur {node} ?", { label: plan.label, node })}</h2>
+            <p className="text-sm text-muted">{tr("Les paquets proposés par apt changent. Kaji relit les dépôts avant d'écrire et refuse si la configuration a bougé entre-temps.")}</p>
             {risk && <label className="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
-              <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /><span>Risque : {risk}. J'accepte.</span></label>}
+              <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /><span>{tr("Risque : {risk}. J'accepte.", { risk })}</span></label>}
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={close} disabled={busy}>Annuler</Button>
-              <Button variant="danger" onClick={() => send(accept)} disabled={busy || (!!risk && !accept)}>{busy ? "…" : "Confirmer"}</Button>
+              <Button variant="ghost" onClick={close} disabled={busy}>{tr("Annuler")}</Button>
+              <Button variant="danger" onClick={() => send(accept)} disabled={busy || (!!risk && !accept)}>{busy ? "…" : tr("Confirmer")}</Button>
             </div>
           </div>
         </div>)}

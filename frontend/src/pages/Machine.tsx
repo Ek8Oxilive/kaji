@@ -28,8 +28,9 @@ import { CONFIRM } from "../lib/guestConfirm";
 import { guestHash } from "../lib/route";
 import { useCluster, useGuestActions } from "../lib/useCluster";
 
+import { tr, T } from "../lib/i18n";
 type Tab = "hardware" | "options" | "devices" | "metrics" | "console" | "monitor" | "snapshots" | "cloudinit" | "backups" | "replication" | "firewall" | "permissions" | "tasks";
-const TABS: [Tab, string][] = [["hardware", "Matériel"], ["options", "Options"], ["devices", "Périphériques"], ["metrics", "Performances"], ["console", "Console"], ["monitor", "Moniteur"], ["snapshots", "Snapshots"], ["cloudinit", "Cloud-init"], ["backups", "Sauvegardes"], ["replication", "Réplication"], ["firewall", "Pare-feu"], ["permissions", "Permissions"], ["tasks", "Tâches"]];
+const TABS: [Tab, string][] = [["hardware", T("Matériel")], ["options", T("Options")], ["devices", T("Périphériques")], ["metrics", T("Performances")], ["console", T("Console")], ["monitor", T("Moniteur")], ["snapshots", T("Snapshots")], ["cloudinit", "Cloud-init"], ["backups", T("Sauvegardes")], ["replication", T("Réplication")], ["firewall", "Pare-feu"], ["permissions", T("Permissions")], ["tasks", T("Tâches")]];
 
 // Ces valeurs viennent de l'adresse : on les contrôle, et elles ne servent qu'à retrouver la machine dans la liste du cluster.
 const NODE = /^[A-Za-z0-9]([A-Za-z0-9-]{0,62})$/;
@@ -54,12 +55,12 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
   const moved = ref && list && !guest ? list.find((g) => g.type === ref.type && g.vmid === ref.vmid) : undefined;
   useEffect(() => { if (ref && moved) go(guestHash(moved, ref.tab === "hardware" ? undefined : ref.tab), { replace: true }); }, [moved?.node]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const back = <Button variant="ghost" onClick={() => go("#/")} className="!px-3 !py-1.5">← Machines</Button>;
-  if (!ref) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">Adresse de machine invalide.</Notice></div>;
+  const back = <Button variant="ghost" onClick={() => go("#/")} className="!px-3 !py-1.5">{tr("← Machines")}</Button>;
+  if (!ref) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{tr("Adresse de machine invalide.")}</Notice></div>;
   if (conns.isLoading || (id && guests.isLoading)) return <div className="mx-auto max-w-4xl space-y-4">{back}<div className="panel h-40 animate-pulse" /></div>;
-  if (!active) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">Aucun cluster connecté. <button className="underline" onClick={onGoConnections}>Ajouter un cluster</button></Notice></div>;
-  if (guests.error && !list) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{(guests.error as Error).message} — <button className="underline" onClick={() => guests.refetch()}>réessayer</button></Notice></div>;
-  if (!guest) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{moved ? "Cette machine a changé de nœud, redirection…" : `Machine ${ref.vmid} introuvable sur le cluster « ${active.name} ».`}</Notice></div>;
+  if (!active) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{tr("Aucun cluster connecté.")}{" "}<button className="underline" onClick={onGoConnections}>{tr("Ajouter un cluster")}</button></Notice></div>;
+  if (guests.error && !list) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{(guests.error as Error).message} — <button className="underline" onClick={() => guests.refetch()}>{tr("réessayer")}</button></Notice></div>;
+  if (!guest) return <div className="mx-auto max-w-4xl space-y-4">{back}<Notice kind="error">{moved ? tr("Cette machine a changé de nœud, redirection…") : tr("Machine {vmid} introuvable sur le cluster « {name} ».", { vmid: ref.vmid, name: active.name })}</Notice></div>;
 
   const connId = active.id;
   const status = effectiveStatus(guest), running = status === "running", stopped = status === "stopped";
@@ -68,7 +69,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
   const busyLabel = busy[`${guest.node}/${guest.type}/${guest.vmid}`], off = !!busyLabel;
   const name = guest.name ?? String(guest.vmid);
   const dot = busyLabel ? "bg-warn animate-pulse" : running ? "bg-ok dot-live" : stopped ? "bg-muted" : "bg-warn";
-  const text = busyLabel ?? (running ? "En marche" : paused ? "En pause" : stopped ? "Arrêtée" : (status ?? "Inconnu"));
+  const text = busyLabel ?? (running ? tr("En marche") : paused ? tr("En pause") : stopped ? tr("Arrêtée") : (status ?? tr("Inconnu")));
   const tabs = TABS.filter(([t]) => (t !== "cloudinit" && t !== "devices" && t !== "monitor") || guest.type === "qemu");
   const tab = tabs.some(([t]) => t === ref.tab) ? ref.tab : "hardware";
   void now;
@@ -76,50 +77,50 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {back}
-      {problem && <Notice kind="error">Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées.</Notice>}
+      {problem && <Notice kind="error">{tr("Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées.", { problem })}</Notice>}
 
       <header className="panel space-y-5 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold tracking-tight">{name}</h1>
-            <p className="text-sm text-muted">#{guest.vmid} · {guest.template ? "Modèle" : guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
+            <p className="text-sm text-muted">#{guest.vmid} · {guest.template ? tr("Modèle") : guest.type === "qemu" ? "VM" : "LXC"} · {guest.node}</p>
             <div className="mt-2"><GuestTags connId={connId} guest={guest} /></div>
           </div>
           <span className="flex items-center gap-1.5 text-sm"><span className={`size-2 rounded-full ${dot}`} />{text}</span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Gauge label="CPU" value={alive ? guest.cpu * 100 : 0} detail={alive ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
-          <Gauge label="RAM" value={alive ? pct(guest.mem, guest.maxmem) : 0} detail={alive ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
+          <Gauge label={tr("CPU")} value={alive ? guest.cpu * 100 : 0} detail={alive ? `${(guest.cpu * 100).toFixed(0)} % · ${guest.maxcpu ?? "?"} vCPU` : `${guest.maxcpu ?? "?"} vCPU`} />
+          <Gauge label={tr("RAM")} value={alive ? pct(guest.mem, guest.maxmem) : 0} detail={alive ? `${bytes(guest.mem)} / ${bytes(guest.maxmem)}` : bytes(guest.maxmem)} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? "En pause : figée en mémoire, à reprendre ou à arrêter de force" : "Arrêtée"}</p>
-          <Button variant="ghost" onClick={() => setClone(true)} className="!px-3 !py-1.5" title={guest.template ? "Créer une machine à partir de ce modèle" : "Copier cette machine"}>Cloner</Button>
+          <p className="mr-auto text-xs text-muted">{running ? `Actif depuis ${uptime(guest.uptime)}` : paused ? tr("En pause : figée en mémoire, à reprendre ou à arrêter de force") : tr("Arrêtée")}</p>
+          <Button variant="ghost" onClick={() => setClone(true)} className="!px-3 !py-1.5" title={guest.template ? tr("Créer une machine à partir de ce modèle") : tr("Copier cette machine")}>{tr("Cloner")}</Button>
           {!guest.template && <>
-            {stopped && <Button onClick={() => run(guest, "start")} disabled={off} className="!px-3 !py-1.5" title="Démarre la machine">Démarrer</Button>}
+            {stopped && <Button onClick={() => run(guest, "start")} disabled={off} className="!px-3 !py-1.5" title={tr("Démarre la machine")}>{tr("Démarrer")}</Button>}
             {running && <>
-              <Button variant="ghost" onClick={() => setPending("reboot")} disabled={off} className="!px-3 !py-1.5" title="Redémarrage propre : le système s'arrête puis redémarre">Redémarrer</Button>
-              <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5" title="Extinction propre : demande au système de s'arrêter">Éteindre</Button>
+              <Button variant="ghost" onClick={() => setPending("reboot")} disabled={off} className="!px-3 !py-1.5" title={tr("Redémarrage propre : le système s'arrête puis redémarre")}>{tr("Redémarrer")}</Button>
+              <Button variant="ghost" onClick={() => setPending("shutdown")} disabled={off} className="!px-3 !py-1.5" title={tr("Extinction propre : demande au système de s'arrêter")}>{tr("Éteindre")}</Button>
             </>}
-            {alive && <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title="Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)">Forcer</Button>}
+            {alive && <Button variant="danger" onClick={() => setPending("stop")} disabled={off} className="!px-3 !py-1.5" title={tr("Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)")}>{tr("Forcer")}</Button>}
             <PowerActions connId={connId} guest={guest} status={status} disabled={off} />
           </>}
         </div>
       </header>
 
-      <NotesPanel url={`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/notes`} label="Notes" />
+      <NotesPanel url={`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/notes`} label={tr("Notes")} />
 
       {guest.template
         ? <>
-          <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">Cette machine est un modèle : elle ne se démarre pas et son matériel ne se modifie pas ici. Tu peux la cloner.</div>
+          <div className="rounded-xl border border-line bg-surface2 p-4 text-sm text-muted">{tr("Cette machine est un modèle : elle ne se démarre pas et son matériel ne se modifie pas ici. Tu peux la cloner.")}</div>
           <TemplateDangerZone connId={connId} guest={guest} onDeleted={() => go("#/")} />
         </>
         : <>
           <div role="tablist" className="flex flex-wrap gap-1 border-b border-line">
             {tabs.map(([id, label]) => (
               <button key={id} role="tab" aria-selected={tab === id} onClick={() => go(guestHash(guest, id === "hardware" ? undefined : id), { replace: true })}
-                className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm transition ${tab === id ? "border-accent font-medium text-fg" : "border-transparent text-muted hover:text-fg"}`}>{label}</button>
+                className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm transition ${tab === id ? "border-accent font-medium text-fg" : "border-transparent text-muted hover:text-fg"}`}>{tr(label)}</button>
             ))}
           </div>
           {tab === "hardware" && <HardwareTab connId={connId} guest={guest} onDeleted={() => go("#/")} onMigrated={(target) => go(guestHash({ ...guest, node: target }), { replace: true })} />}

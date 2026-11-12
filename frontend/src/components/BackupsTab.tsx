@@ -4,7 +4,8 @@ import { bytes } from "../lib/format";
 import type { Backup } from "../lib/types/sauvegardes";
 import { Notice } from "./ui";
 
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "–");
+import { tr, locale } from "../lib/i18n";
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" }) : "–");
 
 /**
  * Onglet « Sauvegardes » de la page Machine : lecture seule. Cherche les sauvegardes de cette machine sur les stockages du
@@ -26,18 +27,18 @@ export function BackupsTab({ connId, guest }: { connId: number; guest: Guest }) 
   });
 
   if (q.isLoading) return <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-10 animate-pulse rounded-xl bg-surface2" />)}</div>;
-  if (q.error) return <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>réessayer</button></Notice>;
+  if (q.error) return <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>{tr("réessayer")}</button></Notice>;
   const rows = q.data ?? [];
-  if (rows.length === 0) return <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">Aucune sauvegarde de cette machine sur les stockages du nœud {guest.node}.</div>;
+  if (rows.length === 0) return <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{tr("Aucune sauvegarde de cette machine sur les stockages du nœud {node}.", { node: guest.node })}</div>;
   return (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-xl border border-line">
         <table className="w-full min-w-[34rem] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs text-muted">
-              <th scope="col" className="px-4 py-2 font-normal">Date</th><th scope="col" className="px-4 py-2 font-normal">Stockage</th>
-              <th scope="col" className="px-4 py-2 font-normal">Format</th><th scope="col" className="px-4 py-2 text-right font-normal">Taille</th>
-              <th scope="col" className="px-4 py-2 font-normal">Notes</th>
+              <th scope="col" className="px-4 py-2 font-normal">{tr("Date")}</th><th scope="col" className="px-4 py-2 font-normal">{tr("Stockage")}</th>
+              <th scope="col" className="px-4 py-2 font-normal">{tr("Format")}</th><th scope="col" className="px-4 py-2 text-right font-normal">{tr("Taille")}</th>
+              <th scope="col" className="px-4 py-2 font-normal">{tr("Notes")}</th>
             </tr>
           </thead>
           <tbody>
@@ -47,13 +48,13 @@ export function BackupsTab({ connId, guest }: { connId: number; guest: Guest }) 
                 <td className="px-4 py-2 text-muted">{b.storage}</td>
                 <td className="px-4 py-2 text-muted">{b.format ?? "–"}</td>
                 <td className="px-4 py-2 text-right tabular-nums">{bytes(b.size)}</td>
-                <td className="max-w-xs truncate px-4 py-2 text-muted">{b.protected ? "Protégée" : ""}{b.protected && b.notes ? " · " : ""}{b.notes}</td>
+                <td className="max-w-xs truncate px-4 py-2 text-muted">{b.protected ? tr("Protégée") : ""}{b.protected && b.notes ? " · " : ""}{b.notes}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted">Sauvegardes des stockages du nœud {guest.node} uniquement. Pour lancer, restaurer ou supprimer une sauvegarde : <a href="#/backups" className="underline">page « Sauvegardes »</a>.</p>
+      <p className="text-xs text-muted">{tr("Sauvegardes des stockages du nœud {node} uniquement. Pour lancer, restaurer ou supprimer une sauvegarde :", { node: guest.node })}{" "}<a href="#/backups" className="underline">{tr("page « Sauvegardes »")}</a>.</p>
     </div>
   );
 }

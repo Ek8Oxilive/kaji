@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Button, Field, Notice } from "../components/ui";
 import { api, type Connection, type ProbeResult } from "../lib/api";
 
+import { tr } from "../lib/i18n";
 const EMPTY = { name: "", host: "", port: 8006, user: "", token_id: "", token_secret: "", verify_ssl: false };
 type Form = typeof EMPTY;
 
 function ProbeBadge({ r }: { r: ProbeResult }) {
-  return r.ok ? <Notice kind="ok">Connexion réussie : Proxmox VE {r.version}</Notice> : <Notice kind="error">{r.error ?? "Échec"}</Notice>;
+  return r.ok ? <Notice kind="ok">{tr("Connexion réussie : Proxmox VE {version}", { version: r.version })}</Notice> : <Notice kind="error">{r.error ?? tr("Échec")}</Notice>;
 }
 
 export function Connections() {
@@ -45,13 +46,13 @@ export function Connections() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Connexions</h1>
-        <p className="text-muted">Les clusters Proxmox pilotés par Kaji. Les tokens sont chiffrés et ne sont jamais ré-affichés.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{tr("Connexions")}</h1>
+        <p className="text-muted">{tr("Les clusters Proxmox pilotés par Kaji. Les tokens sont chiffrés et ne sont jamais ré-affichés.")}</p>
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
         {items === null && <div className="panel h-28 animate-pulse" />}
-        {items?.length === 0 && <div className="panel p-6 text-muted md:col-span-2">Aucune connexion pour le moment. Ajoute ton premier cluster ci-dessous.</div>}
+        {items?.length === 0 && <div className="panel p-6 text-muted md:col-span-2">{tr("Aucune connexion pour le moment. Ajoute ton premier cluster ci-dessous.")}</div>}
         {items?.map((c) => (
           <article key={c.id} className="panel space-y-3 p-5">
             <div className="flex items-start justify-between gap-3">
@@ -59,38 +60,37 @@ export function Connections() {
                 <h2 className="truncate font-medium">{c.name}</h2>
                 <p className="truncate text-sm text-muted">{c.host}:{c.port} · {c.user}!{c.token_id}</p>
               </div>
-              {!c.verify_ssl && <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-muted">SSL non vérifié</span>}
+              {!c.verify_ssl && <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-muted">{tr("SSL non vérifié")}</span>}
             </div>
             {probes[c.id] && <ProbeBadge r={probes[c.id]} />}
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => probe(c.id)}>Tester</Button>
+              <Button variant="ghost" onClick={() => probe(c.id)}>{tr("Tester")}</Button>
               {confirmDel === c.id
-                ? <><Button variant="danger" onClick={() => remove(c.id)}>Confirmer la suppression</Button><Button variant="ghost" onClick={() => setConfirmDel(null)}>Annuler</Button></>
-                : <Button variant="danger" onClick={() => setConfirmDel(c.id)}>Supprimer</Button>}
+                ? <><Button variant="danger" onClick={() => remove(c.id)}>{tr("Confirmer la suppression")}</Button><Button variant="ghost" onClick={() => setConfirmDel(null)}>{tr("Annuler")}</Button></>
+                : <Button variant="danger" onClick={() => setConfirmDel(c.id)}>{tr("Supprimer")}</Button>}
             </div>
           </article>
         ))}
       </section>
 
       <form onSubmit={save} className="panel space-y-5 p-6">
-        <h2 className="text-lg font-semibold">Ajouter un cluster</h2>
+        <h2 className="text-lg font-semibold">{tr("Ajouter un cluster")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nom" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="homelab" required />
-          <Field label="Hôte" value={form.host} onChange={(e) => set("host", e.target.value)} placeholder="100.x.y.z ou pve.local" hint="IP ou nom d'hôte, sans https://" required />
-          <Field label="Port" type="number" value={form.port} onChange={(e) => set("port", Number(e.target.value))} min={1} max={65535} required />
-          <Field label="Utilisateur" value={form.user} onChange={(e) => set("user", e.target.value)} placeholder="kaji@pve" required />
-          <Field label="ID du token" value={form.token_id} onChange={(e) => set("token_id", e.target.value)} placeholder="kaji" required />
-          <Field label="Secret du token" type="password" value={form.token_secret} onChange={(e) => set("token_secret", e.target.value)} autoComplete="off" required />
+          <Field label={tr("Nom")} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder={tr("homelab")} required />
+          <Field label={tr("Hôte")} value={form.host} onChange={(e) => set("host", e.target.value)} placeholder={tr("100.x.y.z ou pve.local")} hint={tr("IP ou nom d'hôte, sans https://")} required />
+          <Field label={tr("Port")} type="number" value={form.port} onChange={(e) => set("port", Number(e.target.value))} min={1} max={65535} required />
+          <Field label={tr("Utilisateur")} value={form.user} onChange={(e) => set("user", e.target.value)} placeholder={tr("kaji@pve")} required />
+          <Field label={tr("ID du token")} value={form.token_id} onChange={(e) => set("token_id", e.target.value)} placeholder={tr("kaji")} required />
+          <Field label={tr("Secret du token")} type="password" value={form.token_secret} onChange={(e) => set("token_secret", e.target.value)} autoComplete="off" required />
         </div>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.verify_ssl} onChange={(e) => set("verify_ssl", e.target.checked)} className="size-4 accent-[var(--accent)]" />
-          Vérifier le certificat SSL <span className="text-muted">(à décocher pour un certificat auto-signé)</span>
+          <input type="checkbox" checked={form.verify_ssl} onChange={(e) => set("verify_ssl", e.target.checked)} className="size-4 accent-[var(--accent)]" />{tr("Vérifier le certificat SSL")}{" "}<span className="text-muted">{tr("(à décocher pour un certificat auto-signé)")}</span>
         </label>
         {formProbe && <ProbeBadge r={formProbe} />}
         {formError && <Notice kind="error">{formError}</Notice>}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" onClick={test} disabled={busy || !form.host || !form.user || !form.token_id || !form.token_secret}>Tester la connexion</Button>
-          <Button type="submit" disabled={busy}>Enregistrer</Button>
+          <Button type="button" variant="ghost" onClick={test} disabled={busy || !form.host || !form.user || !form.token_id || !form.token_secret}>{tr("Tester la connexion")}</Button>
+          <Button type="submit" disabled={busy}>{tr("Enregistrer")}</Button>
         </div>
       </form>
     </div>

@@ -17,6 +17,7 @@ import { Reseau } from "./pages/Reseau";
 import { Stockage } from "./pages/Stockage";
 import { Taches } from "./pages/Taches";
 
+import { tr } from "./lib/i18n";
 const PAGES = [...NAV, ...NAV_BOTTOM].map((n) => n.id) as string[];
 
 export default function App() {
@@ -27,8 +28,8 @@ export default function App() {
   const refresh = useCallback(() => api<AuthStatus>("/api/auth/status").then(setStatus).catch(() => setFailed(true)), []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  if (failed) return <div className="grid min-h-full place-items-center p-6 text-center text-muted">Impossible de joindre le serveur Kaji. Vérifie que le backend tourne.</div>;
-  if (!status) return <div className="grid min-h-full place-items-center text-muted">Chargement…</div>;
+  if (failed) return <div className="grid min-h-full place-items-center p-6 text-center text-muted">{tr("Impossible de joindre le serveur Kaji. Vérifie que le backend tourne.")}</div>;
+  if (!status) return <div className="grid min-h-full place-items-center text-muted">{tr("Chargement…")}</div>;
   if (!status.authenticated) return <AuthScreen setup={status.setup_required} onDone={refresh} />;
 
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
