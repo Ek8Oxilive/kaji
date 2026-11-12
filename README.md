@@ -180,6 +180,10 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 *Onglet **Console** : console graphique (noVNC) ; elle exige une machine en marche. Chaque ouverture est journalisée.*
 
+![Terminal série d'une VM](docs/captures/vm-terminal-serie.jpg)
+
+*Bouton « Terminal série » de l'onglet Console d'une VM : terminal (xterm.js) sur son port série de type socket (ajouté dans l'onglet Périphériques, VM démarrée). Ici, une VM de test sans système : Proxmox répond « starting serial terminal on interface serial0 ».*
+
 ![Onglet **Snapshots** ](docs/captures/vm-snapshots.jpg)
 
 *Onglet **Snapshots** : points de restauration à créer, restaurer et supprimer.*
