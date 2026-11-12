@@ -26,7 +26,15 @@ POOL_PATH = Path(pattern=r"^[A-Za-z0-9][A-Za-z0-9_\-]{0,39}$")
 
 
 async def _all_pools(db, factory, conn_id) -> list[dict]:
-    return shape_pools(await _px(db, factory, conn_id, "get", "/pools"))
+    """Tous les pools AVEC leurs membres. Constaté en réel (Proxmox 9.1.9) : `GET /pools` sans `poolid` ne renvoie PAS les membres ; il faut
+    `GET /pools?poolid=…` pour chaque pool (une lecture de plus par pool, 100 pools au plus)."""
+    listing = shape_pools(await _px(db, factory, conn_id, "get", "/pools"))[:100]
+    out = []
+    for p in listing:
+        raw = await _px(db, factory, conn_id, "get", "/pools", poolid=p["poolid"])
+        rows = raw if isinstance(raw, list) else [raw]
+        out.append(next((d for d in shape_pools(rows) if d["poolid"] == p["poolid"]), p))
+    return out
 
 
 @router.get(BASE + "/overview")
