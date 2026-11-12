@@ -33,8 +33,12 @@ WATCHDOG_EVERY = 5.0                       # secondes entre deux contrôles d'in
 _SESSION_ID = re.compile(r"[A-Za-z0-9_-]{20,64}")
 
 
+_SERIAL = re.compile(r"serial[0-3]")
+
+
 class ConsoleBody(BaseModel):
     kind: Kind = "vnc"
+    serial: str | None = None              # port série d'une VM (terminal) ; vide = le premier port série de type socket
 
 
 def _audit(username: str, conn_id: int, action: str, target: str, st: str, detail: str | None = None) -> None:
@@ -59,14 +63,25 @@ async def open_console(body: ConsoleBody, request: Request, conn_id: int, node: 
         audit.record(db, username=user.username, connection_id=conn_id, action="console-open", target=target, status="error", detail=msg)
         raise HTTPException(code, msg)
 
-    if body.kind == "term" and gtype != "lxc":
-        refuse(400, "La console texte (xterm.js) n'est disponible que pour les conteneurs")
+    serial_term = body.kind == "term" and gtype == "qemu"                         # terminal série d'une VM
+    if body.serial is not None and (not serial_term or not _SERIAL.fullmatch(body.serial)):
+        refuse(400, "Port série invalide : serial0 à serial3, et seulement pour le terminal d'une VM")
     cur = await _px(db, factory, conn_id, "get", f"/nodes/{node}/{gtype}/{vmid}/status/current")
     if not isinstance(cur, dict) or cur.get("status") != "running" or cur.get("template"):
         refuse(409, "La machine doit être en marche (et ne pas être un modèle) pour ouvrir sa console")
+    params: dict = {"websocket": 1} if body.kind == "vnc" else {}
+    if serial_term:
+        # Proxmox ne sait relayer qu'un port série de type `socket` : on le vérifie dans la configuration (celle que la VM utilise en marche).
+        cfg = await _px(db, factory, conn_id, "get", f"/nodes/{node}/qemu/{vmid}/config", current=1)
+        sockets = [f"serial{i}" for i in range(4) if isinstance(cfg, dict) and cfg.get(f"serial{i}") == "socket"]
+        if not sockets:
+            refuse(409, "Cette VM n'a pas de port série de type socket : ajoute-en un dans l'onglet Périphériques, puis redémarre la VM")
+        if body.serial is not None and body.serial not in sockets:
+            refuse(409, "Ce port série n'existe pas, ou n'est pas de type socket, sur cette VM")
+        params = {"serial": body.serial or sockets[0]}
     path = f"/nodes/{node}/{gtype}/{vmid}/{'vncproxy' if body.kind == 'vnc' else 'termproxy'}"
     try:
-        reply = await _px(db, factory, conn_id, "post", path, **({"websocket": 1} if body.kind == "vnc" else {}))
+        reply = await _px(db, factory, conn_id, "post", path, **params)
     except HTTPException as e:
         audit.record(db, username=user.username, connection_id=conn_id, action="console-open", target=target, status="error", detail=str(e.detail))
         raise
