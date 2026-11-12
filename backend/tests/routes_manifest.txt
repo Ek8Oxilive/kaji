@@ -4,6 +4,7 @@ DELETE /api/connections/{conn_id}/access/users/{userid}
 DELETE /api/connections/{conn_id}/access/users/{userid}/tokens/{tokenid}
 DELETE /api/connections/{conn_id}/admin-session
 DELETE /api/connections/{conn_id}/backup-jobs/{job_id}
+DELETE /api/connections/{conn_id}/cluster/nodes/{node}
 DELETE /api/connections/{conn_id}/firewall/cluster/aliases/{name}
 DELETE /api/connections/{conn_id}/firewall/cluster/groups/{name}
 DELETE /api/connections/{conn_id}/firewall/cluster/ipsets/{name}
@@ -178,6 +179,8 @@ POST /api/connections/{conn_id}/ceph/nodes/{node}/osds/{osd_id}/out
 POST /api/connections/{conn_id}/ceph/nodes/{node}/services/{kind}/{name}/start
 POST /api/connections/{conn_id}/ceph/nodes/{node}/services/{kind}/{name}/stop
 POST /api/connections/{conn_id}/ceph/pools
+POST /api/connections/{conn_id}/cluster/create
+POST /api/connections/{conn_id}/cluster/join
 POST /api/connections/{conn_id}/firewall/cluster/aliases
 POST /api/connections/{conn_id}/firewall/cluster/groups
 POST /api/connections/{conn_id}/firewall/cluster/ipsets
