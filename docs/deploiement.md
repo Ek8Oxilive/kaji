@@ -30,7 +30,23 @@ local (`http://192.168.x.x:8080`), la connexion échoue **sans message d'erreur*
 
 Pour écouter sur le réseau : `KAJI_BIND=0.0.0.0` dans `.env`, puis `docker compose up -d`.
 
-**Limiteur de connexions derrière un autre proxy.** nginx écrase `X-Forwarded-For` par l'adresse qu'il voit. Derrière Caddy ou
+### HTTPS fourni en option : Caddy (`docker-compose.tls.yml`)
+Un conteneur Caddy termine le TLS avec **son autorité interne** (`tls internal`) et relaie vers nginx ; nginx reprend l'adresse du client que Caddy lui donne (`deploy/realip.conf`, réseau Docker à adresses fixes `172.29.77.0/24`), donc **le limiteur de connexions voit bien chaque client**.
+```bash
+# .env : KAJI_COOKIE_SECURE=true, KAJI_TLS_SITE=192.168.1.10:8443 (l'adresse par laquelle tu ouvres Kaji, avec le port), KAJI_BIND=127.0.0.1
+docker compose down                     # le réseau change de sous-réseau : il doit être recréé
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
+docker compose cp tls:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt   # à installer comme autorité de confiance dans ton navigateur ou ton système
+```
+Ouvre ensuite `https://<adresse>:8443`. **Non testé en réel par les agents** (pas de Docker sur leur poste) : essaie d'abord sur une machine qui ne compte pas, et garde l'ancien accès HTTP (`KAJI_BIND`) tant que le HTTPS n'est pas vérifié. Pense à sauvegarder le volume `caddy-data` (clé de l'autorité interne). Avec Tailscale, `tailscale serve` fait la même chose sans Caddy.
+
+## Épinglage du certificat de Proxmox (page « Connexions »)
+Le certificat par défaut de Proxmox n'est signé par aucune autorité publique, donc « Vérifier le certificat SSL » ne marche pas sans l'avoir remplacé. **Épingler** règle cela : bouton « Épingler le certificat… » sur la connexion, compare l'empreinte SHA-256 affichée à celle de ton nœud (`openssl x509 -fingerprint -sha256 -noout -in /etc/pve/local/pve-ssl.pem` sur le nœud, ou la colonne « Empreinte du certificat » de la page Cluster), coche la case et confirme. Kaji n'acceptera plus **que ce certificat**, y compris pour les consoles ; s'il change (renouvellement, ou usurpation), les appels échouent avec un message clair jusqu'à ce que tu épingles le nouveau. Changer l'hôte ou le port de la connexion retire l'épingle. Détails : `docs/api/connexions-tls.md`.
+
+## Jeton de première configuration
+`KAJI_SETUP_TOKEN` dans `.env` (valeur aléatoire, ex. `python3 -c "import secrets; print(secrets.token_urlsafe(24))"`) : tant qu'aucun compte n'existe, l'écran de première configuration le demande, et les essais ratés sont limités (5 par 5 minutes et par adresse). Il ne sert qu'une fois, pour créer le compte ; ensuite il n'a plus d'effet. Sans lui, le premier qui atteint le port crée le compte.
+
+**Limiteur de connexions derrière un autre proxy** (hors l'option Caddy ci-dessus, qui le règle). nginx écrase `X-Forwarded-For` par l'adresse qu'il voit. Derrière Caddy ou
 Tailscale, c'est l'adresse **du proxy** : tous les clients partagent alors le même limiteur (5 échecs / 5 min pour tout le monde).
 Pas de contournement par un en-tête falsifié, mais un attaquant pourrait bloquer la connexion des autres pendant 5 minutes.
 
@@ -67,5 +83,5 @@ Les connexions Proxmox sont conservées.
   ne pas lancer plusieurs workers), jamais publié sur le réseau, base en `600`.
 - Frontend : politique de sécurité de contenu (CSP) restrictive, pas de script en ligne, `X-Frame-Options: DENY`, cache illimité pour
   les fichiers à hash, jamais pour l'application.
-- **Non fournis** : le HTTPS lui-même, l'authentification à deux facteurs, la supervision.
+- **Non fournis par défaut** : le HTTPS (option Caddy ci-dessus), l'authentification à deux facteurs, la supervision.
 - **Images non verrouillées par empreinte** : `python:3.12-slim`, `node:22-alpine` et `nginx:1.27-alpine` sont désignées par leur étiquette.

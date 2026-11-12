@@ -1,0 +1,12 @@
+# Caddy devant Kaji : termine le TLS (autorité interne de Caddy, `tls internal`) et relaie vers nginx (service « web »).
+# KAJI_TLS_SITE : adresse par laquelle tu ouvres Kaji, avec le port (ex. 192.168.1.214:8443 ou kaji.lan:8443).
+{
+	admin off
+}
+
+{$KAJI_TLS_SITE} {
+	tls internal
+	reverse_proxy web:80 {
+		flush_interval -1        # flux temps réel (SSE) et consoles : aucune mise en tampon
+	}
+}

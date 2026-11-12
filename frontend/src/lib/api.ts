@@ -25,9 +25,9 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   return body as T;
 }
 
-export type AuthStatus = { setup_required: boolean; authenticated: boolean };
+export type AuthStatus = { setup_required: boolean; authenticated: boolean; setup_token_required: boolean };
 export type Connection = {
-  id: number; name: string; host: string; port: number; user: string; token_id: string; verify_ssl: boolean;
+  id: number; name: string; host: string; port: number; user: string; token_id: string; verify_ssl: boolean; tls_pinned: boolean; tls_fingerprint: string | null;
 };
 export type ProbeResult = { ok: boolean; version?: string; release?: string; error?: string };
 

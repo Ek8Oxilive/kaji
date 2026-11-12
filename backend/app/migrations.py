@@ -37,8 +37,13 @@ def add_column(conn: Connection, table: str, ddl: str) -> None:
         conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
 
 
+def _v2_tls_pin(conn: Connection) -> None:
+    add_column(conn, "connections", "tls_cert_pem TEXT")            # épinglage du certificat Proxmox (V1)
+
+
 MIGRATIONS: list[Migration] = [
     Migration(1, "schéma initial"),
+    Migration(2, "épinglage du certificat Proxmox", _v2_tls_pin),
 ]
 
 

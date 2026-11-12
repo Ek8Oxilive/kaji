@@ -80,7 +80,7 @@ def admin_client(db: Session, factory: Factory, conn_id: int, s: AdminSession):
     """Client Proxmox qui agit avec l'identité de la session administrateur (à fermer avec `aclose`)."""
     p = _params(_get_or_404(db, conn_id))
     return factory(host=p["host"], port=p["port"], user=s.user, token_id=s.token_id, token_secret=s.secret.get_secret_value(),
-                   verify_ssl=p["verify_ssl"])
+                   verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
 
 
 def require_admin(conn_id: int, found: tuple[AdminUser, UserSession] = Depends(kaji_session)) -> tuple[AdminUser, AdminSession]:
@@ -125,7 +125,7 @@ async def open_session(body: OpenBody, conn_id: int, db: Session = Depends(get_d
         c.refuse("Utilise un token distinct de celui de Kaji : le token permanent ne doit pas pouvoir écrire de droits", 422)
     p = _params(conn)
     client = factory(host=p["host"], port=p["port"], user=body.user, token_id=body.token_id,
-                     token_secret=body.secret.get_secret_value(), verify_ssl=p["verify_ssl"])
+                     token_secret=body.secret.get_secret_value(), verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
     try:
         perms = await client.get("/access/permissions")
     except httpx.HTTPError as e:

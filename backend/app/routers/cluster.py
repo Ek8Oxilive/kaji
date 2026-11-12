@@ -23,6 +23,9 @@ Factory = Callable[..., ProxmoxClient]
 FORBIDDEN_DETAIL = "Droits insuffisants pour cette opération"
 
 
+CERT_MISMATCH_DETAIL = "Le certificat de Proxmox ne correspond pas à celui épinglé (ou n'est pas approuvé) : vérifie-le sur la page Connexions avant de continuer"
+
+
 def http_error(e: Exception) -> HTTPException:
     """Traduit une erreur d'appel Proxmox en erreur HTTP lisible (sans jamais exposer de secret)."""
     if isinstance(e, httpx.HTTPStatusError):
@@ -32,6 +35,8 @@ def http_error(e: Exception) -> HTTPException:
         return HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
     if isinstance(e, httpx.TimeoutException):
         return HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
+    if isinstance(e, httpx.ConnectError) and "CERTIFICATE" in str(e).upper():
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, CERT_MISMATCH_DETAIL)
     return HTTPException(status.HTTP_502_BAD_GATEWAY, "Proxmox injoignable")
 
 

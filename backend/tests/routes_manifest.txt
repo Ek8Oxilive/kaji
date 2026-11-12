@@ -49,6 +49,7 @@ DELETE /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 DELETE /api/connections/{conn_id}/sdn/zones/{zone}
 DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
+DELETE /api/connections/{conn_id}/tls
 GET /api/audit
 GET /api/auth/me
 GET /api/auth/status
@@ -151,6 +152,7 @@ GET /api/connections/{conn_id}/storages
 GET /api/connections/{conn_id}/tasks
 GET /api/connections/{conn_id}/tasks/{node}/{upid}
 GET /api/connections/{conn_id}/tasks/{node}/{upid}/log
+GET /api/connections/{conn_id}/tls
 GET /api/health
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
@@ -321,3 +323,4 @@ PUT /api/connections/{conn_id}/sdn/vnets/{vnet}
 PUT /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 PUT /api/connections/{conn_id}/sdn/zones/{zone}
 PUT /api/connections/{conn_id}/storage-config/{storage}
+PUT /api/connections/{conn_id}/tls

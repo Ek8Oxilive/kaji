@@ -4,6 +4,8 @@ from urllib.parse import quote, urlencode
 
 import httpx
 
+from .tlspin import context_for
+
 
 class ProxmoxClient:
     """Client async pour l'API REST Proxmox (auth par API token).
@@ -12,13 +14,15 @@ class ProxmoxClient:
     """
 
     def __init__(self, host: str, user: str, token_id: str, token_secret: str,
-                 port: int = 8006, verify_ssl: bool = False,
+                 port: int = 8006, verify_ssl: bool = False, pinned_cert: str | None = None,
                  transport: httpx.AsyncBaseTransport | None = None):
+        # Certificat épinglé (PEM) : seul lui est accepté (`app/tlspin.py`) ; il prime sur `verify_ssl`.
+        self._pin = pinned_cert
         self._ws = (host, port, verify_ssl, f"PVEAPIToken={user}!{token_id}={token_secret}")
         self._client = httpx.AsyncClient(
             base_url=f"https://{host}:{port}/api2/json",
             headers={"Authorization": f"PVEAPIToken={user}!{token_id}={token_secret}"},
-            verify=verify_ssl,
+            verify=context_for(pinned_cert) if pinned_cert else verify_ssl,
             timeout=15,
             transport=transport,
         )
@@ -28,10 +32,13 @@ class ProxmoxClient:
         vérification du certificat que les appels REST. L'adresse contient un ticket : **ne jamais la journaliser**."""
         host, port, verify, auth = self._ws
         query = urlencode(params, quote_via=quote)
-        ctx = ssl.create_default_context()
-        if not verify:
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
+        if self._pin:
+            ctx = context_for(self._pin)
+        else:
+            ctx = ssl.create_default_context()
+            if not verify:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
         return f"wss://{host}:{port}/api2/json{path}?{query}", {"Authorization": auth}, ctx
 
     async def get(self, path: str, /, **params):

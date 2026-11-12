@@ -6,7 +6,7 @@ def setup(client, user="admin", pwd=PWD):
 
 
 def test_status_before_setup(client):
-    assert client.get("/api/auth/status").json() == {"setup_required": True, "authenticated": False}
+    assert client.get("/api/auth/status").json() == {"setup_required": True, "authenticated": False, "setup_token_required": False}
 
 
 def test_setup_creates_admin_and_logs_in(client):
@@ -15,7 +15,7 @@ def test_setup_creates_admin_and_logs_in(client):
     assert "httponly" in r.headers["set-cookie"].lower()
     assert "samesite=strict" in r.headers["set-cookie"].lower()
     assert client.get("/api/auth/me").json() == {"username": "admin"}
-    assert client.get("/api/auth/status").json() == {"setup_required": False, "authenticated": True}
+    assert client.get("/api/auth/status").json() == {"setup_required": False, "authenticated": True, "setup_token_required": False}
 
 
 def test_setup_rejects_short_password(client):
