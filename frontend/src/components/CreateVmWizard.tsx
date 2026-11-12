@@ -115,7 +115,7 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
           </>}
 
           {step === 1 && <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Cœurs" type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
               <Field label="Sockets" type="number" min={1} max={8} value={f.sockets} onChange={(e) => set("sockets", e.target.value)} />
             </div>

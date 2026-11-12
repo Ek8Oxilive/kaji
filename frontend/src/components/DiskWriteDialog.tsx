@@ -65,7 +65,7 @@ export function DiskWriteDialog({ connId, node, mode, free, disk, onClose }: { c
           <fieldset className={label}><legend>Disques</legend>{free.map((d) => (
             <label key={d.device} className="mt-1 flex gap-2 text-sm text-fg"><input type="checkbox" checked={devices.includes(d.device)} onChange={(e) => setDevices(e.target.checked ? [...devices, d.device] : devices.filter((x) => x !== d.device))} />{d.device} · {d.size != null ? bytes(d.size) : "?"}</label>))}</fieldset>
           <label className={label}>Niveau de redondance<select value={raid} onChange={(e) => setRaid(e.target.value)} className={input}>{RAID.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className={label}>Compression<select value={compression} onChange={(e) => setCompression(e.target.value)} className={input}>{["on", "off", "lz4", "zstd"].map((c) => <option key={c}>{c}</option>)}</select></label>
             <label className={label}>ashift<input type="number" min={9} max={16} value={ashift} onChange={(e) => setAshift(Number(e.target.value))} className={input} /></label>
           </div></>}

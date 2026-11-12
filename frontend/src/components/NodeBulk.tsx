@@ -70,11 +70,11 @@ function BulkDialog({ connId, node, onClose, onDone }: { connId: number; node: s
               <span className="ml-auto text-xs text-muted">{g.status === "running" ? "en marche" : g.status === "paused" ? "en pause" : "arrêtée"}</span></label>))}
         </div>
       </fieldset>
-      {action === "stopall" && <div className="grid grid-cols-2 gap-3">
+      {action === "stopall" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={forceStop} onChange={(e) => setForceStop(e.target.checked)} /><span>Forcer l'arrêt après le délai</span></label>
         <label className="block space-y-1 text-sm"><span className="text-muted">Délai (secondes)</span><input className="field" type="number" min={10} max={7200} value={timeout} onChange={(e) => setTimeoutS(e.target.value)} /></label>
       </div>}
-      {action === "migrateall" && <div className="grid grid-cols-2 gap-3">
+      {action === "migrateall" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {sel("Nœud cible", target, setTarget, [["", others.length ? "Choisir un nœud" : "Aucun autre nœud en ligne"], ...others.map((n) => [n.name, n.name] as [string, string])])}
         <label className="block space-y-1 text-sm"><span className="text-muted">Migrations en parallèle (1 à 8)</span><input className="field" type="number" min={1} max={8} value={workers} onChange={(e) => setWorkers(e.target.value)} /></label>
         <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} /><span>Copier aussi les disques locaux</span></label>

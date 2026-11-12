@@ -93,14 +93,14 @@ export function PruneDialog({ connId, node, storage, onClose }: { connId: number
   return (
     <Modal title={`Élaguer les sauvegardes de ${storage}`} subtitle="Supprime les sauvegardes qui dépassent les règles de conservation. Les sauvegardes protégées ne sont jamais touchées."
       onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel={preview ? `Supprimer ${preview.remove} sauvegarde(s)` : "Supprimer"} danger busy={busy} error={err} canSubmit={ready} wide>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {RULES.map(([k, l]) => (
           <label key={k} className="block space-y-1 text-sm"><span className="text-muted">{l}</span>
             <input className="field" type="number" min={1} max={9999} value={rules[k] ?? ""} onChange={(e) => { setRules({ ...rules, [k]: e.target.value }); changed(); }} /></label>
         ))}
       </div>
       <p className="text-xs text-muted">Aucune règle saisie : Proxmox applique celles du stockage.</p>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="block space-y-1 text-sm"><span className="text-muted">Numéro de machine (facultatif)</span>
           <input className="field" type="number" min={100} value={vmid} onChange={(e) => { setVmid(e.target.value); changed(); }} /></label>
         <label className="block space-y-1 text-sm"><span className="text-muted">Type (facultatif)</span>

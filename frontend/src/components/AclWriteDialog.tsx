@@ -52,7 +52,7 @@ export function AclWriteDialog({ connId, presetPath, onClose }: { connId: number
   return (
     <Modal title="Modifier une ACL" subtitle="Une entrée à la fois, avec l'identité de la session administrateur." onClose={busy ? () => {} : onClose} onSubmit={run}
       submitLabel={f.action === "add" ? "Ajouter le droit" : "Retirer le droit"} danger busy={busy} error={err} canSubmit={ready} wide>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block space-y-1 text-sm"><span className="text-muted">Action</span>
           <select className="field" value={f.action} onChange={(e) => set({ action: e.target.value as AclChange["action"], role: "" })}><option value="add">Ajouter un droit</option><option value="remove">Retirer un droit</option></select></label>
         <label className="block space-y-1 text-sm"><span className="text-muted">Pour</span>

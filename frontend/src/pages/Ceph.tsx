@@ -165,7 +165,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
                 : <p className="text-sm text-muted">Usage : information indisponible</p>}
               {s.usage.avail != null && <p className="text-xs text-muted">Libre : {bytes(s.usage.avail)}</p>}
             </div>
-            <div className="panel grid grid-cols-2 gap-3 p-5 text-sm">
+            <div className="panel grid grid-cols-1 sm:grid-cols-2 gap-3 p-5 text-sm">
               <div><p className="text-xs text-muted">Lecture</p><p className="tabular-nums">{rate(s.io.read_bytes_sec)}</p><p className="text-xs text-muted">{num(s.io.read_ops)} op/s</p></div>
               <div><p className="text-xs text-muted">Écriture</p><p className="tabular-nums">{rate(s.io.write_bytes_sec)}</p><p className="text-xs text-muted">{num(s.io.write_ops)} op/s</p></div>
             </div>

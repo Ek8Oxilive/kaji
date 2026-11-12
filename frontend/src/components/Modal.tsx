@@ -16,15 +16,15 @@ export function Modal({ title, subtitle, onClose, onSubmit, submitLabel, busy, e
   useEffect(() => { if (error) errorBox.current?.scrollIntoView({ block: "nearest" }); }, [error]);
   const submit = (e: FormEvent) => { e.preventDefault(); if (canSubmit && !busy) onSubmit(); };
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4" onClick={onClose}>
-      <form role="dialog" aria-modal="true" aria-label={title} onSubmit={submit} onClick={(e) => e.stopPropagation()} className={`panel rise max-h-[92vh] w-full ${wide ? "max-w-2xl" : "max-w-md"} space-y-4 overflow-y-auto p-6`}>
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-2 sm:p-4" onClick={onClose}>
+      <form role="dialog" aria-modal="true" aria-label={title} onSubmit={submit} onClick={(e) => e.stopPropagation()} className={`panel rise max-h-[94dvh] w-full ${wide ? "max-w-2xl" : "max-w-md"} space-y-4 overflow-y-auto p-4 sm:max-h-[92dvh] sm:p-6`}>
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
           {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
         </div>
         <div className="space-y-4">{children}</div>
         {error && <div ref={errorBox}><Notice kind="error">{error}</Notice></div>}
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Annuler</Button>
           <Button type="submit" variant={danger ? "danger" : "primary"} disabled={busy || !canSubmit}>{busy ? "…" : submitLabel}</Button>
         </div>
