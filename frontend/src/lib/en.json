@@ -2251,5 +2251,9 @@
  "Abandonne le travail en cours de cette tâche": "Abandons the work in progress of this task",
  "Arrêter la tâche": "Stop the task",
  "Arrêter cette tâche abandonne son travail en cours (Proxmox nettoie ce qu'il peut). Confirmer l'arrêt ?": "Stopping this task abandons its work in progress (Proxmox cleans up what it can). Confirm the stop?",
- "Confirmer l'arrêt": "Confirm the stop"
+ "Confirmer l'arrêt": "Confirm the stop",
+ "Autoriser le redémarrage": "Allow reboot",
+ "Désactivé : un redémarrage lancé depuis le système invité arrête la machine. Risqué.": "Disabled: a reboot started from the guest system shuts the machine down. Risky.",
+ "Disposition du clavier (console VNC)": "Keyboard layout (VNC console)",
+ "Rarement nécessaire : le système invité gère son clavier.": "Rarely needed: the guest system handles its own keyboard."
 }

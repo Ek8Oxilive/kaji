@@ -14,7 +14,7 @@ Ce n'est **pas** la route `/config` du matériel : la validation et les risques 
 ## Lecture
 
 `options` contient, pour chaque réglage, sa valeur ou `null` s'il n'est pas défini (Proxmox applique alors sa valeur par défaut) :
-`onboot`, `tablet`, `protection`, `numa`, `localtime`, `acpi`, `kvm`, `freeze` (booléens) ; `startup` (`order`, `up`, `down`) ; `ostype` ;
+`onboot`, `tablet`, `protection`, `numa`, `localtime`, `acpi`, `kvm`, `freeze`, `reboot` (booléens) ; `startup` (`order`, `up`, `down`) ; `ostype` ; `keyboard` ;
 `agent` (`enabled`, `fstrim_cloned_disks`) ; `hotplug` (liste) ; `description`. `pending` liste les changements en attente (réglages gérés
 ici seulement), `reboot_required` vaut `true` s'il y en a. **Aucune autre clé de la configuration n'est renvoyée** (`hookscript`, `args`, `lock`…).
 
@@ -24,7 +24,8 @@ Corps (tous les champs sont facultatifs, au moins un est obligatoire ; **tout au
 
 | Champ | Validation |
 |---|---|
-| `onboot`, `tablet`, `protection`, `numa`, `localtime`, `acpi`, `kvm`, `freeze` | booléen JSON strict (pas `"true"`, pas `1`) ; envoyé en `0`/`1` |
+| `onboot`, `tablet`, `protection`, `numa`, `localtime`, `acpi`, `kvm`, `freeze`, `reboot` | booléen JSON strict (pas `"true"`, pas `1`) ; envoyé en `0`/`1` |
+| `keyboard` | liste blanche de 25 dispositions (schéma de Proxmox 9) : `de, de-ch, da, en-gb, en-us, es, fi, fr, fr-be, fr-ca, fr-ch, hu, is, it, ja, lt, mk, nl, no, pl, pt, pt-br, sv, sl, tr` ; une valeur inconnue dans la config est lue comme « non défini » |
 | `startup` | `{order, up, down}` : entiers, `order` 0–9999, `up` et `down` 0–86400 s ; au moins un champ. Les valeurs non fournies sont **conservées** (relues chez Proxmox) |
 | `ostype` | liste blanche : `other, wxp, w2k, w2k3, w2k8, wvista, win7, win8, win10, win11, l24, l26, solaris` |
 | `agent` | `{enabled, fstrim_cloned_disks}` (booléens stricts) ; les **autres propriétés** déjà présentes (`type`, `freeze-fs-on-backup`…) sont conservées telles quelles ; si l'une est illisible, la modification est **refusée** plutôt que de la perdre |
@@ -41,7 +42,7 @@ Un corps sans aucun réglage connu : 400, rien n'est appelé.
 Sans `confirm: true`, **400 « Confirmation requise (…) : raison ; raison »** et rien n'est écrit, d'après l'**état relu chez Proxmox** (jamais une
 valeur du navigateur), pour :
 - `protection` à faux, ou retirée, **quand la machine est protégée** (elle pourra être supprimée) ;
-- `kvm` à faux (machine très lente), `acpi` à faux (arrêt propre impossible), `freeze` à vrai (machine démarrée gelée), si ce n'est pas déjà le cas.
+- `kvm` à faux (machine très lente), `acpi` à faux (arrêt propre impossible), `freeze` à vrai (machine démarrée gelée), **`reboot` à faux** (un redémarrage lancé depuis le système invité ARRÊTE la machine : `reboot` vaut 1 par défaut), si ce n'est pas déjà le cas. Une machine de `KAJI_PROTECTED_VMIDS` refuse `reboot=0` même confirmé (comme `kvm=0` et `acpi=0`) ; le réactiver (`reboot=1`) ou retirer le réglage reste permis.
 
 ### Protection de Kaji (`KAJI_PROTECTED_VMIDS`)
 
