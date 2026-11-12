@@ -914,7 +914,7 @@
  "en pause": "paused",
  "En pause": "Paused",
  "En pause : figée en mémoire, à reprendre ou à arrêter de force": "Paused: frozen in memory, to be resumed or force stopped",
- "En pause : ouvre la machine pour la reprendre": "Paused: open the machine to resume it",
+ "En pause : reprends-la avec « Plus d'actions »": "Paused: resume it with “More actions”",
  "en root, dans le shell d'un nœud Proxmox": "as root, in the shell of a Proxmox node",
  "en sourdine": "muted",
  "En-têtes HTTP": "HTTP headers",
