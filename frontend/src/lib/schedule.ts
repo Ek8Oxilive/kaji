@@ -1,12 +1,12 @@
-import { tr, T } from "./i18n";
+import { tr } from "./i18n";
 /**
  * Planification d'un job. Le serveur n'accepte qu'une grammaire stricte : `HH:MM`, précédée si on veut de jours
  * (`mon`, `mon,wed`, `mon..fri`), séparés par UN espace. On la construit à partir de jours cochés et d'une heure.
  */
 export const DAYS = [
-  { id: "mon", short: T("Lun"), long: "lundi" }, { id: "tue", short: T("Mar"), long: "mardi" }, { id: "wed", short: T("Mer"), long: "mercredi" },
-  { id: "thu", short: T("Jeu"), long: "jeudi" }, { id: "fri", short: T("Ven"), long: "vendredi" }, { id: "sat", short: T("Sam"), long: "samedi" },
-  { id: "sun", short: T("Dim"), long: "dimanche" },
+  { id: "mon", get short() { return tr("Lun"); }, get long() { return tr("lundi"); } }, { id: "tue", get short() { return tr("Mar"); }, get long() { return tr("mardi"); } }, { id: "wed", get short() { return tr("Mer"); }, get long() { return tr("mercredi"); } },
+  { id: "thu", get short() { return tr("Jeu"); }, get long() { return tr("jeudi"); } }, { id: "fri", get short() { return tr("Ven"); }, get long() { return tr("vendredi"); } }, { id: "sat", get short() { return tr("Sam"); }, get long() { return tr("samedi"); } },
+  { id: "sun", get short() { return tr("Dim"); }, get long() { return tr("dimanche"); } },
 ] as const;
 const ORDER: string[] = DAYS.map((d) => d.id);
 

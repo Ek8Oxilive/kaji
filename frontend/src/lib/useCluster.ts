@@ -76,7 +76,7 @@ export function useGuestActions(connId: number | null) {
         toast("ok", `${label} ${LABELS[action].done}`);
         setOverrides((o) => ({ ...o, [key]: { status: LABELS[action].expect, until: Date.now() + 22_000 } }));
       } else {
-        toast("error", task ? tr("{label} : la tâche a échoué ({p})", { label, p: task.exitstatus ?? "erreur" }) : tr("{label} : la tâche prend trop de temps", { label }));
+        toast("error", task ? tr("{label} : la tâche a échoué ({p})", { label, p: task.exitstatus ?? tr("erreur") }) : tr("{label} : la tâche prend trop de temps", { label }));
       }
     } catch (e) {
       toast("error", `${label} : ${(e as Error).message}`);

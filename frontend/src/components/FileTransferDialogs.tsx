@@ -70,7 +70,7 @@ export function UploadDialog({ connId, node, storage, kinds, onClose }: Target) 
       try {
         const t = await waitTask(connId, node, body.upid, LONG_TASK_SECONDS);
         if (!t) throw new Error(tr("L'import prend trop de temps (voir l'onglet Tâches)"));
-        if (!t.ok) throw new Error(tr("Le nœud a refusé le fichier ({p})", { p: t.exitstatus ?? "erreur" }));
+        if (!t.ok) throw new Error(tr("Le nœud a refusé le fichier ({p})", { p: t.exitstatus ?? tr("erreur") }));
         refresh(); onClose();
       } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : tr("Erreur")); setWaiting(false); }
     };
@@ -133,7 +133,7 @@ export function UrlDownloadDialog({ connId, node, storage, kinds, onClose }: Tar
         method: "POST", body: { url, filename: name, content: kind, verify_certificates: verify, ...(algo ? { checksum_algorithm: algo, checksum: sum } : {}) } });
       const t = await waitTask(connId, node, upid, LONG_TASK_SECONDS);
       if (!t) throw new Error(tr("Le téléchargement prend trop de temps (voir l'onglet Tâches)"));
-      if (!t.ok) throw new Error(tr("Téléchargement échoué ({p})", { p: t.exitstatus ?? "erreur" }));
+      if (!t.ok) throw new Error(tr("Téléchargement échoué ({p})", { p: t.exitstatus ?? tr("erreur") }));
       refresh(); onClose();
     } catch (e) { setErr((e as Error).message); setBusy(false); }
   };

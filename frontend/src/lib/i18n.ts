@@ -21,7 +21,8 @@ function detect(): Lang {
 }
 
 async function load(l: Lang) {
-  dict = l === "en" ? (await import("./en.json")).default : {};
+  // En anglais : le dictionnaire de l'interface, complété par celui des messages que le SERVEUR renvoie (erreurs, catalogue des droits…).
+  dict = l === "en" ? { ...(await import("./en-server.json")).default, ...(await import("./en.json")).default } : {};
 }
 
 /** À appeler une fois avant le premier rendu : choisit la langue (enregistrée, sinon celle du navigateur) et charge son dictionnaire. */

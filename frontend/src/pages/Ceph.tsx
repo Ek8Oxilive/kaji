@@ -182,7 +182,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
                 {d.osds.map((o) => (
                   <tr key={o.name} className="border-b border-line/60 last:border-0">
                     <td className="px-4 py-2 font-medium">{o.name}</td><td className="px-4 py-2 text-muted">{o.host ?? "–"}</td>
-                    <td className="px-4 py-2"><Flag ok={o.up} yes="Actif" no="Arrêté" /> · <Flag ok={o.in} yes="Dans" no="Dehors" /></td>
+                    <td className="px-4 py-2"><Flag ok={o.up} yes={tr("Actif")} no={tr("Arrêté")} /> · <Flag ok={o.in} yes={tr("Dans")} no={tr("Dehors")} /></td>
                     <td className="px-4 py-2 text-muted">{o.device_class ?? "–"}</td>
                     <td className="min-w-32 px-4 py-2">{o.percent_used != null ? <Gauge label={o.name} value={o.percent_used} detail={`${o.percent_used.toFixed(0)} %`} /> : "–"}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{bytes(o.total)}</td><td className="px-4 py-2 tabular-nums text-muted">{num(o.pgs)}</td>
@@ -247,7 +247,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
             {part(mons, tr("Moniteurs"), (d) => d.monitors.length === 0 ? <div className="panel p-6 text-muted">{tr("Aucun moniteur.")}</div> : (
               <Table min="min-w-[22rem]" head={[tr("Moniteur"), tr("Quorum"), tr("Version"), ""]}>
                 {d.monitors.map((m) => <tr key={m.name} className="border-b border-line/60 last:border-0"><td className="px-4 py-2 font-medium">{m.name}</td>
-                  <td className="px-4 py-2"><Flag ok={m.in_quorum} yes="Dans le quorum" no="Hors quorum" /></td><td className="px-4 py-2 text-muted">{m.version ?? "–"}</td>
+                  <td className="px-4 py-2"><Flag ok={m.in_quorum} yes={tr("Dans le quorum")} no={tr("Hors quorum")} /></td><td className="px-4 py-2 text-muted">{m.version ?? "–"}</td>
                   <td className="space-x-1 whitespace-nowrap px-4 py-2 text-right">{svc("mon", m.name, m.host)}</td></tr>)}
               </Table>
             ), 2)}

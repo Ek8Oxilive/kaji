@@ -74,8 +74,8 @@ export function AclWriteDialog({ connId, presetPath, onClose }: { connId: number
           {!preview.allowed && <Notice kind="error">{preview.reason}</Notice>}
           {preview.allowed && !preview.would_change && <Notice kind="error">{f.action === "add" ? tr("Cette entrée existe déjà.") : tr("Cette entrée n'existe pas.")}</Notice>}
           {preview.allowed && <>
-            <p><b>{tr("Droits du rôle {role}", { role: f.role })}</b> : <span className="text-muted">{preview.role_privs?.join(", ") || "aucun"}</span></p>
-            {preview.effective_before && <p><b>{tr("Droits actuels de {ugid} sur {path}", { ugid: f.ugid, path: f.path })}</b> : <span className="text-muted">{preview.effective_before.join(", ") || "aucun"}</span></p>}
+            <p><b>{tr("Droits du rôle {role}", { role: f.role })}</b> : <span className="text-muted">{preview.role_privs?.join(", ") || tr("aucun")}</span></p>
+            {preview.effective_before && <p><b>{tr("Droits actuels de {ugid} sur {path}", { ugid: f.ugid, path: f.path })}</b> : <span className="text-muted">{preview.effective_before.join(", ") || tr("aucun")}</span></p>}
             {preview.estimate_after && <p><b>{tr("Estimation après ajout")}</b> : <span className="text-muted">{preview.estimate_after.join(", ")}</span></p>}
             {preview.existing_entries.length > 0 && <p><b>{tr("Entrées existantes")}</b> : <span className="text-muted">{preview.existing_entries.map((e) => e.roleid).join(", ")}</span></p>}
             <p className="text-xs text-muted">{preview.note}</p>

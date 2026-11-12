@@ -20,7 +20,7 @@ const KEEP: { key: keyof Omit<JobRetention, "keep_all">; label: string }[] = [
   { key: "keep_last", get label() { return tr("Dernières sauvegardes"); } }, { key: "keep_hourly", get label() { return tr("Par heure"); } }, { key: "keep_daily", get label() { return tr("Par jour"); } },
   { key: "keep_weekly", get label() { return tr("Par semaine"); } }, { key: "keep_monthly", get label() { return tr("Par mois"); } }, { key: "keep_yearly", get label() { return tr("Par an"); } },
 ];
-const KEEP_TEXT: Record<string, string> = { get keep_last() { return tr("dernières"); }, keep_hourly: "heures", keep_daily: "jours", keep_weekly: "semaines", keep_monthly: "mois", keep_yearly: "ans" };
+const KEEP_TEXT: Record<string, string> = { get keep_last() { return tr("dernières"); }, get keep_hourly() { return tr("heures"); }, get keep_daily() { return tr("jours"); }, get keep_weekly() { return tr("semaines"); }, get keep_monthly() { return tr("mois"); }, get keep_yearly() { return tr("ans"); } };
 
 const describeRetention = (r: JobRetention | null) =>
   !r ? tr("Celle du stockage") : r.keep_all ? tr("Tout garder") : Object.entries(r).map(([k, v]) => `${v} ${KEEP_TEXT[k] ?? k}`).join(" · ");

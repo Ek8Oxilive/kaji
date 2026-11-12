@@ -44,12 +44,12 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
       <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Informations")}</h2>
         {!d ? <p className="text-sm text-muted">{tr("Chargement…")}</p> : (
           <dl className="panel p-4 text-sm">
-            <Row k="Nom du cluster" v={d.cluster.name ?? d.totem?.cluster_name ?? "–"} />
-            <Row k="Quorum" v={d.cluster.quorate === null ? "–" : d.cluster.quorate ? <span className="text-ok">{tr("atteint")}</span> : <span className="text-danger">{tr("PERDU")}</span>} />
-            <Row k="Nœuds" v={`${d.nodes.length}${d.cluster.nodes_total !== null && d.cluster.nodes_total !== d.nodes.length ? tr(" ({nodes_total} annoncés)", { nodes_total: d.cluster.nodes_total }) : ""}`} />
-            <Row k="Version de la configuration" v={d.cluster.version ?? d.totem?.config_version ?? "–"} />
-            {d.totem && <><Row k="Mode des liens" v={d.totem.link_mode ?? "–"} /><Row k="Version IP" v={d.totem.ip_version ?? "–"} /><Row k="Authentification corosync" v={d.totem.secauth ?? "–"} />
-              <Row k="Liens configurés" v={d.totem.links.length ? d.totem.links.map((l) => `link${l}`).join(", ") : "–"} /></>}
+            <Row k={tr("Nom du cluster")} v={d.cluster.name ?? d.totem?.cluster_name ?? "–"} />
+            <Row k={tr("Quorum")} v={d.cluster.quorate === null ? "–" : d.cluster.quorate ? <span className="text-ok">{tr("atteint")}</span> : <span className="text-danger">{tr("PERDU")}</span>} />
+            <Row k={tr("Nœuds")} v={`${d.nodes.length}${d.cluster.nodes_total !== null && d.cluster.nodes_total !== d.nodes.length ? tr(" ({nodes_total} annoncés)", { nodes_total: d.cluster.nodes_total }) : ""}`} />
+            <Row k={tr("Version de la configuration")} v={d.cluster.version ?? d.totem?.config_version ?? "–"} />
+            {d.totem && <><Row k={tr("Mode des liens")} v={d.totem.link_mode ?? "–"} /><Row k={tr("Version IP")} v={d.totem.ip_version ?? "–"} /><Row k={tr("Authentification corosync")} v={d.totem.secauth ?? "–"} />
+              <Row k={tr("Liens configurés")} v={d.totem.links.length ? d.totem.links.map((l) => `link${l}`).join(", ") : "–"} /></>}
           </dl>)}
       </section>
 
@@ -75,10 +75,10 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
       <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Créer, joindre, retirer un nœud")}</h2>
         <Notice kind="ok">{tr("Kaji ne modifie pas le cluster : une erreur peut casser le quorum, et joindre un nœud demande le mot de passe root d'un nœud, que Kaji ne manipule jamais. Lance ces commandes toi-même, dans le shell du nœud indiqué.")}</Notice>
         <div className="space-y-3">
-          <Cmd label={tr("Créer un cluster")} where="sur un nœud isolé, une seule fois" cmd={`pvecm create ${d?.cluster.name ?? "NOM-DU-CLUSTER"}`} />
-          <Cmd label={tr("Joindre ce cluster")} where="sur le NOUVEAU nœud (le mot de passe root du nœud contacté sera demandé)"
+          <Cmd label={tr("Créer un cluster")} where={tr("sur un nœud isolé, une seule fois")} cmd={`pvecm create ${d?.cluster.name ?? "NOM-DU-CLUSTER"}`} />
+          <Cmd label={tr("Joindre ce cluster")} where={tr("sur le NOUVEAU nœud (le mot de passe root du nœud contacté sera demandé)")}
             cmd={join?.address && join.fingerprint ? `pvecm add ${join.address} --fingerprint ${join.fingerprint}` : tr("pvecm add ADRESSE-D-UN-NŒUD --fingerprint EMPREINTE")} />
-          <Cmd label={tr("Retirer un nœud")} where="sur un nœud qui reste, après avoir ÉTEINT définitivement le nœud à retirer" cmd="pvecm delnode NOM-DU-NŒUD" />
+          <Cmd label={tr("Retirer un nœud")} where={tr("sur un nœud qui reste, après avoir ÉTEINT définitivement le nœud à retirer")} cmd={tr("pvecm delnode NOM-DU-NŒUD")} />
         </div>
         <p className="text-xs text-muted">{tr("Information de jonction (équivalent de « Join Information » de Proxmox) : nœud à contacter")}{" "}<code>{join?.preferred_node ?? "–"}</code>{tr(", adresse")}{" "}<code>{join?.address ?? "–"}</code>.</p>
       </section>

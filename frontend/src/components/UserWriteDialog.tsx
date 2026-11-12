@@ -110,7 +110,7 @@ export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: 
       {act === "delete-user" && <>
         <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!idOk} onClick={look}>{tr("Voir l'impact")}</button>
         {impact && (impact.protected ? <Notice kind="error">{tr("Identité protégée (Kaji, session administrateur ou root) : la suppression sera refusée.")}</Notice>
-          : <p className="text-sm text-muted">{tr("Groupes : {p} · entrées d'ACL : {acl_entries} · tokens supprimés avec lui : {p2}", { p: impact.groups.join(", ") || "aucun", acl_entries: impact.acl_entries, p2: impact.tokens.join(", ") || "aucun" })}</p>)}
+          : <p className="text-sm text-muted">{tr("Groupes : {p} · entrées d'ACL : {acl_entries} · tokens supprimés avec lui : {p2}", { p: impact.groups.join(", ") || tr("aucun"), acl_entries: impact.acl_entries, p2: impact.tokens.join(", ") || tr("aucun") })}</p>)}
       </>}
       {destructive && <Notice kind="error">{act === "delete-user" ? tr("Suppression définitive de l'utilisateur et de ses tokens.") : tr("Un groupe n'est supprimé que s'il est vide et sans ACL.")}</Notice>}
       {valid && <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{need}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}

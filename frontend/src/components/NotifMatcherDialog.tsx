@@ -65,7 +65,7 @@ export function NotifMatcherDialog({ connId, mode, targets, onClose }: { connId:
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span><b>{tr("Désactivée")}</b></span></label>
       </>}
       <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k === "new" ? !name || tgs.length === 0 : k === "edit" ? !d : false} onClick={look}>{tr("Aperçu")}</button>
-      {preview && <Notice kind="ok">{k === "delete" ? <>{tr("Sera supprimé :")}{" "}<code>{m!.name}</code></> : <>{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
+      {preview && <Notice kind="ok">{k === "delete" ? <>{tr("Sera supprimé :")}{" "}<code>{m!.name}</code></> : <>{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || tr("rien")}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
     </Modal>
   );
 }

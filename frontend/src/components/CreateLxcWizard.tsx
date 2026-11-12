@@ -172,11 +172,11 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
           {step === 3 && <>
             <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2 text-sm">
               {([
-                [tr("Nom"), `${f.hostname} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || "aucun"], [tr("Modèle"), f.template.replace(/^.*vztmpl\//, "")],
+                [tr("Nom"), `${f.hostname} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || tr("aucun")], [tr("Modèle"), f.template.replace(/^.*vztmpl\//, "")],
                 [tr("Processeur"), tr("{cores} cœur{p}", { cores: f.cores, p: int(f.cores) > 1 ? "s" : "" })], [tr("Mémoire"), `${f.memory} Mo (swap ${f.swap} Mo)`], [tr("Disque"), tr("{size} Go sur {storage}", { size: f.size, storage: f.storage })],
-                [tr("Type"), f.unprivileged ? tr("non privilégié") : tr("PRIVILÉGIÉ")], [tr("Imbrication"), f.nesting ? "oui" : "non"],
+                [tr("Type"), f.unprivileged ? tr("non privilégié") : tr("PRIVILÉGIÉ")], [tr("Imbrication"), f.nesting ? tr("oui") : tr("non")],
                 [tr("Réseau"), f.noNet ? tr("aucune carte") : `${f.bridge} · ${f.ipMode === "dhcp" ? "DHCP" : f.ipMode === "static" ? f.ip : tr("sans IP")}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
-                [tr("Accès root"), [f.password && tr("mot de passe"), f.sshKeys.trim() && tr("clé SSH")].filter(Boolean).join(" + ") || "aucun"],
+                [tr("Accès root"), [f.password && tr("mot de passe"), f.sshKeys.trim() && tr("clé SSH")].filter(Boolean).join(" + ") || tr("aucun")],
               ] as const).map(([k, v]) => <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="break-words">{v}</dd></div>)}
             </dl>
             {!f.pool && <Notice kind="error">{tr("Ce conteneur sera créé hors de tout pool.")}</Notice>}
