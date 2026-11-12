@@ -2258,5 +2258,7 @@
  "Rarement nécessaire : le système invité gère son clavier.": "Rarely needed: the guest system handles its own keyboard.",
  "Plus d'actions": "More actions",
  "Clair": "Light",
- "Auto": "Auto"
+ "Auto": "Auto",
+ "Fichier .vv enregistré : ouvre-le tout de suite avec virt-viewer (le ticket n'est valable que quelques secondes).": "File .vv saved: open it right away with virt-viewer (the ticket is only valid for a few seconds).",
+ "Télécharge un fichier .vv à ouvrir avec virt-viewer (remote-viewer). Une VM doit avoir une carte d'affichage qxl (onglet Périphériques).": "Downloads a .vv file to open with virt-viewer (remote-viewer). A VM needs a qxl display card (Devices tab)."
 }
