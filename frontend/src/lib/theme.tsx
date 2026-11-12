@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+import { tr } from "./i18n";
 export const THEMES = [
-  { id: "dark", label: "Sombre", swatch: "linear-gradient(135deg,#111826,#38bdf8)" },
-  { id: "glass", label: "Glass", swatch: "linear-gradient(135deg,#7c3aed,#0ea5e9 60%,#ec4899)" },
+  { id: "dark", get label() { return tr("Sombre"); }, swatch: "linear-gradient(135deg,#111826,#38bdf8)" },
+  { id: "glass", get label() { return tr("Glass"); }, swatch: "linear-gradient(135deg,#7c3aed,#0ea5e9 60%,#ec4899)" },
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"];
 

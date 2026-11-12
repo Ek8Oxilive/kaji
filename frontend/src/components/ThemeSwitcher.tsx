@@ -1,10 +1,11 @@
 import { THEMES, useTheme } from "../lib/theme";
 
+import { tr } from "../lib/i18n";
 /** `compact` : pastilles seules (petits écrans) ; le nom reste lu par les lecteurs d'écran. */
 export function ThemeSwitcher({ compact }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
   return (
-    <div role="radiogroup" aria-label="Thème" className="panel flex gap-1 p-1">
+    <div role="radiogroup" aria-label={tr("Thème")} className="panel flex gap-1 p-1">
       {THEMES.map((t) => (
         <button
           key={t.id}

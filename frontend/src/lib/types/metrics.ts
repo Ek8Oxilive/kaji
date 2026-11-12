@@ -1,3 +1,4 @@
+import { tr } from "../i18n";
 /** Serveurs de métriques (`docs/api/metriques.md`). Les secrets (jeton, en-têtes) sont en écriture seule : Proxmox ne les relit pas, Kaji ne sait pas s'ils sont définis. */
 export type MetricsType = "influxdb" | "graphite" | "opentelemetry";
 export type MetricsRow = { id: string; type: MetricsType; server: string | null; port: number | null; disable: boolean };
@@ -9,4 +10,4 @@ export type MetricsServer = MetricsRow & {
   otel_resource_attributes_set?: boolean;
 };
 export type MetricsPreview = { dry_run: true; params: Record<string, string | number>; remove?: string[]; needs_confirm: boolean };
-export const TYPE_LABEL: Record<MetricsType, string> = { influxdb: "InfluxDB", graphite: "Graphite", opentelemetry: "OpenTelemetry" };
+export const TYPE_LABEL: Record<MetricsType, string> = { influxdb: "InfluxDB", get graphite() { return tr("Graphite"); }, opentelemetry: "OpenTelemetry" };

@@ -1,3 +1,4 @@
+import { tr } from "../lib/i18n";
 export function Helm({ className = "size-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -11,7 +12,7 @@ export function Logo() {
   return (
     <div className="flex items-center gap-2.5">
       <span className="grid size-9 place-items-center rounded-xl bg-accent text-accentfg"><Helm className="size-5" /></span>
-      <span className="text-xl font-semibold tracking-tight">Kaji</span>
+      <span className="text-xl font-semibold tracking-tight">{tr("Kaji")}</span>
     </div>
   );
 }

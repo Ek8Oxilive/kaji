@@ -9,7 +9,8 @@ import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
-const STEPS = ["Général", "Modèle et ressources", "Réseau et accès", "Récapitulatif"];
+import { tr, T } from "../lib/i18n";
+const STEPS = [T("Général"), T("Modèle et ressources"), T("Réseau et accès"), T("Récapitulatif")];
 const MEM = [128, 256, 512, 1024, 2048, 4096];
 
 const Select = ({ label, hint, children, ...p }: { label: string; hint?: string; children: ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) => (
@@ -76,8 +77,8 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
   });
 
   const create = () => run(async () => {
-    const t = await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/lxc`, { method: "POST", body: body() }), "Création", LONG_TASK_SECONDS);
-    toast("ok", `Conteneur « ${f.hostname} » créé (#${f.vmid})${t.warnings ? WARN_SUFFIX : ""}`);
+    const t = await runTask(connId, f.node, () => api(`${base}/nodes/${f.node}/lxc`, { method: "POST", body: body() }), tr("Création"), LONG_TASK_SECONDS);
+    toast("ok", tr("Conteneur « {hostname} » créé (#{vmid}){p}", { hostname: f.hostname, vmid: f.vmid, p: t.warnings ? tr(WARN_SUFFIX) : "" }));
     await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
   });
 
@@ -87,13 +88,13 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
 
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
-      <div role="dialog" aria-modal="true" aria-label="Créer un conteneur LXC" className="panel rise flex max-h-[92vh] w-full max-w-2xl flex-col">
+      <div role="dialog" aria-modal="true" aria-label={tr("Créer un conteneur LXC")} className="panel rise flex max-h-[92vh] w-full max-w-2xl flex-col">
         <header className="space-y-4 border-b border-line p-6 pb-4">
-          <h2 className="text-xl font-semibold tracking-tight">Nouveau conteneur LXC</h2>
-          <ol className="flex gap-2 text-sm" aria-label="Étapes">
+          <h2 className="text-xl font-semibold tracking-tight">{tr("Nouveau conteneur LXC")}</h2>
+          <ol className="flex gap-2 text-sm" aria-label={tr("Étapes")}>
             {STEPS.map((s, i) => (
               <li key={s} aria-current={i === step ? "step" : undefined} className={`flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 ${i === step ? "bg-accent text-accentfg font-medium" : i < step ? "text-ok" : "text-muted"}`}>
-                <span className="grid size-5 shrink-0 place-items-center rounded-full border border-current text-xs">{i < step ? "✓" : i + 1}</span><span className="hidden truncate md:inline">{s}</span>
+                <span className="grid size-5 shrink-0 place-items-center rounded-full border border-current text-xs">{i < step ? "✓" : i + 1}</span><span className="hidden truncate md:inline">{tr(s)}</span>
               </li>
             ))}
           </ol>
@@ -101,98 +102,98 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
 
         <div className="space-y-4 overflow-y-auto p-6">
           {step === 0 && <>
-            <Select label="Nœud" value={f.node} onChange={(e) => set("node", e.target.value)}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}</Select>
+            <Select label={tr("Nœud")} value={f.node} onChange={(e) => set("node", e.target.value)}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}</Select>
             <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-              <Field label="Nom d'hôte" value={f.hostname} onChange={(e) => set("hostname", e.target.value)} placeholder="mon-conteneur" hint="Lettres, chiffres, - et . (sans espace)" autoFocus />
-              <Field label="Identifiant" type="number" min={100} value={f.vmid} onChange={(e) => set("vmid", e.target.value)} hint={nextId.data ? `Libre : ${nextId.data.vmid}` : undefined} />
+              <Field label={tr("Nom d'hôte")} value={f.hostname} onChange={(e) => set("hostname", e.target.value)} placeholder={tr("mon-conteneur")} hint={tr("Lettres, chiffres, - et . (sans espace)")} autoFocus />
+              <Field label={tr("Identifiant")} type="number" min={100} value={f.vmid} onChange={(e) => set("vmid", e.target.value)} hint={nextId.data ? tr("Libre : {vmid}", { vmid: nextId.data.vmid }) : undefined} />
             </div>
             <PoolField connId={connId} value={f.pool} onChange={(v) => set("pool", v)} />
-            {!f.pool && <Notice kind="error">Aucun pool choisi : le conteneur sera créé hors de tout pool.</Notice>}
-            <Field label="Description (facultatif)" value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={200} />
+            {!f.pool && <Notice kind="error">{tr("Aucun pool choisi : le conteneur sera créé hors de tout pool.")}</Notice>}
+            <Field label={tr("Description (facultatif)")} value={f.description} onChange={(e) => set("description", e.target.value)} maxLength={200} />
           </>}
 
           {step === 1 && <>
-            <Select label="Modèle" value={f.template} onChange={(e) => set("template", e.target.value)} hint={tpls.isError ? "Liste indisponible" : undefined}>
+            <Select label={tr("Modèle")} value={f.template} onChange={(e) => set("template", e.target.value)} hint={tpls.isError ? tr("Liste indisponible") : undefined}>
               {tpls.data?.local.map((t) => <option key={t.volid} value={t.volid}>{t.name}{t.size ? ` · ${bytes(t.size)}` : ""}</option>)}
             </Select>
-            {noTemplate && <Notice kind="error">Aucun modèle de conteneur sur ce nœud. Télécharges-en un depuis le catalogue officiel.</Notice>}
-            <div><Button variant="ghost" onClick={() => setCatalog(true)} className="!px-3 !py-1.5" disabled={!f.node}>Télécharger un modèle…</Button></div>
+            {noTemplate && <Notice kind="error">{tr("Aucun modèle de conteneur sur ce nœud. Télécharges-en un depuis le catalogue officiel.")}</Notice>}
+            <div><Button variant="ghost" onClick={() => setCatalog(true)} className="!px-3 !py-1.5" disabled={!f.node}>{tr("Télécharger un modèle…")}</Button></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Cœurs" type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
-              <Field label="Swap (Mo)" type="number" min={0} step={128} value={f.swap} onChange={(e) => set("swap", e.target.value)} />
+              <Field label={tr("Cœurs")} type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
+              <Field label={tr("Swap (Mo)")} type="number" min={0} step={128} value={f.swap} onChange={(e) => set("swap", e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Field label="Mémoire (Mo)" type="number" min={16} step={64} value={f.memory} onChange={(e) => set("memory", e.target.value)} />
+              <Field label={tr("Mémoire (Mo)")} type="number" min={16} step={64} value={f.memory} onChange={(e) => set("memory", e.target.value)} />
               <div className="flex flex-wrap gap-1.5">{MEM.map((m) => <button key={m} type="button" onClick={() => set("memory", String(m))} className={`rounded-lg border px-2.5 py-1 text-xs transition ${f.memory === String(m) ? "border-accent text-accent" : "border-line text-muted hover:text-fg"}`}>{m >= 1024 ? `${m / 1024} Go` : `${m} Mo`}</button>)}</div>
             </div>
             <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-              <Select label="Stockage du disque" value={f.storage} onChange={(e) => set("storage", e.target.value)} hint={stores.isError ? "Liste indisponible" : undefined}>
+              <Select label={tr("Stockage du disque")} value={f.storage} onChange={(e) => set("storage", e.target.value)} hint={stores.isError ? tr("Liste indisponible") : undefined}>
                 {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
               </Select>
-              <Field label="Taille (Go)" type="number" min={1} max={65536} value={f.size} onChange={(e) => set("size", e.target.value)} />
+              <Field label={tr("Taille (Go)")} type="number" min={1} max={65536} value={f.size} onChange={(e) => set("size", e.target.value)} />
             </div>
-            <Check checked={f.unprivileged} onChange={(v) => set("unprivileged", v)}>Conteneur non privilégié <span className="block text-xs text-muted">Recommandé : l'utilisateur root du conteneur n'est pas root sur l'hôte. Décocher pour un conteneur privilégié, nettement moins sûr.</span></Check>
-            {!f.unprivileged && <Notice kind="error">Un conteneur privilégié partage les droits root de l'hôte : une faille dedans peut compromettre le nœud.</Notice>}
-            <Check checked={f.nesting} onChange={(v) => set("nesting", v)}>Autoriser l'imbrication <span className="block text-xs text-muted">Nécessaire pour faire tourner Docker ou LXC dans le conteneur. Les modèles récents (Debian 12, Ubuntu 22.04 et plus) peuvent aussi le réclamer : Proxmox le signale par un avertissement « Systemd détecté » à la création, sans que ce soit une erreur.</span></Check>
+            <Check checked={f.unprivileged} onChange={(v) => set("unprivileged", v)}>{tr("Conteneur non privilégié")}{" "}<span className="block text-xs text-muted">{tr("Recommandé : l'utilisateur root du conteneur n'est pas root sur l'hôte. Décocher pour un conteneur privilégié, nettement moins sûr.")}</span></Check>
+            {!f.unprivileged && <Notice kind="error">{tr("Un conteneur privilégié partage les droits root de l'hôte : une faille dedans peut compromettre le nœud.")}</Notice>}
+            <Check checked={f.nesting} onChange={(v) => set("nesting", v)}>{tr("Autoriser l'imbrication")}{" "}<span className="block text-xs text-muted">{tr("Nécessaire pour faire tourner Docker ou LXC dans le conteneur. Les modèles récents (Debian 12, Ubuntu 22.04 et plus) peuvent aussi le réclamer : Proxmox le signale par un avertissement « Systemd détecté » à la création, sans que ce soit une erreur.")}</span></Check>
           </>}
 
           {step === 2 && <>
-            <Check checked={!f.noNet} onChange={(v) => set("noNet", !v)}>Ajouter une carte réseau</Check>
+            <Check checked={!f.noNet} onChange={(v) => set("noNet", !v)}>{tr("Ajouter une carte réseau")}</Check>
             {!f.noNet && <>
-              <Select label="Réseau (bridge ou VNet SDN)" value={f.bridge} onChange={(e) => set("bridge", e.target.value)}>
-                <optgroup label="Bridges">{bridges.data?.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>
-                {bridges.data?.some((b) => b.kind === "vnet") && <optgroup label="VNets SDN">{bridges.data.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>}
+              <Select label={tr("Réseau (bridge ou VNet SDN)")} value={f.bridge} onChange={(e) => set("bridge", e.target.value)}>
+                <optgroup label={tr("Bridges")}>{bridges.data?.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>
+                {bridges.data?.some((b) => b.kind === "vnet") && <optgroup label={tr("VNets SDN")}>{bridges.data.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{lbl(b)}</option>)}</optgroup>}
               </Select>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Select label="Adresse IP" value={f.ipMode} onChange={(e) => set("ipMode", e.target.value as Form["ipMode"])}><option value="dhcp">DHCP</option><option value="static">Statique</option><option value="none">Aucune</option></Select>
-                <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={f.tag} onChange={(e) => set("tag", e.target.value)} placeholder="aucun" />
+                <Select label={tr("Adresse IP")} value={f.ipMode} onChange={(e) => set("ipMode", e.target.value as Form["ipMode"])}><option value="dhcp">{tr("DHCP")}</option><option value="static">{tr("Statique")}</option><option value="none">{tr("Aucune")}</option></Select>
+                <Field label={tr("Étiquette VLAN")} type="number" min={1} max={4094} value={f.tag} onChange={(e) => set("tag", e.target.value)} placeholder={tr("aucun")} />
               </div>
               {f.ipMode === "static" && <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Adresse (CIDR)" value={f.ip} onChange={(e) => set("ip", e.target.value)} placeholder="192.168.1.50/24" hint="Avec le masque" />
-                <Field label="Passerelle (facultatif)" value={f.gw} onChange={(e) => set("gw", e.target.value)} placeholder="192.168.1.1" />
+                <Field label={tr("Adresse (CIDR)")} value={f.ip} onChange={(e) => set("ip", e.target.value)} placeholder="192.168.1.50/24" hint={tr("Avec le masque")} />
+                <Field label={tr("Passerelle (facultatif)")} value={f.gw} onChange={(e) => set("gw", e.target.value)} placeholder="192.168.1.1" />
               </div>}
-              <Check checked={f.firewall} onChange={(v) => set("firewall", v)}>Firewall Proxmox activé</Check>
+              <Check checked={f.firewall} onChange={(v) => set("firewall", v)}>{tr("Firewall Proxmox activé")}</Check>
             </>}
             <fieldset className="space-y-3 rounded-xl border border-line p-4">
-              <legend className="px-1 text-sm text-muted">Accès root</legend>
+              <legend className="px-1 text-sm text-muted">{tr("Accès root")}</legend>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Mot de passe (facultatif)" type="password" value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" hint="8 caractères minimum" />
-                <Field label="Confirmer" type="password" value={f.password2} onChange={(e) => set("password2", e.target.value)} autoComplete="new-password" />
+                <Field label={tr("Mot de passe (facultatif)")} type="password" value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" hint={tr("8 caractères minimum")} />
+                <Field label={tr("Confirmer")} type="password" value={f.password2} onChange={(e) => set("password2", e.target.value)} autoComplete="new-password" />
               </div>
-              {f.password && f.password.length < 8 && <p className="text-sm text-danger">Le mot de passe doit faire au moins 8 caractères.</p>}
-              {f.password && f.password2 && f.password !== f.password2 && <p className="text-sm text-danger">Les deux mots de passe ne correspondent pas.</p>}
-              <label className="block space-y-1.5"><span className="text-sm text-muted">Clés SSH publiques (facultatif, une par ligne)</span>
-                <textarea className="field min-h-20 font-mono text-xs" value={f.sshKeys} onChange={(e) => set("sshKeys", e.target.value)} placeholder="ssh-ed25519 AAAA… moi@machine" spellCheck={false} /></label>
-              {!keysOk && <p className="text-sm text-danger">Une des clés n'a pas un format valide.</p>}
-              {!f.password && !f.sshKeys.trim() && <p className="text-xs text-muted">Sans mot de passe ni clé, on ne pourra entrer dans le conteneur que depuis le nœud (<code>pct enter</code>).</p>}
+              {f.password && f.password.length < 8 && <p className="text-sm text-danger">{tr("Le mot de passe doit faire au moins 8 caractères.")}</p>}
+              {f.password && f.password2 && f.password !== f.password2 && <p className="text-sm text-danger">{tr("Les deux mots de passe ne correspondent pas.")}</p>}
+              <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Clés SSH publiques (facultatif, une par ligne)")}</span>
+                <textarea className="field min-h-20 font-mono text-xs" value={f.sshKeys} onChange={(e) => set("sshKeys", e.target.value)} placeholder={tr("ssh-ed25519 AAAA… moi@machine")} spellCheck={false} /></label>
+              {!keysOk && <p className="text-sm text-danger">{tr("Une des clés n'a pas un format valide.")}</p>}
+              {!f.password && !f.sshKeys.trim() && <p className="text-xs text-muted">{tr("Sans mot de passe ni clé, on ne pourra entrer dans le conteneur que depuis le nœud (")}<code>{tr("pct enter")}</code>).</p>}
             </fieldset>
           </>}
 
           {step === 3 && <>
             <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2 text-sm">
               {([
-                ["Nom", `${f.hostname} (#${f.vmid})`], ["Nœud", f.node], ["Pool", f.pool || "aucun"], ["Modèle", f.template.replace(/^.*vztmpl\//, "")],
-                ["Processeur", `${f.cores} cœur${int(f.cores) > 1 ? "s" : ""}`], ["Mémoire", `${f.memory} Mo (swap ${f.swap} Mo)`], ["Disque", `${f.size} Go sur ${f.storage}`],
-                ["Type", f.unprivileged ? "non privilégié" : "PRIVILÉGIÉ"], ["Imbrication", f.nesting ? "oui" : "non"],
-                ["Réseau", f.noNet ? "aucune carte" : `${f.bridge} · ${f.ipMode === "dhcp" ? "DHCP" : f.ipMode === "static" ? f.ip : "sans IP"}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
-                ["Accès root", [f.password && "mot de passe", f.sshKeys.trim() && "clé SSH"].filter(Boolean).join(" + ") || "aucun"],
+                [tr("Nom"), `${f.hostname} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || "aucun"], [tr("Modèle"), f.template.replace(/^.*vztmpl\//, "")],
+                [tr("Processeur"), tr("{cores} cœur{p}", { cores: f.cores, p: int(f.cores) > 1 ? "s" : "" })], [tr("Mémoire"), `${f.memory} Mo (swap ${f.swap} Mo)`], [tr("Disque"), tr("{size} Go sur {storage}", { size: f.size, storage: f.storage })],
+                [tr("Type"), f.unprivileged ? tr("non privilégié") : tr("PRIVILÉGIÉ")], [tr("Imbrication"), f.nesting ? "oui" : "non"],
+                [tr("Réseau"), f.noNet ? tr("aucune carte") : `${f.bridge} · ${f.ipMode === "dhcp" ? "DHCP" : f.ipMode === "static" ? f.ip : tr("sans IP")}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
+                [tr("Accès root"), [f.password && tr("mot de passe"), f.sshKeys.trim() && tr("clé SSH")].filter(Boolean).join(" + ") || "aucun"],
               ] as const).map(([k, v]) => <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="break-words">{v}</dd></div>)}
             </dl>
-            {!f.pool && <Notice kind="error">Ce conteneur sera créé hors de tout pool.</Notice>}
-            {!f.unprivileged && <Notice kind="error">Conteneur privilégié : réservé aux cas qui l'exigent.</Notice>}
-            <Check checked={f.start} onChange={(v) => set("start", v)}>Démarrer le conteneur après sa création</Check>
-            {busy && <p className="text-sm text-muted">Création en cours, la fenêtre reste ouverte jusqu'à la fin…</p>}
+            {!f.pool && <Notice kind="error">{tr("Ce conteneur sera créé hors de tout pool.")}</Notice>}
+            {!f.unprivileged && <Notice kind="error">{tr("Conteneur privilégié : réservé aux cas qui l'exigent.")}</Notice>}
+            <Check checked={f.start} onChange={(v) => set("start", v)}>{tr("Démarrer le conteneur après sa création")}</Check>
+            {busy && <p className="text-sm text-muted">{tr("Création en cours, la fenêtre reste ouverte jusqu'à la fin…")}</p>}
           </>}
 
           {error && <Notice kind="error">{error}</Notice>}
         </div>
 
         <footer className="flex items-center justify-between gap-2 border-t border-line p-4 px-6">
-          <Button variant="ghost" onClick={onClose} disabled={busy}>Annuler</Button>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>{tr("Annuler")}</Button>
           <div className="flex gap-2">
-            {step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={busy}>Précédent</Button>}
-            {step < 3 ? <Button onClick={() => setStep(step + 1)} disabled={!valid[step]}>Suivant</Button>
-              : <Button onClick={create} disabled={busy || !valid.every(Boolean)}>{busy ? "…" : "Créer le conteneur"}</Button>}
+            {step > 0 && <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={busy}>{tr("Précédent")}</Button>}
+            {step < 3 ? <Button onClick={() => setStep(step + 1)} disabled={!valid[step]}>{tr("Suivant")}</Button>
+              : <Button onClick={create} disabled={busy || !valid.every(Boolean)}>{busy ? "…" : tr("Créer le conteneur")}</Button>}
           </div>
         </footer>
       </div>

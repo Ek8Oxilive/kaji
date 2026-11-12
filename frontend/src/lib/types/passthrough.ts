@@ -1,7 +1,8 @@
+import { tr } from "../i18n";
 export type PType = "pci" | "usb" | "dir";
 export const PTYPES: PType[] = ["pci", "usb", "dir"];
-export const PTYPE_LABEL: Record<PType, string> = { pci: "Périphériques PCI", usb: "Périphériques USB", dir: "Répertoires partagés (virtiofs)" };
-export const PTYPE_ONE: Record<PType, string> = { pci: "PCI", usb: "USB", dir: "répertoire" };
+export const PTYPE_LABEL: Record<PType, string> = { get pci() { return tr("Périphériques PCI"); }, get usb() { return tr("Périphériques USB"); }, get dir() { return tr("Répertoires partagés (virtiofs)"); } };
+export const PTYPE_ONE: Record<PType, string> = { pci: "PCI", usb: "USB", get dir() { return tr("répertoire"); } };
 
 /** Périphérique d'une VM lu dans la configuration. `raw` : hôte brut (réservé à root@pam), jamais modifiable depuis Kaji. */
 export type PtDevice = {

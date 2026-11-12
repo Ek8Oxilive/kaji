@@ -5,6 +5,7 @@ import { CONTENT_LABEL, KINDS, type FieldDef, type StorageConfig, type StorageKi
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Values = Record<string, string | boolean>;
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
 const csv = (s: string) => s.split(/[,\s;]+/).map((x) => x.trim()).filter(Boolean);
@@ -27,9 +28,9 @@ function Inputs({ kind, editing, values, set }: { kind: StorageKind; editing: bo
     );
     return (
       <label key={f.key} className="block space-y-1 text-sm">
-        <span className="text-muted">{f.label}{f.required && !editing ? " *" : ""}{locked ? " (non modifiable)" : ""}</span>
+        <span className="text-muted">{f.label}{f.required && !editing ? " *" : ""}{locked ? tr(" (non modifiable)") : ""}</span>
         {f.kind === "select"
-          ? <select className="field" value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)}><option value="">(par défaut)</option>{f.options!.map((o) => <option key={o}>{o}</option>)}</select>
+          ? <select className="field" value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)}><option value="">{tr("(par défaut)")}</option>{f.options!.map((o) => <option key={o}>{o}</option>)}</select>
           : <input className="field" type={f.kind === "password" ? "password" : f.kind === "number" ? "number" : "text"} min={f.kind === "number" ? 1 : undefined} max={f.kind === "number" ? 65535 : undefined} autoComplete="off" disabled={locked}
               value={String(values[f.key])} onChange={(e) => set(f.key, e.target.value)} />}
         {f.hint && <span className="block text-xs text-muted">{f.hint}</span>}
@@ -44,17 +45,17 @@ function Common({ kind, content, setContent, nodes, setNodes, disable, setDisabl
 }) {
   return (
     <>
-      <fieldset className="space-y-1.5"><legend className="text-sm text-muted">Contenu autorisé *</legend>
+      <fieldset className="space-y-1.5"><legend className="text-sm text-muted">{tr("Contenu autorisé *")}</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {KINDS[kind].contents.map((c) => (
             <label key={c} className="flex gap-1.5 text-sm"><input type="checkbox" checked={content.includes(c)}
               onChange={(e) => setContent(e.target.checked ? [...content, c] : content.filter((x) => x !== c))} />{CONTENT_LABEL[c] ?? c}</label>
           ))}
         </div></fieldset>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Nœuds concernés</span>
-        <input className="field" value={nodes} onChange={(e) => setNodes(e.target.value)} placeholder="Tous les nœuds" />
-        <span className="block text-xs text-muted">Noms séparés par des virgules ; vide = tous.</span></label>
-      <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span>Désactiver ce stockage</span></label>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Nœuds concernés")}</span>
+        <input className="field" value={nodes} onChange={(e) => setNodes(e.target.value)} placeholder={tr("Tous les nœuds")} />
+        <span className="block text-xs text-muted">{tr("Noms séparés par des virgules ; vide = tous.")}</span></label>
+      <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span>{tr("Désactiver ce stockage")}</span></label>
     </>
   );
 }
@@ -103,18 +104,18 @@ export function AddStorageDialog({ connId, onClose }: { connId: number; onClose:
 
   if (issuedKey) return <KeyDialog storage={name} secret={issuedKey} onDone={done} />;
   return (
-    <Modal title="Ajouter un stockage" subtitle="Ajoute le stockage à la configuration du cluster ; aucune donnée existante n'est touchée."
-      onClose={onClose} onSubmit={submit} submitLabel="Ajouter" busy={busy} error={err} canSubmit={ok}>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Type</span>
+    <Modal title={tr("Ajouter un stockage")} subtitle={tr("Ajoute le stockage à la configuration du cluster ; aucune donnée existante n'est touchée.")}
+      onClose={onClose} onSubmit={submit} submitLabel={tr("Ajouter")} busy={busy} error={err} canSubmit={ok}>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Type")}</span>
         <select className="field" value={kind} onChange={(e) => pick(e.target.value as StorageKind)}>
           {(Object.keys(KINDS) as StorageKind[]).map((k) => <option key={k} value={k}>{KINDS[k].label}</option>)}</select></label>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Identifiant *</span>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Identifiant *")}</span>
         <input className="field" value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
-        <span className="block text-xs text-muted">Lettres, chiffres, - et _ (40 caractères au plus).</span></label>
+        <span className="block text-xs text-muted">{tr("Lettres, chiffres, - et _ (40 caractères au plus).")}</span></label>
       <Inputs kind={kind} editing={false} values={st.values} set={set} />
       {kind === "pbs" && (
         <label className="flex gap-2 text-sm"><input type="checkbox" checked={encrypt} onChange={(e) => setEncrypt(e.target.checked)} />
-          <span>Chiffrer les sauvegardes (Proxmox génère une clé, affichée une seule fois)</span></label>
+          <span>{tr("Chiffrer les sauvegardes (Proxmox génère une clé, affichée une seule fois)")}</span></label>
       )}
       <Common kind={kind} content={st.content} setContent={(content) => setSt((s) => ({ ...s, content }))} nodes={st.nodes}
         setNodes={(nodes) => setSt((s) => ({ ...s, nodes }))} disable={st.disable} setDisable={(disable) => setSt((s) => ({ ...s, disable }))} />
@@ -129,15 +130,15 @@ function KeyDialog({ storage, secret, onDone }: { storage: string; secret: strin
   const copy = async () => { try { await navigator.clipboard.writeText(secret); setCopied(true); } catch { /* le texte reste sélectionnable */ } };
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
-      <div role="dialog" aria-modal="true" aria-label="Clé de chiffrement" className="panel rise w-full max-w-lg space-y-4 p-6">
-        <h2 className="text-lg font-semibold">Clé de chiffrement de {storage}</h2>
-        <Notice kind="error">Garde cette clé en lieu sûr (gestionnaire de mots de passe). Elle ne sera <b>plus jamais affichée</b> : sans elle, les sauvegardes chiffrées de ce stockage sont irrécupérables.</Notice>
-        <textarea readOnly rows={4} value={secret} onFocus={(e) => e.currentTarget.select()} className="field font-mono text-xs" aria-label="Clé de chiffrement" />
+      <div role="dialog" aria-modal="true" aria-label={tr("Clé de chiffrement")} className="panel rise w-full max-w-lg space-y-4 p-6">
+        <h2 className="text-lg font-semibold">{tr("Clé de chiffrement de {storage}", { storage })}</h2>
+        <Notice kind="error">{tr("Garde cette clé en lieu sûr (gestionnaire de mots de passe). Elle ne sera")}{" "}<b>{tr("plus jamais affichée")}</b>{" "}{tr(": sans elle, les sauvegardes chiffrées de ce stockage sont irrécupérables.")}</Notice>
+        <textarea readOnly rows={4} value={secret} onFocus={(e) => e.currentTarget.select()} className="field font-mono text-xs" aria-label={tr("Clé de chiffrement")} />
         <div className="flex items-center justify-between gap-3">
-          <Button type="button" variant="ghost" onClick={copy}>{copied ? "Copiée" : "Copier"}</Button>
-          <label className="flex gap-2 text-sm"><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /><span>J'ai conservé la clé</span></label>
+          <Button type="button" variant="ghost" onClick={copy}>{copied ? tr("Copiée") : tr("Copier")}</Button>
+          <label className="flex gap-2 text-sm"><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /><span>{tr("J'ai conservé la clé")}</span></label>
         </div>
-        <div className="flex justify-end"><Button type="button" onClick={onDone} disabled={!saved}>Terminer</Button></div>
+        <div className="flex justify-end"><Button type="button" onClick={onDone} disabled={!saved}>{tr("Terminer")}</Button></div>
       </div>
     </div>
   );
@@ -174,9 +175,9 @@ export function EditStorageDialog({ connId, cfg, onClose }: { connId: number; cf
   };
 
   return (
-    <Modal title={`Modifier ${cfg.storage}`} subtitle={`${KINDS[kind].label} : le type, le chemin et le serveur ne se changent pas après la création.`}
-      onClose={onClose} onSubmit={submit} submitLabel="Enregistrer" busy={busy} error={err} canSubmit={st.content.length > 0}>
-      {cfg.secrets_set?.length ? <p className="text-xs text-muted">Secret défini : {cfg.secrets_set.join(", ")} (non affiché).</p> : null}
+    <Modal title={tr("Modifier {storage}", { storage: cfg.storage })} subtitle={tr("{label} : le type, le chemin et le serveur ne se changent pas après la création.", { label: KINDS[kind].label })}
+      onClose={onClose} onSubmit={submit} submitLabel={tr("Enregistrer")} busy={busy} error={err} canSubmit={st.content.length > 0}>
+      {cfg.secrets_set?.length ? <p className="text-xs text-muted">{tr("Secret défini : {p} (non affiché).", { p: cfg.secrets_set.join(", ") })}</p> : null}
       <Inputs kind={kind} editing values={st.values} set={set} />
       <Common kind={kind} content={st.content} setContent={(content) => setSt((s) => ({ ...s, content }))} nodes={st.nodes}
         setNodes={(nodes) => setSt((s) => ({ ...s, nodes }))} disable={st.disable} setDisable={(disable) => setSt((s) => ({ ...s, disable }))} />
@@ -195,10 +196,9 @@ export function DeleteStorageDialog({ connId, storage, onClose }: { connId: numb
     catch (e) { setErr((e as Error).message); setBusy(false); }
   };
   return (
-    <Modal title={`Retirer ${storage} ?`} onClose={onClose} onSubmit={submit} submitLabel="Retirer" danger busy={busy} error={err} canSubmit={typed === storage}>
-      <Notice kind="error">Le stockage est retiré de la configuration du cluster. Les fichiers restent sur le disque, mais les machines, ISO et sauvegardes qui l'utilisent ne le trouveront plus.</Notice>
-      <label className="block text-xs text-muted">Retape <code>{storage}</code> pour confirmer
-        <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>
+    <Modal title={tr("Retirer {storage} ?", { storage })} onClose={onClose} onSubmit={submit} submitLabel={tr("Retirer")} danger busy={busy} error={err} canSubmit={typed === storage}>
+      <Notice kind="error">{tr("Le stockage est retiré de la configuration du cluster. Les fichiers restent sur le disque, mais les machines, ISO et sauvegardes qui l'utilisent ne le trouveront plus.")}</Notice>
+      <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{storage}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>
     </Modal>
   );
 }

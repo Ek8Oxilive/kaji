@@ -7,6 +7,7 @@ import { UserWriteDialog } from "./UserWriteDialog";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const USER = /^[A-Za-z0-9._-]{1,64}@[A-Za-z0-9._-]{1,32}$/;
 const TOKEN = /^[A-Za-z][A-Za-z0-9._-]{1,63}$/;
@@ -31,16 +32,16 @@ function OpenDialog({ connId, onClose, onOpened }: { connId: number; onClose: ()
   };
 
   return (
-    <Modal title="Ouvrir une session administrateur" subtitle={`Un token d'administration que tu crées pour l'occasion. Session de ${SESSION_MINUTES} minutes, gardée en mémoire du serveur seulement.`}
-      onClose={onClose} onSubmit={submit} submitLabel="Ouvrir la session" busy={busy} error={err} canSubmit={ok}>
-      {insecure() && <Notice kind="error">Tu es connecté en <b>http</b> : le token collé ici circule en clair sur ton réseau local. Passe par https (proxy inverse) dès que possible.</Notice>}
-      <label className="block space-y-1 text-sm"><span className="text-muted">Compte Proxmox</span>
-        <input className="field" value={user} onChange={(e) => setUser(e.target.value.trim())} placeholder="admin@pve" autoComplete="off" /></label>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Nom du token</span>
-        <input className="field" value={tokenId} onChange={(e) => setTokenId(e.target.value.trim())} placeholder="kaji-admin" autoComplete="off" /></label>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Secret du token</span>
-        <input className="field font-mono" type="password" value={secret} onChange={(e) => setSecret(e.target.value.trim())} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autoComplete="off" spellCheck={false} /></label>
-      <p className="text-xs text-muted">Jamais enregistré en base ni dans un journal. Supprime le token dans Proxmox quand tu as fini. Il doit être distinct du token de Kaji.</p>
+    <Modal title={tr("Ouvrir une session administrateur")} subtitle={tr("Un token d'administration que tu crées pour l'occasion. Session de {SESSION_MINUTES} minutes, gardée en mémoire du serveur seulement.", { SESSION_MINUTES })}
+      onClose={onClose} onSubmit={submit} submitLabel={tr("Ouvrir la session")} busy={busy} error={err} canSubmit={ok}>
+      {insecure() && <Notice kind="error">{tr("Tu es connecté en")}{" "}<b>{tr("http")}</b>{" "}{tr(": le token collé ici circule en clair sur ton réseau local. Passe par https (proxy inverse) dès que possible.")}</Notice>}
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Compte Proxmox")}</span>
+        <input className="field" value={user} onChange={(e) => setUser(e.target.value.trim())} placeholder={tr("admin@pve")} autoComplete="off" /></label>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Nom du token")}</span>
+        <input className="field" value={tokenId} onChange={(e) => setTokenId(e.target.value.trim())} placeholder={tr("kaji-admin")} autoComplete="off" /></label>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Secret du token")}</span>
+        <input className="field font-mono" type="password" value={secret} onChange={(e) => setSecret(e.target.value.trim())} placeholder={tr("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")} autoComplete="off" spellCheck={false} /></label>
+      <p className="text-xs text-muted">{tr("Jamais enregistré en base ni dans un journal. Supprime le token dans Proxmox quand tu as fini. Il doit être distinct du token de Kaji.")}</p>
     </Modal>
   );
 }
@@ -74,26 +75,26 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
   const active = !!s && s.active && left > 0;
 
   return (
-    <section className="panel space-y-3 p-4" aria-label="Session administrateur">
+    <section className="panel space-y-3 p-4" aria-label={tr("Session administrateur")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Mode administrateur</h2>
+          <h2 className="text-lg font-semibold">{tr("Mode administrateur")}</h2>
           <p className="text-sm text-muted">
             {active && s && s.active
-              ? <>Session ouverte avec <code>{s.user}!{s.token_id}</code> · il reste <b className={left < 120 ? "text-warn" : ""}>{clock(left)}</b></>
-              : "Fermé. Le token permanent de Kaji ne peut pas modifier les droits : l'écriture des droits passera par une session temporaire."}
+              ? <>{tr("Session ouverte avec")}{" "}<code>{s.user}!{s.token_id}</code>{" "}{tr("· il reste")}{" "}<b className={left < 120 ? "text-warn" : ""}>{clock(left)}</b></>
+              : tr("Fermé. Le token permanent de Kaji ne peut pas modifier les droits : l'écriture des droits passera par une session temporaire.")}
           </p>
         </div>
         <div className="flex gap-2">
           {active ? <>
-            <Button disabled={busy} onClick={() => setAcl(true)} className="!px-3 !py-1.5">Modifier une ACL…</Button>
-            <Button disabled={busy} onClick={() => setUsr(true)} className="!px-3 !py-1.5">Utilisateurs et groupes…</Button>
-            <Button variant="ghost" disabled={busy} onClick={() => act("POST", "/renew")} className="!px-3 !py-1.5">Prolonger de {SESSION_MINUTES} min</Button>
-            <Button variant="danger" disabled={busy} onClick={() => act("DELETE", "")} className="!px-3 !py-1.5">Fermer</Button>
-          </> : <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">Ouvrir une session</Button>}
+            <Button disabled={busy} onClick={() => setAcl(true)} className="!px-3 !py-1.5">{tr("Modifier une ACL…")}</Button>
+            <Button disabled={busy} onClick={() => setUsr(true)} className="!px-3 !py-1.5">{tr("Utilisateurs et groupes…")}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => act("POST", "/renew")} className="!px-3 !py-1.5">{tr("Prolonger de {SESSION_MINUTES} min", { SESSION_MINUTES })}</Button>
+            <Button variant="danger" disabled={busy} onClick={() => act("DELETE", "")} className="!px-3 !py-1.5">{tr("Fermer")}</Button>
+          </> : <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">{tr("Ouvrir une session")}</Button>}
         </div>
       </div>
-      {active && s && s.active && s.renewals > 0 && <p className="text-xs text-muted">{s.renewals} prolongation(s) ; âge maximal {MAX_HOURS} h.</p>}
+      {active && s && s.active && s.renewals > 0 && <p className="text-xs text-muted">{tr("{renewals} prolongation(s) ; âge maximal {MAX_HOURS} h.", { renewals: s.renewals, MAX_HOURS })}</p>}
       {err && <Notice kind="error">{err}</Notice>}
       {usr && active && <UserWriteDialog connId={connId} onClose={() => setUsr(false)} />}
       {acl && active && <AclWriteDialog connId={connId} onClose={() => setAcl(false)} />}

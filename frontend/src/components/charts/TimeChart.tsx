@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { tr, locale } from "../../lib/i18n";
 /** Une courbe. `slot` : emplacement de couleur (1 bleu, 2 orange), attribué dans l'ordre, jamais d'après le rang (palette validée). */
 export type Series = { id: string; label: string; slot: 1 | 2; values: (number | null)[] };
 export type Timeframe = "hour" | "day" | "week" | "month" | "year";
@@ -30,11 +31,11 @@ export function niceMax(v: number, base: 10 | 1024 = 10): number {
 
 function timeLabel(t: number, tf: Timeframe): string {
   const d = new Date(t * 1000);
-  if (tf === "hour" || tf === "day") return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  if (tf === "year") return d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  if (tf === "hour" || tf === "day") return d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+  if (tf === "year") return d.toLocaleDateString(locale(), { month: "short", year: "2-digit" });
+  return d.toLocaleDateString(locale(), { day: "2-digit", month: "2-digit" });
 }
-const fullTime = (t: number) => new Date(t * 1000).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+const fullTime = (t: number) => new Date(t * 1000).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
 
 /** Chemin d'une courbe : une valeur absente interrompt la ligne (un trou n'est jamais comblé ni lu comme zéro). */
 function pathOf(xs: number[], ys: (number | null)[], sx: (t: number) => number, sy: (v: number) => number): string {
@@ -94,7 +95,7 @@ export function TimeChart({ title, subtitle, times, series, format, domainMax, b
   const last = (s: Series) => { for (let i = s.values.length - 1; i >= 0; i--) if (s.values[i] !== null) return s.values[i]; return null; };
   const summary = useMemo(() => series.map((s) => {
     const v = s.values.filter((x): x is number => x !== null);
-    return v.length ? `${s.label} : minimum ${format(Math.min(...v))}, maximum ${format(Math.max(...v))}, dernière valeur ${format(v[v.length - 1])}` : `${s.label} : aucune mesure`;
+    return v.length ? tr("{label} : minimum {p}, maximum {p2}, dernière valeur {p3}", { label: s.label, p: format(Math.min(...v)), p2: format(Math.max(...v)), p3: format(v[v.length - 1]) }) : tr("{label} : aucune mesure", { label: s.label });
   }).join(". "), [series, format]);
 
   const single = series.length === 1;
@@ -121,7 +122,7 @@ export function TimeChart({ title, subtitle, times, series, format, domainMax, b
 
       <div ref={box} className={`relative transition-opacity ${loading ? "opacity-60" : ""}`} style={{ height: M.t + H + X_BAND }}>
         {n < 2 || series.every((s) => s.values.every((v) => v === null))
-          ? <div className="grid h-full place-items-center rounded-xl border border-line text-sm text-muted">Aucune mesure sur cette période.</div>
+          ? <div className="grid h-full place-items-center rounded-xl border border-line text-sm text-muted">{tr("Aucune mesure sur cette période.")}</div>
           : (
             <>
               <svg width={width} height={M.t + H + X_BAND} role="img" aria-label={`${title}. ${summary}`} tabIndex={0} onKeyDown={onKey} onBlur={() => setHover(null)}
@@ -165,12 +166,12 @@ export function TimeChart({ title, subtitle, times, series, format, domainMax, b
       </div>
 
       <div className="flex justify-end">
-        <button type="button" className="text-xs text-muted underline hover:text-fg" aria-expanded={table} onClick={() => setTable((t) => !t)}>{table ? "Masquer le tableau" : "Afficher le tableau"}</button>
+        <button type="button" className="text-xs text-muted underline hover:text-fg" aria-expanded={table} onClick={() => setTable((t) => !t)}>{table ? tr("Masquer le tableau") : tr("Afficher le tableau")}</button>
       </div>
       {table && (
         <div className="max-h-56 overflow-y-auto rounded-xl border border-line">
           <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-surface2"><tr className="text-left text-muted"><th scope="col" className="px-3 py-1.5 font-normal">Date</th>{series.map((s) => <th key={s.id} scope="col" className="px-3 py-1.5 text-right font-normal">{s.label}</th>)}</tr></thead>
+            <thead className="sticky top-0 bg-surface2"><tr className="text-left text-muted"><th scope="col" className="px-3 py-1.5 font-normal">{tr("Date")}</th>{series.map((s) => <th key={s.id} scope="col" className="px-3 py-1.5 text-right font-normal">{s.label}</th>)}</tr></thead>
             <tbody>
               {times.map((t, i) => (
                 <tr key={t} className="border-t border-line/60"><td className="px-3 py-1 text-muted">{fullTime(t)}</td>{series.map((s) => <td key={s.id} className="px-3 py-1 text-right tabular-nums">{s.values[i] === null ? "–" : format(s.values[i] as number)}</td>)}</tr>

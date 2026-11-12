@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { api, type Guest } from "../lib/api";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 export type ConsoleMode = "vnc" | "term";
 type State = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -44,9 +45,9 @@ function useConsole(openPath: string, bodyFor: (m: ConsoleMode) => object) {
     let opened = false;
     const fail = (clean: boolean) => {
       setState(opened ? "closed" : "error");
-      setMessage(opened ? (clean ? "Console fermée." : "Connexion à la console perdue.") : "Impossible d'ouvrir la console (refusée ou Proxmox injoignable).");
+      setMessage(opened ? (clean ? tr("Console fermée.") : tr("Connexion à la console perdue.")) : tr("Impossible d'ouvrir la console (refusée ou Proxmox injoignable)."));
     };
-    const slow = window.setTimeout(() => { if (!opened) { stop(); setState("error"); setMessage("La console ne répond pas."); } }, 20_000);
+    const slow = window.setTimeout(() => { if (!opened) { stop(); setState("error"); setMessage(tr("La console ne répond pas.")); } }, 20_000);
 
     try {
       if (m === "vnc") {
@@ -57,7 +58,7 @@ function useConsole(openPath: string, bodyFor: (m: ConsoleMode) => object) {
         rfb.background = "#000000";
         rfb.addEventListener("connect", () => { opened = true; window.clearTimeout(slow); setState("open"); rfb.focus(); });
         rfb.addEventListener("disconnect", (e) => { window.clearTimeout(slow); fail(!!(e as CustomEvent<{ clean: boolean }>).detail?.clean); });
-        rfb.addEventListener("securityfailure", () => { window.clearTimeout(slow); setState("error"); setMessage("Authentification de la console refusée."); });
+        rfb.addEventListener("securityfailure", () => { window.clearTimeout(slow); setState("error"); setMessage(tr("Authentification de la console refusée.")); });
         rfb.addEventListener("credentialsrequired", () => rfb.sendCredentials({ password: session.ticket ?? "" }));
         rfbRef.current = rfb;
         closer.current = () => { window.clearTimeout(slow); rfb.disconnect(); };
@@ -86,11 +87,11 @@ function useConsole(openPath: string, bodyFor: (m: ConsoleMode) => object) {
       }
     } catch (e) {
       window.clearTimeout(slow);
-      setState("error"); setMessage(`Le module de console n'a pas pu se charger : ${(e as Error).message}`);
+      setState("error"); setMessage(tr("Le module de console n'a pas pu se charger : {message}", { message: (e as Error).message }));
     }
   };
 
-  const disconnect = () => { stop(); setState("closed"); setMessage("Console fermée."); };
+  const disconnect = () => { stop(); setState("closed"); setMessage(tr("Console fermée.")); };
   return { holder, rfbRef, state, mode, message, start, disconnect };
 }
 
@@ -102,14 +103,14 @@ function Screen({ c, children }: { c: ReturnType<typeof useConsole>; children: R
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         {!live && children}
-        {live && <Button variant="danger" onClick={c.disconnect} className="!px-3 !py-1.5">Déconnecter</Button>}
-        {c.state === "open" && c.mode === "vnc" && <Button variant="ghost" onClick={() => c.rfbRef.current?.sendCtrlAltDel()} className="!px-3 !py-1.5">Ctrl+Alt+Suppr</Button>}
-        {c.state === "open" && <Button variant="ghost" onClick={() => c.holder.current?.requestFullscreen?.().catch(() => undefined)} className="!px-3 !py-1.5">Plein écran</Button>}
-        {busy && <span className="text-sm text-muted">Connexion à la console…</span>}
-        {c.state === "open" && <span className="flex items-center gap-1.5 text-sm text-ok"><span className="size-2 rounded-full bg-ok" />Connecté</span>}
+        {live && <Button variant="danger" onClick={c.disconnect} className="!px-3 !py-1.5">{tr("Déconnecter")}</Button>}
+        {c.state === "open" && c.mode === "vnc" && <Button variant="ghost" onClick={() => c.rfbRef.current?.sendCtrlAltDel()} className="!px-3 !py-1.5">{tr("Ctrl+Alt+Suppr")}</Button>}
+        {c.state === "open" && <Button variant="ghost" onClick={() => c.holder.current?.requestFullscreen?.().catch(() => undefined)} className="!px-3 !py-1.5">{tr("Plein écran")}</Button>}
+        {busy && <span className="text-sm text-muted">{tr("Connexion à la console…")}</span>}
+        {c.state === "open" && <span className="flex items-center gap-1.5 text-sm text-ok"><span className="size-2 rounded-full bg-ok" />{tr("Connecté")}</span>}
       </div>
       {c.message && <Notice kind={c.state === "error" ? "error" : "ok"}>{c.message}</Notice>}
-      <div ref={c.holder} className={`min-h-[24rem] w-full overflow-hidden rounded-xl border border-line bg-black ${live ? "h-[60vh]" : "hidden"}`} aria-label="Console" />
+      <div ref={c.holder} className={`min-h-[24rem] w-full overflow-hidden rounded-xl border border-line bg-black ${live ? "h-[60vh]" : "hidden"}`} aria-label={tr("Console")} />
     </div>
   );
 }
@@ -121,18 +122,15 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
   const live = c.state === "open" || c.state === "connecting";
   return (
     <div className="space-y-4">
-      {!running && <Notice kind="error">La machine doit être en marche pour ouvrir sa console.</Notice>}
+      {!running && <Notice kind="error">{tr("La machine doit être en marche pour ouvrir sa console.")}</Notice>}
       <Screen c={c}>
         <Button onClick={() => c.start(guest.type === "lxc" ? "term" : "vnc")} disabled={!running || live} className="!px-3 !py-1.5">
-          {guest.type === "lxc" ? "Ouvrir le terminal" : "Ouvrir la console"}
+          {guest.type === "lxc" ? tr("Ouvrir le terminal") : tr("Ouvrir la console")}
         </Button>
-        {guest.type === "lxc" && <Button variant="ghost" onClick={() => c.start("vnc")} disabled={!running} className="!px-3 !py-1.5">Écran (noVNC)</Button>}
-        {guest.type === "qemu" && <Button variant="ghost" onClick={() => c.start("term")} disabled={!running || live} title="Terminal sur le port série de la VM (type socket, onglet Périphériques)" className="!px-3 !py-1.5">Terminal série</Button>}
+        {guest.type === "lxc" && <Button variant="ghost" onClick={() => c.start("vnc")} disabled={!running} className="!px-3 !py-1.5">{tr("Écran (noVNC)")}</Button>}
+        {guest.type === "qemu" && <Button variant="ghost" onClick={() => c.start("term")} disabled={!running || live} title={tr("Terminal sur le port série de la VM (type socket, onglet Périphériques)")} className="!px-3 !py-1.5">{tr("Terminal série")}</Button>}
       </Screen>
-      <p className="text-xs text-muted">
-        Une console donne un accès complet à la machine. Elle est journalisée (ouverture et fermeture, jamais ce que tu tapes ni ce qui s'affiche),
-        se ferme après 30 min d'inactivité ou 8 h, et au plus 4 sont ouvertes en même temps.
-      </p>
+      <p className="text-xs text-muted">{tr("Une console donne un accès complet à la machine. Elle est journalisée (ouverture et fermeture, jamais ce que tu tapes ni ce qui s'affiche), se ferme après 30 min d'inactivité ou 8 h, et au plus 4 sont ouvertes en même temps.")}</p>
     </div>
   );
 }
@@ -145,20 +143,19 @@ export function NodeConsole({ connId, node, online }: { connId: number; node: st
   const noRight = c.state === "error" && /Droits insuffisants|Sys\.Console/i.test(c.message ?? "");
   return (
     <div className="space-y-4">
-      {!online && <Notice kind="error">Le nœud est hors ligne : sa console n'est pas disponible.</Notice>}
+      {!online && <Notice kind="error">{tr("Le nœud est hors ligne : sa console n'est pas disponible.")}</Notice>}
       {!live && (
         <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
-          <p>Cette console est une session <strong>sur le nœud lui-même</strong> : accès au système de l'hôte Proxmox. Elle demande <code>login:</code>, avec un compte du nœud
-            (Kaji ne stocke ni ne transmet aucun identifiant). Elle se ferme après 10 min d'inactivité ou 1 h.</p>
+          <p>{tr("Cette console est une session")}{" "}<strong>{tr("sur le nœud lui-même")}</strong>{" "}{tr(": accès au système de l'hôte Proxmox. Elle demande")}{" "}<code>{tr("login:")}</code>{tr(", avec un compte du nœud (Kaji ne stocke ni ne transmet aucun identifiant). Elle se ferme après 10 min d'inactivité ou 1 h.")}</p>
           <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-            <span>Je comprends que cette console donne accès au système de « {node} ».</span></label>
+            <span>{tr("Je comprends que cette console donne accès au système de « {node} ».", { node })}</span></label>
         </div>
       )}
       <Screen c={c}>
-        <Button onClick={() => c.start("term")} disabled={!online || !ok} className="!px-3 !py-1.5">Ouvrir le shell du nœud</Button>
+        <Button onClick={() => c.start("term")} disabled={!online || !ok} className="!px-3 !py-1.5">{tr("Ouvrir le shell du nœud")}</Button>
       </Screen>
-      {noRight && <p className="text-xs text-muted">Il manque le droit <code>Sys.Console</code> sur <code>/nodes</code> : la page « Accès » propose la commande à copier.</p>}
-      {live && <p className="text-xs text-muted">Journalisée (ouverture et fermeture, jamais le contenu).</p>}
+      {noRight && <p className="text-xs text-muted">{tr("Il manque le droit")}{" "}<code>{tr("Sys.Console")}</code>{" "}{tr("sur")}{" "}<code>{tr("/nodes")}</code>{" "}{tr(": la page « Accès » propose la commande à copier.")}</p>}
+      {live && <p className="text-xs text-muted">{tr("Journalisée (ouverture et fermeture, jamais le contenu).")}</p>}
     </div>
   );
 }

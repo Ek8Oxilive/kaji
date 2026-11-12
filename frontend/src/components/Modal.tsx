@@ -1,6 +1,7 @@
 import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 /** Fenêtre de formulaire : Échap ou clic à l'extérieur pour fermer ; erreur affichée dans la fenêtre. */
 export function Modal({ title, subtitle, onClose, onSubmit, submitLabel, busy, error, danger, canSubmit = true, wide, children }: {
   title: string; subtitle?: string; onClose: () => void; onSubmit: () => void; submitLabel: string;
@@ -25,7 +26,7 @@ export function Modal({ title, subtitle, onClose, onSubmit, submitLabel, busy, e
         <div className="space-y-4">{children}</div>
         {error && <div ref={errorBox}><Notice kind="error">{error}</Notice></div>}
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>Annuler</Button>
+          <Button type="button" variant="ghost" onClick={onClose}>{tr("Annuler")}</Button>
           <Button type="submit" variant={danger ? "danger" : "primary"} disabled={busy || !canSubmit}>{busy ? "…" : submitLabel}</Button>
         </div>
       </form>

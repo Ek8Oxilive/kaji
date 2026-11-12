@@ -5,11 +5,12 @@ import { PTYPES, PTYPE_LABEL, PTYPE_ONE, triOf, triVal, type PtDevice, type PtFo
 import { Modal } from "./Modal";
 import { Button, Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Mode = { kind: "add"; type: PType } | { kind: "edit"; type: PType; dev: PtDevice } | { kind: "remove"; type: PType; dev: PtDevice };
 const yn = (v: boolean | null | undefined, label: string) => (v === true ? `${label}` : v === false ? `sans ${label}` : null);
 
 function describe(d: PtDevice): string {
-  if (d.raw) return `${d.host ?? "?"} (hôte brut : réservé à root, non modifiable ici)`;
+  if (d.raw) return tr("{p} (hôte brut : réservé à root, non modifiable ici)", { p: d.host ?? "?" });
   const bits = [yn(d.pcie, "PCIe"), yn(d.rombar, "ROM"), yn(d.x_vga, "VGA principal"), d.mdev ? `mdev ${d.mdev}` : null, yn(d.usb3, "USB 3"),
     d.cache ? `cache ${d.cache}` : null, yn(d.direct_io, "E/S directes"), yn(d.expose_acl, "ACL"), yn(d.expose_xattr, "xattr")].filter(Boolean);
   return bits.join(" · ");
@@ -21,23 +22,23 @@ export function PassthroughPanel({ connId, guest }: { connId: number; guest: Gue
   const [mode, setMode] = useState<Mode | null>(null);
   const q = useQuery({ queryKey: ["passthrough", connId, guest.node, guest.vmid], queryFn: () => api<PtState>(base), staleTime: 0 });
   return (
-    <section className="space-y-3" aria-label="Périphériques par correspondance">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Périphériques PCI, USB et répertoires</h3>
-      <p className="text-sm text-muted">Un périphérique s'ajoute par une <b>correspondance</b> du datacenter (page Datacenter) : Proxmox ne l'accorde pas autrement à Kaji. Les changements ne s'appliquent qu'après un arrêt complet de la machine.</p>
+    <section className="space-y-3" aria-label={tr("Périphériques par correspondance")}>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{tr("Périphériques PCI, USB et répertoires")}</h3>
+      <p className="text-sm text-muted">{tr("Un périphérique s'ajoute par une")}{" "}<b>{tr("correspondance")}</b>{" "}{tr("du datacenter (page Datacenter) : Proxmox ne l'accorde pas autrement à Kaji. Les changements ne s'appliquent qu'après un arrêt complet de la machine.")}</p>
       {q.error && <Notice kind="error">{(q.error as Error).message}</Notice>}
-      {q.data?.running && <Notice kind="error">La machine tourne : les changements restent « en attente » jusqu'à son arrêt complet.</Notice>}
-      {q.isLoading ? <p className="text-sm text-muted">Chargement…</p> : q.data && PTYPES.map((t) => (
+      {q.data?.running && <Notice kind="error">{tr("La machine tourne : les changements restent « en attente » jusqu'à son arrêt complet.")}</Notice>}
+      {q.isLoading ? <p className="text-sm text-muted">{tr("Chargement…")}</p> : q.data && PTYPES.map((t) => (
         <div key={t} className="rounded-xl border border-line px-4">
           <div className="flex items-center justify-between py-2"><span className="text-sm font-medium">{PTYPE_LABEL[t]}</span>
-            <Button variant="ghost" className="!px-3 !py-1" onClick={() => setMode({ kind: "add", type: t })}>+ Ajouter</Button></div>
-          {q.data[t].length === 0 && <p className="pb-3 text-sm text-muted">Aucun.</p>}
+            <Button variant="ghost" className="!px-3 !py-1" onClick={() => setMode({ kind: "add", type: t })}>{tr("+ Ajouter")}</Button></div>
+          {q.data[t].length === 0 && <p className="pb-3 text-sm text-muted">{tr("Aucun.")}</p>}
           {q.data[t].map((d) => (
             <div key={d.key} className="flex items-center gap-3 border-t border-line/60 py-3 text-sm">
               <div className="w-24 shrink-0 font-mono text-xs text-muted">{d.key}</div>
               <div className="min-w-0 flex-1"><span className="font-mono">{d.mapping ?? "—"}</span> <span className="text-muted">{describe(d)}</span>
-                {q.data.pending.includes(d.key) && <div className="mt-1 inline-block rounded-md bg-warn/15 px-2 py-0.5 text-xs text-warn">En attente</div>}</div>
-              {!d.raw && <div className="flex gap-1.5"><Button variant="ghost" className="!px-3 !py-1" onClick={() => setMode({ kind: "edit", type: t, dev: d })}>Modifier</Button>
-                <Button variant="danger" className="!px-3 !py-1" onClick={() => setMode({ kind: "remove", type: t, dev: d })}>Retirer</Button></div>}
+                {q.data.pending.includes(d.key) && <div className="mt-1 inline-block rounded-md bg-warn/15 px-2 py-0.5 text-xs text-warn">{tr("En attente")}</div>}</div>
+              {!d.raw && <div className="flex gap-1.5"><Button variant="ghost" className="!px-3 !py-1" onClick={() => setMode({ kind: "edit", type: t, dev: d })}>{tr("Modifier")}</Button>
+                <Button variant="danger" className="!px-3 !py-1" onClick={() => setMode({ kind: "remove", type: t, dev: d })}>{tr("Retirer")}</Button></div>}
             </div>))}
         </div>))}
       {mode && <PassthroughDialog connId={connId} guest={guest} base={base} mode={mode} machine={q.data?.machine ?? null} onClose={() => setMode(null)} />}
@@ -76,31 +77,31 @@ function PassthroughDialog({ connId, guest, base, mode, machine, onClose }: { co
   };
   const tri = (label: string, key: "pcie" | "rombar" | "x_vga" | "usb3" | "direct_io" | "expose_acl" | "expose_xattr", hint?: string) => (
     <label className="block space-y-1.5 text-sm"><span className="text-muted">{label}</span>
-      <select className="field" value={f[key]} onChange={(e) => set(key)(e.target.value as Tri)}><option value="">Défaut de Proxmox</option><option value="yes">Oui</option><option value="no">Non</option></select>
+      <select className="field" value={f[key]} onChange={(e) => set(key)(e.target.value as Tri)}><option value="">{tr("Défaut de Proxmox")}</option><option value="yes">{tr("Oui")}</option><option value="no">{tr("Non")}</option></select>
       {hint && <span className="block text-xs text-muted">{hint}</span>}</label>);
   const chosen = mappings.data?.find((m) => m.id === f.mapping);
-  const title = k === "add" ? `Ajouter un ${PTYPE_ONE[t]}` : k === "edit" ? `Modifier ${dev!.key}` : `Retirer ${dev!.key}`;
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{k === "remove" ? "Périphérique retiré de la configuration." : "Enregistré, relu chez Proxmox."} Les changements s'appliquent après un arrêt complet de la machine.</Notice></Modal>;
+  const title = k === "add" ? tr("Ajouter un {p}", { p: PTYPE_ONE[t] }) : k === "edit" ? `Modifier ${dev!.key}` : `Retirer ${dev!.key}`;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{tr("{p} Les changements s'appliquent après un arrêt complet de la machine.", { p: k === "remove" ? tr("Périphérique retiré de la configuration.") : tr("Enregistré, relu chez Proxmox.") })}</Notice></Modal>;
   return (
-    <Modal title={title} subtitle="L'aperçu dit ce qui sera écrit dans la configuration de la VM." onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel={k === "remove" ? "Retirer" : "Appliquer"}
+    <Modal title={title} subtitle={tr("L'aperçu dit ce qui sera écrit dans la configuration de la VM.")} onClose={busy ? () => {} : onClose} onSubmit={run} submitLabel={k === "remove" ? tr("Retirer") : tr("Appliquer")}
       danger={k === "remove"} busy={busy} error={err} canSubmit={!!preview} wide>
-      {k === "remove" ? <Notice kind="error">Retire <code>{dev!.key}</code> (<code>{dev!.mapping}</code>) de la configuration de la machine ; le périphérique lui-même et la correspondance ne sont pas touchés.</Notice> : <>
-        <label className="block space-y-1.5 text-sm"><span className="text-muted">Correspondance</span>
-          <select className="field" value={f.mapping} onChange={(e) => set("mapping")(e.target.value)}><option value="">Choisir une correspondance</option>
-            {(mappings.data ?? []).map((m) => <option key={m.id} value={m.id}>{m.id}{m.description ? ` · ${m.description}` : ""}{m.map.some((e) => e.node === guest.node) ? "" : ` (aucune entrée pour ${guest.node})`}</option>)}</select>
-          {(mappings.data ?? []).length === 0 && !mappings.isLoading && <span className="block text-xs text-muted">Aucune correspondance {PTYPE_ONE[t]} : crée-en une dans la page Datacenter.</span>}</label>
-        {t === "pci" && <><div className="grid gap-4 sm:grid-cols-3">{tri("PCIe", "pcie", machine?.startsWith("q35") ? undefined : "Demande le type de machine q35")}{tri("ROM de la carte", "rombar")}{tri("Carte graphique principale", "x_vga")}</div>
-          {chosen?.mdev && <Field label="Type de périphérique médié (mdev)" value={f.mdev} onChange={(e) => set("mdev")(e.target.value)} placeholder="nvidia-63" autoComplete="off" />}</>}
+      {k === "remove" ? <Notice kind="error">{tr("Retire")}{" "}<code>{dev!.key}</code> (<code>{dev!.mapping}</code>{tr(") de la configuration de la machine ; le périphérique lui-même et la correspondance ne sont pas touchés.")}</Notice> : <>
+        <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Correspondance")}</span>
+          <select className="field" value={f.mapping} onChange={(e) => set("mapping")(e.target.value)}><option value="">{tr("Choisir une correspondance")}</option>
+            {(mappings.data ?? []).map((m) => <option key={m.id} value={m.id}>{m.id}{m.description ? ` · ${m.description}` : ""}{m.map.some((e) => e.node === guest.node) ? "" : tr(" (aucune entrée pour {node})", { node: guest.node })}</option>)}</select>
+          {(mappings.data ?? []).length === 0 && !mappings.isLoading && <span className="block text-xs text-muted">{tr("Aucune correspondance {p} : crée-en une dans la page Datacenter.", { p: PTYPE_ONE[t] })}</span>}</label>
+        {t === "pci" && <><div className="grid gap-4 sm:grid-cols-3">{tri("PCIe", "pcie", machine?.startsWith("q35") ? undefined : tr("Demande le type de machine q35"))}{tri(tr("ROM de la carte"), "rombar")}{tri(tr("Carte graphique principale"), "x_vga")}</div>
+          {chosen?.mdev && <Field label={tr("Type de périphérique médié (mdev)")} value={f.mdev} onChange={(e) => set("mdev")(e.target.value)} placeholder={tr("nvidia-63")} autoComplete="off" />}</>}
         {t === "usb" && tri("USB 3", "usb3")}
         {t === "dir" && <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5 text-sm"><span className="text-muted">Cache</span><select className="field" value={f.cache} onChange={(e) => set("cache")(e.target.value)}><option value="">Défaut de Proxmox</option>{["always", "auto", "metadata", "never"].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-          {tri("E/S directes", "direct_io")}{tri("Exposer les ACL", "expose_acl")}{tri("Exposer les attributs étendus", "expose_xattr")}</div>}
+          <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Cache")}</span><select className="field" value={f.cache} onChange={(e) => set("cache")(e.target.value)}><option value="">{tr("Défaut de Proxmox")}</option>{["always", "auto", "metadata", "never"].map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+          {tri("E/S directes", "direct_io")}{tri(tr("Exposer les ACL"), "expose_acl")}{tri(tr("Exposer les attributs étendus"), "expose_xattr")}</div>}
       </>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k !== "remove" && !f.mapping} onClick={look}>Aperçu</button>
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k !== "remove" && !f.mapping} onClick={look}>{tr("Aperçu")}</button>
       {preview && <div className="space-y-3 text-sm">
-        <Notice kind="ok">{k === "remove" ? <>Sera retiré : <code>{preview.remove}</code>.</> : <>Sera écrit : <code>{preview.key} = {preview.value}</code>.</>}</Notice>
+        <Notice kind="ok">{k === "remove" ? <>{tr("Sera retiré :")}{" "}<code>{preview.remove}</code>.</> : <>{tr("Sera écrit :")}{" "}<code>{preview.key} = {preview.value}</code>.</>}</Notice>
         {(preview.warnings ?? []).map((w) => <Notice key={w} kind="error">{w}.</Notice>)}
-        {preview.running && <Notice kind="error">La machine tourne : le changement restera en attente jusqu'à son arrêt complet.</Notice>}
+        {preview.running && <Notice kind="error">{tr("La machine tourne : le changement restera en attente jusqu'à son arrêt complet.")}</Notice>}
       </div>}
     </Modal>
   );

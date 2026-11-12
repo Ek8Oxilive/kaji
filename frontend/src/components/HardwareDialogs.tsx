@@ -6,6 +6,7 @@ import { bytes, mem } from "../lib/format";
 import { Modal } from "./Modal";
 import { Field } from "./ui";
 
+import { tr } from "../lib/i18n";
 export type Save = (body: HwUpdate) => Promise<void>;
 type Common = { onClose: () => void; save: Save; cfg: HwConfig };
 
@@ -33,9 +34,9 @@ export function MemoryDialog({ cfg, save, onClose }: Common) {
   if (qemu && !Number.isNaN(b) && b !== Number(cfg.settings.balloon ?? NaN)) body.balloon = b;
   const ok = Number.isInteger(m) && m >= 16 && Object.keys(body).length > 0 && (!("balloon" in body) || (b >= 0 && b <= m));
   return (
-    <Modal title="Mémoire" onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save(body))}>
-      <Field label="Mémoire (Mo)" type="number" min={16} step={256} value={memory} onChange={(e) => setMemory(e.target.value)} hint={Number.isFinite(m) ? `= ${mem(m)}` : undefined} autoFocus />
-      {qemu && <Field label="Mémoire minimale / ballooning (Mo)" type="number" min={0} value={balloon} onChange={(e) => setBalloon(e.target.value)} hint="0 désactive le ballooning ; doit rester ≤ à la mémoire" />}
+    <Modal title={tr("Mémoire")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Enregistrer")} onSubmit={() => run(() => save(body))}>
+      <Field label={tr("Mémoire (Mo)")} type="number" min={16} step={256} value={memory} onChange={(e) => setMemory(e.target.value)} hint={Number.isFinite(m) ? `= ${mem(m)}` : undefined} autoFocus />
+      {qemu && <Field label={tr("Mémoire minimale / ballooning (Mo)")} type="number" min={0} value={balloon} onChange={(e) => setBalloon(e.target.value)} hint={tr("0 désactive le ballooning ; doit rester ≤ à la mémoire")} />}
     </Modal>
   );
 }
@@ -52,16 +53,16 @@ export function CpuDialog({ cfg, save, onClose }: Common) {
   if (qemu && type && type !== String(cfg.settings.cpu ?? "")) body.cpu = type;
   const ok = Object.keys(body).length > 0 && Number.isInteger(num(cores)) && num(cores) >= 1 && (!qemu || (Number.isInteger(num(sockets)) && num(sockets) >= 1)) && /^[A-Za-z0-9_-]*$/.test(type);
   return (
-    <Modal title="Processeurs" onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save(body))}>
+    <Modal title={tr("Processeurs")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Enregistrer")} onSubmit={() => run(() => save(body))}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Cœurs" type="number" min={1} max={512} value={cores} onChange={(e) => setCores(e.target.value)} autoFocus />
-        {qemu && <Field label="Sockets" type="number" min={1} max={8} value={sockets} onChange={(e) => setSockets(e.target.value)} />}
+        <Field label={tr("Cœurs")} type="number" min={1} max={512} value={cores} onChange={(e) => setCores(e.target.value)} autoFocus />
+        {qemu && <Field label={tr("Sockets")} type="number" min={1} max={8} value={sockets} onChange={(e) => setSockets(e.target.value)} />}
       </div>
       {qemu && <>
-        <Field label="Type de CPU" list="cpu-types" value={type} onChange={(e) => setType(e.target.value)} placeholder="host" hint="host = performances maximales ; x86-64-v2-AES = bon compromis pour migrer entre nœuds" />
+        <Field label={tr("Type de CPU")} list="cpu-types" value={type} onChange={(e) => setType(e.target.value)} placeholder={tr("host")} hint={tr("host = performances maximales ; x86-64-v2-AES = bon compromis pour migrer entre nœuds")} />
         <datalist id="cpu-types">{["host", "x86-64-v2-AES", "x86-64-v3", "x86-64-v4", "kvm64", "qemu64"].map((t) => <option key={t} value={t} />)}</datalist>
       </>}
-      {qemu && <p className="text-sm text-muted">Total : {(num(cores) || 0) * (num(sockets) || 0)} vCPU</p>}
+      {qemu && <p className="text-sm text-muted">{tr("Total : {p} vCPU", { p: (num(cores) || 0) * (num(sockets) || 0) })}</p>}
     </Modal>
   );
 }
@@ -72,8 +73,8 @@ export function SwapDialog({ cfg, save, onClose }: Common) {
   const s = num(swap);
   const ok = Number.isInteger(s) && s >= 0 && s !== Number(cfg.settings.swap ?? 0);
   return (
-    <Modal title="Swap" onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save({ swap: s }))}>
-      <Field label="Swap (Mo)" type="number" min={0} step={128} value={swap} onChange={(e) => setSwap(e.target.value)} autoFocus />
+    <Modal title={tr("Swap")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Enregistrer")} onSubmit={() => run(() => save({ swap: s }))}>
+      <Field label={tr("Swap (Mo)")} type="number" min={0} step={128} value={swap} onChange={(e) => setSwap(e.target.value)} autoFocus />
     </Modal>
   );
 }
@@ -98,26 +99,25 @@ export function NetDialog({ net, connId, node, save, onClose }: Omit<Common, "cf
   const vnets = list?.filter((b) => b.kind === "vnet") ?? [];
   const label = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
   return (
-    <Modal title={`Carte réseau ${net.key}`} subtitle={net.mac ? `MAC ${net.mac} (conservée)` : undefined} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save({ nets: { [net.key]: edit } }))}>
+    <Modal title={tr("Carte réseau {key}", { key: net.key })} subtitle={net.mac ? tr("MAC {mac} (conservée)", { mac: net.mac }) : undefined} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Enregistrer")} onSubmit={() => run(() => save({ nets: { [net.key]: edit } }))}>
       {list ? (
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Réseau (bridge ou VNet SDN)</span>
+          <span className="text-sm text-muted">{tr("Réseau (bridge ou VNet SDN)")}</span>
           <select className="field" value={bridge} onChange={(e) => setBridge(e.target.value)} autoFocus>
-            {bridge && !known && <option value={bridge}>{bridge} (actuel, introuvable sur ce nœud)</option>}
-            <optgroup label="Bridges">{bridges.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
-            {vnets.length > 0 && <optgroup label="VNets SDN">{vnets.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
+            {bridge && !known && <option value={bridge}>{tr("{bridge} (actuel, introuvable sur ce nœud)", { bridge })}</option>}
+            <optgroup label={tr("Bridges")}>{bridges.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
+            {vnets.length > 0 && <optgroup label={tr("VNets SDN")}>{vnets.map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
           </select>
-          {known?.kind === "bridge" && !known.vlan_aware && tag && <span className="block text-xs text-warn">Ce bridge n'est pas « VLAN aware » : l'étiquette VLAN sera ignorée.</span>}
-          {known?.kind === "vnet" && <span className="block text-xs text-muted">VNet SDN : le VLAN est géré par la zone, laisse l'étiquette vide.</span>}
+          {known?.kind === "bridge" && !known.vlan_aware && tag && <span className="block text-xs text-warn">{tr("Ce bridge n'est pas « VLAN aware » : l'étiquette VLAN sera ignorée.")}</span>}
+          {known?.kind === "vnet" && <span className="block text-xs text-muted">{tr("VNet SDN : le VLAN est géré par la zone, laisse l'étiquette vide.")}</span>}
         </label>
       ) : (
-        <Field label="Bridge" value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="vmbr0"
-          hint={nets.isLoading ? "Chargement de la liste…" : "Liste indisponible : saisie manuelle. Un nom inexistant coupe le réseau de la machine."} autoFocus />
+        <Field label={tr("Bridge")} value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder={tr("vmbr0")}
+          hint={nets.isLoading ? tr("Chargement de la liste…") : tr("Liste indisponible : saisie manuelle. Un nom inexistant coupe le réseau de la machine.")} autoFocus />
       )}
-      <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="aucun" hint="Laisse vide pour retirer le VLAN" />
+      <Field label={tr("Étiquette VLAN")} type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder={tr("aucun")} hint={tr("Laisse vide pour retirer le VLAN")} />
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} /> Firewall Proxmox activé
-      </label>
+        <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} />{" "}{tr("Firewall Proxmox activé")}</label>
     </Modal>
   );
 }
@@ -131,13 +131,13 @@ export function CdromDialog({ disk, connId, node, save, onClose }: Omit<Common, 
   const list = isos.data;
   const storages = [...new Set(list?.map((i) => i.storage))];
   return (
-    <Modal title={`Lecteur ${disk.key}`} subtitle={disk.empty ? "Aucun média" : `Monté : ${current}`} onClose={onClose} busy={busy} error={error} canSubmit={ok && iso !== current} submitLabel="Monter" onSubmit={() => run(() => save({ cdroms: { [disk.key]: { iso } } }))}>
+    <Modal title={tr("Lecteur {key}", { key: disk.key })} subtitle={disk.empty ? tr("Aucun média") : tr("Monté : {current}", { current })} onClose={onClose} busy={busy} error={error} canSubmit={ok && iso !== current} submitLabel={tr("Monter")} onSubmit={() => run(() => save({ cdroms: { [disk.key]: { iso } } }))}>
       {list && list.length > 0 ? (
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Image ISO</span>
+          <span className="text-sm text-muted">{tr("Image ISO")}</span>
           <select className="field" value={iso} onChange={(e) => setIso(e.target.value)} autoFocus>
-            <option value="" disabled>Choisir une image…</option>
-            {iso && !list.some((i) => i.volid === iso) && <option value={iso}>{iso} (actuel)</option>}
+            <option value="" disabled>{tr("Choisir une image…")}</option>
+            {iso && !list.some((i) => i.volid === iso) && <option value={iso}>{tr("{iso} (actuel)", { iso })}</option>}
             {storages.map((st) => (
               <optgroup key={st} label={st}>
                 {list.filter((i) => i.storage === st).map((i) => <option key={i.volid} value={i.volid}>{i.name}{i.size ? ` · ${bytes(i.size)}` : ""}</option>)}
@@ -146,11 +146,11 @@ export function CdromDialog({ disk, connId, node, save, onClose }: Omit<Common, 
           </select>
         </label>
       ) : (
-        <Field label="Image ISO" value={iso} onChange={(e) => setIso(e.target.value)} placeholder="local:iso/debian-12.iso"
-          hint={isos.isLoading ? "Chargement de la liste…" : list ? "Aucune image ISO trouvée sur ce nœud. Saisie manuelle : stockage:iso/nom.iso" : "Liste indisponible : saisie manuelle (stockage:iso/nom.iso)"} autoFocus />
+        <Field label={tr("Image ISO")} value={iso} onChange={(e) => setIso(e.target.value)} placeholder={tr("local:iso/debian-12.iso")}
+          hint={isos.isLoading ? tr("Chargement de la liste…") : list ? tr("Aucune image ISO trouvée sur ce nœud. Saisie manuelle : stockage:iso/nom.iso") : tr("Liste indisponible : saisie manuelle (stockage:iso/nom.iso)")} autoFocus />
       )}
       {!disk.empty && (
-        <button type="button" disabled={busy} className="text-sm text-accent underline" onClick={() => run(() => save({ cdroms: { [disk.key]: { iso: null } } }))}>Éjecter le média</button>
+        <button type="button" disabled={busy} className="text-sm text-accent underline" onClick={() => run(() => save({ cdroms: { [disk.key]: { iso: null } } }))}>{tr("Éjecter le média")}</button>
       )}
     </Modal>
   );
@@ -163,12 +163,11 @@ export function ResizeDialog({ disk, connPath, onDone, onClose }: { disk: HwDisk
   const n = num(gb);
   const ok = Number.isInteger(n) && n >= 1 && n <= 4096 && sure;
   return (
-    <Modal title={`Agrandir ${disk.key}`} subtitle={`${disk.storage}:${disk.volume} · actuellement ${disk.size ?? "?"}`} danger onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={`Ajouter ${Number.isFinite(n) ? n : "?"} Go`}
+    <Modal title={tr("Agrandir {key}", { key: disk.key })} subtitle={tr("{storage}:{volume} · actuellement {p}", { storage: disk.storage, volume: disk.volume, p: disk.size ?? "?" })} danger onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Ajouter {p} Go", { p: Number.isFinite(n) ? n : "?" })}
       onSubmit={() => run(async () => { await api(`${connPath}/resize`, { method: "POST", body: { disk: disk.key, add_gb: n, confirm: true } }); onDone(); })}>
-      <Field label="Espace à ajouter (Go)" type="number" min={1} max={4096} value={gb} onChange={(e) => setGb(e.target.value)} autoFocus />
+      <Field label={tr("Espace à ajouter (Go)")} type="number" min={1} max={4096} value={gb} onChange={(e) => setGb(e.target.value)} autoFocus />
       <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">
-        <strong>Irréversible.</strong> Proxmox ne sait pas réduire un disque. Le système invité devra aussi étendre sa partition pour utiliser l'espace ajouté.
-        <label className="mt-2 flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={sure} onChange={(e) => setSure(e.target.checked)} /> Je comprends que je ne pourrai pas revenir en arrière.</label>
+        <strong>{tr("Irréversible.")}</strong>{" "}{tr("Proxmox ne sait pas réduire un disque. Le système invité devra aussi étendre sa partition pour utiliser l'espace ajouté.")}<label className="mt-2 flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={sure} onChange={(e) => setSure(e.target.checked)} />{" "}{tr("Je comprends que je ne pourrai pas revenir en arrière.")}</label>
       </div>
     </Modal>
   );
@@ -194,35 +193,35 @@ export function NetAddDialog({ cfg, connId, node, base, onDone, onClose }: { cfg
   const body = { bridge: chosen, tag: tag.trim() ? t : undefined, firewall, ...(lxc ? { ip: ipMode === "dhcp" ? "dhcp" : ipMode === "static" ? ip : undefined, gateway: ipMode === "static" && gw ? gw : undefined } : { model }) };
   const label = (b: Bridge) => `${b.name}${b.zone ? ` · zone ${b.zone}` : ""}${b.detail ? ` · ${b.detail}` : ""}`;
   return (
-    <Modal title="Ajouter une carte réseau" subtitle="L'adresse MAC est attribuée par Proxmox." onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Ajouter"
+    <Modal title={tr("Ajouter une carte réseau")} subtitle={tr("L'adresse MAC est attribuée par Proxmox.")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Ajouter")}
       onSubmit={() => run(async () => { await api(`${base}/nets`, { method: "POST", body }); await onDone(); })}>
       {list ? (
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Réseau (bridge ou VNet SDN)</span>
+          <span className="text-sm text-muted">{tr("Réseau (bridge ou VNet SDN)")}</span>
           <select className="field" value={chosen} onChange={(e) => setBridge(e.target.value)} autoFocus>
-            <optgroup label="Bridges">{list.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
-            {list.some((b) => b.kind === "vnet") && <optgroup label="VNets SDN">{list.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
+            <optgroup label={tr("Bridges")}>{list.filter((b) => b.kind === "bridge").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>
+            {list.some((b) => b.kind === "vnet") && <optgroup label={tr("VNets SDN")}>{list.filter((b) => b.kind === "vnet").map((b) => <option key={b.name} value={b.name}>{label(b)}</option>)}</optgroup>}
           </select>
         </label>
-      ) : <Field label="Bridge" value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder="vmbr0" hint={nets.isLoading ? "Chargement…" : "Liste indisponible : saisie manuelle"} autoFocus />}
+      ) : <Field label={tr("Bridge")} value={bridge} onChange={(e) => setBridge(e.target.value)} placeholder={tr("vmbr0")} hint={nets.isLoading ? tr("Chargement…") : tr("Liste indisponible : saisie manuelle")} autoFocus />}
       {!lxc && (
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Modèle</span>
+          <span className="text-sm text-muted">{tr("Modèle")}</span>
           <select className="field" value={model} onChange={(e) => setModel(e.target.value)}>{["virtio", "e1000", "e1000e", "rtl8139", "vmxnet3"].map((m) => <option key={m}>{m}</option>)}</select>
         </label>
       )}
-      <Field label="Étiquette VLAN" type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="aucun" />
+      <Field label={tr("Étiquette VLAN")} type="number" min={1} max={4094} value={tag} onChange={(e) => setTag(e.target.value)} placeholder={tr("aucun")} />
       {lxc && <>
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Adresse IP</span>
-          <select className="field" value={ipMode} onChange={(e) => setIpMode(e.target.value as typeof ipMode)}><option value="dhcp">DHCP</option><option value="static">Statique</option><option value="none">Aucune (à configurer dans le conteneur)</option></select>
+          <span className="text-sm text-muted">{tr("Adresse IP")}</span>
+          <select className="field" value={ipMode} onChange={(e) => setIpMode(e.target.value as typeof ipMode)}><option value="dhcp">{tr("DHCP")}</option><option value="static">{tr("Statique")}</option><option value="none">{tr("Aucune (à configurer dans le conteneur)")}</option></select>
         </label>
         {ipMode === "static" && <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Adresse (CIDR)" value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.1.50/24" hint="Avec le masque" />
-          <Field label="Passerelle (facultatif)" value={gw} onChange={(e) => setGw(e.target.value)} placeholder="192.168.1.1" />
+          <Field label={tr("Adresse (CIDR)")} value={ip} onChange={(e) => setIp(e.target.value)} placeholder="192.168.1.50/24" hint={tr("Avec le masque")} />
+          <Field label={tr("Passerelle (facultatif)")} value={gw} onChange={(e) => setGw(e.target.value)} placeholder="192.168.1.1" />
         </div>}
       </>}
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} /> Firewall Proxmox activé</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={firewall} onChange={(e) => setFirewall(e.target.checked)} />{" "}{tr("Firewall Proxmox activé")}</label>
     </Modal>
   );
 }
@@ -230,17 +229,17 @@ export function NetAddDialog({ cfg, connId, node, base, onDone, onClose }: { cfg
 export function NetRemoveDialog({ net, base, onDone, onClose }: { net: HwNet; base: string; onDone: () => Promise<void>; onClose: () => void }) {
   const { busy, error, run } = useSubmit(onClose);
   return (
-    <Modal title={`Retirer la carte ${net.key} ?`} danger onClose={onClose} busy={busy} error={error} submitLabel="Retirer"
+    <Modal title={tr("Retirer la carte {key} ?", { key: net.key })} danger onClose={onClose} busy={busy} error={error} submitLabel={tr("Retirer")}
       onSubmit={() => run(async () => { await api(`${base}/nets/${net.key}?confirm=true`, { method: "DELETE" }); await onDone(); })}>
-      <p className="text-sm text-muted">La machine perdra l'accès au réseau <strong className="text-fg">{net.bridge}</strong> par cette carte.</p>
-      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">L'adresse MAC{net.mac ? <> <span className="font-mono">{net.mac}</span></> : ""} sera perdue : une carte ajoutée plus tard en recevra une autre (réservations DHCP à refaire).</div>
+      <p className="text-sm text-muted">{tr("La machine perdra l'accès au réseau")}{" "}<strong className="text-fg">{net.bridge}</strong>{" "}{tr("par cette carte.")}</p>
+      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">{tr("L'adresse MAC")}{net.mac ? <> <span className="font-mono">{net.mac}</span></> : ""}{" "}{tr("sera perdue : une carte ajoutée plus tard en recevra une autre (réservations DHCP à refaire).")}</div>
     </Modal>
   );
 }
 
 export function BootDialog({ cfg, save, onClose }: Common) {
   const devices = [...cfg.disks.map((d) => ({ key: d.key, label: d.kind === "cdrom" ? `${d.key} · CD/DVD ${d.empty ? "(vide)" : `${d.storage}:${d.volume}`}` : `${d.key} · disque ${d.size ?? ""}` })),
-    ...cfg.nets.map((n) => ({ key: n.key, label: `${n.key} · réseau ${n.bridge ?? ""}` }))];
+    ...cfg.nets.map((n) => ({ key: n.key, label: tr("{key} · réseau {p}", { key: n.key, p: n.bridge ?? "" }) }))];
   const known = new Map(devices.map((d) => [d.key, d.label]));
   const initial = cfg.boot_order.filter((k) => known.has(k));
   const [order, setOrder] = useState<string[]>([...initial, ...devices.map((d) => d.key).filter((k) => !initial.includes(k))]);
@@ -250,20 +249,20 @@ export function BootDialog({ cfg, save, onClose }: Common) {
   const result = order.filter((k) => enabled.has(k));
   const changed = result.join(";") !== initial.join(";");
   return (
-    <Modal title="Ordre de démarrage" subtitle="La machine essaie les périphériques cochés, de haut en bas." onClose={onClose} busy={busy} error={error}
-      canSubmit={result.length > 0 && changed} submitLabel="Enregistrer" onSubmit={() => run(() => save({ boot: result }))}>
+    <Modal title={tr("Ordre de démarrage")} subtitle={tr("La machine essaie les périphériques cochés, de haut en bas.")} onClose={onClose} busy={busy} error={error}
+      canSubmit={result.length > 0 && changed} submitLabel={tr("Enregistrer")} onSubmit={() => run(() => save({ boot: result }))}>
       <ol className="space-y-1.5">
         {order.map((k, i) => (
           <li key={k} className="flex items-center gap-2 rounded-xl border border-line bg-surface2 px-3 py-2 text-sm">
-            <input type="checkbox" aria-label={`Démarrer sur ${k}`} className="size-4 accent-[var(--accent)]" checked={enabled.has(k)}
+            <input type="checkbox" aria-label={tr("Démarrer sur {k}", { k })} className="size-4 accent-[var(--accent)]" checked={enabled.has(k)}
               onChange={(e) => setEnabled((s) => { const n = new Set(s); if (e.target.checked) n.add(k); else n.delete(k); return n; })} />
             <span className={`flex-1 truncate ${enabled.has(k) ? "" : "text-muted"}`}>{known.get(k)}</span>
-            <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => move(i, -1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↑</button>
-            <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => move(i, 1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↓</button>
+            <button type="button" aria-label={tr("Monter")} disabled={i === 0} onClick={() => move(i, -1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↑</button>
+            <button type="button" aria-label={tr("Descendre")} disabled={i === order.length - 1} onClick={() => move(i, 1)} className="rounded px-2 py-0.5 text-muted hover:text-fg disabled:opacity-30">↓</button>
           </li>
         ))}
       </ol>
-      {result.length === 0 && <p className="text-sm text-danger">Coche au moins un périphérique.</p>}
+      {result.length === 0 && <p className="text-sm text-danger">{tr("Coche au moins un périphérique.")}</p>}
     </Modal>
   );
 }
@@ -288,24 +287,24 @@ export function DiskAddDialog({ cfg, connId, node, base, onDone, onClose }: { cf
   const n = num(size);
   const ok = !!chosen && Number.isInteger(n) && n >= 1 && n <= 65536 && (!lxc || mpOk(mp));
   return (
-    <Modal title="Ajouter un disque" subtitle="Un nouveau disque vide sera créé sur le stockage choisi." onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Ajouter"
+    <Modal title={tr("Ajouter un disque")} subtitle={tr("Un nouveau disque vide sera créé sur le stockage choisi.")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Ajouter")}
       onSubmit={() => run(async () => { await api(`${base}/disks`, { method: "POST", body: { storage: chosen, size_gb: n, ...(lxc ? { mp } : { bus }) } }); await onDone(); })}>
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Stockage</span>
+        <span className="text-sm text-muted">{tr("Stockage")}</span>
         <select className="field" value={chosen} onChange={(e) => setStorage(e.target.value)} autoFocus>
           {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
         </select>
-        {stores.isError && <span className="block text-xs text-danger">Liste des stockages indisponible</span>}
+        {stores.isError && <span className="block text-xs text-danger">{tr("Liste des stockages indisponible")}</span>}
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Taille (Go)" type="number" min={1} max={65536} value={size} onChange={(e) => setSize(e.target.value)} />
+        <Field label={tr("Taille (Go)")} type="number" min={1} max={65536} value={size} onChange={(e) => setSize(e.target.value)} />
         {!lxc && (
-          <label className="block space-y-1.5"><span className="text-sm text-muted">Bus</span>
+          <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Bus")}</span>
             <select className="field" value={bus} onChange={(e) => setBus(e.target.value)}>{["scsi", "virtio", "sata", "ide"].map((b) => <option key={b}>{b}</option>)}</select>
           </label>
         )}
       </div>
-      {lxc && <Field label="Chemin de montage dans le conteneur" value={mp} onChange={(e) => setMp(e.target.value)} placeholder="/srv/data" hint="Le dossier est créé s'il n'existe pas" />}
+      {lxc && <Field label={tr("Chemin de montage dans le conteneur")} value={mp} onChange={(e) => setMp(e.target.value)} placeholder={tr("/srv/data")} hint={tr("Le dossier est créé s'il n'existe pas")} />}
     </Modal>
   );
 }
@@ -313,9 +312,9 @@ export function DiskAddDialog({ cfg, connId, node, base, onDone, onClose }: { cf
 export function DiskDetachDialog({ disk, base, onDone, onClose }: { disk: HwDisk; base: string; onDone: () => Promise<void>; onClose: () => void }) {
   const { busy, error, run } = useSubmit(onClose);
   return (
-    <Modal title={`Détacher ${disk.key} ?`} onClose={onClose} busy={busy} error={error} submitLabel="Détacher"
+    <Modal title={tr("Détacher {key} ?", { key: disk.key })} onClose={onClose} busy={busy} error={error} submitLabel={tr("Détacher")}
       onSubmit={() => run(async () => { await api(`${base}/disks/${disk.key}/detach`, { method: "POST" }); await onDone(); })}>
-      <p className="text-sm text-muted">Le disque <strong className="text-fg">{disk.storage}:{disk.volume}</strong> ne sera plus visible par la machine, mais <strong className="text-fg">ses données sont conservées</strong> : il apparaît dans « Disques non utilisés » et peut être rattaché de nouveau.</p>
+      <p className="text-sm text-muted">{tr("Le disque")}{" "}<strong className="text-fg">{disk.storage}:{disk.volume}</strong>{" "}{tr("ne sera plus visible par la machine, mais")}{" "}<strong className="text-fg">{tr("ses données sont conservées")}</strong>{" "}{tr(": il apparaît dans « Disques non utilisés » et peut être rattaché de nouveau.")}</p>
     </Modal>
   );
 }
@@ -325,11 +324,11 @@ export function DiskReattachDialog({ item, lxc, base, onDone, onClose }: { item:
   const [mp, setMp] = useState("");
   const { busy, error, run } = useSubmit(onClose);
   return (
-    <Modal title="Rattacher le disque" subtitle={item.volume} onClose={onClose} busy={busy} error={error} canSubmit={!lxc || mpOk(mp)} submitLabel="Rattacher"
+    <Modal title={tr("Rattacher le disque")} subtitle={item.volume} onClose={onClose} busy={busy} error={error} canSubmit={!lxc || mpOk(mp)} submitLabel={tr("Rattacher")}
       onSubmit={() => run(async () => { await api(`${base}/disks/${item.key}/reattach`, { method: "POST", body: lxc ? { mp } : { bus } }); await onDone(); })}>
       {lxc
-        ? <Field label="Chemin de montage" value={mp} onChange={(e) => setMp(e.target.value)} placeholder="/srv/data" autoFocus />
-        : <label className="block space-y-1.5"><span className="text-sm text-muted">Bus</span><select className="field" value={bus} onChange={(e) => setBus(e.target.value)} autoFocus>{["scsi", "virtio", "sata", "ide"].map((b) => <option key={b}>{b}</option>)}</select></label>}
+        ? <Field label={tr("Chemin de montage")} value={mp} onChange={(e) => setMp(e.target.value)} placeholder={tr("/srv/data")} autoFocus />
+        : <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Bus")}</span><select className="field" value={bus} onChange={(e) => setBus(e.target.value)} autoFocus>{["scsi", "virtio", "sata", "ide"].map((b) => <option key={b}>{b}</option>)}</select></label>}
     </Modal>
   );
 }
@@ -338,10 +337,10 @@ export function DiskDestroyDialog({ item, machine, base, onDone, onClose }: { it
   const [typed, setTyped] = useState("");
   const { busy, error, run } = useSubmit(onClose);
   return (
-    <Modal title="Supprimer définitivement ce disque ?" subtitle={item.volume} danger onClose={onClose} busy={busy} error={error} canSubmit={typed === machine} submitLabel="Détruire le disque"
+    <Modal title={tr("Supprimer définitivement ce disque ?")} subtitle={item.volume} danger onClose={onClose} busy={busy} error={error} canSubmit={typed === machine} submitLabel={tr("Détruire le disque")}
       onSubmit={() => run(async () => { await api(`${base}/disks/${item.key}?confirm=true&name=${encodeURIComponent(machine)}`, { method: "DELETE" }); await onDone(); })}>
-      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm"><strong>Les données seront détruites</strong> et ne pourront pas être récupérées.</div>
-      <Field label={`Pour confirmer, retape le nom de la machine : ${machine}`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
+      <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm"><strong>{tr("Les données seront détruites")}</strong>{" "}{tr("et ne pourront pas être récupérées.")}</div>
+      <Field label={tr("Pour confirmer, retape le nom de la machine : {machine}", { machine })} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
     </Modal>
   );
 }
@@ -354,15 +353,15 @@ export function DiskMoveDialog({ disk, lxc, connId, node, base, onDone, onClose 
   const { busy, error, run } = useSubmit(onClose);
   const chosen = target || targets[0]?.storage || "";
   return (
-    <Modal title={`Déplacer ${disk.key}`} subtitle={`Actuellement sur ${disk.storage}`} onClose={onClose} busy={busy} error={error} canSubmit={!!chosen} submitLabel="Déplacer"
-      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/disks/${disk.key}/move`, { method: "POST", body: { storage: chosen, delete_source: del, confirm: true } }), "Déplacement", LONG_TASK_SECONDS).then(onDone))}>
+    <Modal title={tr("Déplacer {key}", { key: disk.key })} subtitle={tr("Actuellement sur {storage}", { storage: disk.storage })} onClose={onClose} busy={busy} error={error} canSubmit={!!chosen} submitLabel={tr("Déplacer")}
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/disks/${disk.key}/move`, { method: "POST", body: { storage: chosen, delete_source: del, confirm: true } }), tr("Déplacement"), LONG_TASK_SECONDS).then(onDone))}>
       {stores.isSuccess && targets.length === 0
-        ? <p className="text-sm text-muted">Aucun autre stockage disponible pour ce type de disque sur ce nœud.</p>
-        : <label className="block space-y-1.5"><span className="text-sm text-muted">Stockage de destination</span>
+        ? <p className="text-sm text-muted">{tr("Aucun autre stockage disponible pour ce type de disque sur ce nœud.")}</p>
+        : <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Stockage de destination")}</span>
             <select className="field" value={chosen} onChange={(e) => setTarget(e.target.value)} autoFocus>{targets.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}</select></label>}
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={del} onChange={(e) => setDel(e.target.checked)} />
-        <span>Supprimer l'ancien emplacement après la copie <span className="block text-xs text-muted">Sinon il reste dans « Disques non utilisés ».</span></span></label>
-      <p className="text-sm text-muted">La copie de tout le disque peut être longue ; la fenêtre reste ouverte jusqu'à la fin.</p>
+        <span>{tr("Supprimer l'ancien emplacement après la copie")}{" "}<span className="block text-xs text-muted">{tr("Sinon il reste dans « Disques non utilisés ».")}</span></span></label>
+      <p className="text-sm text-muted">{tr("La copie de tout le disque peut être longue ; la fenêtre reste ouverte jusqu'à la fin.")}</p>
     </Modal>
   );
 }
@@ -375,26 +374,26 @@ export function DeleteGuestDialog({ cfg, name, node, connId, base, onDeleted, on
   const disks = cfg.disks.filter((d) => d.kind === "disk" && !d.empty);
   const total = disks.length + cfg.unused.length;
   return (
-    <Modal title={`Supprimer « ${name} » ?`} subtitle="Cette action est définitive." danger onClose={onClose} busy={busy} error={error} canSubmit={typed === name} submitLabel="Supprimer la machine"
+    <Modal title={tr("Supprimer « {name} » ?", { name })} subtitle={tr("Cette action est définitive.")} danger onClose={onClose} busy={busy} error={error} canSubmit={typed === name} submitLabel={tr("Supprimer la machine")}
       onSubmit={() => run(async () => {
         const q = `confirm=true&name=${encodeURIComponent(name)}&purge=${purge}&destroy_unreferenced=${orphans}`;
-        await runTask(connId, node, () => api(`${base}?${q}`, { method: "DELETE" }), "Suppression");
+        await runTask(connId, node, () => api(`${base}?${q}`, { method: "DELETE" }), tr("Suppression"));
         await onDeleted();
       })}>
       <div className="space-y-2 rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">
-        <p><strong>La machine et {total > 0 ? `${total} disque${total > 1 ? "s" : ""}` : "ses données"} seront détruits</strong>, sans retour possible :</p>
+        <p><strong>{tr("La machine et {p} seront détruits", { p: total > 0 ? `${total} disque${total > 1 ? "s" : ""}` : tr("ses données") })}</strong>{tr(", sans retour possible :")}</p>
         {total > 0 && <ul className="list-inside list-disc font-mono text-xs">
           {disks.map((d) => <li key={d.key}>{d.key} · {d.storage}:{d.volume} · {d.size ?? "?"}</li>)}
-          {cfg.unused.map((u) => <li key={u.key}>{u.key} · {u.volume} <span className="font-sans">(non utilisé)</span></li>)}
+          {cfg.unused.map((u) => <li key={u.key}>{u.key} · {u.volume} <span className="font-sans">{tr("(non utilisé)")}</span></li>)}
         </ul>}
-        <p className="text-xs">Les snapshots de la machine sont supprimés avec elle. Les sauvegardes déjà faites ne sont pas touchées.</p>
+        <p className="text-xs">{tr("Les snapshots de la machine sont supprimés avec elle. Les sauvegardes déjà faites ne sont pas touchées.")}</p>
       </div>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={purge} onChange={(e) => setPurge(e.target.checked)} />
-        <span>Retirer des tâches de sauvegarde, de la haute disponibilité et de la réplication</span></label>
+        <span>{tr("Retirer des tâches de sauvegarde, de la haute disponibilité et de la réplication")}</span></label>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={orphans} onChange={(e) => setOrphans(e.target.checked)} />
-        <span>Détruire aussi les disques orphelins portant cet identifiant <span className="block text-xs text-muted">Volumes du stockage qui ne figurent plus dans la configuration.</span></span></label>
-      <Field label={`Pour confirmer, retape le nom de la machine : ${name}`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
-      {busy && <p className="text-sm text-muted">Suppression en cours…</p>}
+        <span>{tr("Détruire aussi les disques orphelins portant cet identifiant")}{" "}<span className="block text-xs text-muted">{tr("Volumes du stockage qui ne figurent plus dans la configuration.")}</span></span></label>
+      <Field label={tr("Pour confirmer, retape le nom de la machine : {name}", { name })} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoFocus />
+      {busy && <p className="text-sm text-muted">{tr("Suppression en cours…")}</p>}
     </Modal>
   );
 }
@@ -418,34 +417,34 @@ export function MigrateDialog({ connId, node, gtype, vmid, name, running, base, 
   const body = { target_node: chosen, online: running && !lxc, with_local_disks: running && !lxc && hasLocal && localDisks,
     ...(!lxc && storage ? { target_storage: storage } : {}), confirm: running };
   return (
-    <Modal title={`Migrer « ${name} »`} subtitle={`Depuis ${node}`} onClose={onClose} busy={busy} error={error} canSubmit={canSubmit} submitLabel="Migrer"
-      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/migrate`, { method: "POST", body }), "Migration", LONG_TASK_SECONDS).then(() => onDone(chosen)))}>
-      {pre.isLoading && <p className="text-sm text-muted">Vérifications de Proxmox en cours…</p>}
+    <Modal title={tr("Migrer « {name} »", { name })} subtitle={tr("Depuis {node}", { node })} onClose={onClose} busy={busy} error={error} canSubmit={canSubmit} submitLabel={tr("Migrer")}
+      onSubmit={() => run(() => runTask(connId, node, () => api(`${base}/migrate`, { method: "POST", body }), tr("Migration"), LONG_TASK_SECONDS).then(() => onDone(chosen)))}>
+      {pre.isLoading && <p className="text-sm text-muted">{tr("Vérifications de Proxmox en cours…")}</p>}
       {pre.isError && <p className="text-sm text-danger">{(pre.error as Error).message}</p>}
       {pre.data && <>
-        {!pre.data.preflight && <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">Les vérifications préalables de Proxmox sont indisponibles : tous les nœuds en ligne sont proposés, sans garantie que la migration aboutisse.</p>}
+        {!pre.data.preflight && <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">{tr("Les vérifications préalables de Proxmox sont indisponibles : tous les nœuds en ligne sont proposés, sans garantie que la migration aboutisse.")}</p>}
         {allowed.length === 0
-          ? <p className="text-sm text-muted">Aucun nœud ne peut accueillir cette machine.</p>
-          : <label className="block space-y-1.5"><span className="text-sm text-muted">Nœud de destination</span>
+          ? <p className="text-sm text-muted">{tr("Aucun nœud ne peut accueillir cette machine.")}</p>
+          : <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Nœud de destination")}</span>
               <select className="field" value={chosen} onChange={(e) => setTarget(e.target.value)} autoFocus>{allowed.map((n) => <option key={n}>{n}</option>)}</select></label>}
         {pre.data.not_allowed.length > 0 && <div className="space-y-1 text-xs text-muted">
-          {pre.data.not_allowed.map((n) => <p key={n.node}><strong className="text-fg">{n.node}</strong> indisponible{n.reasons.length ? ` : ${n.reasons.join(", ")}` : ""}</p>)}</div>}
-        {blocked && <p className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">Cette machine utilise des ressources locales ({pre.data.local_resources.join(", ")}) qui ne peuvent pas suivre à chaud : arrête-la avant de migrer.</p>}
-        {hasLocal && <div className="space-y-1 text-sm"><p className="text-muted">Disques locaux, copiés vers le nœud de destination (peut être long) :</p>
+          {pre.data.not_allowed.map((n) => <p key={n.node}><strong className="text-fg">{n.node}</strong>{" "}{tr("indisponible{p}", { p: n.reasons.length ? ` : ${n.reasons.join(", ")}` : "" })}</p>)}</div>}
+        {blocked && <p className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm">{tr("Cette machine utilise des ressources locales ({p}) qui ne peuvent pas suivre à chaud : arrête-la avant de migrer.", { p: pre.data.local_resources.join(", ") })}</p>}
+        {hasLocal && <div className="space-y-1 text-sm"><p className="text-muted">{tr("Disques locaux, copiés vers le nœud de destination (peut être long) :")}</p>
           <ul className="list-inside list-disc font-mono text-xs">{pre.data.local_disks.map((d) => <li key={d.volid}>{d.volid}{d.size ? ` · ${bytes(d.size)}` : ""}</li>)}</ul></div>}
         {!lxc && hasLocal && (
-          <label className="block space-y-1.5"><span className="text-sm text-muted">Stockage de destination des disques locaux</span>
-            <select className="field" value={storage} onChange={(e) => setStorage(e.target.value)}><option value="">Même nom que sur la source</option>
+          <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Stockage de destination des disques locaux")}</span>
+            <select className="field" value={storage} onChange={(e) => setStorage(e.target.value)}><option value="">{tr("Même nom que sur la source")}</option>
               {stores.data?.map((s) => <option key={s.storage} value={s.storage}>{s.storage}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}</select></label>
         )}
         {running && (
           <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm">
-            <p>{lxc ? "Le conteneur sera arrêté, migré, puis redémarré : coupure de service pendant l'opération." : "Migration à chaud : la VM continue de tourner, avec une très courte interruption à la fin."}</p>
-            {!lxc && hasLocal && <label className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} /> Copier aussi les disques locaux</label>}
-            <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={sure} onChange={(e) => setSure(e.target.checked)} /> Je confirme la migration de cette machine en marche.</label>
+            <p>{lxc ? tr("Le conteneur sera arrêté, migré, puis redémarré : coupure de service pendant l'opération.") : tr("Migration à chaud : la VM continue de tourner, avec une très courte interruption à la fin.")}</p>
+            {!lxc && hasLocal && <label className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={localDisks} onChange={(e) => setLocalDisks(e.target.checked)} />{" "}{tr("Copier aussi les disques locaux")}</label>}
+            <label className="flex items-start gap-2"><input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={sure} onChange={(e) => setSure(e.target.checked)} />{" "}{tr("Je confirme la migration de cette machine en marche.")}</label>
           </div>
         )}
-        {busy && <p className="text-sm text-muted">Migration en cours, la fenêtre reste ouverte jusqu'à la fin…</p>}
+        {busy && <p className="text-sm text-muted">{tr("Migration en cours, la fenêtre reste ouverte jusqu'à la fin…")}</p>}
       </>}
     </Modal>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { tr } from "../lib/i18n";
 export type Command = { id: string; group: string; label: string; hint?: string; keywords?: string; run: () => void };
 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -30,12 +31,12 @@ export function CommandPalette({ commands, onClose }: { commands: Command[]; onC
   let lastGroup = "";
   return (
     <div className="fixed inset-0 z-[70] grid place-items-start justify-items-center bg-black/60 p-4 pt-[12vh]" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Palette de commandes" className="panel rise w-full max-w-xl overflow-hidden" onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
-        <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }} placeholder="Rechercher une machine ou une action…"
+      <div role="dialog" aria-modal="true" aria-label={tr("Palette de commandes")} className="panel rise w-full max-w-xl overflow-hidden" onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
+        <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }} placeholder={tr("Rechercher une machine ou une action…")}
           role="combobox" aria-expanded="true" aria-controls="palette-list" aria-activedescendant={results[index] ? `cmd-${results[index].id}` : undefined}
           className="w-full border-b border-line bg-transparent px-5 py-4 text-base outline-none placeholder:text-muted" />
         <ul id="palette-list" ref={list} role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
-          {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Aucun résultat</li>}
+          {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">{tr("Aucun résultat")}</li>}
           {results.map((c, i) => {
             const header = c.group !== lastGroup ? c.group : null;
             lastGroup = c.group;
@@ -51,7 +52,7 @@ export function CommandPalette({ commands, onClose }: { commands: Command[]; onC
             );
           })}
         </ul>
-        <div className="flex gap-4 border-t border-line px-5 py-2 text-xs text-muted"><span>↑↓ naviguer</span><span>↵ choisir</span><span>Échap fermer</span></div>
+        <div className="flex gap-4 border-t border-line px-5 py-2 text-xs text-muted"><span>{tr("↑↓ naviguer")}</span><span>{tr("↵ choisir")}</span><span>{tr("Échap fermer")}</span></div>
       </div>
     </div>
   );

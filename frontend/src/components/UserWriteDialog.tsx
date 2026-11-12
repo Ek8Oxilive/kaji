@@ -5,11 +5,12 @@ import { Modal } from "./Modal";
 import { SecretOnceDialog } from "./SecretOnceDialog";
 import { Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Act = "create-user" | "toggle-user" | "delete-user" | "member" | "create-group" | "delete-group" | "create-token" | "revoke-token";
 const LABEL: Record<Act, string> = {
-  "create-user": "Créer un utilisateur", "toggle-user": "Activer ou désactiver un utilisateur", "delete-user": "Supprimer un utilisateur",
-  member: "Ajouter ou retirer d'un groupe", "create-group": "Créer un groupe", "delete-group": "Supprimer un groupe",
-  "create-token": "Créer un token d'API", "revoke-token": "Révoquer un token d'API",
+  get "create-user"() { return tr("Créer un utilisateur"); }, get "toggle-user"() { return tr("Activer ou désactiver un utilisateur"); }, get "delete-user"() { return tr("Supprimer un utilisateur"); },
+  get member() { return tr("Ajouter ou retirer d'un groupe"); }, get "create-group"() { return tr("Créer un groupe"); }, get "delete-group"() { return tr("Supprimer un groupe"); },
+  get "create-token"() { return tr("Créer un token d'API"); }, get "revoke-token"() { return tr("Révoquer un token d'API"); },
 };
 const TOKEN = /^[A-Za-z][A-Za-z0-9._-]{1,63}$/;
 const USER = /^[A-Za-z0-9._-]{1,64}@pve$/;
@@ -69,51 +70,50 @@ export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: 
     } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
 
-  if (secret) return <SecretOnceDialog title="Token créé" subject={full} secret={secret} onDone={() => { setSecret(null); setDone(LABEL[act]); }} />;
+  if (secret) return <SecretOnceDialog title={tr("Token créé")} subject={full} secret={secret} onDone={() => { setSecret(null); setDone(LABEL[act]); }} />;
   if (done) return (
-    <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit>
-      <Notice kind="ok">{done} : <code>{id}</code>. Relu chez Proxmox, visible dans les listes ci-dessous.</Notice>
+    <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit>
+      <Notice kind="ok">{done} : <code>{id}</code>{tr(". Relu chez Proxmox, visible dans les listes ci-dessous.")}</Notice>
     </Modal>
   );
   const destructive = act === "delete-user" || act === "delete-group" || act === "revoke-token";
   return (
-    <Modal title="Utilisateurs et groupes" subtitle="Une écriture à la fois, avec l'identité de la session administrateur. Realm pve seulement." onClose={busy ? () => {} : onClose}
-      onSubmit={run} submitLabel="Appliquer" danger={destructive} busy={busy} error={err} canSubmit={valid && typed === need}>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Action</span>
+    <Modal title={tr("Utilisateurs et groupes")} subtitle={tr("Une écriture à la fois, avec l'identité de la session administrateur. Realm pve seulement.")} onClose={busy ? () => {} : onClose}
+      onSubmit={run} submitLabel={tr("Appliquer")} danger={destructive} busy={busy} error={err} canSubmit={valid && typed === need}>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Action")}</span>
         <select className="field" value={act} onChange={(e) => reset(e.target.value as Act)}>{(Object.keys(LABEL) as Act[]).map((a) => <option key={a} value={a}>{LABEL[a]}</option>)}</select></label>
-      <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? "Identifiant du groupe" : "Utilisateur"}</span>
-        <input className="field" value={id} onChange={(e) => setId(e.target.value.trim())} placeholder={isGroup ? "staff" : "bob@pve"} autoComplete="off" /></label>
-      {isToken && <label className="block space-y-1 text-sm"><span className="text-muted">Nom du token</span>
-        <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder="ci" autoComplete="off" /></label>}
+      <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? tr("Identifiant du groupe") : tr("Utilisateur")}</span>
+        <input className="field" value={id} onChange={(e) => setId(e.target.value.trim())} placeholder={isGroup ? tr("staff") : tr("bob@pve")} autoComplete="off" /></label>
+      {isToken && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Nom du token")}</span>
+        <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder={tr("ci")} autoComplete="off" /></label>}
       {act === "revoke-token" && <>
-        <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!idOk} onClick={listTokens}>Voir les tokens de cet utilisateur</button>
-        {tokens && <p className="text-sm text-muted">{tokens.length === 0 ? "Aucun token." : tokens.map((t) => `${t.tokenid}${t.privsep ? "" : " (sans séparation de privilèges)"}`).join(", ")}</p>}
+        <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!idOk} onClick={listTokens}>{tr("Voir les tokens de cet utilisateur")}</button>
+        {tokens && <p className="text-sm text-muted">{tokens.length === 0 ? tr("Aucun token.") : tokens.map((t) => `${t.tokenid}${t.privsep ? "" : tr(" (sans séparation de privilèges)")}`).join(", ")}</p>}
       </>}
       {act === "create-token" && <>
-        <label className="block space-y-1 text-sm"><span className="text-muted">Expire dans (jours, facultatif)</span>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Expire dans (jours, facultatif)")}</span>
           <input className="field" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value.trim())} placeholder="90" autoComplete="off" /></label>
-        <p className="text-xs text-muted">Token à privilèges séparés : il n'a aucun droit tant qu'une ACL ne lui en donne pas. Son secret ne s'affiche qu'une fois.</p>
+        <p className="text-xs text-muted">{tr("Token à privilèges séparés : il n'a aucun droit tant qu'une ACL ne lui en donne pas. Son secret ne s'affiche qu'une fois.")}</p>
       </>}
       {act === "member" && <>
-        <label className="block space-y-1 text-sm"><span className="text-muted">Groupe</span>
-          <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder="staff" autoComplete="off" /></label>
-        <label className="flex gap-4 text-sm"><label className="flex gap-1.5"><input type="radio" checked={add} onChange={() => setAdd(true)} />Ajouter</label><label className="flex gap-1.5"><input type="radio" checked={!add} onChange={() => setAdd(false)} />Retirer</label></label>
-        <p className="text-xs text-muted">Ajouter à un groupe donne ses droits à l'utilisateur : un groupe qui permet de modifier les droits est refusé par le serveur.</p>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Groupe")}</span>
+          <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder={tr("staff")} autoComplete="off" /></label>
+        <label className="flex gap-4 text-sm"><label className="flex gap-1.5"><input type="radio" checked={add} onChange={() => setAdd(true)} />{tr("Ajouter")}</label><label className="flex gap-1.5"><input type="radio" checked={!add} onChange={() => setAdd(false)} />{tr("Retirer")}</label></label>
+        <p className="text-xs text-muted">{tr("Ajouter à un groupe donne ses droits à l'utilisateur : un groupe qui permet de modifier les droits est refusé par le serveur.")}</p>
       </>}
-      {(act === "create-user" || act === "create-group" || act === "create-token") && <label className="block space-y-1 text-sm"><span className="text-muted">Commentaire (facultatif)</span>
+      {(act === "create-user" || act === "create-group" || act === "create-token") && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Commentaire (facultatif)")}</span>
         <input className="field" value={comment} maxLength={100} onChange={(e) => setComment(e.target.value)} autoComplete="off" /></label>}
-      {act === "create-user" && <label className="block space-y-1 text-sm"><span className="text-muted">Mot de passe (facultatif, 12 caractères au moins)</span>
+      {act === "create-user" && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Mot de passe (facultatif, 12 caractères au moins)")}</span>
         <input className="field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-        <span className="block text-xs text-muted">Sans mot de passe, l'utilisateur ne se connecte que par token. Il n'a aucun droit tant que tu ne lui en donnes pas.</span></label>}
-      {(act === "create-user" || act === "toggle-user") && <label className="flex gap-2 text-sm"><input type="checkbox" checked={enable} onChange={(e) => setEnable(e.target.checked)} /><span>Compte activé</span></label>}
+        <span className="block text-xs text-muted">{tr("Sans mot de passe, l'utilisateur ne se connecte que par token. Il n'a aucun droit tant que tu ne lui en donnes pas.")}</span></label>}
+      {(act === "create-user" || act === "toggle-user") && <label className="flex gap-2 text-sm"><input type="checkbox" checked={enable} onChange={(e) => setEnable(e.target.checked)} /><span>{tr("Compte activé")}</span></label>}
       {act === "delete-user" && <>
-        <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!idOk} onClick={look}>Voir l'impact</button>
-        {impact && (impact.protected ? <Notice kind="error">Identité protégée (Kaji, session administrateur ou root) : la suppression sera refusée.</Notice>
-          : <p className="text-sm text-muted">Groupes : {impact.groups.join(", ") || "aucun"} · entrées d'ACL : {impact.acl_entries} · tokens supprimés avec lui : {impact.tokens.join(", ") || "aucun"}</p>)}
+        <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!idOk} onClick={look}>{tr("Voir l'impact")}</button>
+        {impact && (impact.protected ? <Notice kind="error">{tr("Identité protégée (Kaji, session administrateur ou root) : la suppression sera refusée.")}</Notice>
+          : <p className="text-sm text-muted">{tr("Groupes : {p} · entrées d'ACL : {acl_entries} · tokens supprimés avec lui : {p2}", { p: impact.groups.join(", ") || "aucun", acl_entries: impact.acl_entries, p2: impact.tokens.join(", ") || "aucun" })}</p>)}
       </>}
-      {destructive && <Notice kind="error">{act === "delete-user" ? "Suppression définitive de l'utilisateur et de ses tokens." : "Un groupe n'est supprimé que s'il est vide et sans ACL."}</Notice>}
-      {valid && <label className="block text-xs text-muted">Retape <code>{need}</code> pour confirmer
-        <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
+      {destructive && <Notice kind="error">{act === "delete-user" ? tr("Suppression définitive de l'utilisateur et de ses tokens.") : tr("Un groupe n'est supprimé que s'il est vide et sans ACL.")}</Notice>}
+      {valid && <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{need}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
     </Modal>
   );
 }

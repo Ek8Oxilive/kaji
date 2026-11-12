@@ -7,6 +7,7 @@ import { useToast } from "./Toast";
 import { PassthroughPanel } from "./PassthroughPanel";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Dialog =
   | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
   | { k: "delete" } | { k: "migrate" } | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
@@ -19,7 +20,7 @@ function Row({ label, children, pending, action }: { label: string; children: Re
       <div className="w-32 shrink-0 text-sm text-muted">{label}</div>
       <div className="min-w-0 flex-1 text-sm">
         <div className="break-words">{children}</div>
-        {pending && <div className="mt-1 inline-block rounded-md bg-warn/15 px-2 py-0.5 text-xs text-warn">En attente : {pending}</div>}
+        {pending && <div className="mt-1 inline-block rounded-md bg-warn/15 px-2 py-0.5 text-xs text-warn">{tr("En attente : {pending}", { pending })}</div>}
       </div>
       {action}
     </div>
@@ -33,7 +34,7 @@ const Section = ({ title, action, children }: { title: string; action?: ReactNod
   </section>
 );
 
-const cores = (n: unknown) => `${n} ${Number(n) > 1 ? "cœurs" : "cœur"}`;
+const cores = (n: unknown) => `${n} ${Number(n) > 1 ? tr("cœurs") : tr("cœur")}`;
 
 const Edit = ({ onClick, label = "Modifier" }: { onClick: () => void; label?: string }) => (
   <Button variant="ghost" onClick={onClick} className="!px-3 !py-1">{label}</Button>
@@ -50,10 +51,10 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
 
   const save = async (body: HwUpdate) => {
     await api(`${base}/config`, { method: "PATCH", body });
-    toast("ok", "Configuration enregistrée");
+    toast("ok", tr("Configuration enregistrée"));
     await qc.invalidateQueries({ queryKey: qk });
   };
-  const resized = async () => { toast("ok", "Disque agrandi"); await qc.invalidateQueries({ queryKey: qk }); };
+  const resized = async () => { toast("ok", tr("Disque agrandi")); await qc.invalidateQueries({ queryKey: qk }); };
 
   const pend = (key: string) => {
     const p = cfg?.pending.find((x) => x.key === key);
@@ -67,63 +68,61 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
   return (
     <div className="space-y-6">
         {isLoading && <div className="space-y-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-surface2" />)}</div>}
-        {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>}
+        {error && <Notice kind="error">{(error as Error).message} — <button className="underline" onClick={() => refetch()}>{tr("réessayer")}</button></Notice>}
 
         {cfg && <>
           {cfg.reboot_required && (
-            <Notice kind="error">
-              Changements en attente : ils s'appliqueront au prochain redémarrage de la machine ({cfg.pending.map((p) => p.key).join(", ")}).
-            </Notice>
+            <Notice kind="error">{tr("Changements en attente : ils s'appliqueront au prochain redémarrage de la machine ({p}).", { p: cfg.pending.map((p) => p.key).join(", ") })}</Notice>
           )}
 
-          <Section title="Ressources">
-            <Row label="Mémoire" pending={pend("memory")} action={<Edit onClick={() => setDlg({ k: "memory" })} />}>
-              {mem(s.memory)}{qemu && s.balloon !== undefined && <span className="text-muted"> · minimum {Number(s.balloon) === 0 ? "ballooning désactivé" : mem(s.balloon)}</span>}
+          <Section title={tr("Ressources")}>
+            <Row label={tr("Mémoire")} pending={pend("memory")} action={<Edit onClick={() => setDlg({ k: "memory" })} />}>
+              {mem(s.memory)}{qemu && s.balloon !== undefined && <span className="text-muted">{" "}{tr("· minimum {p}", { p: Number(s.balloon) === 0 ? tr("ballooning désactivé") : mem(s.balloon) })}</span>}
             </Row>
-            <Row label="Processeurs" pending={pend("cores") ?? pend("sockets") ?? pend("cpu")} action={<Edit onClick={() => setDlg({ k: "cpu" })} />}>
+            <Row label={tr("Processeurs")} pending={pend("cores") ?? pend("sockets") ?? pend("cpu")} action={<Edit onClick={() => setDlg({ k: "cpu" })} />}>
               {qemu
-                ? <>{Number(s.cores ?? 1) * Number(s.sockets ?? 1)} vCPU <span className="text-muted">({s.sockets ?? 1} socket{Number(s.sockets ?? 1) > 1 ? "s" : ""} × {cores(s.cores ?? 1)}) · {String(s.cpu ?? "kvm64")}</span></>
-                : <>{s.cores ? cores(s.cores) : "illimité"}</>}
+                ? <>{tr("{p} vCPU", { p: Number(s.cores ?? 1) * Number(s.sockets ?? 1) })}{" "}<span className="text-muted">{tr("({p} socket{p2} × {p3}) · {p4}", { p: s.sockets ?? 1, p2: Number(s.sockets ?? 1) > 1 ? "s" : "", p3: cores(s.cores ?? 1), p4: String(s.cpu ?? "kvm64") })}</span></>
+                : <>{s.cores ? cores(s.cores) : tr("illimité")}</>}
             </Row>
-            {qemu && <Row label="Démarrage" pending={pend("boot")} action={<Edit onClick={() => setDlg({ k: "boot" })} />}>
-              {cfg.boot_order.length ? cfg.boot_order.join(" → ") : <span className="text-muted">ordre par défaut</span>}
+            {qemu && <Row label={tr("Démarrage")} pending={pend("boot")} action={<Edit onClick={() => setDlg({ k: "boot" })} />}>
+              {cfg.boot_order.length ? cfg.boot_order.join(" → ") : <span className="text-muted">{tr("ordre par défaut")}</span>}
             </Row>}
-            {!qemu && <Row label="Swap" pending={pend("swap")} action={<Edit onClick={() => setDlg({ k: "swap" })} />}>{mem(s.swap ?? 0)}</Row>}
+            {!qemu && <Row label={tr("Swap")} pending={pend("swap")} action={<Edit onClick={() => setDlg({ k: "swap" })} />}>{mem(s.swap ?? 0)}</Row>}
           </Section>
 
-          <Section title="Disques" action={<Edit label="+ Ajouter" onClick={() => setDlg({ k: "diskadd" })} />}>
-            {disks.length === 0 && <p className="py-2 text-sm text-muted">Aucun disque.</p>}
+          <Section title={tr("Disques")} action={<Edit label={tr("+ Ajouter")} onClick={() => setDlg({ k: "diskadd" })} />}>
+            {disks.length === 0 && <p className="py-2 text-sm text-muted">{tr("Aucun disque.")}</p>}
             {disks.map((d) => (
-              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<div className="flex flex-wrap justify-end gap-1.5"><Edit label="Agrandir" onClick={() => setDlg({ k: "resize", disk: d })} /><Edit label="Déplacer" onClick={() => setDlg({ k: "move", disk: d })} />{d.key !== "rootfs" && <Edit label="Détacher" onClick={() => setDlg({ k: "detach", disk: d })} />}</div>}>
+              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<div className="flex flex-wrap justify-end gap-1.5"><Edit label={tr("Agrandir")} onClick={() => setDlg({ k: "resize", disk: d })} /><Edit label={tr("Déplacer")} onClick={() => setDlg({ k: "move", disk: d })} />{d.key !== "rootfs" && <Edit label={tr("Détacher")} onClick={() => setDlg({ k: "detach", disk: d })} />}</div>}>
                 {d.storage}:{d.volume} <span className="text-muted">· {d.size ?? "taille inconnue"}</span>
               </Row>
             ))}
           </Section>
 
           {cfg.unused.length > 0 && (
-            <Section title="Disques non utilisés">
+            <Section title={tr("Disques non utilisés")}>
               {cfg.unused.map((u) => (
-                <Row key={u.key} label={u.key} action={<div className="flex gap-1.5"><Edit label="Rattacher" onClick={() => setDlg({ k: "reattach", item: u })} /><Button variant="danger" onClick={() => setDlg({ k: "destroy", item: u })} className="!px-3 !py-1">Supprimer</Button></div>}>
-                  {u.volume} <span className="text-muted">· données conservées</span>
+                <Row key={u.key} label={u.key} action={<div className="flex gap-1.5"><Edit label={tr("Rattacher")} onClick={() => setDlg({ k: "reattach", item: u })} /><Button variant="danger" onClick={() => setDlg({ k: "destroy", item: u })} className="!px-3 !py-1">{tr("Supprimer")}</Button></div>}>
+                  {u.volume} <span className="text-muted">{tr("· données conservées")}</span>
                 </Row>
               ))}
             </Section>
           )}
 
           {qemu && cdroms.length > 0 && (
-            <Section title="CD/DVD">
+            <Section title={tr("CD/DVD")}>
               {cdroms.map((d) => (
                 <Row key={d.key} label={d.key} pending={pend(d.key)} action={d.cloudinit ? undefined : <Edit onClick={() => setDlg({ k: "cdrom", disk: d })} />}>
-                  {d.cloudinit ? <>Lecteur cloud-init <span className="text-muted">· géré dans l'onglet Cloud-init</span></> : d.empty ? <span className="text-muted">Aucun média</span> : `${d.storage}:${d.volume}`}
+                  {d.cloudinit ? <>{tr("Lecteur cloud-init")}{" "}<span className="text-muted">{tr("· géré dans l'onglet Cloud-init")}</span></> : d.empty ? <span className="text-muted">{tr("Aucun média")}</span> : `${d.storage}:${d.volume}`}
                 </Row>
               ))}
             </Section>
           )}
 
-          <Section title="Cartes réseau" action={<Edit label="+ Ajouter" onClick={() => setDlg({ k: "netadd" })} />}>
-            {cfg.nets.length === 0 && <p className="py-2 text-sm text-muted">Aucune carte réseau.</p>}
+          <Section title={tr("Cartes réseau")} action={<Edit label={tr("+ Ajouter")} onClick={() => setDlg({ k: "netadd" })} />}>
+            {cfg.nets.length === 0 && <p className="py-2 text-sm text-muted">{tr("Aucune carte réseau.")}</p>}
             {cfg.nets.map((n) => (
-              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "net", net: n })} /><Button variant="danger" onClick={() => setDlg({ k: "netdel", net: n })} className="!px-3 !py-1" aria-label={`Retirer ${n.key}`}>Retirer</Button></div>}>
+              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "net", net: n })} /><Button variant="danger" onClick={() => setDlg({ k: "netdel", net: n })} className="!px-3 !py-1" aria-label={tr("Retirer {key}", { key: n.key })}>{tr("Retirer")}</Button></div>}>
                 <span>{n.bridge ?? "?"}</span>
                 <span className="text-muted">{n.tag ? ` · VLAN ${n.tag}` : ""}{n.firewall ? " · firewall" : ""}{n.model ? ` · ${n.model}` : ""}{n.ip ? ` · ${n.ip}` : ""}</span>
                 {n.mac && <div className="font-mono text-xs text-muted">{n.mac}</div>}
@@ -133,19 +132,19 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
 
           {guest.type === "qemu" && <PassthroughPanel connId={connId} guest={guest} />}
 
-          <Section title="Emplacement">
-            <Row label="Nœud" action={<Button variant="ghost" onClick={() => setDlg({ k: "migrate" })} className="!px-3 !py-1">Migrer</Button>}>
-              {guest.node} <span className="text-muted">· déplacer la machine vers un autre nœud du cluster</span>
+          <Section title={tr("Emplacement")}>
+            <Row label={tr("Nœud")} action={<Button variant="ghost" onClick={() => setDlg({ k: "migrate" })} className="!px-3 !py-1">{tr("Migrer")}</Button>}>
+              {guest.node} <span className="text-muted">{tr("· déplacer la machine vers un autre nœud du cluster")}</span>
             </Row>
           </Section>
 
-          <Section title="Zone dangereuse">
-            <Row label="Supprimer" action={<Button variant="danger" disabled={guest.status !== "stopped"} onClick={() => setDlg({ k: "delete" })} className="!px-3 !py-1">Supprimer la machine</Button>}>
-              <span className="text-muted">{guest.status === "stopped" ? "Détruit la machine et tous ses disques, sans retour possible." : "La machine doit d'abord être arrêtée."}</span>
+          <Section title={tr("Zone dangereuse")}>
+            <Row label={tr("Supprimer")} action={<Button variant="danger" disabled={guest.status !== "stopped"} onClick={() => setDlg({ k: "delete" })} className="!px-3 !py-1">{tr("Supprimer la machine")}</Button>}>
+              <span className="text-muted">{guest.status === "stopped" ? tr("Détruit la machine et tous ses disques, sans retour possible.") : tr("La machine doit d'abord être arrêtée.")}</span>
             </Row>
           </Section>
 
-          <p className="text-xs text-muted">Les options avancées restantes (TPM, GPU virtuel, hotplug…) ne sont pas gérées.</p>
+          <p className="text-xs text-muted">{tr("Les options avancées restantes (TPM, GPU virtuel, hotplug…) ne sont pas gérées.")}</p>
         </>}
 
       {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
@@ -154,18 +153,18 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
       {cfg && dlg?.k === "net" && <NetDialog net={dlg.net} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "cdrom" && <CdromDialog disk={dlg.disk} connId={connId} node={guest.node} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "boot" && <BootDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
-      {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Carte réseau ajoutée"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
-      {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", `Carte ${dlg.net.key} retirée`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", tr("Carte réseau ajoutée")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", tr("Carte {key} retirée", { key: dlg.net.key })); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "migrate" && <MigrateDialog connId={connId} node={guest.node} gtype={guest.type} vmid={guest.vmid} name={guest.name ?? String(guest.vmid)}
         running={guest.status === "running"} base={base}
-        onDone={async (target) => { toast("ok", `« ${guest.name ?? guest.vmid} » migrée vers ${target}`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onMigrated(target); }} onClose={() => setDlg(null)} />}
+        onDone={async (target) => { toast("ok", tr("« {p} » migrée vers {target}", { p: guest.name ?? guest.vmid, target })); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onMigrated(target); }} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "delete" && <DeleteGuestDialog cfg={cfg} name={guest.name ?? String(guest.vmid)} node={guest.node} connId={connId} base={base}
-        onDeleted={async () => { toast("ok", `Machine « ${guest.name ?? guest.vmid} » supprimée`); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onDeleted(); }} onClose={() => setDlg(null)} />}
-      {cfg && dlg?.k === "diskadd" && <DiskAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", "Disque ajouté"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
-      {dlg?.k === "detach" && <DiskDetachDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} détaché (données conservées)`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
-      {dlg?.k === "move" && <DiskMoveDialog disk={dlg.disk} lxc={!qemu} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", `Disque ${dlg.disk.key} déplacé`); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
-      {dlg?.k === "reattach" && <DiskReattachDialog item={dlg.item} lxc={!qemu} base={base} onDone={async () => { toast("ok", "Disque rattaché"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
-      {dlg?.k === "destroy" && <DiskDestroyDialog item={dlg.item} machine={guest.name ?? String(guest.vmid)} base={base} onDone={async () => { toast("ok", "Disque détruit"); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+        onDeleted={async () => { toast("ok", tr("Machine « {p} » supprimée", { p: guest.name ?? guest.vmid })); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onDeleted(); }} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "diskadd" && <DiskAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", tr("Disque ajouté")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "detach" && <DiskDetachDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", tr("Disque {key} détaché (données conservées)", { key: dlg.disk.key })); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "move" && <DiskMoveDialog disk={dlg.disk} lxc={!qemu} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", tr("Disque {key} déplacé", { key: dlg.disk.key })); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "reattach" && <DiskReattachDialog item={dlg.item} lxc={!qemu} base={base} onDone={async () => { toast("ok", tr("Disque rattaché")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "destroy" && <DiskDestroyDialog item={dlg.item} machine={guest.name ?? String(guest.vmid)} base={base} onDone={async () => { toast("ok", tr("Disque détruit")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "resize" && <ResizeDialog disk={dlg.disk} connPath={base} onDone={resized} onClose={() => setDlg(null)} />}
     </div>
   );

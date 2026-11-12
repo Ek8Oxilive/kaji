@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { api, type Pool } from "../lib/api";
 import { Field } from "./ui";
 
+import { tr } from "../lib/i18n";
 const KEY = "kaji-pool";
 export const lastPool = () => { try { return localStorage.getItem(KEY) ?? ""; } catch { return ""; } };
 export const rememberPool = (v: string) => { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch { /* ignoré */ } };
@@ -18,14 +19,14 @@ export function PoolField({ connId, value, onChange }: { connId: number; value: 
   if (pools.data && pools.data.length > 0) {
     return (
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Pool</span>
+        <span className="text-sm text-muted">{tr("Pool")}</span>
         <select className="field" value={value} onChange={(e) => set(e.target.value)}>
-          <option value="">Aucun pool</option>
+          <option value="">{tr("Aucun pool")}</option>
           {pools.data.map((p) => <option key={p.poolid} value={p.poolid}>{p.poolid}{p.comment ? ` · ${p.comment}` : ""}</option>)}
         </select>
       </label>
     );
   }
-  return <Field label="Pool (facultatif)" value={value} onChange={(e) => set(e.target.value.trim())} placeholder="kaji-test"
-    hint={pools.isLoading ? "Chargement…" : "La liste des pools n'est pas lisible avec ce token : saisis le nom du pool, ou laisse vide pour ne pas en utiliser."} />;
+  return <Field label={tr("Pool (facultatif)")} value={value} onChange={(e) => set(e.target.value.trim())} placeholder={tr("kaji-test")}
+    hint={pools.isLoading ? tr("Chargement…") : tr("La liste des pools n'est pas lisible avec ce token : saisis le nom du pool, ou laisse vide pour ne pas en utiliser.")} />;
 }

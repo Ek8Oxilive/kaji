@@ -1,11 +1,12 @@
+import { tr, T } from "./i18n";
 /**
  * Planification d'un job. Le serveur n'accepte qu'une grammaire stricte : `HH:MM`, précédée si on veut de jours
  * (`mon`, `mon,wed`, `mon..fri`), séparés par UN espace. On la construit à partir de jours cochés et d'une heure.
  */
 export const DAYS = [
-  { id: "mon", short: "Lun", long: "lundi" }, { id: "tue", short: "Mar", long: "mardi" }, { id: "wed", short: "Mer", long: "mercredi" },
-  { id: "thu", short: "Jeu", long: "jeudi" }, { id: "fri", short: "Ven", long: "vendredi" }, { id: "sat", short: "Sam", long: "samedi" },
-  { id: "sun", short: "Dim", long: "dimanche" },
+  { id: "mon", short: T("Lun"), long: "lundi" }, { id: "tue", short: T("Mar"), long: "mardi" }, { id: "wed", short: T("Mer"), long: "mercredi" },
+  { id: "thu", short: T("Jeu"), long: "jeudi" }, { id: "fri", short: T("Ven"), long: "vendredi" }, { id: "sat", short: T("Sam"), long: "samedi" },
+  { id: "sun", short: T("Dim"), long: "dimanche" },
 ] as const;
 const ORDER: string[] = DAYS.map((d) => d.id);
 
@@ -32,6 +33,6 @@ export function parseSchedule(s: string | null): { days: string[]; time: string 
 export function describeSchedule(s: string | null): string {
   const p = parseSchedule(s);
   if (!p) return s ?? "–";
-  if (p.days.length === 7) return `Tous les jours à ${p.time}`;
-  return `${p.days.map((d) => DAYS.find((x) => x.id === d)!.short).join(", ")} à ${p.time}`;
+  if (p.days.length === 7) return tr("Tous les jours à {time}", { time: p.time });
+  return tr("{p} à {time}", { p: p.days.map((d) => DAYS.find((x) => x.id === d)!.short).join(", "), time: p.time });
 }
