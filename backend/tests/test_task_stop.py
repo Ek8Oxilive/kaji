@@ -106,7 +106,7 @@ def test_stops_a_running_allowed_task_with_exact_calls_and_audit(api):
     assert r.status_code == 200 and r.json() == {"stopped": True, "upid": u, "node": "enzo", "type": "vzdump"}
     assert [(x["method"], x["path"], x["query"]) for x in CALLS] == [("GET", f"/nodes/enzo/tasks/{u}/status", {}), ("DELETE", f"/nodes/enzo/tasks/{u}", {})]
     last = audit(c)[0]
-    assert (last["action"], last["status"], last["detail"]) == ("task-stop", "started", "Sauvegarde arrêtée") and last["target"].startswith("enzo/UPID:")
+    assert (last["action"], last["status"], last["detail"]) == ("task-stop", "started", "arrêt demandé : Sauvegarde") and last["target"].startswith("enzo/UPID:")
 
 
 @pytest.mark.parametrize("ttype", sorted(STOPPABLE))

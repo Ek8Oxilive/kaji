@@ -55,5 +55,5 @@ async def stop_task(conn_id: int, node: str = Path(pattern=NODE), upid: str = Pa
     if st.get("status") != "running":
         refuse("La tâche n'est plus en cours", 409)
     await px("delete", f"/nodes/{node}/tasks/{upid}")
-    log("started", f"{STOPPABLE[task['type']]} arrêtée")
+    log("started", f"arrêt demandé : {STOPPABLE[task['type']]}")
     return {"stopped": True, "upid": upid, "node": node, "type": task["type"]}

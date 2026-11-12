@@ -62,7 +62,7 @@ lignes ; l'écran étroit.
 L'onglet utilise `GET /api/connections/{id}/tasks?vmid=<id>&limit=250` (tous les nœuds : la machine a pu migrer). L'interface masque par défaut les tâches de console (`vncproxy`, `termproxy`, `spiceproxy`, `vncshell`, `spiceshell`), qui représentaient près de la moitié de l'historique constaté en réel ; une case permet de les afficher. Aucune route nouvelle.
 
 ## Arrêter une tâche en cours (lot #310)
-> **Non validé en réel au moment du code** (faux Proxmox strict). Fichiers : `routers/task_stop.py`, `taskstopspec.py`, `tests/test_task_stop.py`, bouton dans `components/TaskDrawer.tsx`.
+> **Validé en réel le 2026-11-12** (voir plus bas). Fichiers : `routers/task_stop.py`, `taskstopspec.py`, `tests/test_task_stop.py`, bouton dans `components/TaskDrawer.tsx`.
 
 `DELETE /api/connections/{id}/tasks/{node}/{upid}?confirm=true` → `GET …/tasks/{upid}/status` puis `DELETE /nodes/{node}/tasks/{upid}`. Droit Proxmox : être propriétaire de la tâche, ou `Sys.Modify` sur
 `/nodes/<nœud>`. Réponse : `{stopped, upid, node, type}`. Audit `task-stop` (succès, refus, erreurs).
@@ -79,5 +79,11 @@ L'onglet utilise `GET /api/connections/{id}/tasks?vmid=<id>&limit=250` (tous les
 `GET …/tasks/{node}/{upid}` (état d'une tâche) renvoie un champ **`stoppable`** : vrai seulement si la tâche est en cours, de type autorisé et sur une machine non protégée. Le tiroir d'une tâche
 (page Tâches, barre de tâches, onglet Tâches d'une machine) affiche « Arrêter la tâche » dans ce cas, avec une confirmation en ligne ; `stoppable` n'est qu'un indice : le serveur refait tous les contrôles.
 
-**Non validé en réel** : l'acceptation de `DELETE …/tasks/{upid}` par le token de Kaji, ce que devient une tâche arrêtée (état affiché, fichier partiel), l'interface dans un navigateur.
+**Validé en réel (2026-11-12, interface déployée, tâche d'essai : téléchargement de l'ISO `alpine-extended` de 1,4 Go par le nœud `enzo`)** :
+- `GET …/tasks/{node}/{upid}` renvoie `stoppable: true` pour la tâche en cours ; l'interface (page Tâches, tiroir de la tâche) affiche « Arrêter la tâche », puis une confirmation en ligne ; confirmer arrête la tâche.
+- **Proxmox accepte `DELETE /nodes/{node}/tasks/{upid}` avec le token de Kaji** (propriétaire de la tâche). La tâche s'arrête en quelques secondes et Proxmox l'affiche **« Échec : download failed: received interrupt »** (c'est son libellé pour une tâche interrompue, pas une erreur de Kaji) ; **aucun fichier partiel** ne reste (`GET …/isos`).
+- Refus constatés : sans `confirm` 400, nœud différent 422, UPID invalide 422, tâche terminée 409 (« La tâche n'est plus en cours »), **type console (`vncproxy`) 409** avec `stoppable: false`.
+- Audit `task-stop` : succès (« arrêt demandé : Téléchargement ») et refus, sans secret.
+
+**Pas vu en réel** : arrêter une sauvegarde, une migration ou un clonage (le mécanisme est le même, non essayé) ; le refus d'une tâche sur une machine protégée (couvert par les tests : aucune tâche terminée du CT 116 n'existait pour l'essayer sans risque) ; la barre de tâches et l'onglet Tâches d'une machine (même tiroir, non ouverts).
 
