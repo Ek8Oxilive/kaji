@@ -8,6 +8,7 @@ import { Button, Field, Notice } from "./ui";
 
 import { tr } from "../lib/i18n";
 const OSTYPES = ["l26", "l24", "win11", "win10", "win8", "win7", "wvista", "w2k8", "w2k3", "w2k", "wxp", "solaris", "other"];
+const KEYBOARDS = ["de", "de-ch", "da", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "ja", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "sv", "sl", "tr"];
 const HOTPLUG: HotplugFeature[] = ["disk", "network", "usb", "memory", "cpu", "cloudinit"];
 const HOTPLUG_DEFAULT: HotplugFeature[] = ["disk", "network", "usb"];
 // `def` : valeur appliquée par Proxmox quand le réglage est absent (affichée tant qu'il n'est pas défini).
@@ -20,6 +21,7 @@ const BOOLS: { key: VmBoolKey; label: string; hint: string; def: boolean }[] = [
   { key: "acpi", label: "ACPI", get hint() { return tr("Arrêt et redémarrage propres depuis Proxmox. Le désactiver est risqué."); }, def: true },
   { key: "kvm", get label() { return tr("Virtualisation matérielle (KVM)"); }, get hint() { return tr("La désactiver rend la machine très lente."); }, def: true },
   { key: "freeze", get label() { return tr("Geler le processeur au démarrage"); }, get hint() { return tr("La machine ne s'exécute pas tant qu'on ne la relance pas. Risqué."); }, def: false },
+  { key: "reboot", get label() { return tr("Autoriser le redémarrage"); }, get hint() { return tr("Désactivé : un redémarrage lancé depuis le système invité arrête la machine. Risqué."); }, def: true },
 ];
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const intOk = (s: string, max: number) => s.trim() === "" || (/^\d+$/.test(s.trim()) && Number(s) <= max);
@@ -32,7 +34,7 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
   const { data, error, isLoading, refetch } = useQuery({ queryKey: qk, queryFn: () => api<VmOptionsResponse>(base), staleTime: 0 });
   const [bools, setBools] = useState<Record<string, boolean>>({});
   const [order, setOrder] = useState(""); const [up, setUp] = useState(""); const [down, setDown] = useState("");
-  const [ostype, setOstype] = useState(""); const [desc, setDesc] = useState("");
+  const [ostype, setOstype] = useState(""); const [keyboard, setKeyboard] = useState(""); const [desc, setDesc] = useState("");
   const [agent, setAgent] = useState(false); const [fstrim, setFstrim] = useState(false);
   const [hot, setHot] = useState<HotplugFeature[]>([]);
   const [cleared, setCleared] = useState<Set<VmOptionKey>>(new Set());
@@ -45,7 +47,7 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
     const o = data.options;
     setBools(Object.fromEntries(BOOLS.map((b) => [b.key, o[b.key] ?? b.def])));
     setOrder(o.startup?.order?.toString() ?? ""); setUp(o.startup?.up?.toString() ?? ""); setDown(o.startup?.down?.toString() ?? "");
-    setOstype(o.ostype ?? ""); setDesc(o.description ?? ""); setAgent(o.agent?.enabled ?? false); setFstrim(o.agent?.fstrim_cloned_disks ?? false);
+    setOstype(o.ostype ?? ""); setKeyboard(o.keyboard ?? ""); setDesc(o.description ?? ""); setAgent(o.agent?.enabled ?? false); setFstrim(o.agent?.fstrim_cloned_disks ?? false);
     setHot(o.hotplug ?? HOTPLUG_DEFAULT); setCleared(new Set()); setRisk(null);
   }, [data]);
 
@@ -63,6 +65,7 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
       if (Object.keys(s).length) p.startup = s;
     }
     if (!cleared.has("ostype") && ostype && ostype !== o.ostype) p.ostype = ostype;
+    if (!cleared.has("keyboard") && keyboard && keyboard !== o.keyboard) p.keyboard = keyboard;
     if (!cleared.has("description") && desc !== (o.description ?? "")) { if (desc === "") { if (o.description !== null) clear.push("description"); } else p.description = desc; }
     if (!cleared.has("agent") && (agent !== (o.agent?.enabled ?? false) || fstrim !== (o.agent?.fstrim_cloned_disks ?? false))) {
       const a: { enabled?: boolean; fstrim_cloned_disks?: boolean } = {};
@@ -73,7 +76,7 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
     if (!cleared.has("hotplug") && [...hot].sort().join() !== [...(o.hotplug ?? HOTPLUG_DEFAULT)].sort().join()) p.hotplug = hot;
     if (clear.length) p.clear = clear;
     return Object.keys(p).length ? p : null;
-  }, [data, bools, order, up, down, ostype, desc, agent, fstrim, hot, cleared]);
+  }, [data, bools, order, up, down, ostype, keyboard, desc, agent, fstrim, hot, cleared]);
   // Une confirmation ne vaut que pour la demande qui l'a provoquée : si un champ change, les raisons ne sont plus celles-là.
   const patchKey = JSON.stringify(patch);
   useEffect(() => { setRisk(null); }, [patchKey]);
@@ -127,6 +130,11 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
           <select className="field" value={ostype} onChange={(e) => setOstype(e.target.value)} disabled={cleared.has("ostype")}>
             <option value="">{tr("Non défini")}</option>{OSTYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
         {defBtn("ostype", o.ostype !== null)}
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Disposition du clavier (console VNC)")}</span>
+          <select className="field" value={keyboard} onChange={(e) => setKeyboard(e.target.value)} disabled={cleared.has("keyboard")}>
+            <option value="">{tr("Par défaut")}</option>{KEYBOARDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+          <span className="block text-xs text-muted">{tr("Rarement nécessaire : le système invité gère son clavier.")}</span></label>
+        {defBtn("keyboard", o.keyboard !== null)}
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={agent} disabled={cleared.has("agent")} onChange={(e) => setAgent(e.target.checked)} />
           <span>{tr("Agent QEMU activé")}<span className="block text-xs text-muted">{tr("Le paquet qemu-guest-agent doit être installé dans la machine.")}</span></span></label>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={fstrim} disabled={cleared.has("agent")} onChange={(e) => setFstrim(e.target.checked)} />

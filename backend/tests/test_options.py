@@ -406,3 +406,117 @@ def test_audit_records_success_every_refusal_and_error(api):
     assert [(e["action"], e["status"], e["target"]) for e in log] == [("options", s, "qemu/115@enzo") for s in ("started", "error", "error", "error", "error")]
     assert "onboot=1" in log[0]["detail"] and "description" in log[0]["detail"] and "secret-de-test" not in c.get("/api/audit").text
     assert "Confirmation requise" in log[1]["detail"]
+
+
+# ============================== keyboard et reboot (lot #315) ======================================================
+
+KEYBOARDS = ["de", "de-ch", "da", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "ja", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "sv", "sl", "tr"]
+
+
+def test_read_keyboard_and_reboot(api):
+    c, cid = api
+    STATE["cfg"] = cfg(keyboard="fr-ch", reboot=0)
+    o = c.get(u(cid)).json()["options"]
+    assert o["keyboard"] == "fr-ch" and o["reboot"] is False
+    STATE["cfg"] = cfg(reboot=1)
+    assert c.get(u(cid)).json()["options"]["reboot"] is True
+    STATE["cfg"] = cfg()
+    o = c.get(u(cid)).json()["options"]
+    assert o["keyboard"] is None and o["reboot"] is None
+
+
+@pytest.mark.parametrize("raw", ["FR", "evil;x", "fr ", "", "../x", "xx", "fr-xx"])
+def test_unknown_keyboard_in_config_is_read_as_unset(api, raw):
+    c, cid = api
+    STATE["cfg"] = cfg(keyboard=raw)
+    assert c.get(u(cid)).json()["options"]["keyboard"] is None
+
+
+@pytest.mark.parametrize("kb", KEYBOARDS)
+def test_every_listed_keyboard_is_accepted_and_sent_exactly(api, kb):
+    c, cid = api
+    assert patch(c, cid, keyboard=kb).status_code == 200
+    assert [w["form"] for w in writes()] == [{"keyboard": kb, "digest": DIGEST}]
+
+
+@pytest.mark.parametrize("kb", ["evil", "FR", "fr;rm", "", "../x", " fr", "fr\n", "en", "us", 5, True, ["fr"]])
+def test_invalid_keyboard_is_422_without_any_call(api, kb):
+    c, cid = api
+    r = patch(c, cid, keyboard=kb)
+    assert r.status_code == 422 and CALLS == [] and SECRET not in r.text
+
+
+def test_keyboard_list_matches_the_official_schema_size():
+    from app.optionspec import KEYBOARDS as SERVER
+    assert list(SERVER) == KEYBOARDS and len(SERVER) == 25
+
+
+def test_reboot_true_is_sent_as_1_without_confirmation(api):
+    c, cid = api
+    assert patch(c, cid, reboot=True).status_code == 200 and writes()[0]["form"] == {"reboot": "1", "digest": DIGEST}
+
+
+@pytest.mark.parametrize("current", [{}, {"reboot": 1}])
+def test_reboot_false_needs_a_server_side_confirmation_and_writes_nothing(api, current):
+    c, cid = api
+    STATE["cfg"] = cfg(**current)
+    r = patch(c, cid, reboot=False)
+    assert is_confirmation(r) and "reboot=0" in r.json()["detail"] and writes() == []
+    assert patch(c, cid, reboot=False, confirm=True).status_code == 200 and writes()[0]["form"] == {"reboot": "0", "digest": DIGEST}
+
+
+def test_reboot_false_when_already_off_needs_no_confirmation(api):
+    c, cid = api
+    STATE["cfg"] = cfg(reboot=0)
+    assert patch(c, cid, reboot=False).status_code == 200
+
+
+@pytest.mark.parametrize("val", ["0", "false", "1", 0, 1, "oui"])
+def test_reboot_is_a_strict_boolean(api, val):
+    c, cid = api
+    assert patch(c, cid, reboot=val).status_code == 422 and CALLS == []
+
+
+def test_a_machine_protected_by_kaji_refuses_reboot_off_even_confirmed(api, protected):
+    c, cid = api
+    r = patch(c, cid, reboot=False, confirm=True)
+    assert r.status_code == 409 and "protégée par Kaji" in r.json()["detail"] and writes() == []
+    assert patch(c, cid, reboot=True).status_code == 200                                    # le réactiver reste permis
+
+
+def test_clear_keyboard_and_reboot_send_delete_without_confirmation(api):
+    c, cid = api
+    STATE["cfg"] = cfg(keyboard="fr", reboot=0)
+    r = patch(c, cid, clear=["keyboard", "reboot"])
+    assert r.status_code == 200 and r.json()["removed"] == ["keyboard", "reboot"]
+    assert writes()[0]["form"] == {"delete": "keyboard,reboot", "digest": DIGEST}
+
+
+def test_set_and_clear_the_same_keyboard_is_refused(api):
+    c, cid = api
+    r = patch(c, cid, keyboard="fr", clear=["keyboard"])
+    assert r.status_code == 422 and writes() == []
+    assert patch(c, cid, reboot=True, clear=["reboot"]).status_code == 422 and writes() == []
+
+
+def test_keyboard_and_reboot_together_with_other_settings(api):
+    c, cid = api
+    assert patch(c, cid, keyboard="de", reboot=True, onboot=True).status_code == 200
+    f = writes()[0]["form"]
+    assert (f["keyboard"], f["reboot"], f["onboot"]) == ("de", "1", "1")
+
+
+def test_all_fifteen_clearable_settings_can_be_cleared_at_once(api):
+    c, cid = api
+    every = ["onboot", "startup", "ostype", "agent", "tablet", "protection", "hotplug", "numa", "localtime", "acpi", "kvm", "freeze", "reboot", "keyboard", "description"]
+    STATE["cfg"] = cfg()
+    r = patch(c, cid, clear=every)
+    assert r.status_code == 200 and r.json()["removed"] == every and writes()[0]["form"]["delete"] == ",".join(every)
+    assert patch(c, cid, clear=every + ["onboot"]).status_code == 422 and len(writes()) == 1      # 16 éléments : refusé, rien de plus écrit
+
+
+def test_pending_keeps_keyboard_and_reboot_only(api):
+    c, cid = api
+    STATE["pending"] = [{"key": "keyboard", "value": "fr", "pending": "de"}, {"key": "reboot", "value": 1, "pending": 0}, {"key": "memory", "pending": 512}, {"key": "args", "pending": "-x"}]
+    r = c.get(u(cid)).json()
+    assert [p["key"] for p in r["pending"]] == ["keyboard", "reboot"] and r["reboot_required"] is True

@@ -11,8 +11,9 @@ from pydantic import BaseModel, Field, StrictBool, field_validator
 
 OSTYPES = ("other", "wxp", "w2k", "w2k3", "w2k8", "wvista", "win7", "win8", "win10", "win11", "l24", "l26", "solaris")
 HOTPLUG = ("network", "disk", "cpu", "memory", "usb", "cloudinit")
-CLEARABLE = Literal["onboot", "startup", "ostype", "agent", "tablet", "protection", "hotplug", "numa", "localtime", "acpi", "kvm", "freeze", "description"]
-BOOLEANS = ("onboot", "tablet", "protection", "numa", "localtime", "acpi", "kvm", "freeze")
+KEYBOARDS = ("de", "de-ch", "da", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "ja", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "sv", "sl", "tr")
+CLEARABLE = Literal["onboot", "startup", "ostype", "agent", "tablet", "protection", "hotplug", "numa", "localtime", "acpi", "kvm", "freeze", "reboot", "keyboard", "description"]
+BOOLEANS = ("onboot", "tablet", "protection", "numa", "localtime", "acpi", "kvm", "freeze", "reboot")
 DIGEST = re.compile(r"^[0-9a-f]{40}$")
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")              # tout sauf \t \n \r
 MAX_DESCRIPTION = 8192
@@ -46,8 +47,10 @@ class OptionsUpdate(BaseModel):
     acpi: StrictBool | None = None
     kvm: StrictBool | None = None
     freeze: StrictBool | None = None
+    reboot: StrictBool | None = None
+    keyboard: Literal["de", "de-ch", "da", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "ja", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "sv", "sl", "tr"] | None = None
     description: str | None = Field(default=None, max_length=MAX_DESCRIPTION)
-    clear: list[CLEARABLE] = Field(default=[], max_length=13, description="Réglages à retirer (retour à la valeur par défaut)")
+    clear: list[CLEARABLE] = Field(default=[], max_length=15, description="Réglages à retirer (retour à la valeur par défaut)")
     confirm: StrictBool = False
 
     @field_validator("description")
@@ -138,10 +141,10 @@ def normalize_options(cfg: dict, pending: list) -> dict:
     opts = {k: _bool(cfg[k]) if k in cfg else None for k in BOOLEANS}
     opts.update({
         "startup": parse_startup(cfg.get("startup")), "ostype": cfg.get("ostype") if cfg.get("ostype") in OSTYPES else None,
-        "agent": parse_agent(cfg.get("agent")), "hotplug": parse_hotplug(cfg.get("hotplug")),
+        "agent": parse_agent(cfg.get("agent")), "hotplug": parse_hotplug(cfg.get("hotplug")), "keyboard": cfg.get("keyboard") if cfg.get("keyboard") in KEYBOARDS else None,
         "description": desc[:MAX_DESCRIPTION] if isinstance(desc, str) else None,
     })
-    managed = set(BOOLEANS) | {"startup", "ostype", "agent", "hotplug", "description"}
+    managed = set(BOOLEANS) | {"startup", "ostype", "agent", "hotplug", "keyboard", "description"}
     pend = [{"key": p["key"], "value": p.get("value"), "pending": p.get("pending"), "delete": bool(p.get("delete"))}
             for p in pending if isinstance(p, dict) and p.get("key") in managed and ("pending" in p or p.get("delete"))]
     return {"type": "qemu", "options": opts, "pending": pend, "reboot_required": bool(pend)}
@@ -158,6 +161,8 @@ def build_params(body: OptionsUpdate, cfg: dict) -> tuple[dict, list[str]]:
             p[k] = 1 if v else 0
     if body.ostype is not None:
         p["ostype"] = body.ostype
+    if body.keyboard is not None:
+        p["keyboard"] = body.keyboard
     if body.description is not None:
         p["description"] = body.description
     if body.hotplug is not None:
@@ -188,13 +193,15 @@ def build_params(body: OptionsUpdate, cfg: dict) -> tuple[dict, list[str]]:
 def risks(body: OptionsUpdate, cfg: dict) -> list[str]:
     """Pourquoi la demande exige une confirmation (relu chez Proxmox, jamais une valeur du navigateur)."""
     out = []
-    cur = {k: _bool(cfg.get(k)) for k in ("protection", "kvm", "acpi", "freeze")}
+    cur = {k: _bool(cfg.get(k)) for k in ("protection", "kvm", "acpi", "freeze", "reboot")}
     if (body.protection is False or "protection" in body.clear) and cur["protection"]:
         out.append("la protection contre la suppression sera RETIRÉE : la machine et ses disques pourront être supprimés")
     if body.kvm is False and cur["kvm"] is not False:
         out.append("kvm=0 désactive la virtualisation matérielle : la machine sera très lente, voire inutilisable")
     if body.acpi is False and cur["acpi"] is not False:
         out.append("acpi=0 : l'arrêt et le redémarrage propres depuis Proxmox peuvent ne plus fonctionner")
+    if body.reboot is False and cur["reboot"] is not False:
+        out.append("reboot=0 : un redémarrage lancé depuis le système invité ARRÊTERA la machine au lieu de la redémarrer")
     if body.freeze is True and not cur["freeze"]:
         out.append("freeze=1 : la machine démarrera GELÉE (le processeur ne s'exécute pas) tant qu'on ne la relance pas à la main")
     return out
