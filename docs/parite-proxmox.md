@@ -39,7 +39,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Serveurs de métriques (InfluxDB, Graphite, OpenTelemetry) | 🟡 (lister, ajouter, modifier, supprimer ; secrets en écriture seule, `docs/api/metriques.md` ; **InfluxDB et Graphite désactivés validés en réel (2026-11-12)** ; OpenTelemetry : Proxmox teste la connexion dès la création, même désactivé, donc non validé sans collecteur joignable ; serveur actif jamais écrit en réel) | M13 |
 | Notifications : cibles et règles | 🟡 (lecture validée en réel ; écriture : cibles sendmail et gotify (désactivées) et règles **validées en réel le 2026-11-12** ; SMTP, webhook et test d'envoi : jamais essayés en réel, `docs/api/notifications.md`) | M13 |
 | SDN : zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics | 🟡 (zones, VNets, sous-réseaux, contrôleurs, IPAM, DNS, fabrics, appliquer, annuler : code livré, `docs/api/sdn.md`, **non validé en réel : le token de Kaji n'a pas `SDN.Allocate`**) | M7 |
-| Correspondances de ressources (PCI, USB, répertoires : lire, créer, modifier, supprimer, matériel détecté ; **les utiliser dans une VM : ⬜**) | 🟡 (codé, `docs/api/correspondances.md` ; voir `docs/REPRISE.md` pour ce qui a été vu en réel) | M14 |
+| Correspondances de ressources (PCI, USB, répertoires : lire, créer, modifier, supprimer, matériel détecté ; **les utiliser dans une VM : fait**, section de l'onglet Matériel, `docs/api/passthrough.md`) | 🟡 (codé, `docs/api/correspondances.md` ; validé en réel le 2026-11-10 et 2026-11-11, sauf VM en marche, `mdev` et démarrer une VM avec un périphérique : voir `docs/REPRISE.md`) | M14 |
 | Abonnement / support | ➖ | — |
 
 ## Nœud
@@ -57,7 +57,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Journal système (syslog) | ✅ (lecture validée en réel le 2026-11-10 sur `enzo2` : 20 lignes sur 73 707, droit `Sys.Syslog`) | M11 |
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
 | Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer et supprimer (volume vide) LVM / LVM-thin / répertoire / ZFS, codés et jamais exécutés en réel) | M11 |
-| Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
+| Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | 🟡 (lecture et écriture C2 / C3 / initialisation codées, `docs/api/ceph.md` ; **jamais validées en réel : pas de Ceph sur le cluster** ; C4 destruction : décision d'Enzo attendue) | M12 |
 | Pare-feu du nœud | 🟡 (options et règles : lecture et écriture avec verrous, section de la page Nœud et page « Réseau », `docs/api/pare-feu-noeud.md` ; jamais activé en réel) | M7 |
 | Réplication du nœud | 🟡 (section de la page Nœud : jobs source ou cible, état, nouveau / modifier / lancer / supprimer avec aperçu et verrous, `docs/api/replication-noeud.md` ; jamais écrit en réel : pas de ZFS) | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
@@ -98,7 +98,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
 | Console : noVNC et terminal xterm.js | ✅ | M9 |
-| Créer depuis un modèle (privilégié ou non) | ✅ (téléchargement de modèle : ⬜) | M4 / M14 |
+| Créer depuis un modèle (privilégié ou non) | ✅ (téléchargement d'un modèle du catalogue officiel : fait et validé en réel le 2026-11-09, `docs/api/modeles-lxc.md`) | M4 / M14 |
 | Ressources, disques, points de montage, réseau, DNS | ✅ | M4 |
 | Options et fonctionnalités (démarrage automatique, nesting, FUSE, keyctl, montages CIFS/NFS) | 🟡 validé en réel (2026-11-08 et 2026-11-09) sauf **`keyctl`, `fuse` et `mount`** : Proxmox les refuse au token de Kaji (ils exigent `root@pam`) ; Kaji répond 403 avec un message clair pour les trois (`mount` observé le 2026-11-09, lot #164) ; nesting (interface), démarrage, tty, cmode, protection, fuseau OK ; cas « keyctl déjà actif puis changer nesting » non essayé (`docs/api/options.md`, lots #145 et #164) | M14 |
 | Snapshots, clone, migration, sauvegarde, restauration, suppression | ✅ | M4 / M5 |
