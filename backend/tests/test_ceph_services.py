@@ -122,10 +122,18 @@ def test_unknown_connection(api, node, tail):
     assert c.post(url(999, node, tail), json={"dev": "/dev/sdb"}).status_code == 404 and CALLS == []
 
 
+# La destruction d'un OSD ou d'un moniteur existe désormais, mais dans le lot C4 (`DELETE …/osds/{id}`, `…/monitors/{name}`, `tests/test_ceph_destroy.py`) : ici elle n'est plus testée « absente ».
 @pytest.mark.parametrize("method", ["delete", "put", "patch", "get"])
-@pytest.mark.parametrize("node,tail", ALL + [("pve1", "osds/1"), ("pve1", "monitors/pve1"), ("pve1", "services/osd/1"), ("pve1", "services/osd/1/destroy")])
+@pytest.mark.parametrize("node,tail", ALL + [("pve1", "services/osd/1"), ("pve1", "services/osd/1/destroy")])
 def test_no_destruction_and_no_other_verb_exists(api, node, tail, method):
-    """Le lot C3 ne SUPPRIME rien (c'est le lot C4) : ni DELETE, ni route `destroy`, ni autre verbe."""
+    """Ce lot ne SUPPRIME rien : ni DELETE sur les routes de création / d'action, ni route `destroy`, ni autre verbe."""
+    c, cid = api
+    assert getattr(c, method)(url(cid, node, tail)).status_code in (404, 405) and CALLS == []
+
+
+@pytest.mark.parametrize("method", ["put", "patch", "get"])
+@pytest.mark.parametrize("node,tail", [("pve1", "osds/1"), ("pve1", "monitors/pve1")])
+def test_destroyed_paths_accept_no_other_verb(api, node, tail, method):
     c, cid = api
     assert getattr(c, method)(url(cid, node, tail)).status_code in (404, 405) and CALLS == []
 

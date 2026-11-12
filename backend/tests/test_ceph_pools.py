@@ -101,16 +101,17 @@ def test_unknown_connection(api):
     assert put(api[0], 999, size=3).status_code == 404
 
 
-@pytest.mark.parametrize("method,path", [("delete", "/pools/vm-pool"), ("delete", "/pools"), ("patch", "/pools/vm-pool"), ("post", "/pools/vm-pool"),
-                                         ("put", "/pools"), ("delete", "/pools/vm-pool?confirm=true"), ("delete", "/osds/0")])
+@pytest.mark.parametrize("method,path", [("delete", "/pools"), ("patch", "/pools/vm-pool"), ("post", "/pools/vm-pool"), ("put", "/pools"), ("delete", "/osds/0")])
 def test_no_destruction_and_no_other_write_exists(api, method, path):
-    """Le lot C2 ne SUPPRIME rien (c'est le lot C4, avec ses propres barrières) : aucune route de suppression n'existe."""
+    """Ce lot ne SUPPRIME rien : la suppression d'un pool vit dans le lot C4 (`DELETE /pools/{pool}`, `tests/test_ceph_destroy.py`, avec ses barrières) ;
+    ici ne restent que des routes qui n'existent PAS (suppression de la collection, verbes inconnus, OSD hors d'un nœud)."""
     c, cid = api
     assert getattr(c, method)(f"/api/connections/{cid}/ceph{path}").status_code in (404, 405)
     assert CALLS == []
 
 
 def test_a_delete_is_never_sent_to_proxmox(api):
+    """Créer et modifier un pool n'envoient jamais de suppression (le `DELETE` d'un pool est une route à part, lot C4)."""
     c, cid = api
     post(c, cid)
     put(c, cid, size=2, confirm=True)

@@ -61,7 +61,7 @@ Ceph**. Chaque lot a donc une liste « non validé en réel » explicite et la P
 | **C1 : lecture seule** | état et santé, moniteurs, gestionnaires, OSD, pools, CephFS, configuration, journal ; page « Ceph » | PC B (faux Proxmox) | Faible | Possible dès qu'un Ceph existe (même vide) |
 | **C2 : pools** | créer, modifier (garde-fous du §3), stockage RBD | PC B puis PC A | Élevé | Ceph jetable |
 | **C3 : moniteurs, gestionnaires, OSD, MDS** | créer, démarrer, arrêter, mettre dedans/dehors | PC B puis PC A | Élevé | Ceph jetable |
-| **C4 : destruction** | détruire pool, OSD, moniteur, CephFS (barrières du §3) | PC A | **Très élevé** | Ceph jetable |
+| **C4 : destruction** | détruire pool, OSD, moniteur, gestionnaire, MDS (barrières du §3) ; **CephFS : pas d'API chez Proxmox** | PC A | **Très élevé** | Ceph jetable (**codé le 2026-11-12, faux Proxmox seulement** : `docs/api/ceph-destruction.md`) |
 | **C5 : initialisation** | initialisation (`pveceph init`) et assistant ; **l'installation des paquets n'a pas d'API chez Proxmox** (elle reste dans le shell du nœud) | PC B (décision du propriétaire) puis PC A | Élevé | Nœud jetable |
 
 **C1 peut commencer tout de suite** : il est en lecture seule et se teste entièrement avec le faux Proxmox.
