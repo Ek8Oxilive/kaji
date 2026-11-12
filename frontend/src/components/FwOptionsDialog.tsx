@@ -11,9 +11,9 @@ type Preview = { params: Record<string, string | number>; remove: string[]; lock
 const POLICIES = ["", "ACCEPT", "REJECT", "DROP"], FORWARD = ["", "ACCEPT", "DROP"], LOGS = ["", "emerg", "alert", "crit", "err", "warning", "notice", "info", "debug", "nolog"];
 
 /** Options du pare-feu du datacenter ou d'un nœud. L'aperçu (dry_run) montre les verrous ; la coupure possible exige une case ET la phrase `COUPURE POSSIBLE`. */
-export function FwOptionsDialog({ connId, node, onClose, guest }: { connId: number; node: string; onClose: () => void; guest?: { gtype: "qemu" | "lxc"; vmid: number } }) {
+export function FwOptionsDialog({ connId, node, onClose, guest, startAt }: { connId: number; node: string; onClose: () => void; guest?: { gtype: "qemu" | "lxc"; vmid: number }; startAt?: "node" }) {
   const qc = useQueryClient();
-  const [level, setLevel] = useState<Level>(guest ? "guest" : "cluster");
+  const [level, setLevel] = useState<Level>(guest ? "guest" : startAt ?? "cluster");
   const [dhcp, setDhcp] = useState<Tri>(""), [ipfilter, setIpfilter] = useState<Tri>(""), [macfilter, setMacfilter] = useState<Tri>(""), [ndp, setNdp] = useState<Tri>(""), [radv, setRadv] = useState<Tri>("");
   const [enable, setEnable] = useState<Tri>(""), [ebtables, setEbtables] = useState<Tri>(""), [nosmurfs, setNosmurfs] = useState<Tri>(""), [tcpflags, setTcpflags] = useState<Tri>("");
   const [pin, setPin] = useState(""), [pout, setPout] = useState(""), [pfwd, setPfwd] = useState(""), [lin, setLin] = useState(""), [lout, setLout] = useState("");
