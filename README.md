@@ -76,6 +76,10 @@ Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
 
 *Regroupement **par type** : conteneurs LXC d'un côté, machines virtuelles de l'autre (les modèles ont leur groupe). Les regroupements par nœud, pool, étiquette et stockage se choisissent dans la même liste.*
 
+![Repli « Plus d'actions » d'une carte](docs/captures/dashboard-plus-d-actions.jpg)
+
+*Chaque carte a un repli **« Plus d'actions »** : sur une VM en marche, Suspendre, Hiberner et Réinitialiser (Reprendre quand elle est en pause, Convertir en modèle quand elle est arrêtée), avec les mêmes confirmations que sur la page de la machine.*
+
 ### Petits écrans et langue (français / anglais)
 
 Sous 768 px (téléphone, petit PC), la barre latérale devient une barre du haut avec un menu ☰ qui ouvre un tiroir de navigation ; la barre de tâches est repliée par défaut. Le sélecteur **FR | EN** est à côté du thème ; le choix est gardé dans le navigateur (`docs/interface-mobile.md`, `docs/interface-langue.md`).
@@ -231,6 +235,14 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 ![Étiquettes d'une machine](docs/captures/vm-etiquettes-editeur.jpg)
 
 *Étiquettes d'une machine : « Modifier » à côté du nom ouvre un champ pour ajouter une étiquette, puis Enregistrer.*
+
+![Onglet Moniteur d'une VM](docs/captures/vm-moniteur.jpg)
+
+*Onglet **Moniteur** (VM en marche) : commandes `info …` de QEMU en lecture seule, choisies dans une liste (jamais de commande libre). Proxmox 9 refuse ces commandes au jeton de Kaji (403, message explicatif) : la fonction reste inutilisable sans droit supplémentaire.*
+
+![Options d'une VM : clavier et redémarrage](docs/captures/vm-options-clavier-reboot.jpg)
+
+*Onglet **Options** : disposition du clavier de la console VNC (retirable) et « Autoriser le redémarrage » ; le désactiver demande une confirmation décidée par le serveur.*
 
 ### Page d'un conteneur LXC
 
@@ -464,6 +476,10 @@ Le journal des tâches Proxmox, avec le compte qui les a lancées (« Kaji » si
 
 *Un clic sur une tâche de la barre ouvre son journal en plein écran, comme dans la page « Tâches » (ici, la suppression d'un snapshot d'essai).*
 
+![Arrêter une tâche en cours](docs/captures/tache-arreter.jpg)
+
+*Une tâche **en cours** (ici un téléchargement d'ISO) a un bouton **« Arrêter la tâche »** dans son journal, avec une confirmation en ligne. Seuls certains types de tâches sont arrêtables (téléchargement, sauvegarde, migration, clonage…), jamais une console ni une machine protégée.*
+
 ### Ceph
 
 ![Page **Ceph** ](docs/captures/ceph.jpg)
@@ -651,6 +667,14 @@ Informations de corosync en lecture seule.
 ![Le mode `list` sans aucune étiquette est refusé par le serveur (« exige au moins une étiquette ») sans rien écrire. Le texte de consentement n'est jamais copié dans le journal d'audit.](docs/captures/datacenter-droits-refuses.jpg)
 
 *Le mode `list` sans aucune étiquette est refusé par le serveur (« exige au moins une étiquette ») sans rien écrire. Le texte de consentement n'est jamais copié dans le journal d'audit.*
+
+![Pools de ressources](docs/captures/datacenter-pools.jpg)
+
+*Section **Pools de ressources** de la page Datacenter : créer un pool, gérer ses membres, le supprimer (seulement s'il est vide).*
+
+![Gérer un pool](docs/captures/datacenter-pool-gerer.jpg)
+
+*« Gérer » : commentaire du pool, membres actuels (cocher pour retirer), machines et stockages à ajouter. Fenêtre fermée sans valider.*
 
 ### Page d'un nœud
 
