@@ -8,9 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import audit
+from ..config import get_settings
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser, AuditLog
+from ..taskstopspec import parse_upid, stop_refusal
 from .auth import current_user
 from .cluster import Factory, _px
 
@@ -98,7 +100,9 @@ async def task_status(conn_id: int, upid: str, node: str = Path(pattern=NODE),
             # « WARNINGS: n » = tâche réussie avec n avertissements (ex. « Systemd détecté, activer l'imbrication ») :
             # ce n'est pas un échec, mais l'interface doit pouvoir le signaler.
             "ok": d.get("status") == "stopped" and (d.get("exitstatus") == "OK" or str(d.get("exitstatus", "")).startswith("WARNINGS")),
-            "warnings": str(d.get("exitstatus", "")).startswith("WARNINGS")}
+            "warnings": str(d.get("exitstatus", "")).startswith("WARNINGS"),
+            # Le bouton « Arrêter » n'est proposé que si le serveur accepterait l'arrêt (en cours, type autorisé, machine non protégée), ticket #310.
+            "stoppable": d.get("status") == "running" and stop_refusal(parse_upid(upid), get_settings().protected_vmids) is None}
 
 
 @router.get("/api/connections/{conn_id}/tasks/{node}/{upid}/log")

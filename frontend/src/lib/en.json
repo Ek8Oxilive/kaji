@@ -2247,5 +2247,9 @@
  "toutes": "all",
  "utilisateur": "user",
  "vendredi": "Friday",
- "Erreur {status}": "Error {status}"
+ "Erreur {status}": "Error {status}",
+ "Abandonne le travail en cours de cette tâche": "Abandons the work in progress of this task",
+ "Arrêter la tâche": "Stop the task",
+ "Arrêter cette tâche abandonne son travail en cours (Proxmox nettoie ce qu'il peut). Confirmer l'arrêt ?": "Stopping this task abandons its work in progress (Proxmox cleans up what it can). Confirm the stop?",
+ "Confirmer l'arrêt": "Confirm the stop"
 }
