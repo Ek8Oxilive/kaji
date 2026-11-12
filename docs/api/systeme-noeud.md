@@ -68,7 +68,7 @@ Droit `Sys.Modify` (fonction `node-config` de la page Accès). Audités (`node-d
 |---|---|---|
 | `PUT …/nodes/{n}/dns` | `{search, servers: [1 à 3 IP], confirm}` | `confirm` ; domaine valide ; adresses IP valides, sans doublon ; au moins un serveur |
 | `GET …/nodes/{n}/hosts` | — | `{content, digest}` (lecture seule) |
-| `PUT …/nodes/{n}/hosts` | `{content, digest, confirm}` | `confirm` ; **digest** de 40 hexa lu juste avant (sinon Proxmox refuse une modification concurrente) ; 8 Ko au plus ; ni octet nul ni retour chariot ; chaque ligne = IP valide + noms valides ; **`localhost` conservé** ; **une ligne non locale pour le nœud lui-même** (sinon `pve-cluster` ne démarre plus) |
+| `PUT …/nodes/{n}/hosts` | `{content, digest, confirm}` | `confirm` ; **digest** de 40 hexa lu juste avant (**relu avant l'écriture : un fichier modifié depuis ta lecture donne un 409 « digest périmé », sans écriture** ; si Proxmox signale lui-même la modification entre la relecture et l'écriture, c'est aussi un 409, plus un 502) ; 8 Ko au plus ; ni octet nul ni retour chariot ; chaque ligne = IP valide + noms valides ; **`localhost` conservé** ; **une ligne non locale pour le nœud lui-même** (sinon `pve-cluster` ne démarre plus) |
 | `PUT …/nodes/{n}/time` | `{timezone}` | forme `Zone/Ville` contrôlée (Proxmox valide ensuite l'existence) |
 
 Le firmware n'a pas de route dans l'API de Proxmox 9.1.9 (`GET /nodes/{n}/firmware` → 501) : il ne peut pas être géré par Kaji.
