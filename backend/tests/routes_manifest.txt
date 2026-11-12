@@ -240,6 +240,7 @@ POST /api/connections/{conn_id}/nodes/{node}/lxc
 POST /api/connections/{conn_id}/nodes/{node}/network/apply
 POST /api/connections/{conn_id}/nodes/{node}/network/interfaces
 POST /api/connections/{conn_id}/nodes/{node}/network/revert
+POST /api/connections/{conn_id}/nodes/{node}/ntp/commands
 POST /api/connections/{conn_id}/nodes/{node}/power
 POST /api/connections/{conn_id}/nodes/{node}/qemu
 POST /api/connections/{conn_id}/nodes/{node}/restore

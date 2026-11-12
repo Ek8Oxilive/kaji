@@ -443,5 +443,9 @@
  "la clé indiquée doit déjà exister sur le nœud (Kaji ne la télécharge pas)": "the given key must already exist on the node (Kaji does not download it)",
  "dépôt de Proxmox : préfère « Ajouter un dépôt standard » (nom officiel, `digest` vérifié)": "Proxmox repository: prefer “Add a standard repository” (official name, `digest` checked)",
  "composant de test : paquets peu validés, non destinés à la production": "test component: poorly validated packages, not meant for production",
- "un fichier de ce nom existe déjà sur le nœud : la commande le REMPLACERAIT (choisis un autre nom ou sauvegarde-le)": "a file with this name already exists on the node: the command would REPLACE it (pick another name or back it up)"
+ "un fichier de ce nom existe déjà sur le nœud : la commande le REMPLACERAIT (choisis un autre nom ou sauvegarde-le)": "a file with this name already exists on the node: the command would REPLACE it (pick another name or back it up)",
+ "la première commande doit afficher la ligne « sourcedir /etc/chrony/sources.d » : sinon ce nœud n'a pas la configuration Debian habituelle, n'écris rien et ajoute les lignes dans /etc/chrony/chrony.conf à la main": "the first command must print the line “sourcedir /etc/chrony/sources.d”: otherwise this node does not have the usual Debian configuration, write nothing and add the lines to /etc/chrony/chrony.conf by hand",
+ "NTS : le serveur doit le proposer ; sinon chrony n'utilisera pas cette source": "NTS: the server must offer it; otherwise chrony will not use this source",
+ "sans « iburst » : la première synchronisation sera plus lente": "without “iburst”: the first synchronisation will be slower",
+ "adresse du réseau local : le serveur doit être joignable depuis le nœud": "local network address: the server must be reachable from the node"
 }

@@ -6,6 +6,7 @@ from .. import audit
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
+from .. import ntpspec
 from ..nodeconf import DnsBody, HostsBody, TimeBody, hosts_problem
 from .actions import NODE
 from .auth import current_user
@@ -79,3 +80,9 @@ async def set_hosts(body: HostsBody, conn_id: int, node: str = Path(pattern=NODE
 async def set_timezone(body: TimeBody, conn_id: int, node: str = Path(pattern=NODE), db: Session = Depends(get_db),
                        factory: Factory = Depends(get_client_factory), user: AdminUser = Depends(current_user)):
     return await _write(db, factory, user, conn_id, "node-timezone", f"node/{node}", lambda: None, "put", f"/nodes/{node}/time", {"timezone": body.timezone})
+
+
+@router.post("/nodes/{node}/ntp/commands")
+async def ntp_commands(body: ntpspec.NtpConfig, conn_id: int, node: str = Path(pattern=NODE)):
+    """Serveurs NTP : fabrique le fichier de sources `chrony` et les commandes à copier. **N'appelle pas Proxmox** (il n'a pas d'API NTP)."""
+    return {"file": ntpspec.file_path(body), "content": ntpspec.render(body), "commands": ntpspec.commands(body), "warnings": ntpspec.warnings(body)}
