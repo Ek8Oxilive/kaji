@@ -436,5 +436,12 @@
  "Instantanés": "Snapshots",
  "Cette VM n'a pas de carte d'affichage SPICE (qxl) : choisis-la dans l'onglet Périphériques, puis redémarre la VM": "This VM has no SPICE display card (qxl): choose it in the Devices tab, then restart the VM",
  "Réponse inattendue de Proxmox pour la console SPICE": "Unexpected Proxmox response for the SPICE console",
- "Ouvrir la console d'une machine (noVNC, terminal, SPICE)": "Open a machine's console (noVNC, terminal, SPICE)"
+ "Ouvrir la console d'une machine (noVNC, terminal, SPICE)": "Open a machine's console (noVNC, terminal, SPICE)",
+ "Le fichier hosts a changé depuis ta lecture (digest périmé) : recharge avant de modifier": "The hosts file changed since you read it (stale digest): reload before editing",
+ "adresse http (non chiffrée) : seule la signature protège les paquets": "http address (unencrypted): only the signature protects the packages",
+ "sans « Signed-By » : apt refusera ce dépôt tant que sa clé n'est pas installée (clé à poser toi-même, Kaji n'en télécharge aucune)": "no “Signed-By”: apt will refuse this repository until its key is installed (place the key yourself, Kaji downloads none)",
+ "la clé indiquée doit déjà exister sur le nœud (Kaji ne la télécharge pas)": "the given key must already exist on the node (Kaji does not download it)",
+ "dépôt de Proxmox : préfère « Ajouter un dépôt standard » (nom officiel, `digest` vérifié)": "Proxmox repository: prefer “Add a standard repository” (official name, `digest` checked)",
+ "composant de test : paquets peu validés, non destinés à la production": "test component: poorly validated packages, not meant for production",
+ "un fichier de ce nom existe déjà sur le nœud : la commande le REMPLACERAIT (choisis un autre nom ou sauvegarde-le)": "a file with this name already exists on the node: the command would REPLACE it (pick another name or back it up)"
 }

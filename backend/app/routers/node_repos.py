@@ -11,6 +11,7 @@ from .. import audit
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
+from ..aptcustom import CustomRepo, commands, file_path, render, warnings
 from ..repospec import RepoAdd, RepoToggle, find_repo, risks_add, risks_toggle, verdict
 from ..systemspec import shape_repositories
 from .actions import NODE
@@ -81,3 +82,20 @@ async def add_repo(body: RepoAdd, conn_id: int, node: str = Path(pattern=NODE), 
         return verdict(body.digest, fresh, body.confirm, body.accept_risk, risks_add(body.handle, await _subscribed(db, factory, conn_id, node)))
     return await _apply(db, factory, user, conn_id, node, "apt-repo-add", f"node/{node}:{body.handle}", plan, "put",
                         {"handle": body.handle, "digest": body.digest})
+
+
+@router.post("/nodes/{node}/apt/repositories/custom")
+async def custom_repo(body: CustomRepo, conn_id: int, node: str = Path(pattern=NODE), db: Session = Depends(get_db),
+                      factory: Factory = Depends(get_client_factory)):
+    """Dépôt personnalisé : fabrique le fichier `.sources` et les commandes à copier. **N'écrit rien** (l'API de Proxmox ne sait pas
+    ajouter un dépôt libre) ; relit seulement les dépôts du nœud pour dire si un fichier du même nom existe déjà."""
+    path = file_path(body)
+    try:
+        fresh = await _fresh(db, factory, conn_id, node)
+        exists: bool | None = any(f["path"] == path for f in fresh["files"])
+    except HTTPException:
+        exists = None                                     # illisible : on le dit, on ne bloque pas (rien n'est écrit)
+    out = warnings(body)
+    if exists:
+        out.insert(0, "un fichier de ce nom existe déjà sur le nœud : la commande le REMPLACERAIT (choisis un autre nom ou sauvegarde-le)")
+    return {"file": path, "content": render(body), "commands": commands(body), "warnings": out, "exists": exists}
