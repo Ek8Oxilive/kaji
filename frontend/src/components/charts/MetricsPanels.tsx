@@ -41,8 +41,8 @@ function Shell({ tf, setTf, q, children }: { tf: Timeframe; setTf: (t: Timeframe
     <div className="space-y-4">
       <FramePicker value={tf} onChange={setTf} />
       {q.error != null && <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>{tr("réessayer")}</button></Notice>}
-      {q.isLoading ? <div className="grid gap-4 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <div key={i} className="panel h-60 animate-pulse" />)}</div>
-        : <div className="grid gap-4 md:grid-cols-2">{children}</div>}
+      {q.isLoading ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <div key={i} className="panel h-60 animate-pulse" />)}</div>
+        : <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>}
     </div>
   );
 }

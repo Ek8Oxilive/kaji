@@ -103,7 +103,7 @@ export function TimeChart({ title, subtitle, times, series, format, domainMax, b
   const tipLeft = h !== null ? Math.min(Math.max(sx(times[h]) + 12, 4), width - 190) : 0;
 
   return (
-    <figure className="panel space-y-2 p-4" aria-label={title}>
+    <figure className="panel min-w-0 space-y-2 p-4" aria-label={title}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <figcaption>
           <h3 className="text-sm font-semibold">{title}</h3>

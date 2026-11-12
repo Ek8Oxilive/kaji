@@ -140,7 +140,7 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
           <h1 className="text-2xl font-semibold tracking-tight">{status.data?.name ?? active.name}</h1>
           <p className="text-muted">{active.name} · {active.host}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {(list?.length ?? 0) > 1 && (
             <select aria-label={tr("Cluster")} className={sel} value={id ?? ""} onChange={(e) => setConnId(Number(e.target.value))}>
               {list!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
