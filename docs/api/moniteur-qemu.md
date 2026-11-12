@@ -36,3 +36,7 @@ lecture seule.
   onglet : avertissement « La VM doit être en marche » et bouton grisé quand la VM est arrêtée ; VM en marche : l'erreur s'affiche dans l'onglet.
 - **Jamais vu en réel** : la sortie d'une commande (aucune n'a réussi). Les noms de commandes viennent de la documentation de QEMU.
 - Pour que la fonction serve, il faudrait un token `root@pam` : **à ne pas faire** (règle du dépôt : pas de token `root@pam`). À garder tel quel, ou à retirer si Enzo préfère.
+
+
+## Commande à copier (frontend seul, décision d'Enzo du 2026-11-12 : on GARDE le moniteur)
+Proxmox 9 refuse le moniteur au token de Kaji (403). L'onglet « Moniteur » affiche donc, sous la liste de commandes, ce qui se lance dans la **console du nœud** (page Nœud, droit `Sys.Console`, avec les droits du nœud) : `echo '<commande>' | qm monitor <vmid>` (une réponse) et `qm monitor <vmid>` (moniteur interactif). La commande vient de la liste blanche `info …` du serveur et l'identifiant est celui de la machine ouverte ; rien n'est envoyé d'ici, aucune route nouvelle.

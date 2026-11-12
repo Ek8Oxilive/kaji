@@ -2318,5 +2318,7 @@
  "Retape « {name} » pour confirmer": "Retype \"{name}\" to confirm",
  "Retirer aussi les stockages Proxmox qui utilisent ce pool (pour tout le cluster)": "Also remove the Proxmox storages that use this pool (for the whole cluster)",
  "Vérification en cours…": "Checking…",
- "{name} détruit": "{name} destroyed"
+ "{name} détruit": "{name} destroyed",
+ "Dans la console du nœud (page Nœud) : la même commande, avec les droits du nœud.": "In the node's console (Node page): the same command, with the node's rights.",
+ "La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.": "The second opens the interactive monitor: type the command, then “quit” to leave."
 }

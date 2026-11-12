@@ -17,6 +17,9 @@ export function MonitorTab({ connId, guest, running }: { connId: number; guest: 
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<MonitorResult | null>(null);
 
+  const [copied, setCopied] = useState<number | null>(null);
+  const copy = async (i: number, text: string) => { try { await navigator.clipboard.writeText(text); setCopied(i); setTimeout(() => setCopied(null), 2000); } catch { /* presse-papiers indisponible */ } };
+
   const run = async () => {
     setBusy(true); setErr(null);
     try {
@@ -43,6 +46,16 @@ export function MonitorTab({ connId, guest, running }: { connId: number; guest: 
         <Button onClick={run} disabled={busy || !running}>{busy ? "…" : tr("Exécuter")}</Button>
       </div>
       {err && <Notice kind="error">{err}</Notice>}
+      {/* Proxmox 9 réserve le moniteur à root@pam : la même commande se lance dans la console du nœud (commande à copier, rien n'est envoyé d'ici). */}
+      <div className="space-y-1.5 border-t border-line/60 pt-3 text-sm">
+        <p className="text-muted">{tr("Dans la console du nœud (page Nœud) : la même commande, avec les droits du nœud.")}</p>
+        {[`echo '${command}' | qm monitor ${guest.vmid}`, `qm monitor ${guest.vmid}`].map((c, i) => (
+          <div key={c} className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 overflow-x-auto rounded bg-surface px-2 py-1 text-xs text-fg">{c}</code>
+            <Button type="button" variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => copy(i, c)}>{copied === i ? tr("Copié") : tr("Copier")}</Button>
+          </div>))}
+        <p className="text-xs text-muted">{tr("La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.")}</p>
+      </div>
       {result && (
         <div className="space-y-1.5">
           <p className="text-xs text-muted"><code>{result.command}</code>{result.truncated && tr(" — sortie tronquée")}</p>
