@@ -4,6 +4,11 @@ DELETE /api/connections/{conn_id}/access/users/{userid}
 DELETE /api/connections/{conn_id}/access/users/{userid}/tokens/{tokenid}
 DELETE /api/connections/{conn_id}/admin-session
 DELETE /api/connections/{conn_id}/backup-jobs/{job_id}
+DELETE /api/connections/{conn_id}/ceph/nodes/{node}/managers/{mgr}
+DELETE /api/connections/{conn_id}/ceph/nodes/{node}/mds/{mds}
+DELETE /api/connections/{conn_id}/ceph/nodes/{node}/monitors/{mon}
+DELETE /api/connections/{conn_id}/ceph/nodes/{node}/osds/{osd_id}
+DELETE /api/connections/{conn_id}/ceph/pools/{pool}
 DELETE /api/connections/{conn_id}/cluster/nodes/{node}
 DELETE /api/connections/{conn_id}/firewall/cluster/aliases/{name}
 DELETE /api/connections/{conn_id}/firewall/cluster/groups/{name}

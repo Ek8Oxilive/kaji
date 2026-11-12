@@ -52,3 +52,8 @@ export type PoolCreateBody = PoolFields & { name: string; add_storage?: boolean 
 export type PoolPatchBody = PoolFields & { confirm?: boolean };
 export type CephWriteResult = { upid: string | null; node: string };
 export type PoolWriteResult = { upid: string | null; node: string; pool: string; changes?: PoolFields };
+
+/** Destruction Ceph (lot C4, `docs/api/ceph-destruction.md`). */
+export type CephDestroyKind = "pool" | "osd" | "mon" | "mgr" | "mds";
+export type CephDestroyTarget = { kind: CephDestroyKind; name: string; node: string | null; osdId?: number };
+export type CephDestroyPreview = { dry_run: true; blockers: string[]; risks: string[]; expected_name: string; storages?: string[] };

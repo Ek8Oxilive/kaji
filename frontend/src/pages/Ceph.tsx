@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { CephDestroyDialog } from "../components/CephDestroyDialog";
 import { CephPoolDialog, UnvalidatedBanner } from "../components/CephPoolDialog";
 import { CephWriteDialog, type CephWrite } from "../components/CephWriteDialog";
 import { Gauge } from "../components/Gauge";
@@ -7,7 +8,7 @@ import { Button, Notice } from "../components/ui";
 import { api, type NodeInfo } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
 import { bytes } from "../lib/format";
-import type { Ceph, CephFilesystems, CephHealth, CephManagers, CephMonitors, CephOsds, CephPool, CephPools, CephStatus } from "../lib/types/ceph";
+import type { Ceph, CephDestroyTarget, CephFilesystems, CephHealth, CephManagers, CephMonitors, CephOsds, CephPool, CephPools, CephStatus } from "../lib/types/ceph";
 
 import { tr, locale } from "../lib/i18n";
 const num = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleString(locale()));
@@ -49,6 +50,7 @@ const Flag = ({ ok, yes, no }: { ok: boolean | null; yes: string; no: string }) 
 export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
   const { conns, active, id } = useActiveConnection();
   const [poolDialog, setPoolDialog] = useState<CephPool | "new" | null>(null);
+  const [destroy, setDestroy] = useState<CephDestroyTarget | null>(null);
   const [write, setWrite] = useState<CephWrite | null>(null);
   const base = `/api/connections/${id}/ceph`;
   const status = useQuery({ queryKey: ["ceph", id, "status"], queryFn: () => api<Ceph<CephStatus>>(`${base}/status`), enabled: id !== null, staleTime: 15_000 });
@@ -80,9 +82,14 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
     <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={!host} title={host ? undefined : tr("Hôte inconnu")} aria-label={`${label} ${what}`}
       onClick={() => host && setWrite({ title: `${label} ${what}`, submitLabel: label, done, tail, node: host })}>{label}</Button>
   );
+  const del = (t: CephDestroyTarget, label: string) => (
+    <Button variant="ghost" className="!px-2 !py-1 text-xs text-danger" disabled={t.kind !== "pool" && !t.node} title={t.kind !== "pool" && !t.node ? tr("Hôte inconnu") : undefined}
+      aria-label={tr("Détruire {name}", { name: label })} onClick={() => setDestroy(t)}>{tr("Détruire…")}</Button>
+  );
   const svc = (kind: string, name: string, host: string | null) => <>
     {act(tr("Démarrer"), host, `services/${kind}/${name}/start`, tr("{kind}.{name} démarré", { kind, name }), `${kind}.${name}`)}
     {act(tr("Arrêter"), host, `services/${kind}/${name}/stop`, tr("{kind}.{name} arrêté", { kind, name }), `${kind}.${name}`)}
+    {del({ kind: kind as CephDestroyTarget["kind"], name, node: host }, `${kind}.${name}`)}
   </>;
 
   const refresh = () => { status.refetch(); if (present) { osds.refetch(); pools.refetch(); fs.refetch(); mons.refetch(); mgrs.refetch(); } };
@@ -191,6 +198,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
                       {o.id !== null && <>
                         {o.up === false ? act(tr("Démarrer"), o.host, `services/osd/${o.id}/start`, tr("{name} démarré", { name: o.name }), o.name) : act(tr("Arrêter"), o.host, `services/osd/${o.id}/stop`, tr("{name} arrêté", { name: o.name }), o.name)}
                         {o.in === false ? act(tr("Dedans"), o.host, `osds/${o.id}/in`, `${o.name} remis dedans`, o.name) : act(tr("Dehors"), o.host, `osds/${o.id}/out`, `${o.name} mis dehors`, o.name)}
+                        {del({ kind: "osd", name: o.name, node: o.host, osdId: o.id }, o.name)}
                       </>}
                     </td>
                   </tr>
@@ -214,7 +222,8 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
                   <td className="px-4 py-2 tabular-nums">{bytes(p.used)}</td>
                   <td className="px-4 py-2 text-muted">{p.applications.join(", ") || "–"}</td>
                   <td className="px-4 py-2 text-right"><Button variant="ghost" className="!px-3 !py-1 text-xs" onClick={() => setPoolDialog(p)} aria-label={tr("Modifier le pool {name}", { name: p.name })}
-                    disabled={p.name.startsWith(".")} title={p.name.startsWith(".") ? tr("Pool interne de Ceph : non modifiable ici") : undefined}>{tr("Modifier")}</Button></td>
+                    disabled={p.name.startsWith(".")} title={p.name.startsWith(".") ? tr("Pool interne de Ceph : non modifiable ici") : undefined}>{tr("Modifier")}</Button>
+                    {!p.name.startsWith(".") && del({ kind: "pool", name: p.name, node: null }, p.name)}</td>
                 </tr>
               ))}
             </Table>
@@ -262,6 +271,7 @@ export function CephPage({ onGoConnections }: { onGoConnections: () => void }) {
         </Section>
       </>}
       {write && <CephWriteDialog connId={id} spec={write} onClose={() => setWrite(null)} />}
+      {destroy && <CephDestroyDialog connId={id} target={destroy} onClose={() => setDestroy(null)} />}
       {poolDialog && <CephPoolDialog connId={id} pool={poolDialog === "new" ? null : poolDialog} onClose={() => setPoolDialog(null)} />}
     </div>
   );

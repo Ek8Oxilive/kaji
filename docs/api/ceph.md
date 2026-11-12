@@ -2,8 +2,7 @@
 
 Lots C1, C2 et C3 de `docs/m12-ceph.md`. Toutes les routes exigent une session ouverte. **La lecture** (toutes les routes `GET`)
 n'envoie que des lectures à Proxmox. **L'écriture** : créer et modifier un pool (« Écriture des pools »), puis créer, démarrer, arrêter
-des moniteurs, gestionnaires, MDS et OSD, et mettre un OSD dedans ou dehors (« Écriture des services »). Il n'existe **aucune
-suppression** (lot C4) ; l'**initialisation** est décrite plus bas (lot C5), l'installation des paquets n'a pas d'API chez Proxmox. Aucune
+des moniteurs, gestionnaires, MDS et OSD, et mettre un OSD dedans ou dehors (« Écriture des services »). La **destruction** (pool, OSD, moniteur, gestionnaire, MDS) est décrite dans `docs/api/ceph-destruction.md` (lot C4) ; l'**initialisation** est décrite plus bas (lot C5), l'installation des paquets n'a pas d'API chez Proxmox. Aucune
 réponse ne contient de secret.
 
 > **Rien de ce document n'a été validé en réel, sauf un point** (voir plus bas). Le cluster de test n'a pas de Ceph : un disque
@@ -174,8 +173,7 @@ que la santé lue dans `/cluster/ceph/status` reflète bien la redistribution en
 > (règle CRUSH par défaut) ; une règle qui sépare autrement n'est pas comprise.
 
 Toutes ces routes sont sous `…/ceph/nodes/{node}/` : le **nœud est l'endroit où l'on agit** et doit exister et être **en ligne**
-(sinon 404, rien n'est écrit). Ceph non installé : **409**, jamais un 200. Réponse : `202 {"upid", "node"}`. **Aucune route de
-suppression** (lot C4) : `DELETE`, `PUT`, `PATCH` répondent 404 ou 405.
+(sinon 404, rien n'est écrit). Ceph non installé : **409**, jamais un 200. Réponse : `202 {"upid", "node"}`. Les routes de ce fichier ne détruisent rien ; la destruction (lot C4) est dans `docs/api/ceph-destruction.md`. **Pas de destruction de CephFS** (pas d'API chez Proxmox).
 
 | Opération | Refus avant tout appel d'écriture | Confirmation décidée par le serveur |
 |---|---|---|
