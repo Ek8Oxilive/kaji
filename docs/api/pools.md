@@ -36,6 +36,11 @@ Audit : `pool-create`, `pool-update`, `pool-delete` (succès, refus, erreurs ; j
 Section « Pools de ressources » de la page Datacenter : tableau (pool, commentaire, nombre de machines et de stockages), « Créer un pool », « Gérer » (commentaire, cocher les membres à
 retirer, ajouter des machines et des stockages, case « déplacer » quand une machine est déjà dans un autre pool, confirmation affichée avant un retrait), « Supprimer » (identifiant à retaper).
 
+## Constaté en réel (2026-11-12, Proxmox 9.1.9)
+- **`GET /pools` sans `poolid` ne renvoie pas les membres** (seulement `poolid` et `comment`) ; il faut `GET /pools?poolid=…` pour chaque pool. Kaji lit donc le détail de chaque pool (100 au plus),
+  pour ses pré-contrôles (déjà membre, retrait d'un non-membre, pool vide à la suppression). Premier jet du lot : membres toujours vides, corrigé le jour même (PR de suivi).
+- Créer un pool et ajouter une VM / un stockage : acceptés par Proxmox avec le token de Kaji (`PUT /pools` 200 ; la VM apparaît dans le pool dans la liste des machines).
+
 ## Non validé en réel
 - l'acceptation de chaque appel (`POST`, `PUT` avec `vms` / `storage` / `delete` / `allow-move`, `DELETE ?poolid=`) par le token de Kaji, et le droit « modifier les permissions » exigé pour ajouter ou retirer ;
 - la forme réelle des membres dans `GET /pools` (le schéma officiel est suivi) ;
