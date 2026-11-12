@@ -626,6 +626,12 @@ Informations de corosync, et création, jonction et retrait d'un nœud avec verr
 
 *Fenêtre « Créer un cluster » : le serveur relit l'état chez Proxmox et refuse sur un nœud déjà en cluster (aperçu seulement, rien n'est écrit ; « Créer » reste grisé).*
 
+### Connexions : épingler le certificat de Proxmox
+
+![Fenêtre « Certificat » d'une connexion : empreinte SHA-256 présentée par le nœud, sujet, émetteur, validité, commande de comparaison, case de confirmation](docs/captures/connexion-epinglage-1.jpg)
+
+*Fenêtre « Épingler le certificat… » d'une connexion (noms et empreinte masqués) : Kaji montre le certificat que Proxmox présente, tu compares son empreinte à celle de ton nœud, tu coches et tu confirmes. Ensuite seul ce certificat est accepté (`docs/api/connexions-tls.md`).*
+
 ### Datacenter
 
 ![Options du datacenter ](docs/captures/datacenter-1.jpg)
