@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { RepoInfo } from "../lib/types/systeme";
+import { CustomRepoDialog } from "./NodeRepoCustom";
 import { Button, Notice } from "./ui";
 
 import { tr } from "../lib/i18n";
@@ -15,6 +16,7 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
   const [risk, setRisk] = useState<string | null>(null);
   const [accept, setAccept] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [custom, setCustom] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   const close = () => { setPlan(null); setRisk(null); setAccept(false); };
@@ -57,6 +59,11 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
           {addable.map((s) => <Button key={s.handle} variant="ghost" className="!px-2 !py-1 text-xs" title={s.description ?? ""} disabled={busy}
             onClick={() => setPlan({ kind: "add", handle: s.handle!, label: tr("Ajout du dépôt {name}", { name: s.name }) })}>{s.name}</Button>)}
         </div>)}
+      <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-2">
+        <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={busy} onClick={() => setCustom(true)}>{tr("Dépôt personnalisé…")}</Button>
+        <span className="text-xs text-muted">{tr("Fichier et commandes à copier : Proxmox n'écrit pas les dépôts libres.")}</span>
+      </div>
+      {custom && <CustomRepoDialog connId={connId} node={node} onClose={() => setCustom(false)} />}
       {plan && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={busy ? undefined : close}>
           <div role="dialog" aria-modal="true" aria-label={plan.label} className="panel rise w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>

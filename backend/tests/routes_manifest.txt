@@ -220,6 +220,7 @@ POST /api/connections/{conn_id}/nodes/{node}/acme/order
 POST /api/connections/{conn_id}/nodes/{node}/acme/renew
 POST /api/connections/{conn_id}/nodes/{node}/aplinfo
 POST /api/connections/{conn_id}/nodes/{node}/apt/repositories
+POST /api/connections/{conn_id}/nodes/{node}/apt/repositories/custom
 POST /api/connections/{conn_id}/nodes/{node}/apt/update
 POST /api/connections/{conn_id}/nodes/{node}/backups
 POST /api/connections/{conn_id}/nodes/{node}/bulk
