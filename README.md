@@ -76,6 +76,22 @@ Première page : l'état du cluster d'un coup d'œil, et toutes les machines.
 
 *Regroupement **par type** : conteneurs LXC d'un côté, machines virtuelles de l'autre (les modèles ont leur groupe). Les regroupements par nœud, pool, étiquette et stockage se choisissent dans la même liste.*
 
+### Petits écrans et langue (français / anglais)
+
+Sous 768 px (téléphone, petit PC), la barre latérale devient une barre du haut avec un menu ☰ qui ouvre un tiroir de navigation ; la barre de tâches est repliée par défaut. Le sélecteur **FR | EN** est à côté du thème ; le choix est gardé dans le navigateur (`docs/interface-mobile.md`, `docs/interface-langue.md`).
+
+![Tableau de bord en anglais sur petit écran](docs/captures/mobile-anglais.jpg)
+
+*Tableau de bord en anglais sur petit écran : barre du haut (menu, sélecteur FR | EN, thème), cartes en deux colonnes, barre de tâches en bas.*
+
+![Menu tiroir de la navigation sur petit écran](docs/captures/mobile-menu.jpg)
+
+*Le menu ☰ ouvre la navigation dans un tiroir (fermé par ✕, Échap, un clic à l'extérieur ou le choix d'une page).*
+
+![Tableau de bord en français à environ 390 px](docs/captures/mobile-francais.jpg)
+
+*Le même écran en français à environ 390 px de large : les boutons passent à la ligne au lieu de déborder, la barre de tâches est repliée.*
+
 ### Créer une machine
 
 Le bouton « + Nouvelle machine » propose une VM ou un conteneur LXC. Les captures s'arrêtent au récapitulatif : rien n'a été créé.
