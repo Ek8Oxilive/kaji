@@ -5,7 +5,7 @@ l'interface (onglet « Console » de la page Machine : noVNC, xterm.js) est le l
 
 | Route | Rôle |
 |---|---|
-| `POST /api/connections/{id}/guests/{node}/{type}/{vmid}/console` | Demande une console. Corps : `{"kind": "vnc" \| "term"}` (défaut `vnc`). Réponse **201** : `{session, kind, expires_in, ticket?}` |
+| `POST /api/connections/{id}/guests/{node}/{type}/{vmid}/console` | Demande une console. Corps : `{"kind": "vnc" \| "term", "serial"?: "serial0".."serial3"}` (défaut `vnc`). Réponse **201** : `{session, kind, expires_in, ticket?}` |
 | `POST /api/connections/{id}/nodes/{node}/console` | **Shell d'un nœud** (xterm.js). Corps : `{"confirm": true}` obligatoire. Réponse **201** : `{session, kind: "term", expires_in}` |
 | `WS /api/console/{session}` | Relais binaire navigateur ↔ console Proxmox |
 
@@ -13,9 +13,9 @@ l'interface (onglet « Console » de la page Machine : noVNC, xterm.js) est le l
 
 - `vnc` : noVNC, pour une VM ou un conteneur (`vncproxy`, `websocket=1`). La réponse contient `ticket` : c'est le **mot de passe VNC**
   que noVNC présente (comme l'interface de Proxmox). Il est valable quelques secondes et **une seule fois**.
-- `term` : xterm.js, **conteneurs seulement** (`termproxy`). Le serveur fait lui-même l'identification auprès de Proxmox : **le ticket ne
-  quitte jamais le serveur** et n'est pas dans la réponse.
-- La machine doit être **en marche** et ne pas être un modèle (sinon **409**, sans rien demander à Proxmox). `term` pour une VM : **400**.
+- `term` : xterm.js, pour un **conteneur** (`termproxy`) ou pour une **VM par son port série** (voir plus bas). Le serveur fait lui-même
+  l'identification auprès de Proxmox : **le ticket ne quitte jamais le serveur** et n'est pas dans la réponse.
+- La machine doit être **en marche** et ne pas être un modèle (sinon **409**, sans rien demander à Proxmox).
 - Une réponse inexploitable de Proxmox (port hors 1 à 65535, ticket vide ou démesuré…) donne **502** et aucune session.
 - `session` est un identifiant aléatoire (256 bits) **à usage unique**, valable **30 s**, **lié à ta session Kaji** : un autre
   navigateur ou une autre session ne peut pas l'utiliser, et le présenter ne le détruit pas. Au plus **8** demandes en attente par
@@ -84,3 +84,13 @@ réelle (Ubuntu), fermeture en quittant l'onglet.
 **Non validé en réel** : le fonctionnement **derrière nginx** (pas de Docker sur la machine de test) et le CSP avec les WebSocket ; la saisie
 clavier dans noVNC, le copier-coller, le redimensionnement du terminal ; la console série des VM et SPICE (non gérés) ; le **shell des nœuds**
 (exige `root@pam`, voir `docs/m6-ecriture.md`, option D).
+
+## Terminal série d'une VM (`kind: "term"`, M9)
+
+Comme dans l'interface de Proxmox (`qm terminal`) : `POST /nodes/{node}/qemu/{vmid}/termproxy` avec `serial=serialN`, puis le même relais WebSocket que pour un conteneur.
+
+- **Prérequis** : un port série de type **`socket`** dans la configuration de la VM **en cours d'utilisation** (Kaji lit `GET …/qemu/{vmid}/config?current=1` : un port ajouté tant que la VM tourne reste « en attente » et n'existe pas encore). Les ports série de l'hôte (`/dev/ttyS0`) ne sont jamais proposés. Sans port série socket : **409** (« ajoute-en un dans l'onglet Périphériques, puis redémarre la VM »).
+- `serial` (facultatif) : liste blanche `serial0` à `serial3` (`fullmatch`), vérifié **avant tout appel à Proxmox** (**400**, message fixe qui ne renvoie pas la valeur saisie) ; il doit exister et être de type socket sur cette VM (sinon **409**). Absent : le premier port série socket. `serial` avec `vnc` ou avec un conteneur : **400**.
+- Même audit (`console-open`, `console-close`), mêmes limites (4 consoles, 30 min d'inactivité, 8 h) et même absence de contenu journalisé.
+- Interface : bouton **« Terminal série »** de l'onglet Console d'une VM.
+
