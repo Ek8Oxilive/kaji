@@ -804,6 +804,10 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *« Dépôt personnalisé… » : Proxmox ne sait pas écrire un dépôt libre, Kaji valide les champs et fabrique le fichier `.sources` et les commandes à **copier** dans la console du nœud (rien n'est envoyé à Proxmox). Les avertissements disent ce qui manque (ici : la clé de signature doit déjà exister sur le nœud).*
 
+![Serveurs NTP d'un nœud](docs/captures/noeud-ntp-commandes.jpg)
+
+*« Serveurs NTP… » (bloc **Configuration du nœud**) : Proxmox n'a pas d'API NTP, Kaji valide les champs et fabrique le fichier de sources `chrony` et les commandes à **copier** dans la console du nœud (contrôle de la directive, écriture, rechargement, vérification). Rien n'est envoyé à Proxmox.*
+
 ### Accès
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
