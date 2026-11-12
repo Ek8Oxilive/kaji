@@ -23,6 +23,9 @@ async def read_hosts(conn_id: int, node: str = Path(pattern=NODE), db: Session =
     return {"content": data[:8192] if isinstance(data, str) else "", "digest": digest if isinstance(digest, str) and len(digest) == 40 else None}
 
 
+STALE = "Le fichier hosts a changé depuis ta lecture (digest périmé) : recharge avant de modifier"
+
+
 async def _write(db, factory, user, conn_id, action, target, check, method, path, params):
     def fail(code: int, msg: str):
         audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target, status="error", detail=msg)
@@ -34,6 +37,9 @@ async def _write(db, factory, user, conn_id, action, target, check, method, path
     try:
         await _px(db, factory, conn_id, method, path, **params)
     except HTTPException as e:
+        # Proxmox répond 500 « detected modified configuration » quand le `digest` est périmé : c'est un conflit (409), pas une panne
+        if "detected modified configuration" in str(e.detail):
+            fail(409, STALE)
         fail(e.status_code, str(e.detail))
     audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target, status="ok")
     return {"ok": True}
@@ -55,6 +61,16 @@ async def set_hosts(body: HostsBody, conn_id: int, node: str = Path(pattern=NODE
             return 400, "Confirmation requise"
         problem = hosts_problem(body.content, node)
         return (422, problem) if problem else None
+    if body.confirm and not hosts_problem(body.content, node):
+        # le `digest` est relu avant d'écrire : un fichier modifié depuis la lecture donne un 409 clair (Proxmox garde aussi la course)
+        try:
+            current = (await read_hosts(conn_id, node, db, factory))["digest"]
+        except HTTPException as e:
+            audit.record(db, username=user.username, connection_id=conn_id, action="node-hosts", target=f"node/{node}", status="error", detail=str(e.detail))
+            raise
+        if current is not None and current != body.digest:
+            audit.record(db, username=user.username, connection_id=conn_id, action="node-hosts", target=f"node/{node}", status="error", detail=STALE)
+            raise HTTPException(409, STALE)
     return await _write(db, factory, user, conn_id, "node-hosts", f"node/{node}", check, "post", f"/nodes/{node}/hosts",
                         {"data": body.content, "digest": body.digest})
 

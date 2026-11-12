@@ -21,7 +21,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if ST.get("fail"):
         return httpx.Response(ST["fail"], json={"data": None, "message": SECRET})
     if request.method == "GET" and p.endswith("/hosts"):
-        return httpx.Response(200, json={"data": {"data": HOSTS, "digest": DIGEST}})
+        return httpx.Response(200, json={"data": {"data": HOSTS, "digest": ST.get("digest", DIGEST)}})
+    if request.method == "POST" and p.endswith("/hosts") and ST.get("race"):
+        # le vrai Proxmox met son message dans la phrase de raison HTTP (c'est ce que Kaji relit)
+        return httpx.Response(500, json={"data": None}, extensions={"reason_phrase": b"detected modified configuration - file changed by other user? Try again."})
     return httpx.Response(200, json={"data": None})
 
 
@@ -155,6 +158,38 @@ def test_audit_and_no_secret_or_content(api):
     assert [(e["action"], e["status"]) for e in log] == [("node-timezone", "ok"), ("node-dns", "error"), ("node-hosts", "error")]
     text = c.get("/api/audit").text
     assert SECRET not in text and "192.168.1.200" not in text
+
+
+def test_hosts_stale_digest_is_409_without_write(api):
+    c, cid = api
+    ST["digest"] = "b" * 40                                    # le fichier a changé depuis la lecture de l'utilisateur
+    r = c.put(u(cid, "hosts"), json={"content": HOSTS, "digest": DIGEST, "confirm": True})
+    assert r.status_code == 409 and "digest périmé" in r.json()["detail"]
+    assert not writes()
+    assert [(e["action"], e["status"]) for e in c.get("/api/audit").json()] == [("node-hosts", "error")]
+
+
+def test_hosts_unreadable_digest_leaves_decision_to_proxmox(api):
+    c, cid = api
+    ST["digest"] = "illisible"                                 # relecture sans digest valide : pas de faux 409
+    assert c.put(u(cid, "hosts"), json={"content": HOSTS, "digest": DIGEST, "confirm": True}).status_code == 200
+    assert len(writes()) == 1
+
+
+def test_hosts_race_reported_by_proxmox_is_409(api):
+    c, cid = api
+    ST["race"] = True                                          # modifié entre notre relecture et l'écriture
+    r = c.put(u(cid, "hosts"), json={"content": HOSTS, "digest": DIGEST, "confirm": True})
+    assert r.status_code == 409 and "digest périmé" in r.json()["detail"] and "Try again" not in r.text
+    assert len(writes()) == 1
+
+
+def test_hosts_digest_checked_only_after_other_guards(api):
+    c, cid = api
+    ST["digest"] = "b" * 40
+    assert c.put(u(cid, "hosts"), json={"content": HOSTS, "digest": DIGEST}).status_code == 400            # pas de confirmation
+    assert c.put(u(cid, "hosts"), json={"content": "127.0.0.1 localhost\n", "digest": DIGEST, "confirm": True}).status_code == 422
+    assert not CALLS                                           # aucune lecture inutile quand une garde refuse déjà
 
 
 def test_hosts_problem_unit():
