@@ -12,11 +12,11 @@ import { tr } from "../lib/i18n";
 const TEXT: Record<PowerOp, { title: string; busy: string; done: string; text: string; danger: boolean }> = {
   reset: { get title() { return tr("Réinitialiser"); }, get busy() { return tr("Réinitialisation"); }, get done() { return tr("réinitialisée"); }, danger: true,
     get text() { return tr("Coupure brutale puis redémarrage, comme le bouton reset : les données non enregistrées dans la VM sont perdues."); } },
-  suspend: { get title() { return tr("Suspendre"); }, get busy() { return tr("Suspension"); }, done: "suspendue", danger: false,
+  suspend: { get title() { return tr("Suspendre"); }, get busy() { return tr("Suspension"); }, get done() { return tr("suspendue"); }, danger: false,
     get text() { return tr("La VM est figée en mémoire (état « pause ») jusqu'à ce que tu la reprennes."); } },
   hibernate: { get title() { return tr("Hiberner"); }, get busy() { return tr("Hibernation"); }, get done() { return tr("hibernée"); }, danger: true,
     get text() { return tr("La mémoire est écrite sur disque et la VM s'arrête ; elle reprend là où elle en était au prochain démarrage. Sans agent invité, Proxmox peut refuser."); } },
-  resume: { get title() { return tr("Reprendre"); }, get busy() { return tr("Reprise"); }, done: "reprise", danger: false, get text() { return tr("La VM reprend son exécution."); } },
+  resume: { get title() { return tr("Reprendre"); }, get busy() { return tr("Reprise"); }, get done() { return tr("reprise"); }, danger: false, get text() { return tr("La VM reprend son exécution."); } },
   template: { get title() { return tr("Convertir en modèle"); }, get busy() { return tr("Conversion"); }, get done() { return tr("convertie en modèle"); }, danger: true, text: "" },
 };
 

@@ -34,7 +34,7 @@ function SmartPanel({ base, device }: { base: string; device: string }) {
   const s = q.data;
   return (
     <div className="space-y-2 text-sm">
-      <p>{tr("Santé :")}{" "}<b className={ok(s.health) ? "text-ok" : "text-danger"}>{s.health ?? "inconnue"}</b>{s.wearout != null && <span className="text-muted">{" "}{tr("· usure {p} %", { p: 100 - s.wearout })}</span>}</p>
+      <p>{tr("Santé :")}{" "}<b className={ok(s.health) ? "text-ok" : "text-danger"}>{s.health ?? tr("inconnue")}</b>{s.wearout != null && <span className="text-muted">{" "}{tr("· usure {p} %", { p: 100 - s.wearout })}</span>}</p>
       {s.attributes.length > 0 && (
         <div className="max-h-64 overflow-auto"><table className="w-full text-xs"><thead><tr className="text-left text-muted"><th className="pr-2 font-normal">{tr("Attribut")}</th><th className="pr-2 font-normal">{tr("Valeur")}</th><th className="pr-2 font-normal">{tr("Pire")}</th><th className="pr-2 font-normal">{tr("Seuil")}</th><th className="font-normal">{tr("Brut")}</th></tr></thead>
           <tbody>{s.attributes.map((a) => (<tr key={`${a.id}-${a.name}`} className={`border-t border-line/60 ${a.failing ? "text-danger" : ""}`}><td className="pr-2">{a.name}</td><td className="pr-2 tabular-nums">{a.value ?? "–"}</td><td className="pr-2 tabular-nums">{a.worst ?? "–"}</td><td className="pr-2 tabular-nums">{a.threshold ?? "–"}</td><td className="tabular-nums">{a.raw ?? "–"}</td></tr>))}</tbody></table></div>)}

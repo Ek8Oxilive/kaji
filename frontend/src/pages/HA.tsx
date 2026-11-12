@@ -44,7 +44,7 @@ export function HA({ onGoConnections }: { onGoConnections: () => void }) {
               <td className="px-4 py-2 text-muted">{{ quorum: tr("Quorum"), master: tr("Maître"), lrm: "LRM", service: tr("Service"), fencing: tr("Watchdog") }[s.type]}</td>
               <td className="px-4 py-2 font-mono">{s.type === "service" ? s.sid ?? "–" : s.node ?? "–"}</td>
               <td className="px-4 py-2 text-muted">{s.status ?? s.state ?? "–"}{s.type === "service" && s.request_state ? tr(" · demandé : {request_state}", { request_state: s.request_state }) : ""}</td></tr>))}</Table>)}
-        <p className="text-xs text-muted">{tr("Quorum : {p} · Watchdog : {p2}", { p: quorum ? (quorum.quorate ? "oui" : "NON") : "–", p2: fencing?.armed_state ?? fencing?.status ?? "–" })}</p>
+        <p className="text-xs text-muted">{tr("Quorum : {p} · Watchdog : {p2}", { p: quorum ? (quorum.quorate ? tr("oui") : "NON") : "–", p2: fencing?.armed_state ?? fencing?.status ?? "–" })}</p>
       </section>
 
       <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{tr("Ressources HA")}</h2><Button variant="ghost" onClick={() => setMode({ kind: "resource-new" })}>{tr("Ajouter une machine…")}</Button></div>

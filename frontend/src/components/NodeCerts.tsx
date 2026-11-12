@@ -56,7 +56,7 @@ export function NodeCerts({ connId, node, hasCustom }: { connId: number; node: s
           {sum && (
             <div className="space-y-1 rounded-lg border border-line p-3 text-xs">
               <div><b>{sum.subject}</b>{" "}{tr("· émis par {issuer}{p}", { issuer: sum.issuer, p: sum.self_signed && tr(" (auto-signé)") })}</div>
-              <div className="text-muted">{tr("Expire le {p} · clé {key} · {chain_length} certificat(s) · SAN : {p2}", { p: new Date(sum.not_after).toLocaleDateString(locale()), key: sum.key, chain_length: sum.chain_length, p2: sum.san.join(", ") || "aucun" })}</div>
+              <div className="text-muted">{tr("Expire le {p} · clé {key} · {chain_length} certificat(s) · SAN : {p2}", { p: new Date(sum.not_after).toLocaleDateString(locale()), key: sum.key, chain_length: sum.chain_length, p2: sum.san.join(", ") || tr("aucun") })}</div>
               <div className="break-all text-muted">{tr("SHA-256 {fingerprint}", { fingerprint: sum.fingerprint })}</div>
               {!sum.san.some((s) => s === node || s.startsWith(`${node}.`)) && <p className="text-warn">{tr("Aucun nom du certificat ne correspond à « {node} » : les navigateurs signaleront une erreur.", { node })}</p>}
               <Button variant="danger" disabled={busy} onClick={() => setAsk("install")}>{tr("Installer…")}</Button>

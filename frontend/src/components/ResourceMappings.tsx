@@ -37,7 +37,7 @@ export function ResourceMappings({ connId }: { connId: number }) {
             <tr key={r.id} className="border-b border-line/60 align-top last:border-0">
               <td className="px-4 py-2 font-mono">{r.id}{r.type === "pci" && r.mdev ? <span className="ml-2 text-xs text-muted">{tr("mdev")}</span> : null}</td>
               <td className="px-4 py-2 text-muted">{r.description ?? ""}</td>
-              <td className="px-4 py-2 font-mono text-xs text-muted">{r.map.length === 0 ? "illisible" : r.map.map((e, i) => <div key={i}>{summary(r.type, e)}</div>)}</td>
+              <td className="px-4 py-2 font-mono text-xs text-muted">{r.map.length === 0 ? tr("illisible") : r.map.map((e, i) => <div key={i}>{summary(r.type, e)}</div>)}</td>
               <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMode({ kind: "edit", row: r })}>{tr("Modifier")}</button><button className="text-danger underline" onClick={() => setMode({ kind: "delete", row: r })}>{tr("Supprimer")}</button></td>
             </tr>))}</tbody></table></div>)}
       {mode && <MappingDialog connId={connId} type={type} mode={mode} onClose={() => setMode(null)} />}
@@ -110,7 +110,7 @@ function MappingDialog({ connId, type, mode, onClose }: { connId: number; type: 
       <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>{tr("Aperçu")}</button>
       {preview && <div className="space-y-3 text-sm">
         {k === "delete" ? <Notice kind="ok">{tr("Sera supprimée :")}{" "}<code>{row!.id}</code>.</Notice>
-          : <Notice kind="ok">{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.length + tr(" entrée(s)") : String(b)}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}.</Notice>}
+          : <Notice kind="ok">{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.length + tr(" entrée(s)") : String(b)}`).join(", ") || tr("rien")}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}.</Notice>}
         {used.length > 0 && <Notice kind="error">{tr("Utilisée par {p} : retire-la de ces machines avant de la supprimer.", { p: used.join(", ") })}</Notice>}
       </div>}
     </Modal>

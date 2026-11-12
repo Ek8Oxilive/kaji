@@ -169,7 +169,7 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
                     <td className="px-4 py-2 font-mono text-xs">{a.path}</td>
                     <td className="px-4 py-2">{a.ugid}<span className="ml-2 text-xs text-muted">{a.type ?? ""}</span></td>
                     <td className="px-4 py-2">{a.roleid}</td>
-                    <td className="px-4 py-2 text-muted">{a.propagate ? "oui" : "non"}</td>
+                    <td className="px-4 py-2 text-muted">{a.propagate ? tr("oui") : tr("non")}</td>
                   </tr>
                 ))}
               </tbody>

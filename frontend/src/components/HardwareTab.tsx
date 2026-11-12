@@ -58,7 +58,7 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
 
   const pend = (key: string) => {
     const p = cfg?.pending.find((x) => x.key === key);
-    return !p ? null : p.delete ? "suppression" : String(p.pending);
+    return !p ? null : p.delete ? tr("suppression") : String(p.pending);
   };
   const qemu = guest.type === "qemu";
   const s = cfg?.settings ?? {};

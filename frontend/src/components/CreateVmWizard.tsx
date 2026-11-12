@@ -165,9 +165,9 @@ export function CreateVmWizard({ connId, nodes, onClose }: { connId: number; nod
           {step === 3 && <>
             <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2 text-sm">
               {([
-                [tr("Nom"), `${f.name} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || "aucun"], [tr("Système"), tr(OS.find(([v]) => v === f.ostype)?.[1] ?? f.ostype)],
+                [tr("Nom"), `${f.name} (#${f.vmid})`], [tr("Nœud"), f.node], [tr("Pool"), f.pool || tr("aucun")], [tr("Système"), tr(OS.find(([v]) => v === f.ostype)?.[1] ?? f.ostype)],
                 [tr("Processeur"), `${int(f.cores) * int(f.sockets)} vCPU (${f.sockets} × ${f.cores}) · ${f.cpu}`], [tr("Mémoire"), `${f.memory} Mo`],
-                [tr("Disque"), f.noDisk ? "aucun" : tr("{size} Go sur {storage}", { size: f.size, storage: f.storage })], ["ISO", f.iso || "aucune"],
+                [tr("Disque"), f.noDisk ? tr("aucun") : tr("{size} Go sur {storage}", { size: f.size, storage: f.storage })], ["ISO", f.iso || tr("aucune")],
                 [tr("Réseau"), f.noNet ? tr("aucune carte") : `${f.model} sur ${f.bridge}${f.tag ? ` · VLAN ${f.tag}` : ""}${f.firewall ? " · firewall" : ""}`],
               ] as const).map(([k, v]) => <div key={k} className="contents"><dt className="text-muted">{k}</dt><dd className="break-words">{v}</dd></div>)}
             </dl>

@@ -28,7 +28,7 @@ function Iface({ i, onEdit, onDelete }: { i: NetIface; onEdit: () => void; onDel
       <td className="px-4 py-2 text-muted">{TYPE_LABEL[i.type] ?? i.type}</td>
       <td className="px-4 py-2 tabular-nums">{addr}{i.gateway ? <span className="block text-xs text-muted">{tr("via {gateway}", { gateway: i.gateway })}</span> : null}</td>
       <td className="px-4 py-2 text-muted">{links}{i.bridge_vlan_aware ? <span className="block text-xs">{tr("VLAN aware {p}", { p: i.bridge_vids ?? "" })}</span> : null}</td>
-      <td className="px-4 py-2 text-muted">{tr("{p} · démarrage {p2}", { p: i.active === false ? "inactif" : "actif", p2: yn(i.autostart) })}</td>
+      <td className="px-4 py-2 text-muted">{tr("{p} · démarrage {p2}", { p: i.active === false ? tr("inactif") : tr("actif"), p2: yn(i.autostart) })}</td>
       <td className="px-4 py-2 text-right">{managed && <span className="flex justify-end gap-1"><button type="button" className="rounded border border-line px-2" onClick={onEdit}>{tr("Modifier")}</button>{i.type !== "eth" && <button type="button" className="rounded border border-danger/50 px-2 text-danger" onClick={onDelete}>{tr("Supprimer")}</button>}</span>}</td>
     </tr>
   );
