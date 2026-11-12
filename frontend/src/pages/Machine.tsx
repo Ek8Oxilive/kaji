@@ -126,7 +126,7 @@ export function Machine({ params, go, onGoConnections }: { params: string[]; go:
           {tab === "hardware" && <HardwareTab connId={connId} guest={guest} onDeleted={() => go("#/")} onMigrated={(target) => go(guestHash({ ...guest, node: target }), { replace: true })} />}
           {tab === "options" && (guest.type === "qemu" ? <OptionsTab connId={connId} guest={guest} /> : <LxcOptionsTab connId={connId} guest={guest} />)}
           {tab === "metrics" && <GuestCharts connId={connId} node={guest.node} type={guest.type} vmid={guest.vmid} />}
-          {tab === "console" && <ConsoleTab connId={connId} guest={guest} />}
+          {tab === "console" && <ConsoleTab key={`${guest.node}/${guest.type}/${guest.vmid}`} connId={connId} guest={guest} />}
           {tab === "monitor" && guest.type === "qemu" && <MonitorTab connId={connId} guest={guest} running={running} />}
           {tab === "snapshots" && <SnapshotsTab connId={connId} guest={guest} running={running} />}
           {tab === "devices" && guest.type === "qemu" && <DevicesTab connId={connId} guest={guest} />}
