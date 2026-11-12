@@ -42,6 +42,7 @@ DELETE /api/connections/{conn_id}/sdn/vnets/{vnet}
 DELETE /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 DELETE /api/connections/{conn_id}/sdn/zones/{zone}
 DELETE /api/connections/{conn_id}/storage-config/{storage}
+DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 GET /api/audit
 GET /api/auth/me
 GET /api/auth/status

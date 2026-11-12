@@ -60,3 +60,24 @@ lignes ; l'écran étroit.
 
 ## Onglet « Tâches » d'une machine
 L'onglet utilise `GET /api/connections/{id}/tasks?vmid=<id>&limit=250` (tous les nœuds : la machine a pu migrer). L'interface masque par défaut les tâches de console (`vncproxy`, `termproxy`, `spiceproxy`, `vncshell`, `spiceshell`), qui représentaient près de la moitié de l'historique constaté en réel ; une case permet de les afficher. Aucune route nouvelle.
+
+## Arrêter une tâche en cours (lot #310)
+> **Non validé en réel au moment du code** (faux Proxmox strict). Fichiers : `routers/task_stop.py`, `taskstopspec.py`, `tests/test_task_stop.py`, bouton dans `components/TaskDrawer.tsx`.
+
+`DELETE /api/connections/{id}/tasks/{node}/{upid}?confirm=true` → `GET …/tasks/{upid}/status` puis `DELETE /nodes/{node}/tasks/{upid}`. Droit Proxmox : être propriétaire de la tâche, ou `Sys.Modify` sur
+`/nodes/<nœud>`. Réponse : `{stopped, upid, node, type}`. Audit `task-stop` (succès, refus, erreurs).
+
+| Contrôle (dans l'ordre, un refus n'écrit rien) | Réponse |
+|---|---|
+| UPID bien formé (regex) | 422 |
+| nœud de l'UPID = nœud du chemin | 422 |
+| `confirm=true` | 400 |
+| **type dans la liste blanche** : sauvegarde (`vzdump`), migration (`qmigrate`, `vzmigrate`), clonage (`qmclone`), déplacement de disque (`qmmove`), restauration (`qmrestore`, `vzrestore`), téléchargement (`download`), copie de volume (`imgcopy`), actualisation apt (`aptupdate`), arrêt ou redémarrage propre (`qmshutdown`, `vzshutdown`, `qmreboot`, `vzreboot`), démarrage (`qmstart`, `vzstart`) | 409 sinon (jamais une console, un terminal, une tâche de stockage, de cluster, de HA, de Ceph ou de réseau) |
+| **aucune machine de `KAJI_PROTECTED_VMIDS`** visée (l'id de la tâche, entier ou liste d'entiers) | 409 |
+| tâche relue chez Proxmox, **en cours** (`running`) | 409 si terminée, 502 si l'état est illisible |
+
+`GET …/tasks/{node}/{upid}` (état d'une tâche) renvoie un champ **`stoppable`** : vrai seulement si la tâche est en cours, de type autorisé et sur une machine non protégée. Le tiroir d'une tâche
+(page Tâches, barre de tâches, onglet Tâches d'une machine) affiche « Arrêter la tâche » dans ce cas, avec une confirmation en ligne ; `stoppable` n'est qu'un indice : le serveur refait tous les contrôles.
+
+**Non validé en réel** : l'acceptation de `DELETE …/tasks/{upid}` par le token de Kaji, ce que devient une tâche arrêtée (état affiché, fichier partiel), l'interface dans un navigateur.
+

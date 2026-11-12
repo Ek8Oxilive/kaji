@@ -11,5 +11,5 @@ export type TaskRow = {
 export type TaskList = { tasks: TaskRow[]; failed: { node: string; reason: string }[] };
 
 /** `GET /api/connections/{id}/tasks/{node}/{upid}` (existant) */
-export type TaskDetail = { status: string | null; exitstatus: string | null; type: string | null; id: string | null; user: string | null; starttime: number | null; ok: boolean; warnings: boolean };
+export type TaskDetail = { status: string | null; exitstatus: string | null; type: string | null; id: string | null; user: string | null; starttime: number | null; ok: boolean; warnings: boolean; stoppable?: boolean };
 export type TaskLine = { n: number | null; t: string | null };

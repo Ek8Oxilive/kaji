@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Button, Notice } from "./ui";
 import { api } from "../lib/api";
@@ -22,6 +22,15 @@ export function TaskDrawer({ connId, task, label, onClose }: { connId: number; t
   const base = `/api/connections/${connId}/tasks/${encodeURIComponent(task.node ?? "")}/${encodeURIComponent(task.upid)}`;
   const detail = useQuery({ queryKey: ["task", connId, task.upid], queryFn: () => api<TaskDetail>(base), refetchInterval: (q) => (q.state.data?.status === "stopped" ? false : 2000) });
   const running = detail.data ? detail.data.status !== "stopped" : task.state === "running";
+  const qc = useQueryClient();
+  const [askStop, setAskStop] = useState(false), [stopping, setStopping] = useState(false), [stopErr, setStopErr] = useState<string | null>(null);
+  /** Arrêt d'une tâche en cours : le serveur relit tout (en cours, type autorisé, machine non protégée) ; `stoppable` n'est qu'un indice d'affichage. */
+  const stopTask = async () => {
+    setStopping(true); setStopErr(null);
+    try { await api(`${base}?confirm=true`, { method: "DELETE" }); setAskStop(false); await qc.invalidateQueries({ queryKey: ["task", connId, task.upid] }); }
+    catch (e) { setStopErr((e as Error).message); }
+    setStopping(false);
+  };
   const runningRef = useRef(running);
   runningRef.current = running;
   const [lines, setLines] = useState<TaskLine[]>([]);
@@ -75,7 +84,15 @@ export function TaskDrawer({ connId, task, label, onClose }: { connId: number; t
           </div>
           <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
         </div>
-        <div className="flex flex-wrap items-center gap-3"><Badge s={state} />{running && <span className="text-xs text-muted">Journal suivi en direct</span>}</div>
+        <div className="flex flex-wrap items-center gap-3"><Badge s={state} />{running && <span className="text-xs text-muted">Journal suivi en direct</span>}
+          {running && d?.stoppable && !askStop && <Button variant="danger" className="!px-3 !py-1" onClick={() => setAskStop(true)} title="Abandonne le travail en cours de cette tâche">Arrêter la tâche</Button>}</div>
+        {running && d?.stoppable && askStop && (
+          <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn" role="alert">
+            <p>Arrêter cette tâche abandonne son travail en cours (Proxmox nettoie ce qu'il peut). Confirmer l'arrêt ?</p>
+            <div className="flex gap-2"><Button variant="danger" className="!px-3 !py-1" onClick={stopTask} disabled={stopping}>{stopping ? "…" : "Confirmer l'arrêt"}</Button>
+              <Button variant="ghost" className="!px-3 !py-1" onClick={() => { setAskStop(false); setStopErr(null); }} disabled={stopping}>Annuler</Button></div>
+          </div>)}
+        {stopErr && <Notice kind="error">{stopErr}</Notice>}
         {!running && d?.exitstatus && d.exitstatus !== "OK" && <Notice kind={d.warnings ? "ok" : "error"}>{d.exitstatus}</Notice>}
         {detail.error && <Notice kind="error">{(detail.error as Error).message}</Notice>}
         {logError && <Notice kind="error">Journal illisible : {logError}</Notice>}
