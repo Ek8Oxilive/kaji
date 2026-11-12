@@ -4,6 +4,7 @@ import { NodeCharts } from "../components/charts/MetricsPanels";
 import { NotesPanel } from "../components/NotesPanel";
 import { NodeConsole } from "../components/ConsoleTab";
 import { NodeDisks } from "../components/NodeDisks";
+import { NodeFirewall } from "../components/NodeFirewall";
 import { NodePower } from "../components/NodePower";
 import { NodeBulk } from "../components/NodeBulk";
 import { NodeSystem } from "../components/NodeSystem";
@@ -98,6 +99,10 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
 
       <Section title="Disques et volumes">
         <NodeDisks connId={active.id} node={node} online={online} />
+      </Section>
+
+      <Section title="Pare-feu">
+        <NodeFirewall connId={active.id} node={node} />
       </Section>
 
       <Section title="Machines" count={mine.length}>
