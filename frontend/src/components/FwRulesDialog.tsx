@@ -12,9 +12,9 @@ type Op = { label: string; method: "POST" | "PUT" | "DELETE"; path: string; body
 const EMPTY = { type: "in", action: "ACCEPT", proto: "", dport: "", source: "", dest: "", macro: "", comment: "", enable: false };
 
 /** Règles du pare-feu : ajouter, activer/désactiver, déplacer, supprimer. Chaque action passe par un aperçu (dry_run) des verrous décidés par le serveur. */
-export function FwRulesDialog({ connId, node, onClose, guest }: { connId: number; node: string; onClose: () => void; guest?: { gtype: "qemu" | "lxc"; vmid: number } }) {
+export function FwRulesDialog({ connId, node, onClose, guest, startAt }: { connId: number; node: string; onClose: () => void; guest?: { gtype: "qemu" | "lxc"; vmid: number }; startAt?: "node" }) {
   const qc = useQueryClient();
-  const [scope, setScope] = useState<Scope>(guest ? "guest" : "cluster");
+  const [scope, setScope] = useState<Scope>(guest ? "guest" : startAt ?? "cluster");
   const [vmid, setVmid] = useState(guest ? String(guest.vmid) : ""), [gtype, setGtype] = useState<"qemu" | "lxc">(guest?.gtype ?? "qemu"), [group, setGroup] = useState("");
   const [f, setF] = useState(EMPTY);
   const [op, setOp] = useState<Op | null>(null), [locks, setLocks] = useState<Locks | null>(null);

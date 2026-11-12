@@ -58,7 +58,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Services (démarrer, arrêter, redémarrer) | 🟡 (codé, validation en réel à faire) | M11 |
 | Disques : liste, SMART, initialiser GPT, effacer, LVM, LVM-thin, répertoire, ZFS | 🟡 (lecture complète ; GPT, effacer, créer et supprimer (volume vide) LVM / LVM-thin / répertoire / ZFS, codés et jamais exécutés en réel) | M11 |
 | Ceph (état, configuration, moniteurs, OSD, CephFS, pools, journaux) — cadré dans `docs/m12-ceph.md` | ⬜ | M12 |
-| Pare-feu du nœud | 🟡 (lecture seule) | M7 |
+| Pare-feu du nœud | 🟡 (options et règles : lecture et écriture avec verrous, section de la page Nœud et page « Réseau », `docs/api/pare-feu-noeud.md` ; jamais activé en réel) | M7 |
 | Réplication du nœud | 🟡 (lecture de l'état des jobs) | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | 🟡 (liste de machines explicite, aperçu `dry_run`, protégées refusées, nom du nœud retapé ; `docs/api/actions-groupees.md`) | M15 |
