@@ -57,6 +57,18 @@ async def guest_action(
     if action == "start":
         # Un modèle ne démarre pas : refus net (409) au lieu d'une tâche qui échoue chez Proxmox (essai réel, ticket #204).
         # Config illisible : on laisse Proxmox trancher, pour ne jamais bloquer un démarrage légitime.
+        # Déjà en marche : refus net (409) au lieu d'un 202 suivi d'une tâche en échec « already running » (essai réel, ticket #291).
+        # Une VM en pause (`running` + `qmpstatus` paused) se reprend, elle ne se démarre pas. État illisible : Proxmox tranche.
+        try:
+            current = await _px(db, factory, conn_id, "get", f"/nodes/{node}/{gtype}/{vmid}/status/current")
+        except HTTPException:
+            current = None
+        if isinstance(current, dict) and current.get("status") == "running":
+            paused = str(current.get("qmpstatus")) in ("paused", "suspended")
+            audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target,
+                         status="error", detail="machine en pause" if paused else "machine déjà en marche")
+            raise HTTPException(status.HTTP_409_CONFLICT, "La VM est en pause : reprends-la au lieu de la démarrer" if paused
+                                else "La machine est déjà en marche")
         try:
             cfg = await _px(db, factory, conn_id, "get", f"/nodes/{node}/{gtype}/{vmid}/config", current=1)
         except HTTPException:

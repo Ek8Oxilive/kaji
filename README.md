@@ -676,6 +676,14 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *« Options… » s'ouvre déjà au niveau du nœud. Demander l'activation du pare-feu du nœud affiche, avant toute écriture, le verrou « Coupure d'accès possible » (case à cocher, puis phrase à retaper) ; ici, aperçu seulement, rien n'est appliqué.*
 
+![Section Réplication de la page d'un nœud](docs/captures/replication-noeud-section.jpg)
+
+*Section « Réplication » de la page d'un nœud : les jobs qui partent de ce nœud ou arrivent dessus (aucun ici : le cluster n'a pas de ZFS), avec « Nouveau job… ».*
+
+![Nouveau job de réplication bloqué faute de ZFS](docs/captures/replication-noeud-bloque.jpg)
+
+*« Nouveau job… » : l'aperçu annonce ce qui bloque (aucun stockage ZFS, disque sur LVM-thin) et « Appliquer » reste grisé ; rien n'est écrit.*
+
 ![Éditeur des notes d'un nœud.](docs/captures/noeud-notes-editeur.jpg)
 
 *Éditeur des notes d'un nœud.*
