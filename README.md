@@ -668,6 +668,14 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *Stockages et réseau du nœud.*
 
+![Section Pare-feu de la page d'un nœud](docs/captures/pare-feu-noeud-section.jpg)
+
+*Section « Pare-feu » de la page d'un nœud : options et règles de ce nœud (vides ici), avec les boutons « Options… » et « Règles… ». Un pare-feu non activé ne filtre rien, même avec des règles.*
+
+![Options du pare-feu du nœud : verrou « coupure d'accès possible »](docs/captures/pare-feu-noeud-verrou.jpg)
+
+*« Options… » s'ouvre déjà au niveau du nœud. Demander l'activation du pare-feu du nœud affiche, avant toute écriture, le verrou « Coupure d'accès possible » (case à cocher, puis phrase à retaper) ; ici, aperçu seulement, rien n'est appliqué.*
+
 ![Éditeur des notes d'un nœud.](docs/captures/noeud-notes-editeur.jpg)
 
 *Éditeur des notes d'un nœud.*
