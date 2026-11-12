@@ -207,6 +207,7 @@ POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/resize
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots/{name}/rollback
+POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/spice
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/template
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/{action}
 POST /api/connections/{conn_id}/ha/resources

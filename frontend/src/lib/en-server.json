@@ -433,5 +433,8 @@
  "Serveur VNC": "VNC server",
  "Threads d'entrées-sorties": "I/O threads",
  "État de la migration": "Migration state",
- "Instantanés": "Snapshots"
+ "Instantanés": "Snapshots",
+ "Cette VM n'a pas de carte d'affichage SPICE (qxl) : choisis-la dans l'onglet Périphériques, puis redémarre la VM": "This VM has no SPICE display card (qxl): choose it in the Devices tab, then restart the VM",
+ "Réponse inattendue de Proxmox pour la console SPICE": "Unexpected Proxmox response for the SPICE console",
+ "Ouvrir la console d'une machine (noVNC, terminal, SPICE)": "Open a machine's console (noVNC, terminal, SPICE)"
 }
