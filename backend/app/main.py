@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -10,9 +11,12 @@ from .routers import load_routers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from .config import check_secret_key, get_settings
+    warning = check_secret_key(get_settings().kaji_secret_key)          # refuse une clé d'exemple AVANT d'ouvrir la base ou d'accepter une requête
+    if warning:
+        logging.getLogger("uvicorn.error").warning(warning)
     init_db()
     from . import audit
-    from .config import get_settings
     from .db import get_engine
     from sqlalchemy.orm import Session
     with Session(get_engine()) as db:

@@ -312,6 +312,8 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/m6-ecriture.md` — M6 : cadrage de l'écriture (utilisateurs, rôles, droits, toke…
 - `docs/m7-reseau-firewall.md` — M7 : réseau et pare-feu, cadrage de l'écriture
 - `docs/parite-proxmox.md` — Parité avec l'interface de Proxmox
+- `docs/securite.md` — Revue de sécurité de Kaji (2026-11-12, en vue de la V1)
+- `docs/statut-fonctions.md` — Statut des fonctions de Kaji (pour la V1)
 - `docs/themes.md` — Thèmes de l'interface
 - `docs/api/README.md` — Documentation d'API par fonction
 - `docs/api/acces.md` — Accès : droits de Kaji, utilisateurs, rôles, ACL (lecture seu…

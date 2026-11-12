@@ -11,6 +11,7 @@ Seul `web` écoute sur le réseau, **par défaut sur cette machine uniquement** 
 git clone https://github.com/Ek8Oxilive/kaji.git && cd kaji
 cp .env.example .env
 python3 -c "import secrets; print(secrets.token_urlsafe(48))"      # colle le résultat dans KAJI_SECRET_KEY du .env
+# (Kaji refuse de démarrer avec la valeur d'exemple « changeme » et signale une clé de moins de 32 caractères.)
 docker compose up -d --build
 ```
 Ouvre http://127.0.0.1:8080 et **crée tout de suite le compte administrateur** (première configuration) : tant qu'il n'existe pas,

@@ -24,6 +24,20 @@ class Settings(BaseSettings):
         return {int(x) for x in self.kaji_protected_vmids.replace(" ", "").split(",") if x.isdigit()}
 
 
+WEAK_SECRET_KEYS = ("", "changeme", "change-me", "secret", "password")
+MIN_SECRET_KEY_LENGTH = 32
+
+
+def check_secret_key(key: str) -> str | None:
+    """`KAJI_SECRET_KEY` signe les sessions et chiffre les jetons Proxmox. Lève une erreur pour une valeur de démonstration (celle de `.env.example`) ;
+    renvoie un avertissement (texte) pour une clé de moins de 32 caractères, sans bloquer un déploiement existant ; `None` si tout va bien."""
+    if key.strip().lower() in WEAK_SECRET_KEYS:
+        raise RuntimeError("KAJI_SECRET_KEY est vide ou vaut la valeur d'exemple : génère-en une avec python3 -c \"import secrets; print(secrets.token_urlsafe(48))\"")
+    if len(key) < MIN_SECRET_KEY_LENGTH:
+        return f"KAJI_SECRET_KEY est courte ({len(key)} caractères) : utilise au moins {MIN_SECRET_KEY_LENGTH} caractères aléatoires (le changer invalide les sessions ET les jetons enregistrés)"
+    return None
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
