@@ -2246,5 +2246,6 @@
  "tout": "all",
  "toutes": "all",
  "utilisateur": "user",
- "vendredi": "Friday"
+ "vendredi": "Friday",
+ "Erreur {status}": "Error {status}"
 }

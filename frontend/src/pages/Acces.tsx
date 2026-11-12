@@ -42,7 +42,7 @@ function FixBox({ fix }: { fix: Fix }) {
     <div className="mt-2 space-y-2 rounded-xl border border-line bg-surface2 p-3">
       {fix.error ? <p className="text-xs text-warn">{fix.error}</p> : <>
         <p className="text-xs text-muted">{tr("À lancer")}{" "}<strong className="text-fg">{tr("en root, dans le shell d'un nœud Proxmox")}</strong>{tr(". Kaji n'exécute rien.")}</p>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/30 p-2 font-mono text-xs" aria-label={tr("Commandes pour : {label}", { label: fix.label })}>{text}</pre>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/30 p-2 font-mono text-xs" aria-label={tr("Commandes pour : {label}", { label: tr(fix.label) })}>{text}</pre>
         <Button variant="ghost" onClick={copy} className="!px-3 !py-1 text-xs">{copied ? tr("Copié ✓") : tr("Copier")}</Button>
       </>}
     </div>
@@ -108,7 +108,7 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
                 <li key={x.id} className="flex items-start gap-3 px-4 py-3">
                   <span className={`mt-0.5 w-5 shrink-0 text-center font-semibold ${s.cls}`} aria-hidden>{s.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm">{x.label}<span className="sr-only"> : {s.label}</span></p>
+                    <p className="text-sm">{tr(x.label)}<span className="sr-only"> : {s.label}</span></p>
                     {x.missing.length > 0 && <p className="text-xs text-danger">{tr("Manque : {p}", { p: x.missing.map((m) => `${m.privilege} sur ${m.path}`).join(", ") })}</p>}
                     {x.status === "unknown" && <p className="text-xs text-warn">{tr("Proxmox n'a pas pu confirmer ce droit.")}</p>}
                     {x.status === "missing" && (() => {

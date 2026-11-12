@@ -15,5 +15,5 @@ Frontend seul, aucune route. Le sélecteur **FR | EN** est en haut de chaque pag
 3. `backend/tests/test_i18n.py` échoue sinon : clé sans traduction, variables différentes, traduction orpheline, texte JSX ou attribut resté en français brut.
 
 ## Limites connues
-- Les **messages renvoyés par le serveur** (erreurs de validation et de refus de Kaji, descriptions de l'audit) restent en français : ils ne sont pas encore traduits.
+- **Messages renvoyés par le serveur** : seuls ceux qui sont des phrases COMPLÈTES et fixes (la plupart des refus et erreurs de validation, le catalogue des droits de la page « Accès », les commandes du moniteur QEMU) sont traduits, via `frontend/src/lib/en-server.json` (clé = le message exact du backend ; `api()` et les libellés du catalogue passent par `tr()`). Les messages construits avec des valeurs (f-strings), les descriptions de l'audit et les textes des tâches restent en français. `test_i18n.py` vérifie que chaque clé de `en-server.json` existe encore dans le code du backend.
 - Les journaux de tâches Proxmox, les noms de machines, d'utilisateurs et de stockages sont des données : jamais traduits.
