@@ -2353,5 +2353,6 @@
  "Émetteur :": "Issuer:",
  "Épingler ce certificat": "Pin this certificate",
  "Épingler le certificat…": "Pin the certificate…",
- "Épingler le nouveau certificat": "Pin the new certificate"
+ "Épingler le nouveau certificat": "Pin the new certificate",
+ "{p} de « {name} » terminé : le service est reparti (Proxmox signale « interrompu », car ce démon exécute lui-même la tâche).": "{p} of “{name}” finished: the service is back up (Proxmox reports “interrupted” because this daemon runs the task itself)."
 }
