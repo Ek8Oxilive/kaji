@@ -8,3 +8,9 @@ export type ClusterConfig = {
   join: { preferred_node: string | null; address: string | null; fingerprint: string | null; nodes: number } | null;
   errors: Record<string, string>;
 };
+
+/** Écriture du cluster (M10-2, `docs/api/cluster-ecriture.md`). */
+export type ClusterLocks = { blockers: string[]; cut: string[]; live: string[] };
+export type ClusterPreview = { dry_run: true; node?: string | null; params?: Record<string, string | number>; guests?: number[]; ha_resources?: string[]; locks: ClusterLocks; phrase: string | null };
+export type ClusterWriteResult = { created?: string; joining?: string | null; removed?: string; node?: string | null; via?: string; upid?: string | null; guests?: number[]; ha_resources?: string[] };
+export type ClusterMode = { kind: "create" } | { kind: "join" } | { kind: "remove"; node: string };

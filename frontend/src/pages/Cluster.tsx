@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { ClusterDialog } from "../components/ClusterDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
-import type { ClusterConfig } from "../lib/types/cluster";
+import type { ClusterConfig, ClusterMode } from "../lib/types/cluster";
 
 import { tr } from "../lib/i18n";
 const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
@@ -12,7 +13,7 @@ const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
 );
 const Row = ({ k, v }: { k: string; v: ReactNode }) => <div className="flex justify-between gap-4 border-b border-line/60 py-1.5 last:border-0"><dt className="text-muted">{k}</dt><dd className="text-right">{v}</dd></div>;
 
-/** Commande à copier : Kaji ne crée, ne joint et ne retire aucun nœud (voir `docs/m10-cluster.md`). */
+/** Commande à copier : l'autre voie, dans le shell du nœud (Kaji peut aussi le faire, avec des verrous : voir `docs/api/cluster-ecriture.md`). */
 function Cmd({ label, cmd, where }: { label: string; cmd: string; where: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => { try { await navigator.clipboard.writeText(cmd); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* le texte reste sélectionnable */ } };
@@ -24,9 +25,10 @@ function Cmd({ label, cmd, where }: { label: string; cmd: string; where: string 
   );
 }
 
-/** Cluster : informations, nœuds corosync, QDevice. Lecture seule ; créer, joindre, retirer un nœud = commandes à copier. */
+/** Cluster : informations, nœuds corosync, QDevice ; créer, joindre, retirer un nœud (verrous décidés par le serveur) ou commandes à copier. */
 export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
   const { active, id } = useActiveConnection();
+  const [mode, setMode] = useState<ClusterMode | null>(null);
   const q = useQuery({ queryKey: ["cluster-config", id], queryFn: () => api<ClusterConfig>(`/api/connections/${id}/cluster/config`), enabled: id !== null, staleTime: 10_000 });
   if (!active) return (
     <div className="mx-auto grid max-w-3xl place-items-center py-24 text-center"><div className="panel space-y-4 p-10">
@@ -36,7 +38,7 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
   const join = d?.join;
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <header><h1 className="text-2xl font-semibold tracking-tight">{tr("Cluster")}</h1><p className="text-muted">{tr("{name} · lecture seule", { name: active.name })}</p></header>
+      <header><h1 className="text-2xl font-semibold tracking-tight">{tr("Cluster")}</h1><p className="text-muted">{active.name}</p></header>
       {q.error && <Notice kind="error">{(q.error as Error).message}</Notice>}
       {d && Object.entries(d.errors).map(([k, m]) => <Notice key={k} kind="error">{tr("Lecture « {k} » impossible : {m}", { k, m })}</Notice>)}
       {d && !d.cluster.clustered && <Notice kind="ok">{tr("Ce nœud n'est pas dans un cluster (nœud isolé).")}</Notice>}
@@ -55,7 +57,7 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
 
       <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Nœuds")}</h2>
         {!d ? null : d.nodes.length === 0 ? <p className="text-sm text-muted">{tr("Aucun nœud.")}</p> : (
-          <Table head={["ID", tr("Nœud"), tr("Votes"), tr("État"), tr("Adresse"), tr("Liens corosync"), tr("Empreinte du certificat")]}>{d.nodes.map((n) => (
+          <Table head={["ID", tr("Nœud"), tr("Votes"), tr("État"), tr("Adresse"), tr("Liens corosync"), tr("Empreinte du certificat"), ""]}>{d.nodes.map((n) => (
             <tr key={n.name} className="border-b border-line/60 last:border-0 align-top">
               <td className="px-4 py-2 text-muted">{n.nodeid ?? "–"}</td>
               <td className="px-4 py-2 font-mono">{n.name}{n.local && <span className="ml-2 rounded bg-surface2 px-1.5 py-0.5 font-sans text-xs text-muted">{tr("nœud interrogé")}</span>}</td>
@@ -64,6 +66,7 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
               <td className="px-4 py-2 font-mono text-muted">{n.ip ?? "–"}</td>
               <td className="px-4 py-2 font-mono text-xs text-muted">{n.links.length ? n.links.map((l) => <div key={l.link}>{tr("link{link} : {addr}", { link: l.link, addr: l.addr })}</div>) : "–"}</td>
               <td className="max-w-[14rem] px-4 py-2 font-mono text-xs text-muted"><span className="block truncate" title={n.fingerprint ?? undefined}>{n.fingerprint ?? "–"}</span></td>
+              <td className="px-4 py-2 text-right">{d.cluster.clustered && !n.local && n.online === false && <Button variant="ghost" onClick={() => setMode({ kind: "remove", node: n.name })}>{tr("Retirer…")}</Button>}</td>
             </tr>))}</Table>)}
       </section>
 
@@ -73,7 +76,12 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
       </section>
 
       <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Créer, joindre, retirer un nœud")}</h2>
-        <Notice kind="ok">{tr("Kaji ne modifie pas le cluster : une erreur peut casser le quorum, et joindre un nœud demande le mot de passe root d'un nœud, que Kaji ne manipule jamais. Lance ces commandes toi-même, dans le shell du nœud indiqué.")}</Notice>
+        <Notice kind="error">{tr("Opérations rares et risquées : une erreur peut casser le quorum. Kaji vérifie l'état chez Proxmox, montre les verrous (aperçu) et exige une confirmation ; joindre un nœud demande le mot de passe root d'un nœud contacté, envoyé une seule fois et jamais gardé. Les mêmes commandes se lancent aussi dans le shell du nœud.")}</Notice>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={!d} onClick={() => setMode({ kind: "create" })}>{tr("Créer un cluster…")}</Button>
+          <Button variant="ghost" disabled={!d} onClick={() => setMode({ kind: "join" })}>{tr("Joindre un cluster…")}</Button>
+        </div>
+        <p className="text-xs text-muted">{tr("« Créer » et « Joindre » s'adressent à un nœud isolé (la connexion active doit pointer sur lui) : sur un nœud déjà en cluster, l'aperçu les refuse. « Retirer… » apparaît sur un nœud hors ligne, depuis un autre membre.")}</p>
         <div className="space-y-3">
           <Cmd label={tr("Créer un cluster")} where={tr("sur un nœud isolé, une seule fois")} cmd={`pvecm create ${d?.cluster.name ?? "NOM-DU-CLUSTER"}`} />
           <Cmd label={tr("Joindre ce cluster")} where={tr("sur le NOUVEAU nœud (le mot de passe root du nœud contacté sera demandé)")}
@@ -82,6 +90,7 @@ export function Cluster({ onGoConnections }: { onGoConnections: () => void }) {
         </div>
         <p className="text-xs text-muted">{tr("Information de jonction (équivalent de « Join Information » de Proxmox) : nœud à contacter")}{" "}<code>{join?.preferred_node ?? "–"}</code>{tr(", adresse")}{" "}<code>{join?.address ?? "–"}</code>.</p>
       </section>
+      {mode && id !== null && <ClusterDialog connId={id} mode={mode} onClose={() => setMode(null)} />}
     </div>
   );
 }

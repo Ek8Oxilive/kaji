@@ -1,6 +1,6 @@
-# M10 : gestion du cluster, cadrage de l'écriture (décisions d'Enzo attendues)
+# M10 : gestion du cluster, cadrage de l'écriture (option B retenue le 2026-11-12)
 
-**Livré (M10-1)** : lecture (`docs/api/cluster.md`) et page « Cluster » avec des commandes à copier. **Rien n'est écrit par Kaji.**
+**Livré (M10-1)** : lecture (`docs/api/cluster.md`) et page « Cluster » avec des commandes à copier. **Livré (M10-2, décision d'Enzo du 2026-11-12 « fais M10 » = option B)** : créer, joindre et retirer un nœud par l'API avec verrous (`docs/api/cluster-ecriture.md`), validés sur faux Proxmox seulement ; les commandes à copier restent affichées.
 
 ## Ce que fait Proxmox (Datacenter → Cluster) et ce que couvre Kaji
 | Fonction Proxmox | Kaji |
@@ -26,4 +26,4 @@ API Proxmox d'écriture : `POST /cluster/config` (créer), `POST /cluster/config
 - **B. Écriture par l'API avec verrous** (`dry_run`, phrase `COUPURE POSSIBLE`, nœud à joindre sans machine, aucune manipulation du mot de passe : saisi une fois par l'utilisateur, non journalisé), validée seulement sur faux Proxmox : à faire si un banc d'essai devient possible.
 - **C. Ne jamais l'implémenter.**
 
-Sans réponse, la décision par défaut est **A**.
+Décision d'Enzo : **B** (2026-11-12). Les commandes à copier (A) restent comme autre voie.
