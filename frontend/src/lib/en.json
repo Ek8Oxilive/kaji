@@ -2310,5 +2310,12 @@
  "Dépôt personnalisé…": "Custom repository…",
  "Fichier et commandes à copier : Proxmox n'écrit pas les dépôts libres.": "File and commands to copy: Proxmox does not write free-form repositories.",
  "Dans la console du nœud (page Nœud) : la même commande, avec les droits du nœud.": "In the node's console (Node page): the same command, with the node's rights.",
- "La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.": "The second opens the interactive monitor: type the command, then “quit” to leave."
+ "La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.": "The second opens the interactive monitor: type the command, then “quit” to leave.",
+ "Serveurs NTP…": "NTP servers…",
+ "L'API de Proxmox n'a pas de réglage NTP : Kaji prépare le fichier de sources chrony et les commandes à coller dans la console du nœud. Rien n'est envoyé à Proxmox.": "The Proxmox API has no NTP setting: Kaji prepares the chrony sources file and the commands to paste into the node's console. Nothing is sent to Proxmox.",
+ "Serveurs (un par ligne, 4 au plus)": "Servers (one per line, 4 at most)",
+ "Pool (nom d'hôte)": "Pool (host name)",
+ "iburst (synchronisation rapide au démarrage)": "iburst (fast sync at start-up)",
+ "NTS (chiffré, si le serveur le propose)": "NTS (encrypted, if the server offers it)",
+ "Colle ces commandes dans la console du nœud, l'une après l'autre :": "Paste these commands into the node's console, one after the other:"
 }
