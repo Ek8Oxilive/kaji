@@ -32,6 +32,11 @@ Avant un `start`, Kaji relit la config (`GET …/config`) : si `template` vaut `
 copie », **aucune écriture**, audit `start` en erreur (« machine modèle »). Config illisible : le démarrage n'est pas bloqué, Proxmox tranche. Les autres
 actions (`shutdown`, `reboot`, `stop`) ne lisent rien de plus. Ticket #204.
 
+**Déjà en marche (ticket #291)** : avant la config, un `start` relit aussi l'état (`GET …/status/current`). Machine `running` : **409** « La machine est déjà en
+marche » ; VM en pause (`running` + `qmpstatus` `paused` ou `suspended`) : **409** « La VM est en pause : reprends-la au lieu de la démarrer ». **Aucune écriture**, audit
+`start` en erreur (« machine déjà en marche » / « machine en pause »). Arrêtée, hibernée (verrou `suspended`), état vide ou illisible : le démarrage passe. Avant ce correctif,
+Kaji répondait 202 puis la tâche échouait chez Proxmox (« already running », constaté en réel le 2026-11-12).
+
 ## Interface
 Page Machine : « Suspendre », « Hiberner », « Réinitialiser » (VM en marche), « Reprendre » (VM en pause), « Convertir en modèle… » (machine arrêtée, VM ou
 LXC, nom à retaper). **Une VM suspendue est `paused` dans la liste des machines** (alors que `/power` dit `running` + `qmpstatus: paused`) : la carte affiche
