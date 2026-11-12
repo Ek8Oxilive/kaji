@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { api, ApiError } from "../lib/api";
 import type { RepoInfo } from "../lib/types/systeme";
 import { CustomRepoDialog } from "./NodeRepoCustom";
@@ -63,8 +64,9 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
         <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={busy} onClick={() => setCustom(true)}>{tr("Dépôt personnalisé…")}</Button>
         <span className="text-xs text-muted">{tr("Fichier et commandes à copier : Proxmox n'écrit pas les dépôts libres.")}</span>
       </div>
-      {custom && <CustomRepoDialog connId={connId} node={node} onClose={() => setCustom(false)} />}
-      {plan && (
+      {/* Portail : le bloc parent a un flou d'arrière-plan qui sert de repère aux éléments `fixed` (la fenêtre sortait de l'écran) */}
+      {custom && createPortal(<CustomRepoDialog connId={connId} node={node} onClose={() => setCustom(false)} />, document.body)}
+      {plan && createPortal(
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={busy ? undefined : close}>
           <div role="dialog" aria-modal="true" aria-label={plan.label} className="panel rise w-full max-w-md space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold">{tr("{label} sur {node} ?", { label: plan.label, node })}</h2>
@@ -76,7 +78,7 @@ export function NodeRepos({ connId, node, repos }: { connId: number; node: strin
               <Button variant="danger" onClick={() => send(accept)} disabled={busy || (!!risk && !accept)}>{busy ? "…" : tr("Confirmer")}</Button>
             </div>
           </div>
-        </div>)}
+        </div>, document.body)}
     </div>
   );
 }
