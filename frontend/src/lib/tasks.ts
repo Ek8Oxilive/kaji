@@ -21,7 +21,7 @@ export async function runTask(connId: number, node: string, start: () => Promise
   const { upid } = await start();
   const t = await waitTask(connId, node, upid, seconds);
   if (!t) throw new Error(tr("{what} : la tâche prend trop de temps", { what }));
-  if (!t.ok) throw new Error(tr("{what} : la tâche a échoué ({p})", { what, p: t.exitstatus ?? "erreur" }));
+  if (!t.ok) throw new Error(tr("{what} : la tâche a échoué ({p})", { what, p: t.exitstatus ?? tr("erreur") }));
   return t;                       // t.warnings : réussie avec avertissements (consulter le journal de la tâche)
 }
 

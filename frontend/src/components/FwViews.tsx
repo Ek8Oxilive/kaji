@@ -3,7 +3,7 @@ import { isErr, type FwOptions, type FwPart, type FwRule } from "../lib/types/re
 import { Notice } from "./ui";
 
 import { tr } from "../lib/i18n";
-export const yn = (v: boolean | null | undefined) => (v === null || v === undefined ? "–" : v ? "oui" : "non");
+export const yn = (v: boolean | null | undefined) => (v === null || v === undefined ? "–" : v ? tr("oui") : tr("non"));
 export const Table = ({ head, children }: { head: string[]; children: ReactNode }) => (
   <div className="overflow-x-auto rounded-xl border border-line"><table className="w-full min-w-[36rem] text-sm">
     <thead><tr className="border-b border-line text-left text-xs text-muted">{head.map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr></thead><tbody>{children}</tbody></table></div>
@@ -19,7 +19,7 @@ export function Rules({ rules }: { rules: FwPart<FwRule[]> }) {
         <tr key={r.pos} className={`border-b border-line/60 last:border-0 ${r.enable === false ? "opacity-50" : ""}`}>
           <td className="px-4 py-2 tabular-nums text-muted">{r.pos}</td><td className="px-4 py-2">{r.type ?? "–"}</td>
           <td className={`px-4 py-2 font-medium ${r.action === "ACCEPT" ? "text-ok" : r.action === "DROP" || r.action === "REJECT" ? "text-danger" : ""}`}>{r.action ?? "–"}</td>
-          <td className="px-4 py-2 text-muted">{r.source ?? "tous"}</td><td className="px-4 py-2 text-muted">{r.dest ?? "tous"}{r.dport ? `:${r.dport}` : ""}</td>
+          <td className="px-4 py-2 text-muted">{r.source ?? tr("tous")}</td><td className="px-4 py-2 text-muted">{r.dest ?? tr("tous")}{r.dport ? `:${r.dport}` : ""}</td>
           <td className="px-4 py-2 text-muted">{r.macro ?? r.proto ?? "–"}</td><td className="px-4 py-2 text-muted">{r.comment ?? ""}{r.enable === false ? tr(" (désactivée)") : ""}</td>
         </tr>))}
     </Table>

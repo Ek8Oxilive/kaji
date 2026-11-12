@@ -7,9 +7,9 @@ export class ApiError extends Error {
 
 function messageOf(body: unknown, status: number): string {
   const d = (body as { detail?: unknown } | null)?.detail;
-  if (typeof d === "string") return d;
+  if (typeof d === "string") return tr(d);               // message du serveur : traduit s'il figure dans en-server.json
   if (Array.isArray(d)) return d.map((e) => (e as { msg?: string }).msg ?? tr("Valeur invalide")).join(" · ");
-  return `Erreur ${status}`;
+  return tr("Erreur {status}", { status });
 }
 
 export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {

@@ -83,7 +83,7 @@ export function PruneDialog({ connId, node, storage, onClose }: { connId: number
       if (upid) {
         const t = await waitTask(connId, node, upid, LONG_TASK_SECONDS);
         if (!t) throw new Error(tr("L'élagage prend trop de temps (voir l'onglet Tâches)"));
-        if (!t.ok) throw new Error(tr("Élagage échoué ({p})", { p: t.exitstatus ?? "erreur" }));
+        if (!t.ok) throw new Error(tr("Élagage échoué ({p})", { p: t.exitstatus ?? tr("erreur") }));
       }
       refresh(); onClose();
     } catch (e) { setErr((e as Error).message); setBusy(false); }

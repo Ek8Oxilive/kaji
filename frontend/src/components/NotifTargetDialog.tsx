@@ -98,7 +98,7 @@ export function NotifTargetDialog({ connId, mode, onClose }: { connId: number; m
       </>}
       <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>{tr("Aperçu")}</button>
       {preview && <Notice kind="ok">{k === "delete" ? <>{tr("Sera supprimé :")}{" "}<code>{tg!.name}</code></> : k === "test" ? <>{tr("Un message de test partira vers")}{" "}<code>{tg!.name}</code> ({preview.sends_a_real_message ? tr("envoi réel") : ""}).</> :
-        <>{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
+        <>{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params ?? {}).map(([a, b]) => `${a}=${Array.isArray(b) ? b.join("|") : b}`).join(", ") || tr("rien")}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</>}</Notice>}
     </Modal>
   );
 }

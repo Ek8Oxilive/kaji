@@ -35,7 +35,7 @@ export function PermissionsTab({ connId, guest }: { connId: number; guest: Guest
               <tbody>{rows.map((a, i) => (
                 <tr key={`${a.path}-${a.ugid}-${a.roleid}-${i}`} className="border-t border-line/60">
                   <td className="px-4 py-2 font-mono">{a.ugid}</td>
-                  <td className="px-4 py-2 text-muted">{{ user: "utilisateur", group: "groupe", token: "token" }[a.type ?? ""] ?? a.type ?? "—"}</td>
+                  <td className="px-4 py-2 text-muted">{{ user: tr("utilisateur"), group: tr("groupe"), token: "token" }[a.type ?? ""] ?? a.type ?? "—"}</td>
                   <td className="px-4 py-2">{a.roleid}</td>
                   <td className="px-4 py-2 font-mono text-muted">{a.path}</td>
                   <td className="px-4 py-2 text-muted">{scope(a)}</td>

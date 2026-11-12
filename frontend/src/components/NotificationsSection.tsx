@@ -49,8 +49,8 @@ export function NotificationsSection({ connId }: { connId: number }) {
           <Table head={[tr("Nom"), tr("Condition"), tr("Cibles"), tr("État"), ""]}>{d.matchers.map((m) => (
             <tr key={m.name} className={`border-b border-line/60 last:border-0 align-top ${m.disable ? "opacity-60" : ""}`}>
               <td className="px-4 py-2 font-mono">{m.name}{m.builtin && <span className="ml-2 rounded bg-surface2 px-1.5 py-0.5 font-sans text-xs text-muted">{tr("intégrée")}</span>}</td>
-              <td className="px-4 py-2 text-xs text-muted">{[m.match_severity.length ? tr("gravité : {p}", { p: m.match_severity.join(", ") }) : null, ...m.match_field, ...m.match_calendar.map((c) => `quand : ${c}`)].filter(Boolean).join(" · ") || "tout"}
-                {" "}<span className="text-muted/70">({m.mode === "any" ? tr("une condition suffit") : "toutes"}{m.invert ? tr(", inversé") : ""})</span></td>
+              <td className="px-4 py-2 text-xs text-muted">{[m.match_severity.length ? tr("gravité : {p}", { p: m.match_severity.join(", ") }) : null, ...m.match_field, ...m.match_calendar.map((c) => `quand : ${c}`)].filter(Boolean).join(" · ") || tr("tout")}
+                {" "}<span className="text-muted/70">({m.mode === "any" ? tr("une condition suffit") : tr("toutes")}{m.invert ? tr(", inversé") : ""})</span></td>
               <td className="px-4 py-2 font-mono text-xs text-muted">{m.targets.join(", ") || "–"}</td>
               <td className="px-4 py-2 text-muted">{m.disable ? tr("désactivée") : "active"}</td>
               <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMmode({ kind: "edit", matcher: m })}>{tr("Modifier")}</button>{!m.builtin && <button className="text-danger underline" onClick={() => setMmode({ kind: "delete", matcher: m })}>{tr("Supprimer")}</button>}</td>

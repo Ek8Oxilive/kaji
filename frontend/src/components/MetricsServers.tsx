@@ -23,7 +23,7 @@ export function MetricsServers({ connId }: { connId: number }) {
           <tbody>{(q.data ?? []).map((r) => (
             <tr key={r.id} className={`border-b border-line/60 last:border-0 ${r.disable ? "opacity-60" : ""}`}>
               <td className="px-4 py-2 font-mono">{r.id}</td><td className="px-4 py-2 text-muted">{TYPE_LABEL[r.type]}</td><td className="px-4 py-2 font-mono text-muted">{r.server ?? "?"}:{r.port ?? "?"}</td>
-              <td className="px-4 py-2 text-muted">{r.disable ? tr("désactivé") : "actif"}</td>
+              <td className="px-4 py-2 text-muted">{r.disable ? tr("désactivé") : tr("actif")}</td>
               <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMode({ kind: "edit", row: r })}>{tr("Modifier")}</button><button className="text-danger underline" onClick={() => setMode({ kind: "delete", row: r })}>{tr("Supprimer")}</button></td>
             </tr>))}</tbody></table></div>)}
       {mode && <MetricsDialog connId={connId} mode={mode} onClose={() => setMode(null)} />}
@@ -111,7 +111,7 @@ function MetricsDialog({ connId, mode, onClose }: { connId: number; mode: Mode; 
       </>}
       <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>{tr("Aperçu")}</button>
       {preview && <div className="space-y-3 text-sm">
-        {k === "delete" ? <Notice kind="ok">{tr("Sera supprimé :")}{" "}<code>{row!.id}</code>.</Notice> : <Notice kind="ok">{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params).map(([a, b]) => `${a}=${b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</Notice>}
+        {k === "delete" ? <Notice kind="ok">{tr("Sera supprimé :")}{" "}<code>{row!.id}</code>.</Notice> : <Notice kind="ok">{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params).map(([a, b]) => `${a}=${b}`).join(", ") || tr("rien")}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</Notice>}
         {needs && <Notice kind="error">{tr("Les métriques de")}{" "}<b>{tr("tout le cluster")}</b>{" "}{tr("partiront vers ce serveur.")}<label className="mt-2 flex gap-2"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>{tr("Je comprends, c'est le serveur voulu")}</span></label></Notice>}
       </div>}
     </Modal>

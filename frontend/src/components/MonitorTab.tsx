@@ -38,7 +38,7 @@ export function MonitorTab({ connId, guest, running }: { connId: number; guest: 
       <div className="flex flex-wrap items-end gap-3">
         <label className="block min-w-60 flex-1 space-y-1.5"><span className="text-sm text-muted">{tr("Commande")}</span>
           <select className="field" value={command} onChange={(e) => setCommand(e.target.value)}>
-            {cmds.data.commands.map((c) => <option key={c.command} value={c.command}>{c.command} — {c.label}</option>)}
+            {cmds.data.commands.map((c) => <option key={c.command} value={c.command}>{c.command} — {tr(c.label)}</option>)}
           </select></label>
         <Button onClick={run} disabled={busy || !running}>{busy ? "…" : tr("Exécuter")}</Button>
       </div>
