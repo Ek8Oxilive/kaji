@@ -16,3 +16,9 @@ Comme dans l'interface de Proxmox : le navigateur enregistre le fichier, et **`v
 - Les refus de Proxmox (droit manquant…) deviennent un message fixe (502), comme pour toutes les routes.
 
 Interface : bouton **« SPICE (virt-viewer) »** de l'onglet Console (VM et conteneur) ; il enregistre `kaji-<type>-<vmid>.vv` et rappelle d'ouvrir le fichier aussitôt.
+
+## Vérifier sans virt-viewer (`tools/spice_check.py`)
+Client SPICE minimal (Python + `cryptography`) qui rejoue le début d'une connexion de `virt-viewer` : tunnel `CONNECT` par le proxy du nœud, TLS vérifié avec le `ca` et le `host-subject` du fichier, lien SPICE, authentification par le ticket, lecture du premier message du canal principal. Il n'affiche jamais le ticket et supprime le `.vv` dès qu'il est lu ; le ticket ne vaut que ~40 s, donc le lancer juste après avoir cliqué le bouton (`python3 tools/spice_check.py ~/Downloads/kaji-qemu-<vmid>.vv`).
+
+Remarque : Brave et Chrome gardent un fichier d'un type inconnu en « Non confirmé … .crdownload » tant qu'on n'a pas cliqué « Conserver » : son contenu est pourtant déjà complet.
+
