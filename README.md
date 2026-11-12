@@ -2,7 +2,7 @@
 
 Le gouvernail de ton homelab (« kaji » signifie gouvernail en japonais). Interface web moderne pour piloter un cluster Proxmox VE : supervision, création et gestion des VM/LXC, et paramétrage du cluster (stockage, sauvegardes, utilisateurs, réseau, firewall, HA).
 
-**Statut : en développement (jalon M1).** La feuille de route complète est dans [PLAN.md](PLAN.md).
+**Statut : candidat V1.** Les fonctions sont classées en « validé en réel », « expérimental » et « limites connues » dans [docs/statut-fonctions.md](docs/statut-fonctions.md) ; la revue de sécurité est dans [docs/securite.md](docs/securite.md) ; la feuille de route complète est dans [PLAN.md](PLAN.md).
 
 ## Fonctionnement
 - Au premier lancement, tu crées le compte admin du dashboard (mot de passe de 12 caractères minimum).
