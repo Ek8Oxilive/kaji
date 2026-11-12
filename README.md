@@ -788,6 +788,14 @@ Tout ce qui concerne un serveur Proxmox : supervision, système, services, disqu
 
 *Activer ou désactiver un dépôt de paquets demande une **confirmation** : Kaji relit les dépôts avant d'écrire et refuse si la configuration a bougé. Pour un dépôt « enterprise » sans abonnement, une case supplémentaire (« apt répondra 401 ») doit être cochée.*
 
+![Dépôts de paquets d'un nœud](docs/captures/noeud-depots-liste.jpg)
+
+*Section **Dépôts de paquets** : activer ou désactiver un dépôt existant, ajouter un dépôt standard de Proxmox, ou préparer un **dépôt personnalisé**.*
+
+![Dépôt apt personnalisé](docs/captures/noeud-depot-perso.jpg)
+
+*« Dépôt personnalisé… » : Proxmox ne sait pas écrire un dépôt libre, Kaji valide les champs et fabrique le fichier `.sources` et les commandes à **copier** dans la console du nœud (rien n'est envoyé à Proxmox). Les avertissements disent ce qui manque (ici : la clé de signature doit déjà exister sur le nœud).*
+
 ### Accès
 
 Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les pages « Connexions » et « Compte », qui touchent aux tokens et aux mots de passe, ne sont pas montrées.
