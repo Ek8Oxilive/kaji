@@ -87,7 +87,7 @@ def test_container_needs_no_display_card(api):
     assert not [x for x in CALLS if x[1].endswith("/config")]                      # la carte d'affichage ne concerne que les VM
 
 
-@pytest.mark.parametrize("cfg", [{}, {"vga": "std"}, {"vga": "vmware"}, {"vga": "serial0"}, {"vga": "virtio"}, {"name": "x"}])
+@pytest.mark.parametrize("cfg", [{}, {"vga": "std"}, {"vga": "vmware"}, {"vga": "serial0"}, {"vga": "virtio"}, {"name": "x"}, {"vga": "type=std"}, {"vga": "type=virtio,memory=32"}, {"vga": "memory=32"}, {"vga": "type=nopeqxl"}, {"vga": "clipboard=vnc"}, {"vga": 5}])
 def test_vm_without_qxl_is_refused_before_asking_proxmox(api, cfg):
     c, cid = api
     STATE["config"] = cfg
@@ -96,7 +96,7 @@ def test_vm_without_qxl_is_refused_before_asking_proxmox(api, cfg):
     assert not posts()
 
 
-@pytest.mark.parametrize("vga", ["qxl", "qxl2", "qxl3", "qxl4", "qxl,memory=64"])
+@pytest.mark.parametrize("vga", ["qxl", "qxl2", "qxl3", "qxl4", "qxl,memory=64", "type=qxl", "type=qxl2,memory=32", "type=qxl,clipboard=vnc"])      # « type=qxl » est la forme que Kaji écrit (constaté en réel)
 def test_every_qxl_variant_is_accepted(api, vga):
     c, cid = api
     STATE["config"] = {"vga": vga}

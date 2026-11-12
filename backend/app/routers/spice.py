@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
+from ..devicespec import parse_vga
 from ..deps import get_client_factory
 from ..models import AdminUser
 from ..spicespec import SpiceError, build_vv, proxy_host
@@ -37,8 +38,8 @@ async def open_spice(conn_id: int, node: str = Path(pattern=NODE), gtype: Litera
         refuse(409, "La machine doit être en marche (et ne pas être un modèle) pour ouvrir sa console")
     if gtype == "qemu":
         cfg = await _px(db, factory, conn_id, "get", f"/nodes/{node}/qemu/{vmid}/config", current=1)     # la configuration EN COURS d'utilisation
-        vga = cfg.get("vga") if isinstance(cfg, dict) else None
-        if not (isinstance(vga, str) and vga.split(",")[0].startswith("qxl")):
+        vga = parse_vga(cfg.get("vga")) if isinstance(cfg, dict) else None          # lit « qxl » comme « type=qxl,memory=32 » (la forme que Kaji écrit)
+        if not (vga and str(vga["type"] or "").startswith("qxl")):
             refuse(409, "Cette VM n'a pas de carte d'affichage SPICE (qxl) : choisis-la dans l'onglet Périphériques, puis redémarre la VM")
     params = {}
     proxy = proxy_host(conn.host)
