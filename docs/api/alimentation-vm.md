@@ -44,8 +44,9 @@ LXC, nom à retaper). **Une VM suspendue est `paused` dans la liste des machines
 « En pause » et l'écran propose **Reprendre** et **Forcer** (ni Redémarrer ni Éteindre) ; les cartes de la liste, la page du nœud, le filtre d'état et la
 palette gèrent aussi `paused` (ticket #201). La liste de Proxmox met 6 à 10 s à changer d'état : la page se rafraîchit à 0, 4, 9 et 15 s après une action.
 Les fenêtres de confirmation sont rendues dans `document.body` (portail) : dans la carte d'en-tête, leurs boutons passaient sous la carte Notes (#202) ;
-Entrée dans le champ du nom valide. Le texte de la conversion distingue VM (« disques ») et conteneur (« volume », #206). Pas encore dans le menu des cartes
-de la liste.
+Entrée dans le champ du nom valide. Le texte de la conversion distingue VM (« disques ») et conteneur (« volume », #206). 
+
+**Dans les cartes de la liste (lot #318, frontend seul)** : chaque carte d'une VM en marche, en pause ou d'une machine arrêtée a un repli « Plus d'actions » qui réutilise `PowerActions` (`fromList`) : suspendre, hiberner, réinitialiser (VM en marche), reprendre (VM en pause), convertir en modèle (machine arrêtée), avec les mêmes confirmations et garde-fous serveur. L'état vient de la liste : **aucune lecture `/power` par carte** (pas de requête de plus toutes les 8 s par machine). Un clic sur le repli n'ouvre pas la page de la machine.
 
 La page d'un **modèle** a une zone « Zone dangereuse » avec **Supprimer le modèle** (même fenêtre et même nom à retaper que pour une machine ordinaire,
 `DELETE …/guests/{node}/{type}/{vmid}`, #203).

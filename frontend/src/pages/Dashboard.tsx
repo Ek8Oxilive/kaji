@@ -200,7 +200,7 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
               {groupBy !== "none" && <h3 className="flex items-baseline gap-2 border-b border-line pb-1 text-sm font-semibold">{grp.label}<span className="font-normal text-muted">({grp.items.length})</span></h3>}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {grp.items.map((x, i) => (
-                  <GuestCard key={`${grp.key}/${guestKey(x)}`} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
+                  <GuestCard key={`${grp.key}/${guestKey(x)}`} connId={id} guest={x} index={i} status={effectiveStatus(x)} busyLabel={busy[guestKey(x)]}
                     onOpen={() => onOpenGuest(x)} onClone={() => setClone(x)}
                     onAction={(a) => a === "start" ? run(x, "start") : setPending({ guest: x, action: a })} />
                 ))}

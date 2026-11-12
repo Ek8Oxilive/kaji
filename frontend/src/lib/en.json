@@ -2255,5 +2255,6 @@
  "Autoriser le redémarrage": "Allow reboot",
  "Désactivé : un redémarrage lancé depuis le système invité arrête la machine. Risqué.": "Disabled: a reboot started from the guest system shuts the machine down. Risky.",
  "Disposition du clavier (console VNC)": "Keyboard layout (VNC console)",
- "Rarement nécessaire : le système invité gère son clavier.": "Rarely needed: the guest system handles its own keyboard."
+ "Rarement nécessaire : le système invité gère son clavier.": "Rarely needed: the guest system handles its own keyboard.",
+ "Plus d'actions": "More actions"
 }

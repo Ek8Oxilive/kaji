@@ -37,7 +37,7 @@ const templateText = (isVm: boolean) =>
  * Reset, suspendre, hiberner, reprendre (VM) et convertir en modèle (VM et LXC). Le serveur relit l'état de la machine et refuse si elle ne s'y prête pas.
  * `status` : état de la liste des machines (`running`, `stopped`, `paused`…), après les actions rapides.
  */
-export function PowerActions({ connId, guest, status, disabled }: { connId: number; guest: Guest; status: string | null; disabled: boolean }) {
+export function PowerActions({ connId, guest, status, disabled, fromList = false }: { connId: number; guest: Guest; status: string | null; disabled: boolean; fromList?: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [op, setOp] = useState<PowerOp | null>(null);
@@ -50,7 +50,7 @@ export function PowerActions({ connId, guest, status, disabled }: { connId: numb
   const listPaused = status === "paused";
   const running = status === "running";
   const base = `/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}`;
-  const state = useQuery({ queryKey: ["power", connId, guest.vmid], enabled: isVm && (running || listPaused) && !guest.template, refetchInterval: 8000,
+  const state = useQuery({ queryKey: ["power", connId, guest.vmid], enabled: !fromList && isVm && (running || listPaused) && !guest.template, refetchInterval: 8000,
     queryFn: () => api<PowerState>(`${base}/power`) });
   const paused = isVm && (listPaused || (running && state.data?.paused === true));
   const name = guest.name ?? "";
@@ -78,7 +78,7 @@ export function PowerActions({ connId, guest, status, disabled }: { connId: numb
   const t = op ? TEXT[op] : null;
   return (
     <>
-      {isVm && running && state.data !== undefined && !paused && <>{btn("suspend")}{btn("hibernate")}{btn("reset")}</>}
+      {isVm && running && (fromList || state.data !== undefined) && !paused && <>{btn("suspend")}{btn("hibernate")}{btn("reset")}</>}
       {paused && btn("resume")}
       {stopped && btn("template")}
       {/* Dans un portail : la carte d'en-tête crée son propre repère (animation), un `fixed` posé dedans passait sous la carte Notes (ticket #202). */}

@@ -2,11 +2,12 @@ import type { Guest, GuestAction } from "../lib/api";
 import { bytes, pct, uptime } from "../lib/format";
 import { guestHash } from "../lib/route";
 import { Gauge } from "./Gauge";
+import { PowerActions } from "./PowerActions";
 import { Button } from "./ui";
 
 import { tr } from "../lib/i18n";
-export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone, index }: {
-  guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onOpen: () => void; onClone: () => void; index: number;
+export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone, index, connId }: {
+  connId?: number | null; guest: Guest; status: string | null; busyLabel?: string; onAction: (a: GuestAction) => void; onOpen: () => void; onClone: () => void; index: number;
 }) {
   const running = status === "running";
   const stopped = status === "stopped";
@@ -20,7 +21,7 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
   return (
     // Un clic n'importe où sur la carte (hors boutons et liens) ouvre la page de la machine ; le nom est un vrai lien, pour le clavier.
     <article className="panel card-hover rise flex cursor-pointer flex-col gap-4 p-5" style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-      onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a")) onOpen(); }}>
+      onClick={(e) => { if (!(e.target as HTMLElement).closest("button, a, summary")) onOpen(); }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate font-semibold"><a href={guestHash(guest)} className="hover:underline focus-visible:underline">{guest.name ?? `#${guest.vmid}`}</a>{creating && <span className="ml-2 text-xs font-normal italic text-muted">{tr("(création en cours)")}</span>}</h3>
@@ -52,6 +53,13 @@ export function GuestCard({ guest, status, busyLabel, onAction, onOpen, onClone,
             {alive && <Button variant="danger" onClick={() => onAction("stop")} disabled={off} className="!px-3 !py-1.5" title={tr("Coupure brutale : arrête la machine sans la prévenir (risque de perte de données)")}>{tr("Forcer")}</Button>}
           </>}
         </div>
+        {/* Suspendre, hiberner, réinitialiser, reprendre (VM) et convertir en modèle : mêmes fenêtres et garde-fous que sur la page de la machine ; l'état vient de la liste (aucune lecture de plus). */}
+        {connId && !guest.template && !creating && ((guest.type === "qemu" && alive) || stopped) && (
+          <details className="text-xs">
+            <summary className="cursor-pointer select-none text-muted underline">{tr("Plus d'actions")}</summary>
+            <div className="flex flex-wrap gap-1.5 pt-2"><PowerActions connId={connId} guest={guest} status={status} disabled={off} fromList /></div>
+          </details>
+        )}
       </div>
     </article>
   );
