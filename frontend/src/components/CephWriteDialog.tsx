@@ -9,6 +9,7 @@ import { Modal } from "./Modal";
 import { useToast } from "./Toast";
 import { Field } from "./ui";
 
+import { tr } from "../lib/i18n";
 const warn = "rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn";
 const CLASSES = ["", "hdd", "ssd", "nvme"];
 
@@ -74,55 +75,55 @@ export function CephWriteDialog({ connId, spec, onClose }: { connId: number; spe
   const retypeOk = !osd || !risk || typed === dev;
   return (
     <Modal title={spec.title} subtitle={spec.subtitle} onClose={onClose} busy={busy} error={error} canSubmit={!!node && devOk && initOk && retypeOk}
-      submitLabel={risk ? "Confirmer" : spec.submitLabel} danger={!!risk || osd} onSubmit={() => send(!!risk)}>
+      submitLabel={risk ? tr("Confirmer") : spec.submitLabel} danger={!!risk || osd} onSubmit={() => send(!!risk)}>
       <UnvalidatedBanner />
       {spec.nodes && (
-        <label className="block space-y-1.5"><span className="text-sm text-muted">Nœud</span>
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Nœud")}</span>
           <select className="field" value={node} onChange={(e) => setNode(e.target.value)}>{spec.nodes.map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
       )}
       {init && (
         <>
           <div className="space-y-2 rounded-xl border border-line p-3 text-sm">
-            <p className="font-medium">Étape 1 : installer les paquets Ceph (si ce n'est pas fait)</p>
-            <p className="text-xs text-muted">Proxmox n'a pas d'API pour l'installation : elle se lance dans le shell du nœud (page du nœud, « Console du nœud »).</p>
-            <code className="block select-all rounded-lg bg-surface2 px-3 py-2 text-xs">pveceph install --repository no-subscription</code>
-            <p className="text-xs text-muted">Le dépôt « enterprise » exige un abonnement Proxmox ; « no-subscription » convient à un banc d'essai. {node && <a className="underline" href={`#/node/${node}`}>Ouvrir la page du nœud {node}</a>}</p>
+            <p className="font-medium">{tr("Étape 1 : installer les paquets Ceph (si ce n'est pas fait)")}</p>
+            <p className="text-xs text-muted">{tr("Proxmox n'a pas d'API pour l'installation : elle se lance dans le shell du nœud (page du nœud, « Console du nœud »).")}</p>
+            <code className="block select-all rounded-lg bg-surface2 px-3 py-2 text-xs">{tr("pveceph install --repository no-subscription")}</code>
+            <p className="text-xs text-muted">{tr("Le dépôt « enterprise » exige un abonnement Proxmox ; « no-subscription » convient à un banc d'essai.")}{" "}{node && <a className="underline" href={`#/node/${node}`}>{tr("Ouvrir la page du nœud {node}", { node })}</a>}</p>
           </div>
-          <p className="text-sm font-medium">Étape 2 : initialiser (cette fenêtre)</p>
-          <Field label="Réseau Ceph (CIDR)" value={network} onChange={(e) => setNetwork(e.target.value)} placeholder="10.10.10.0/24" autoFocus aria-invalid={network !== "" && !cidr.test(network)}
-            hint="Le réseau par lequel passe le trafic Ceph (de préférence un réseau privé dédié). Préfixe de /8 à /30." />
-          <Field label="Réseau de cluster (facultatif)" value={clusterNet} onChange={(e) => setClusterNet(e.target.value)} placeholder="10.20.20.0/24" aria-invalid={clusterNet !== "" && !cidr.test(clusterNet)}
-            hint="Réseau séparé pour la réplication entre OSD. Laisse vide pour n'en utiliser qu'un." />
+          <p className="text-sm font-medium">{tr("Étape 2 : initialiser (cette fenêtre)")}</p>
+          <Field label={tr("Réseau Ceph (CIDR)")} value={network} onChange={(e) => setNetwork(e.target.value)} placeholder="10.10.10.0/24" autoFocus aria-invalid={network !== "" && !cidr.test(network)}
+            hint={tr("Le réseau par lequel passe le trafic Ceph (de préférence un réseau privé dédié). Préfixe de /8 à /30.")} />
+          <Field label={tr("Réseau de cluster (facultatif)")} value={clusterNet} onChange={(e) => setClusterNet(e.target.value)} placeholder="10.20.20.0/24" aria-invalid={clusterNet !== "" && !cidr.test(clusterNet)}
+            hint={tr("Réseau séparé pour la réplication entre OSD. Laisse vide pour n'en utiliser qu'un.")} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Copies par défaut (size)" type="number" min={2} max={7} value={size} onChange={(e) => setSize(e.target.value)} />
-            <Field label="Copies minimales (min_size)" type="number" min={2} max={7} value={minSize} onChange={(e) => setMinSize(e.target.value)} hint="Au moins 2, et pas plus que size." />
+            <Field label={tr("Copies par défaut (size)")} type="number" min={2} max={7} value={size} onChange={(e) => setSize(e.target.value)} />
+            <Field label={tr("Copies minimales (min_size)")} type="number" min={2} max={7} value={minSize} onChange={(e) => setMinSize(e.target.value)} hint={tr("Au moins 2, et pas plus que size.")} />
           </div>
-          <p className="text-xs text-muted">Étape 3, après l'initialisation : créer le premier moniteur et le premier gestionnaire, puis des OSD et un pool.</p>
+          <p className="text-xs text-muted">{tr("Étape 3, après l'initialisation : créer le premier moniteur et le premier gestionnaire, puis des OSD et un pool.")}</p>
         </>
       )}
       {spec.extra === "mds" && (
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={hot} onChange={(e) => setHot(e.target.checked)} />
-          <span>MDS de secours « chaud »<span className="block text-xs text-muted">Suit de près le MDS actif pour reprendre plus vite.</span></span></label>
+          <span>{tr("MDS de secours « chaud »")}<span className="block text-xs text-muted">{tr("Suit de près le MDS actif pour reprendre plus vite.")}</span></span></label>
       )}
       {osd && (
         <>
-          <p className={warn}>Créer un OSD <strong>EFFACE ENTIÈREMENT le disque</strong>. Kaji refuse tout disque qui n'est pas dans la liste des disques inutilisés du nœud.</p>
-          <Field label="Disque" value={dev} onChange={(e) => setDev(e.target.value)} placeholder="/dev/sdb" autoFocus maxLength={69} aria-invalid={dev !== "" && !devOk}
-            hint={dev === "" || devOk ? "Chemin du disque sur ce nœud, par exemple /dev/sdb." : "Chemin invalide : il doit ressembler à /dev/sdb."} />
+          <p className={warn}>{tr("Créer un OSD")}{" "}<strong>{tr("EFFACE ENTIÈREMENT le disque")}</strong>{tr(". Kaji refuse tout disque qui n'est pas dans la liste des disques inutilisés du nœud.")}</p>
+          <Field label={tr("Disque")} value={dev} onChange={(e) => setDev(e.target.value)} placeholder={tr("/dev/sdb")} autoFocus maxLength={69} aria-invalid={dev !== "" && !devOk}
+            hint={dev === "" || devOk ? tr("Chemin du disque sur ce nœud, par exemple /dev/sdb.") : tr("Chemin invalide : il doit ressembler à /dev/sdb.")} />
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={encrypted} onChange={(e) => setEncrypted(e.target.checked)} />
-            <span>Chiffrer l'OSD<span className="block text-xs text-muted">Les données du disque sont chiffrées au repos.</span></span></label>
-          <label className="block space-y-1.5"><span className="text-sm text-muted">Classe de disque</span>
-            <select className="field" value={cls} onChange={(e) => setCls(e.target.value)}>{CLASSES.map((c) => <option key={c} value={c}>{c || "Détectée automatiquement"}</option>)}</select></label>
+            <span>{tr("Chiffrer l'OSD")}<span className="block text-xs text-muted">{tr("Les données du disque sont chiffrées au repos.")}</span></span></label>
+          <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Classe de disque")}</span>
+            <select className="field" value={cls} onChange={(e) => setCls(e.target.value)}>{CLASSES.map((c) => <option key={c} value={c}>{c || tr("Détectée automatiquement")}</option>)}</select></label>
         </>
       )}
       {risk && (
         <div className={`${warn} space-y-2`} role="alert">
-          <p className="font-medium">Confirmation requise</p>
+          <p className="font-medium">{tr("Confirmation requise")}</p>
           <ul className="list-disc space-y-1 pl-5">{risk.map((r) => <li key={r}>{r}</li>)}</ul>
-          {osd && <Field label={`Retape « ${dev} » pour confirmer`} value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus autoComplete="off" />}
-          <p>{osd ? "Le bouton « Confirmer » s'active quand le nom du disque est identique." : "Clique sur « Confirmer » pour continuer, ou annule."}</p>
+          {osd && <Field label={tr("Retape « {dev} » pour confirmer", { dev })} value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus autoComplete="off" />}
+          <p>{osd ? tr("Le bouton « Confirmer » s'active quand le nom du disque est identique.") : tr("Clique sur « Confirmer » pour continuer, ou annule.")}</p>
         </div>
       )}
     </Modal>

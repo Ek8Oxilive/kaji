@@ -9,6 +9,7 @@ import { PoolField } from "./PoolField";
 import { useToast } from "./Toast";
 import { Field } from "./ui";
 
+import { tr } from "../lib/i18n";
 export function CloneDialog({ connId, guest, nodes, onClose }: { connId: number; guest: Guest; nodes: NodeInfo[]; onClose: () => void }) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -33,40 +34,40 @@ export function CloneDialog({ connId, guest, nodes, onClose }: { connId: number;
     ...(full && storage ? { storage } : {}), ...(pool ? { pool } : {}), description };
 
   return (
-    <Modal title={guest.template ? `Créer depuis le modèle « ${guest.name} »` : `Cloner « ${guest.name ?? guest.vmid} »`} subtitle={`Source : #${guest.vmid} · ${lxc ? "LXC" : "VM"} · ${guest.node}`}
-      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Cloner"
+    <Modal title={guest.template ? tr("Créer depuis le modèle « {name} »", { name: guest.name }) : tr("Cloner « {p} »", { p: guest.name ?? guest.vmid })} subtitle={tr("Source : #{vmid} · {p} · {node}", { vmid: guest.vmid, p: lxc ? "LXC" : "VM", node: guest.node })}
+      onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Cloner")}
       onSubmit={() => run(async () => {
-        await runTask(connId, guest.node, () => api(`${base}/guests/${guest.node}/${guest.type}/${guest.vmid}/clone`, { method: "POST", body }), "Clonage", LONG_TASK_SECONDS);
-        toast("ok", `« ${name} » créée (#${id})`);
+        await runTask(connId, guest.node, () => api(`${base}/guests/${guest.node}/${guest.type}/${guest.vmid}/clone`, { method: "POST", body }), tr("Clonage"), LONG_TASK_SECONDS);
+        toast("ok", tr("« {name} » créée (#{id})", { name, id }));
         await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] });
       })}>
       <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-        <Field label={lxc ? "Nom d'hôte" : "Nom"} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <Field label="Identifiant" type="number" min={100} value={id} onChange={(e) => setNewid(e.target.value)} hint={nextId.data ? `Libre : ${nextId.data.vmid}` : undefined} />
+        <Field label={lxc ? tr("Nom d'hôte") : tr("Nom")} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <Field label={tr("Identifiant")} type="number" min={100} value={id} onChange={(e) => setNewid(e.target.value)} hint={nextId.data ? tr("Libre : {vmid}", { vmid: nextId.data.vmid }) : undefined} />
       </div>
       <label className="block space-y-1.5">
-        <span className="text-sm text-muted">Nœud de destination</span>
-        <select className="field" value={target} onChange={(e) => { setTarget(e.target.value); setStorage(""); }}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}{n.node === guest.node ? " (même nœud)" : ""}</option>)}</select>
+        <span className="text-sm text-muted">{tr("Nœud de destination")}</span>
+        <select className="field" value={target} onChange={(e) => { setTarget(e.target.value); setStorage(""); }}>{nodes.map((n) => <option key={n.node} value={n.node}>{n.node}{n.node === guest.node ? tr(" (même nœud)") : ""}</option>)}</select>
       </label>
-      <fieldset className="space-y-2" aria-label="Mode de clonage">
+      <fieldset className="space-y-2" aria-label={tr("Mode de clonage")}>
         <label className="flex items-start gap-2 text-sm"><input type="radio" name="mode" className="mt-0.5 size-4 accent-[var(--accent)]" checked={full} onChange={() => setFull(true)} />
-          <span>Clone complet <span className="block text-xs text-muted">Copie tous les disques : indépendant de la source, mais plus long et plus volumineux.</span></span></label>
+          <span>{tr("Clone complet")}{" "}<span className="block text-xs text-muted">{tr("Copie tous les disques : indépendant de la source, mais plus long et plus volumineux.")}</span></span></label>
         <label className={`flex items-start gap-2 text-sm ${guest.template ? "" : "opacity-50"}`}><input type="radio" name="mode" className="mt-0.5 size-4 accent-[var(--accent)]" checked={!full} disabled={!guest.template} onChange={() => { setFull(false); setStorage(""); }} />
-          <span>Clone lié <span className="block text-xs text-muted">{guest.template ? "Instantané et léger, mais dépend du modèle (ne pas le supprimer)." : "Réservé aux modèles."}</span></span></label>
+          <span>{tr("Clone lié")}{" "}<span className="block text-xs text-muted">{guest.template ? tr("Instantané et léger, mais dépend du modèle (ne pas le supprimer).") : tr("Réservé aux modèles.")}</span></span></label>
       </fieldset>
       {full && (
         <label className="block space-y-1.5">
-          <span className="text-sm text-muted">Stockage de destination</span>
+          <span className="text-sm text-muted">{tr("Stockage de destination")}</span>
           <select className="field" value={storage} onChange={(e) => setStorage(e.target.value)}>
-            <option value="">Même stockage que la source</option>
+            <option value="">{tr("Même stockage que la source")}</option>
             {stores.data?.map((s) => <option key={s.storage} value={s.storage} disabled={!s.active}>{s.storage}{s.type ? ` (${s.type})` : ""}{s.avail ? ` · ${bytes(s.avail)} libres` : ""}</option>)}
           </select>
         </label>
       )}
       <PoolField connId={connId} value={pool} onChange={setPool} />
-      <Field label="Description (facultatif)" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
-      {guest.status === "running" && !guest.template && <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">La machine est en marche : la copie sera celle d'un instant donné, comme après une coupure de courant. Pour une copie fiable, éteins-la d'abord.</p>}
-      {busy && <p className="text-sm text-muted">Clonage en cours, cela peut prendre du temps selon la taille des disques…</p>}
+      <Field label={tr("Description (facultatif)")} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />
+      {guest.status === "running" && !guest.template && <p className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">{tr("La machine est en marche : la copie sera celle d'un instant donné, comme après une coupure de courant. Pour une copie fiable, éteins-la d'abord.")}</p>}
+      {busy && <p className="text-sm text-muted">{tr("Clonage en cours, cela peut prendre du temps selon la taille des disques…")}</p>}
     </Modal>
   );
 }

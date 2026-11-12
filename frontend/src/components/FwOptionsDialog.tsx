@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { Modal } from "./Modal";
 import { Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const PHRASE = "COUPURE POSSIBLE";
 type Level = "cluster" | "node" | "guest";
 type Tri = "" | "yes" | "no";
@@ -51,38 +52,38 @@ export function FwOptionsDialog({ connId, node, onClose, guest, startAt }: { con
   const cut = !!preview?.locks.cut.length, live = !!preview?.locks.live.length;
   const ready = !!preview && (!cut || (ackCut && typed === PHRASE)) && (!live || cut || ackLive);
 
-  const tri = (label: string, v: Tri, set: (t: Tri) => void, yes = "Activer", no = "Désactiver") => (
+  const tri = (label: string, v: Tri, set: (t: Tri) => void, yes = "Activer", no = tr("Désactiver")) => (
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span>
-      <select className="field" value={v} onChange={(e) => set(e.target.value as Tri)}><option value="">Ne pas changer</option><option value="yes">{yes}</option><option value="no">{no}</option></select></label>);
+      <select className="field" value={v} onChange={(e) => set(e.target.value as Tri)}><option value="">{tr("Ne pas changer")}</option><option value="yes">{yes}</option><option value="no">{no}</option></select></label>);
   const pick = (label: string, v: string, set: (s: string) => void, opts: string[]) => (
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span>
-      <select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map((o) => <option key={o} value={o}>{o || "Ne pas changer"}</option>)}</select></label>);
+      <select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map((o) => <option key={o} value={o}>{o || tr("Ne pas changer")}</option>)}</select></label>);
 
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">Options du pare-feu enregistrées ({level === "guest" ? `machine ${guest!.vmid}` : level === "cluster" ? "datacenter" : node}). Relues chez Proxmox.</Notice></Modal>;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{tr("Options du pare-feu enregistrées ({p}). Relues chez Proxmox.", { p: level === "guest" ? `machine ${guest!.vmid}` : level === "cluster" ? "datacenter" : node })}</Notice></Modal>;
   return (
-    <Modal title="Options du pare-feu" subtitle="Les modifications dangereuses sont verrouillées : l'aperçu dit pourquoi, et rien n'est écrit sans ton accord explicite." onClose={busy ? () => {} : onClose}
-      onSubmit={run} submitLabel="Appliquer" danger={cut || live} busy={busy} error={err} canSubmit={ready}>
-      {guest ? <p className="text-sm text-muted">Machine {guest.gtype === "qemu" ? "VM" : "LXC"} {guest.vmid} sur {node}.</p> : <label className="block space-y-1 text-sm"><span className="text-muted">Niveau</span>
-        <select className="field" value={level} onChange={(e) => setLevel(e.target.value as Level)}><option value="cluster">Datacenter</option><option value="node">Nœud {node}</option></select></label>}
-      {tri("Pare-feu", enable, setEnable, "Activer (filtre tout de suite)", "Désactiver")}
+    <Modal title={tr("Options du pare-feu")} subtitle={tr("Les modifications dangereuses sont verrouillées : l'aperçu dit pourquoi, et rien n'est écrit sans ton accord explicite.")} onClose={busy ? () => {} : onClose}
+      onSubmit={run} submitLabel={tr("Appliquer")} danger={cut || live} busy={busy} error={err} canSubmit={ready}>
+      {guest ? <p className="text-sm text-muted">{tr("Machine {p} {vmid} sur {node}.", { p: guest.gtype === "qemu" ? "VM" : "LXC", vmid: guest.vmid, node })}</p> : <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Niveau")}</span>
+        <select className="field" value={level} onChange={(e) => setLevel(e.target.value as Level)}><option value="cluster">{tr("Datacenter")}</option><option value="node">{tr("Nœud {node}", { node })}</option></select></label>}
+      {tri("Pare-feu", enable, setEnable, tr("Activer (filtre tout de suite)"), tr("Désactiver"))}
       {level === "guest" ? <>
-        {pick("Politique entrante par défaut", pin, setPin, POLICIES)}{pick("Politique sortante par défaut", pout, setPout, POLICIES)}
-        {pick("Journal des paquets entrants", lin, setLin, LOGS)}{pick("Journal des paquets sortants", lout, setLout, LOGS)}
-        {tri("Client DHCP autorisé", dhcp, setDhcp, "Autoriser", "Interdire")}{tri("Filtre d'adresses IP (ipfilter)", ipfilter, setIpfilter)}{tri("Filtre d'adresses MAC", macfilter, setMacfilter)}
-        {tri("NDP (IPv6)", ndp, setNdp, "Autoriser", "Interdire")}{tri("Annonces de routeur (radv)", radv, setRadv, "Autoriser", "Interdire")}
+        {pick(tr("Politique entrante par défaut"), pin, setPin, POLICIES)}{pick(tr("Politique sortante par défaut"), pout, setPout, POLICIES)}
+        {pick(tr("Journal des paquets entrants"), lin, setLin, LOGS)}{pick(tr("Journal des paquets sortants"), lout, setLout, LOGS)}
+        {tri(tr("Client DHCP autorisé"), dhcp, setDhcp, tr("Autoriser"), tr("Interdire"))}{tri("Filtre d'adresses IP (ipfilter)", ipfilter, setIpfilter)}{tri("Filtre d'adresses MAC", macfilter, setMacfilter)}
+        {tri("NDP (IPv6)", ndp, setNdp, tr("Autoriser"), tr("Interdire"))}{tri(tr("Annonces de routeur (radv)"), radv, setRadv, tr("Autoriser"), tr("Interdire"))}
       </> : level === "cluster" ? <>
-        {pick("Politique entrante par défaut", pin, setPin, POLICIES)}{pick("Politique sortante par défaut", pout, setPout, POLICIES)}{pick("Politique de transfert par défaut", pfwd, setPfwd, FORWARD)}{tri("ebtables", ebtables, setEbtables)}
+        {pick(tr("Politique entrante par défaut"), pin, setPin, POLICIES)}{pick(tr("Politique sortante par défaut"), pout, setPout, POLICIES)}{pick(tr("Politique de transfert par défaut"), pfwd, setPfwd, FORWARD)}{tri("ebtables", ebtables, setEbtables)}
       </> : <>
-        {pick("Journal des paquets entrants", lin, setLin, LOGS)}{pick("Journal des paquets sortants", lout, setLout, LOGS)}{tri("Protection nosmurfs", nosmurfs, setNosmurfs)}{tri("Filtre des drapeaux TCP", tcpflags, setTcpflags)}
+        {pick(tr("Journal des paquets entrants"), lin, setLin, LOGS)}{pick(tr("Journal des paquets sortants"), lout, setLout, LOGS)}{tri(tr("Protection nosmurfs"), nosmurfs, setNosmurfs)}{tri(tr("Filtre des drapeaux TCP"), tcpflags, setTcpflags)}
       </>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!changed} onClick={look}>Aperçu des verrous</button>
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!changed} onClick={look}>{tr("Aperçu des verrous")}</button>
       {preview && (
         <div className="space-y-3 text-sm">
-          {preview.locks.inert && <Notice kind="ok">Aucun verrou : ce niveau est désactivé, les réglages s'appliqueront à son activation.</Notice>}
-          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>Je comprends que la modification s'applique tout de suite</span></label></Notice>}
-          {cut && <Notice kind="error"><b>Coupure d'accès possible</b> : {preview.locks.cut.join(" ; ")}.
-            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>Je comprends que cela peut couper l'accès à Proxmox et à Kaji</span></label>
-            <label className="mt-2 block text-xs">Retape <code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
+          {preview.locks.inert && <Notice kind="ok">{tr("Aucun verrou : ce niveau est désactivé, les réglages s'appliqueront à son activation.")}</Notice>}
+          {live && !cut && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>{tr("Je comprends que la modification s'applique tout de suite")}</span></label></Notice>}
+          {cut && <Notice kind="error"><b>{tr("Coupure d'accès possible")}</b> : {preview.locks.cut.join(" ; ")}.
+            <label className="mt-2 flex gap-2"><input type="checkbox" checked={ackCut} onChange={(e) => setAckCut(e.target.checked)} /><span>{tr("Je comprends que cela peut couper l'accès à Proxmox et à Kaji")}</span></label>
+            <label className="mt-2 block text-xs">{tr("Retape")}{" "}<code>{PHRASE}</code><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label></Notice>}
         </div>)}
     </Modal>
   );

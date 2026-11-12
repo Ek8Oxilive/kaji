@@ -6,19 +6,20 @@ import type { HotplugFeature, VmBoolKey, VmOptionKey, VmOptionsPatch, VmOptionsR
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const OSTYPES = ["l26", "l24", "win11", "win10", "win8", "win7", "wvista", "w2k8", "w2k3", "w2k", "wxp", "solaris", "other"];
 const HOTPLUG: HotplugFeature[] = ["disk", "network", "usb", "memory", "cpu", "cloudinit"];
 const HOTPLUG_DEFAULT: HotplugFeature[] = ["disk", "network", "usb"];
 // `def` : valeur appliquée par Proxmox quand le réglage est absent (affichée tant qu'il n'est pas défini).
 const BOOLS: { key: VmBoolKey; label: string; hint: string; def: boolean }[] = [
-  { key: "onboot", label: "Démarrer au démarrage du nœud", hint: "Lance la machine quand le nœud démarre.", def: false },
-  { key: "protection", label: "Protection contre la suppression", hint: "Proxmox refuse alors de supprimer la machine ou ses disques.", def: false },
-  { key: "tablet", label: "Tablette USB", hint: "Pointeur absolu : utile pour la console graphique.", def: true },
-  { key: "numa", label: "NUMA", hint: "Répartition de la mémoire sur plusieurs processeurs.", def: false },
-  { key: "localtime", label: "Horloge en heure locale", hint: "Par défaut pour Windows.", def: false },
-  { key: "acpi", label: "ACPI", hint: "Arrêt et redémarrage propres depuis Proxmox. Le désactiver est risqué.", def: true },
-  { key: "kvm", label: "Virtualisation matérielle (KVM)", hint: "La désactiver rend la machine très lente.", def: true },
-  { key: "freeze", label: "Geler le processeur au démarrage", hint: "La machine ne s'exécute pas tant qu'on ne la relance pas. Risqué.", def: false },
+  { key: "onboot", get label() { return tr("Démarrer au démarrage du nœud"); }, get hint() { return tr("Lance la machine quand le nœud démarre."); }, def: false },
+  { key: "protection", get label() { return tr("Protection contre la suppression"); }, get hint() { return tr("Proxmox refuse alors de supprimer la machine ou ses disques."); }, def: false },
+  { key: "tablet", label: "Tablette USB", get hint() { return tr("Pointeur absolu : utile pour la console graphique."); }, def: true },
+  { key: "numa", label: "NUMA", get hint() { return tr("Répartition de la mémoire sur plusieurs processeurs."); }, def: false },
+  { key: "localtime", get label() { return tr("Horloge en heure locale"); }, get hint() { return tr("Par défaut pour Windows."); }, def: false },
+  { key: "acpi", label: "ACPI", get hint() { return tr("Arrêt et redémarrage propres depuis Proxmox. Le désactiver est risqué."); }, def: true },
+  { key: "kvm", get label() { return tr("Virtualisation matérielle (KVM)"); }, get hint() { return tr("La désactiver rend la machine très lente."); }, def: true },
+  { key: "freeze", get label() { return tr("Geler le processeur au démarrage"); }, get hint() { return tr("La machine ne s'exécute pas tant qu'on ne la relance pas. Risqué."); }, def: false },
 ];
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
 const intOk = (s: string, max: number) => s.trim() === "" || (/^\d+$/.test(s.trim()) && Number(s) <= max);
@@ -78,11 +79,11 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
   useEffect(() => { setRisk(null); }, [patchKey]);
 
   const save = async (confirm: boolean) => {
-    if (!patch) return setErr("Aucune modification.");
+    if (!patch) return setErr(tr("Aucune modification."));
     setBusy(true); setErr(null);
     try {
       await api<VmOptionsResult>(base, { method: "PATCH", body: { ...patch, ...(confirm ? { confirm: true } : {}) } });
-      toast("ok", "Enregistré : certains réglages ne s'appliquent qu'au prochain démarrage de la VM");
+      toast("ok", tr("Enregistré : certains réglages ne s'appliquent qu'au prochain démarrage de la VM"));
       await qc.invalidateQueries({ queryKey: qk });
     } catch (e) {
       const reasons = !confirm ? confirmReasons(e) : null;
@@ -91,26 +92,26 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
   };
 
   if (isLoading) return <div className="panel h-40 animate-pulse" />;
-  if (error || !data) return <Notice kind="error">{(error as Error | null)?.message ?? "Options illisibles"} — <button className="underline" onClick={() => refetch()}>réessayer</button></Notice>;
+  if (error || !data) return <Notice kind="error">{(error as Error | null)?.message ?? tr("Options illisibles")} — <button className="underline" onClick={() => refetch()}>{tr("réessayer")}</button></Notice>;
   const o = data.options;
   const defBtn = (k: VmOptionKey, isSet: boolean) => isSet
-    ? <button type="button" className="text-xs text-muted underline" onClick={() => toggleClear(k)}>{cleared.has(k) ? "Annuler" : "Valeur par défaut"}</button> : null;
+    ? <button type="button" className="text-xs text-muted underline" onClick={() => toggleClear(k)}>{cleared.has(k) ? tr("Annuler") : tr("Valeur par défaut")}</button> : null;
   const box = "mt-0.5 size-4 accent-[var(--accent)]";
 
   return (
     <div className="space-y-5">
-      {data.pending.length > 0 && <Notice kind="ok">Changements en attente (appliqués au prochain démarrage) : {data.pending.map((p) => p.key).join(", ")}.</Notice>}
+      {data.pending.length > 0 && <Notice kind="ok">{tr("Changements en attente (appliqués au prochain démarrage) : {p}.", { p: data.pending.map((p) => p.key).join(", ") })}</Notice>}
       <div className="panel space-y-3 p-5">
-        <h3 className="font-semibold">Démarrage</h3>
+        <h3 className="font-semibold">{tr("Démarrage")}</h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Ordre" value={order} onChange={(e) => setOrder(e.target.value)} inputMode="numeric" placeholder="ex. 1" disabled={cleared.has("startup")} aria-invalid={!intOk(order, 9999)} hint="0 à 9999" />
-          <Field label="Attente après démarrage (s)" value={up} onChange={(e) => setUp(e.target.value)} inputMode="numeric" disabled={cleared.has("startup")} aria-invalid={!intOk(up, 86400)} />
-          <Field label="Attente à l'arrêt (s)" value={down} onChange={(e) => setDown(e.target.value)} inputMode="numeric" disabled={cleared.has("startup")} aria-invalid={!intOk(down, 86400)} />
+          <Field label={tr("Ordre")} value={order} onChange={(e) => setOrder(e.target.value)} inputMode="numeric" placeholder={tr("ex. 1")} disabled={cleared.has("startup")} aria-invalid={!intOk(order, 9999)} hint={tr("0 à 9999")} />
+          <Field label={tr("Attente après démarrage (s)")} value={up} onChange={(e) => setUp(e.target.value)} inputMode="numeric" disabled={cleared.has("startup")} aria-invalid={!intOk(up, 86400)} />
+          <Field label={tr("Attente à l'arrêt (s)")} value={down} onChange={(e) => setDown(e.target.value)} inputMode="numeric" disabled={cleared.has("startup")} aria-invalid={!intOk(down, 86400)} />
         </div>
         {defBtn("startup", o.startup !== null)}
       </div>
       <div className="panel space-y-3 p-5">
-        <h3 className="font-semibold">Réglages</h3>
+        <h3 className="font-semibold">{tr("Réglages")}</h3>
         {BOOLS.map((b) => (
           <div key={b.key} className="flex items-start justify-between gap-3">
             <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={bools[b.key] ?? b.def} disabled={cleared.has(b.key)}
@@ -121,19 +122,19 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
         ))}
       </div>
       <div className="panel space-y-3 p-5">
-        <h3 className="font-semibold">Système et agent</h3>
-        <label className="block space-y-1.5"><span className="text-sm text-muted">Système invité</span>
+        <h3 className="font-semibold">{tr("Système et agent")}</h3>
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Système invité")}</span>
           <select className="field" value={ostype} onChange={(e) => setOstype(e.target.value)} disabled={cleared.has("ostype")}>
-            <option value="">Non défini</option>{OSTYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+            <option value="">{tr("Non défini")}</option>{OSTYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
         {defBtn("ostype", o.ostype !== null)}
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={agent} disabled={cleared.has("agent")} onChange={(e) => setAgent(e.target.checked)} />
-          <span>Agent QEMU activé<span className="block text-xs text-muted">Le paquet qemu-guest-agent doit être installé dans la machine.</span></span></label>
+          <span>{tr("Agent QEMU activé")}<span className="block text-xs text-muted">{tr("Le paquet qemu-guest-agent doit être installé dans la machine.")}</span></span></label>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className={box} checked={fstrim} disabled={cleared.has("agent")} onChange={(e) => setFstrim(e.target.checked)} />
-          <span>Lancer fstrim sur les disques clonés</span></label>
+          <span>{tr("Lancer fstrim sur les disques clonés")}</span></label>
         {defBtn("agent", o.agent !== null)}
       </div>
       <div className="panel space-y-3 p-5">
-        <h3 className="font-semibold">Hotplug</h3>
+        <h3 className="font-semibold">{tr("Hotplug")}</h3>
         <div className="flex flex-wrap gap-4">
           {HOTPLUG.map((h) => <label key={h} className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-[var(--accent)]" checked={hot.includes(h)} disabled={cleared.has("hotplug")}
             onChange={(e) => setHot((s) => e.target.checked ? [...s, h] : s.filter((x) => x !== h))} />{h}</label>)}
@@ -141,17 +142,17 @@ export function OptionsTab({ connId, guest }: { connId: number; guest: Guest }) 
         {defBtn("hotplug", o.hotplug !== null)}
       </div>
       <div className="panel space-y-3 p-5">
-        <label className="block space-y-1.5"><span className="text-sm text-muted">Description</span>
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Description")}</span>
           <textarea className="field min-h-24" value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={8192} disabled={cleared.has("description")} /></label>
       </div>
       {risk && (
         <div className="space-y-2 rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn" role="alert">
-          <p className="font-medium">Confirmation requise</p>
+          <p className="font-medium">{tr("Confirmation requise")}</p>
           <ul className="list-disc space-y-1 pl-5">{risk.map((r) => <li key={r}>{r}</li>)}</ul>
         </div>
       )}
       {err && <Notice kind="error">{err}</Notice>}
-      <Button variant={risk ? "danger" : "primary"} onClick={() => save(!!risk)} disabled={busy || !patch || !valid}>{busy ? "…" : risk ? "Confirmer et enregistrer" : "Enregistrer"}</Button>
+      <Button variant={risk ? "danger" : "primary"} onClick={() => save(!!risk)} disabled={busy || !patch || !valid}>{busy ? "…" : risk ? tr("Confirmer et enregistrer") : tr("Enregistrer")}</Button>
     </div>
   );
 }

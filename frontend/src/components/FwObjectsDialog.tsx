@@ -4,10 +4,11 @@ import { ApiError, api } from "../lib/api";
 import { Modal } from "./Modal";
 import { Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Act = "alias-create" | "alias-update" | "alias-delete" | "ipset-create" | "ipset-delete" | "entry-add" | "entry-remove" | "group-create" | "group-delete";
 const LABEL: Record<Act, string> = {
-  "alias-create": "Créer un alias", "alias-update": "Modifier un alias", "alias-delete": "Supprimer un alias", "ipset-create": "Créer un IPSet", "ipset-delete": "Supprimer un IPSet",
-  "entry-add": "Ajouter une entrée à un IPSet", "entry-remove": "Retirer une entrée d'un IPSet", "group-create": "Créer un groupe de sécurité", "group-delete": "Supprimer un groupe de sécurité",
+  get "alias-create"() { return tr("Créer un alias"); }, get "alias-update"() { return tr("Modifier un alias"); }, get "alias-delete"() { return tr("Supprimer un alias"); }, get "ipset-create"() { return tr("Créer un IPSet"); }, get "ipset-delete"() { return tr("Supprimer un IPSet"); },
+  get "entry-add"() { return tr("Ajouter une entrée à un IPSet"); }, get "entry-remove"() { return tr("Retirer une entrée d'un IPSet"); }, get "group-create"() { return tr("Créer un groupe de sécurité"); }, get "group-delete"() { return tr("Supprimer un groupe de sécurité"); },
 };
 const NAME = /^[A-Za-z][A-Za-z0-9_-]{1,63}$/, GROUP = /^[A-Za-z][A-Za-z0-9_-]{1,17}$/;
 const ADDR = /^[0-9A-Fa-f:.]+(\/[0-9]{1,3})?$|^(dc\/|guest\/)?[A-Za-z][A-Za-z0-9_-]{1,63}$/;
@@ -53,23 +54,23 @@ export function FwObjectsDialog({ connId, onClose, guest }: { connId: number; on
     setBusy(false);
   };
 
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{LABEL[act]} : <code>{name}</code>. Relu chez Proxmox.</Notice></Modal>;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{LABEL[act]} : <code>{name}</code>{tr(". Relu chez Proxmox.")}</Notice></Modal>;
   return (
-    <Modal title="Objets du pare-feu" subtitle={`${guest ? `Machine ${guest.gtype === "qemu" ? "VM" : "LXC"} ${guest.vmid}` : "Datacenter"}. Une écriture à la fois ; Proxmox est relu après chaque écriture.`} onClose={busy ? () => {} : onClose} onSubmit={run}
-      submitLabel="Appliquer" danger={destructive || !!locked} busy={busy} error={err} canSubmit={valid && (!locked || ack)}>
-      <label className="block space-y-1 text-sm"><span className="text-muted">Action</span>
+    <Modal title={tr("Objets du pare-feu")} subtitle={tr("{p}. Une écriture à la fois ; Proxmox est relu après chaque écriture.", { p: guest ? `Machine ${guest.gtype === "qemu" ? "VM" : "LXC"} ${guest.vmid}` : tr("Datacenter") })} onClose={busy ? () => {} : onClose} onSubmit={run}
+      submitLabel={tr("Appliquer")} danger={destructive || !!locked} busy={busy} error={err} canSubmit={valid && (!locked || ack)}>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Action")}</span>
         <select className="field" value={act} onChange={(e) => reset(e.target.value as Act)}>{acts.map((a) => <option key={a} value={a}>{LABEL[a]}</option>)}</select></label>
-      <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? "Nom du groupe (18 caractères au plus)" : act.startsWith("entry") ? "IPSet" : "Nom"}</span>
+      <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? tr("Nom du groupe (18 caractères au plus)") : act.startsWith("entry") ? "IPSet" : tr("Nom")}</span>
         <input className="field" value={name} onChange={(e) => setName(e.target.value.trim())} autoComplete="off" /></label>
-      {needsCidr && <label className="block space-y-1 text-sm"><span className="text-muted">{act.startsWith("entry") ? "Adresse, réseau ou alias" : "Adresse ou réseau"}</span>
+      {needsCidr && <label className="block space-y-1 text-sm"><span className="text-muted">{act.startsWith("entry") ? tr("Adresse, réseau ou alias") : tr("Adresse ou réseau")}</span>
         <input className="field" value={cidr} onChange={(e) => setCidr(e.target.value.trim())} placeholder="192.168.1.0/24" autoComplete="off" /></label>}
-      {(act === "alias-create" || act === "alias-update" || act === "ipset-create" || act === "group-create" || act === "entry-add") && <label className="block space-y-1 text-sm"><span className="text-muted">Commentaire (facultatif)</span>
+      {(act === "alias-create" || act === "alias-update" || act === "ipset-create" || act === "group-create" || act === "entry-add") && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Commentaire (facultatif)")}</span>
         <input className="field" value={comment} maxLength={100} onChange={(e) => setComment(e.target.value)} autoComplete="off" /></label>}
-      {act === "entry-add" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={nomatch} onChange={(e) => setNomatch(e.target.checked)} /><span>Exclure (nomatch)</span></label>}
-      {act === "ipset-delete" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={members} onChange={(e) => setMembers(e.target.checked)} /><span>Supprimer aussi ses entrées s'il n'est pas vide</span></label>}
-      {fieldsOk && retype !== "" && <label className="block text-xs text-muted">Retape <code>{retype}</code> pour confirmer<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
+      {act === "entry-add" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={nomatch} onChange={(e) => setNomatch(e.target.checked)} /><span>{tr("Exclure (nomatch)")}</span></label>}
+      {act === "ipset-delete" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={members} onChange={(e) => setMembers(e.target.checked)} /><span>{tr("Supprimer aussi ses entrées s'il n'est pas vide")}</span></label>}
+      {fieldsOk && retype !== "" && <label className="block text-xs text-muted">{tr("Retape")}{" "}<code>{retype}</code>{" "}{tr("pour confirmer")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-1" /></label>}
       {locked && <Notice kind="error">{locked}
-        <label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>Je comprends que cela peut couper l'accès et je veux continuer</span></label></Notice>}
+        <label className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>{tr("Je comprends que cela peut couper l'accès et je veux continuer")}</span></label></Notice>}
     </Modal>
   );
 }

@@ -4,6 +4,7 @@ import { useToast } from "../components/Toast";
 import { api, type ClusterStatus, type Guest, type GuestAction, type NodeInfo } from "./api";
 import { waitTask } from "./tasks";
 
+import { tr } from "./i18n";
 const POLL_MS = 10_000; // Proxmox rafraîchit ses statistiques environ toutes les 10 s
 
 type Snapshot = { status: ClusterStatus; nodes: NodeInfo[]; guests: Guest[] };
@@ -44,10 +45,10 @@ export function useCluster(connId: number | null) {
 }
 
 export const LABELS: Record<GuestAction, { busy: string; done: string; expect: "running" | "stopped" }> = {
-  start: { busy: "Démarrage…", done: "démarrée", expect: "running" },
-  reboot: { busy: "Redémarrage…", done: "redémarrée", expect: "running" },
-  shutdown: { busy: "Extinction…", done: "éteinte", expect: "stopped" },
-  stop: { busy: "Arrêt forcé…", done: "arrêtée", expect: "stopped" },
+  start: { get busy() { return tr("Démarrage…"); }, get done() { return tr("démarrée"); }, expect: "running" },
+  reboot: { get busy() { return tr("Redémarrage…"); }, get done() { return tr("redémarrée"); }, expect: "running" },
+  shutdown: { get busy() { return tr("Extinction…"); }, get done() { return tr("éteinte"); }, expect: "stopped" },
+  stop: { get busy() { return tr("Arrêt forcé…"); }, get done() { return tr("arrêtée"); }, expect: "stopped" },
 };
 
 export const guestKey = (g: Pick<Guest, "node" | "type" | "vmid">) => `${g.node}/${g.type}/${g.vmid}`;
@@ -75,7 +76,7 @@ export function useGuestActions(connId: number | null) {
         toast("ok", `${label} ${LABELS[action].done}`);
         setOverrides((o) => ({ ...o, [key]: { status: LABELS[action].expect, until: Date.now() + 22_000 } }));
       } else {
-        toast("error", task ? `${label} : la tâche a échoué (${task.exitstatus ?? "erreur"})` : `${label} : la tâche prend trop de temps`);
+        toast("error", task ? tr("{label} : la tâche a échoué ({p})", { label, p: task.exitstatus ?? "erreur" }) : tr("{label} : la tâche prend trop de temps", { label }));
       }
     } catch (e) {
       toast("error", `${label} : ${(e as Error).message}`);

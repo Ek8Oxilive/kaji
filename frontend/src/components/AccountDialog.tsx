@@ -5,6 +5,7 @@ import { useSubmit } from "./HardwareDialogs";
 import { useToast } from "./Toast";
 import { Button, Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 /** Compte administrateur : changer le mot de passe, couper toutes les sessions. Aucun mot de passe n'est conservé ailleurs que dans l'état du formulaire. */
 export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; onLoggedOut: () => void }) {
   const toast = useToast();
@@ -24,7 +25,7 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
   const change = () => run(async () => {
     await api("/api/auth/password", { method: "POST", body: { current_password: current, new_password: next } });
     setCurrent(""); setNext(""); setConfirm("");
-    toast("ok", "Mot de passe changé : les autres sessions ont été déconnectées");
+    toast("ok", tr("Mot de passe changé : les autres sessions ont été déconnectées"));
   });
 
   const logoutAll = async () => {
@@ -34,21 +35,21 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
   };
 
   return (
-    <Modal title="Compte" subtitle="Administrateur du dashboard" onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Changer le mot de passe" onSubmit={change}>
-      <Field label="Mot de passe actuel" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" autoFocus />
-      <Field label="Nouveau mot de passe" type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" hint="12 caractères minimum" />
-      <Field label="Confirmer le nouveau mot de passe" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
-      {tooShort && <p className="text-sm text-danger">Au moins 12 caractères.</p>}
-      {same && <p className="text-sm text-danger">Le nouveau mot de passe doit différer de l'actuel.</p>}
-      {mismatch && <p className="text-sm text-danger">Les deux mots de passe ne correspondent pas.</p>}
+    <Modal title={tr("Compte")} subtitle={tr("Administrateur du dashboard")} onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Changer le mot de passe")} onSubmit={change}>
+      <Field label={tr("Mot de passe actuel")} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" autoFocus />
+      <Field label={tr("Nouveau mot de passe")} type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" hint={tr("12 caractères minimum")} />
+      <Field label={tr("Confirmer le nouveau mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
+      {tooShort && <p className="text-sm text-danger">{tr("Au moins 12 caractères.")}</p>}
+      {same && <p className="text-sm text-danger">{tr("Le nouveau mot de passe doit différer de l'actuel.")}</p>}
+      {mismatch && <p className="text-sm text-danger">{tr("Les deux mots de passe ne correspondent pas.")}</p>}
 
       <div className="space-y-2 border-t border-line pt-4">
-        <h3 className="text-sm font-semibold">Sessions</h3>
-        <p className="text-sm text-muted">Déconnecte tous les navigateurs et appareils connectés, y compris celui-ci. Utile si tu penses qu'un accès a fuité.</p>
+        <h3 className="text-sm font-semibold">{tr("Sessions")}</h3>
+        <p className="text-sm text-muted">{tr("Déconnecte tous les navigateurs et appareils connectés, y compris celui-ci. Utile si tu penses qu'un accès a fuité.")}</p>
         {allError && <Notice kind="error">{allError}</Notice>}
         {askAll
-          ? <div className="flex gap-2"><Button type="button" variant="danger" disabled={allBusy} onClick={logoutAll}>{allBusy ? "…" : "Confirmer : tout déconnecter"}</Button><Button type="button" variant="ghost" onClick={() => setAskAll(false)}>Annuler</Button></div>
-          : <Button type="button" variant="ghost" onClick={() => setAskAll(true)}>Déconnecter toutes les sessions</Button>}
+          ? <div className="flex gap-2"><Button type="button" variant="danger" disabled={allBusy} onClick={logoutAll}>{allBusy ? "…" : tr("Confirmer : tout déconnecter")}</Button><Button type="button" variant="ghost" onClick={() => setAskAll(false)}>{tr("Annuler")}</Button></div>
+          : <Button type="button" variant="ghost" onClick={() => setAskAll(true)}>{tr("Déconnecter toutes les sessions")}</Button>}
       </div>
     </Modal>
   );

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api, type Guest } from "../lib/api";
 import { Button, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 const TAG = /^[a-z0-9_][a-z0-9_\-+.]{0,31}$/;
 
 /** Étiquettes d'une machine : puces + éditeur. Le serveur valide à nouveau (motif, 20 au plus) et ne touche à aucune autre option. */
@@ -19,7 +20,7 @@ export function GuestTags({ connId, guest }: { connId: number; guest: Guest }) {
   const add = () => {
     const t = text.trim().toLowerCase();
     if (!t) return;
-    if (!TAG.test(t)) { setErr("Étiquette invalide : lettres minuscules, chiffres, _ - + . (32 caractères au plus)."); return; }
+    if (!TAG.test(t)) { setErr(tr("Étiquette invalide : lettres minuscules, chiffres, _ - + . (32 caractères au plus).")); return; }
     setErr(null); setText("");
     if (!draft.includes(t)) setDraft([...draft, t].sort());
   };
@@ -35,17 +36,17 @@ export function GuestTags({ connId, guest }: { connId: number; guest: Guest }) {
   const chip = "rounded-md border border-line px-2 py-0.5 text-xs";
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5" aria-label="Étiquettes">
+    <div className="flex flex-wrap items-center gap-1.5" aria-label={tr("Étiquettes")}>
       {!edit ? <>
-        {tags.length === 0 && <span className="text-xs text-muted">Aucune étiquette</span>}
+        {tags.length === 0 && <span className="text-xs text-muted">{tr("Aucune étiquette")}</span>}
         {tags.map((t) => <span key={t} className={chip}>{t}</span>)}
-        <Button variant="ghost" className="!px-2 !py-0.5 text-xs" onClick={start}>Modifier</Button>
+        <Button variant="ghost" className="!px-2 !py-0.5 text-xs" onClick={start}>{tr("Modifier")}</Button>
       </> : <>
-        {draft.map((t) => <span key={t} className={`${chip} flex items-center gap-1`}>{t}<button type="button" aria-label={`Retirer ${t}`} className="text-muted hover:text-danger" onClick={() => setDraft(draft.filter((x) => x !== t))}>✕</button></span>)}
+        {draft.map((t) => <span key={t} className={`${chip} flex items-center gap-1`}>{t}<button type="button" aria-label={tr("Retirer {t}", { t })} className="text-muted hover:text-danger" onClick={() => setDraft(draft.filter((x) => x !== t))}>✕</button></span>)}
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(); } }}
-          placeholder="ajouter…" aria-label="Nouvelle étiquette" maxLength={32} className="field !w-32 !py-0.5 text-xs" />
-        <Button className="!px-2 !py-0.5 text-xs" onClick={save} disabled={busy}>Enregistrer</Button>
-        <Button variant="ghost" className="!px-2 !py-0.5 text-xs" onClick={() => setEdit(false)} disabled={busy}>Annuler</Button>
+          placeholder={tr("ajouter…")} aria-label={tr("Nouvelle étiquette")} maxLength={32} className="field !w-32 !py-0.5 text-xs" />
+        <Button className="!px-2 !py-0.5 text-xs" onClick={save} disabled={busy}>{tr("Enregistrer")}</Button>
+        <Button variant="ghost" className="!px-2 !py-0.5 text-xs" onClick={() => setEdit(false)} disabled={busy}>{tr("Annuler")}</Button>
         {err && <div className="w-full"><Notice kind="error">{err}</Notice></div>}
       </>}
     </div>

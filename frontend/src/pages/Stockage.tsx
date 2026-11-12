@@ -11,14 +11,15 @@ import { bytes, pct } from "../lib/format";
 import type { StorageRow, StorageVolume } from "../lib/types/stockage";
 import type { StorageConfig } from "../lib/types/stockage-config";
 
+import { tr, locale } from "../lib/i18n";
 const CONN_KEY = "kaji-connection";   // même clé que le tableau de bord : le cluster choisi est partagé
 const readConn = () => { try { return Number(localStorage.getItem(CONN_KEY)) || null; } catch { return null; } };
 
 const CONTENT_LABEL: Record<string, string> = {
-  images: "Disques de VM", rootdir: "Disques de conteneur", iso: "ISO", vztmpl: "Modèles", backup: "Sauvegardes", snippets: "Snippets",
+  get images() { return tr("Disques de VM"); }, get rootdir() { return tr("Disques de conteneur"); }, iso: "ISO", get vztmpl() { return tr("Modèles"); }, get backup() { return tr("Sauvegardes"); }, get snippets() { return tr("Snippets"); },
 };
 const label = (c: string | null) => (c ? CONTENT_LABEL[c] ?? c : "–");
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "–");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" }) : "–");
 
 /** Une carte par stockage. Un stockage partagé n'en fait qu'une ; deux stockages locaux de même nom sur deux nœuds en font deux. */
 type Card = { key: string; row: StorageRow; where: string };
@@ -40,31 +41,31 @@ function Space({ row }: { row: StorageRow }) {
   const known = row.used != null && row.total != null && row.total > 0;
   return known
     ? <>
-        <Gauge label="Espace utilisé" value={pct(row.used, row.total)} detail={`${bytes(row.used)} / ${bytes(row.total)}`} />
-        <p className="text-xs text-muted">Libre : {bytes(row.free)}</p>
+        <Gauge label={tr("Espace utilisé")} value={pct(row.used, row.total)} detail={`${bytes(row.used)} / ${bytes(row.total)}`} />
+        <p className="text-xs text-muted">{tr("Libre : {p}", { p: bytes(row.free) })}</p>
       </>
-    : <p className="text-xs text-muted">Espace : information indisponible</p>;
+    : <p className="text-xs text-muted">{tr("Espace : information indisponible")}</p>;
 }
 
 function StorageCard({ card, index, onOpen }: { card: Card; index: number; onOpen: () => void }) {
   const r = card.row;
   return (
     <button type="button" onClick={onOpen} disabled={!r.active} aria-haspopup="dialog"
-      title={r.active ? "Ouvrir le contenu" : "Stockage inactif : contenu indisponible"}
+      title={r.active ? tr("Ouvrir le contenu") : tr("Stockage inactif : contenu indisponible")}
       className="panel card-hover rise block w-full space-y-4 p-5 text-left disabled:cursor-not-allowed disabled:opacity-60"
       style={{ animationDelay: `${index * 50}ms` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate font-semibold">{r.storage}</h3>
-          <p className="truncate text-xs text-muted">{r.type ?? "type inconnu"} · {r.shared ? "partagé" : "local"} · {card.where}</p>
+          <p className="truncate text-xs text-muted">{r.type ?? "type inconnu"} · {r.shared ? tr("partagé") : "local"} · {card.where}</p>
         </div>
         <span className={`flex shrink-0 items-center gap-1.5 text-xs ${r.active ? "text-ok" : "text-danger"}`}>
-          <span className={`size-2 rounded-full ${r.active ? "bg-ok" : "bg-danger"}`} />{r.active ? "Actif" : "Inactif"}
+          <span className={`size-2 rounded-full ${r.active ? "bg-ok" : "bg-danger"}`} />{r.active ? tr("Actif") : tr("Inactif")}
         </span>
       </div>
       <Space row={r} />
       <div className="flex flex-wrap gap-1.5">
-        {r.contents.length === 0 && <span className="text-xs text-muted">Aucun contenu déclaré</span>}
+        {r.contents.length === 0 && <span className="text-xs text-muted">{tr("Aucun contenu déclaré")}</span>}
         {r.contents.map((c) => <span key={c} className="rounded-full border border-line bg-surface2 px-2 py-0.5 text-xs text-muted">{label(c)}</span>)}
       </div>
     </button>
@@ -112,29 +113,29 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
-      <aside role="dialog" aria-modal="true" aria-label={`Contenu de ${storage}`} onClick={(e) => e.stopPropagation()}
+      <aside role="dialog" aria-modal="true" aria-label={tr("Contenu de {storage}", { storage })} onClick={(e) => e.stopPropagation()}
         className="panel rise h-full w-[min(56rem,100vw)] space-y-5 overflow-y-auto !rounded-none !rounded-l-2xl p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold">{storage}</h2>
-            <p className="truncate text-sm text-muted">{card.row.type ?? "type inconnu"} · {card.row.shared ? "partagé" : "local"} · {card.where}</p>
+            <p className="truncate text-sm text-muted">{card.row.type ?? "type inconnu"} · {card.row.shared ? tr("partagé") : "local"} · {card.where}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {config?.managed && <Button variant="ghost" onClick={onEdit} className="!px-3 !py-1">Modifier</Button>}
-            {config && <Button variant="danger" onClick={onDelete} className="!px-3 !py-1">Retirer</Button>}
-            <Button variant="ghost" onClick={onClose} aria-label="Fermer" className="!px-3 !py-1" autoFocus>✕</Button>
+            {config?.managed && <Button variant="ghost" onClick={onEdit} className="!px-3 !py-1">{tr("Modifier")}</Button>}
+            {config && <Button variant="danger" onClick={onDelete} className="!px-3 !py-1">{tr("Retirer")}</Button>}
+            <Button variant="ghost" onClick={onClose} aria-label={tr("Fermer")} className="!px-3 !py-1" autoFocus>✕</Button>
           </div>
         </div>
-        {config && !config.managed && <p className="text-xs text-muted">Type « {config.type} » : Kaji ne le modifie pas encore, il peut seulement le retirer.</p>}
+        {config && !config.managed && <p className="text-xs text-muted">{tr("Type « {type} » : Kaji ne le modifie pas encore, il peut seulement le retirer.", { type: config.type })}</p>}
 
         <div className="max-w-sm space-y-2"><Space row={card.row} /></div>
 
         {(fileKinds.length > 0 || hasBackups) && node && (
           <div className="flex flex-wrap gap-2">
-            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">Téléverser un fichier</Button>}
-            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">Télécharger depuis une URL</Button>}
-            {fileKinds.includes("vztmpl") && <Button variant="ghost" onClick={() => setTransfer("catalog")} className="!px-3 !py-1.5">Télécharger un modèle de conteneur</Button>}
-            {hasBackups && <Button variant="danger" onClick={() => setTransfer("prune")} className="!px-3 !py-1.5">Élaguer les sauvegardes…</Button>}
+            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("upload")} className="!px-3 !py-1.5">{tr("Téléverser un fichier")}</Button>}
+            {fileKinds.length > 0 && <Button variant="ghost" onClick={() => setTransfer("url")} className="!px-3 !py-1.5">{tr("Télécharger depuis une URL")}</Button>}
+            {fileKinds.includes("vztmpl") && <Button variant="ghost" onClick={() => setTransfer("catalog")} className="!px-3 !py-1.5">{tr("Télécharger un modèle de conteneur")}</Button>}
+            {hasBackups && <Button variant="danger" onClick={() => setTransfer("prune")} className="!px-3 !py-1.5">{tr("Élaguer les sauvegardes…")}</Button>}
           </div>
         )}
         {transfer === "upload" && node && <UploadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
@@ -145,28 +146,28 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
         {transfer === "url" && node && <UrlDownloadDialog connId={connId} node={node} storage={storage} kinds={fileKinds} onClose={() => setTransfer(null)} />}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold">Contenu <span className="text-sm font-normal text-muted">({shown.length})</span></h3>
-          <input className="field !w-auto min-w-52 !py-1.5 text-sm" placeholder="Rechercher…" aria-label="Rechercher un volume" value={q} onChange={(e) => setQ(e.target.value)} />
+          <h3 className="font-semibold">{tr("Contenu")}{" "}<span className="text-sm font-normal text-muted">({shown.length})</span></h3>
+          <input className="field !w-auto min-w-52 !py-1.5 text-sm" placeholder={tr("Rechercher…")} aria-label={tr("Rechercher un volume")} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {kinds.length > 1 && (
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par type">
-            <button type="button" className={chip(kind === "all")} aria-pressed={kind === "all"} onClick={() => setKind("all")}>Tous ({data.length})</button>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Filtrer par type")}>
+            <button type="button" className={chip(kind === "all")} aria-pressed={kind === "all"} onClick={() => setKind("all")}>{tr("Tous ({length})", { length: data.length })}</button>
             {kinds.map(([k, n]) => (
               <button key={k} type="button" className={chip(kind === k)} aria-pressed={kind === k} onClick={() => setKind(k)}>{label(k || null)} ({n})</button>
             ))}
           </div>
         )}
         {vols.isLoading ? <div className="space-y-2"><Skeleton n={4} h="h-10" /></div>
-          : vols.error ? <Notice kind="error">{(vols.error as Error).message} — <button className="underline" onClick={() => vols.refetch()}>réessayer</button></Notice>
-          : shown.length === 0 ? <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{data.length === 0 ? "Ce stockage ne contient aucun volume." : "Aucun volume ne correspond aux filtres."}</div>
+          : vols.error ? <Notice kind="error">{(vols.error as Error).message} — <button className="underline" onClick={() => vols.refetch()}>{tr("réessayer")}</button></Notice>
+          : shown.length === 0 ? <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{data.length === 0 ? tr("Ce stockage ne contient aucun volume.") : tr("Aucun volume ne correspond aux filtres.")}</div>
           : (
             <div className="overflow-x-auto rounded-xl border border-line">
               <table className="w-full min-w-[44rem] text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs text-muted">
-                    <th scope="col" className="px-4 py-2 font-normal">Nom</th><th scope="col" className="px-4 py-2 font-normal">Type</th>
-                    <th scope="col" className="px-4 py-2 font-normal">Format</th><th scope="col" className="px-4 py-2 text-right font-normal">Taille</th>
-                    <th scope="col" className="px-4 py-2 font-normal">Date</th><th scope="col" className="px-4 py-2 font-normal">Machine</th><th scope="col" className="px-4 py-2 font-normal"><span className="sr-only">Actions</span></th>
+                    <th scope="col" className="px-4 py-2 font-normal">{tr("Nom")}</th><th scope="col" className="px-4 py-2 font-normal">{tr("Type")}</th>
+                    <th scope="col" className="px-4 py-2 font-normal">{tr("Format")}</th><th scope="col" className="px-4 py-2 text-right font-normal">{tr("Taille")}</th>
+                    <th scope="col" className="px-4 py-2 font-normal">{tr("Date")}</th><th scope="col" className="px-4 py-2 font-normal">{tr("Machine")}</th><th scope="col" className="px-4 py-2 font-normal"><span className="sr-only">{tr("Actions")}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -176,8 +177,8 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
                         <span className="block truncate" title={v.volid}>{v.name}</span>
                         {(v.notes || v.protected || v.verification || v.encrypted) && (
                           <span className="block truncate text-xs text-muted">
-                            {[v.protected ? "Protégé" : null, v.encrypted ? "Chiffrée" : null,
-                              v.verification === "ok" ? "Vérifiée" : v.verification === "failed" ? "Vérification échouée" : v.verification === "none" ? "Non vérifiée" : null,
+                            {[v.protected ? tr("Protégé") : null, v.encrypted ? tr("Chiffrée") : null,
+                              v.verification === "ok" ? tr("Vérifiée") : v.verification === "failed" ? tr("Vérification échouée") : v.verification === "none" ? tr("Non vérifiée") : null,
                               v.notes].filter(Boolean).join(" · ")}
                           </span>)}
                       </td>
@@ -188,9 +189,9 @@ function StorageDrawer({ connId, card, config, onClose, onEdit, onDelete }: { co
                       <td className="px-4 py-2 tabular-nums text-muted">{v.vmid ?? "–"}</td>
                       <td className="whitespace-nowrap px-4 py-2 text-right">
                         {v.content === "backup" && BACKUP_FILE.test(v.name) && node && (
-                          <button type="button" className="text-xs text-muted underline hover:text-fg" onClick={() => toggleProtect(v)}>{v.protected ? "Retirer la protection" : "Protéger"}</button>)}
+                          <button type="button" className="text-xs text-muted underline hover:text-fg" onClick={() => toggleProtect(v)}>{v.protected ? tr("Retirer la protection") : tr("Protéger")}</button>)}
                         {isFileKind(v.content) && node && (
-                          <button type="button" className="text-xs text-danger underline" onClick={() => setToDelete(v)}>Supprimer</button>)}
+                          <button type="button" className="text-xs text-danger underline" onClick={() => setToDelete(v)}>{tr("Supprimer")}</button>)}
                       </td>
                     </tr>
                   ))}
@@ -230,9 +231,9 @@ export function Stockage({ onGoConnections }: { onGoConnections: () => void }) {
   if (!active) return (
     <div className="mx-auto grid max-w-3xl place-items-center py-24 text-center">
       <div className="panel space-y-4 p-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Aucun cluster connecté</h1>
-        <p className="text-muted">Ajoute ton cluster Proxmox pour voir ses stockages.</p>
-        <Button onClick={onGoConnections}>Ajouter un cluster</Button>
+        <h1 className="text-2xl font-semibold tracking-tight">{tr("Aucun cluster connecté")}</h1>
+        <p className="text-muted">{tr("Ajoute ton cluster Proxmox pour voir ses stockages.")}</p>
+        <Button onClick={onGoConnections}>{tr("Ajouter un cluster")}</Button>
       </div>
     </div>
   );
@@ -241,30 +242,29 @@ export function Stockage({ onGoConnections }: { onGoConnections: () => void }) {
     <div className="mx-auto max-w-6xl space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Stockage</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{tr("Stockage")}</h1>
           <p className="text-muted">{active.name} · {active.host}</p>
         </div>
         <div className="flex items-center gap-3">
           {(list?.length ?? 0) > 1 && (
-            <select aria-label="Cluster" className="field !w-auto !py-1.5 text-sm" value={id ?? ""} onChange={(e) => setConnId(Number(e.target.value))}>
+            <select aria-label={tr("Cluster")} className="field !w-auto !py-1.5 text-sm" value={id ?? ""} onChange={(e) => setConnId(Number(e.target.value))}>
               {list!.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <Button onClick={() => setDialog("add")} className="!px-3 !py-1.5">+ Ajouter un stockage</Button>
+          <Button onClick={() => setDialog("add")} className="!px-3 !py-1.5">{tr("+ Ajouter un stockage")}</Button>
           <Button variant="ghost" onClick={() => rows.refetch()} disabled={rows.isFetching} className="!px-3 !py-1.5">
-            <span className={rows.isFetching ? "inline-block animate-spin" : ""}>↻</span> Actualiser
-          </Button>
+            <span className={rows.isFetching ? "inline-block animate-spin" : ""}>↻</span>{" "}{tr("Actualiser")}</Button>
         </div>
       </header>
 
-      {rows.error && <Notice kind="error">{(rows.error as Error).message} — <button className="underline" onClick={() => rows.refetch()}>réessayer</button></Notice>}
+      {rows.error && <Notice kind="error">{(rows.error as Error).message} — <button className="underline" onClick={() => rows.refetch()}>{tr("réessayer")}</button></Notice>}
 
-      <section className="space-y-3" aria-label="Stockages">
+      <section className="space-y-3" aria-label={tr("Stockages")}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.isLoading ? <Skeleton n={3} h="h-44" /> : cards.map((c, i) => <StorageCard key={c.key} card={c} index={i} onOpen={() => setOpened(c.key)} />)}
-          {!rows.isLoading && !rows.error && cards.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">Aucun stockage trouvé sur ce cluster.</div>}
+          {!rows.isLoading && !rows.error && cards.length === 0 && <div className="panel p-6 text-muted sm:col-span-2 lg:col-span-3">{tr("Aucun stockage trouvé sur ce cluster.")}</div>}
         </div>
-        {cards.length > 0 && <p className="text-sm text-muted">Clique sur un stockage pour ouvrir son contenu.</p>}
+        {cards.length > 0 && <p className="text-sm text-muted">{tr("Clique sur un stockage pour ouvrir son contenu.")}</p>}
       </section>
 
       {current && id && <StorageDrawer connId={id} card={current} config={currentConfig} onClose={() => setOpened(null)}

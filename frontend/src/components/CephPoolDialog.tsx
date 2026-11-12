@@ -8,10 +8,11 @@ import { Modal } from "./Modal";
 import { useToast } from "./Toast";
 import { Field } from "./ui";
 
+import { tr } from "../lib/i18n";
 const warn = "rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn";
 const PG = Array.from({ length: 16 }, (_, i) => 2 ** i);                      // 1 à 32768 : seules les puissances de 2
 const AUTOSCALE: { id: PoolAutoscale; label: string }[] = [
-  { id: "warn", label: "Avertir si le nombre de groupes n'est pas optimal (défaut)" }, { id: "on", label: "Ajuster automatiquement" }, { id: "off", label: "Désactivé" },
+  { id: "warn", get label() { return tr("Avertir si le nombre de groupes n'est pas optimal (défaut)"); } }, { id: "on", get label() { return tr("Ajuster automatiquement"); } }, { id: "off", get label() { return tr("Désactivé"); } },
 ];
 const APPLICATIONS: PoolApplication[] = ["rbd", "cephfs", "rgw"];
 
@@ -19,8 +20,8 @@ const APPLICATIONS: PoolApplication[] = ["rbd", "cephfs", "rgw"];
 export function UnvalidatedBanner() {
   return (
     <div className={warn} role="note">
-      <p className="font-medium">Écriture Ceph : fonction non validée en réel</p>
-      <p className="mt-1 text-xs">Aucun Ceph n'est disponible pour l'essayer : elle a été testée avec un faux Proxmox uniquement. Évite de l'utiliser sur un Ceph en production tant qu'elle n'a pas été validée sur un Ceph jetable.</p>
+      <p className="font-medium">{tr("Écriture Ceph : fonction non validée en réel")}</p>
+      <p className="mt-1 text-xs">{tr("Aucun Ceph n'est disponible pour l'essayer : elle a été testée avec un faux Proxmox uniquement. Évite de l'utiliser sur un Ceph en production tant qu'elle n'a pas été validée sur un Ceph jetable.")}</p>
     </div>
   );
 }
@@ -76,8 +77,8 @@ export function CephPoolDialog({ connId, pool, onClose }: { connId: number; pool
       const res = edit ? await api<PoolWriteResult>(`${base}/${encodeURIComponent(pool!.name)}`, { method: "PUT", body: payload })
                        : await api<PoolWriteResult>(base, { method: "POST", body: payload });
       const upid = res.upid;
-      if (upid) await runTask(connId, res.node, async () => ({ upid }), edit ? "Modification du pool" : "Création du pool", 300);
-      toast("ok", edit ? `Pool « ${pool!.name} » modifié` : `Pool « ${name} » créé`);
+      if (upid) await runTask(connId, res.node, async () => ({ upid }), edit ? tr("Modification du pool") : tr("Création du pool"), 300);
+      toast("ok", edit ? tr("Pool « {name} » modifié", { name: pool!.name }) : tr("Pool « {name} » créé", { name }));
       await Promise.all([qc.invalidateQueries({ queryKey: ["ceph", connId, "pools"] }), qc.invalidateQueries({ queryKey: ["ceph", connId, "status"] })]);
       onClose();
     } catch (e) {
@@ -87,53 +88,53 @@ export function CephPoolDialog({ connId, pool, onClose }: { connId: number; pool
   };
 
   return (
-    <Modal wide title={edit ? `Modifier le pool « ${pool!.name} »` : "Nouveau pool"} subtitle={edit ? "Seuls les réglages modifiés sont envoyés." : "Un pool répliqué. Les pools à effacement ne sont pas gérés ici."}
-      onClose={onClose} busy={busy} error={error} canSubmit={!!body} submitLabel={risk ? "Confirmer et enregistrer" : edit ? "Enregistrer" : "Créer le pool"} danger={!!risk}
+    <Modal wide title={edit ? tr("Modifier le pool « {name} »", { name: pool!.name }) : tr("Nouveau pool")} subtitle={edit ? tr("Seuls les réglages modifiés sont envoyés.") : tr("Un pool répliqué. Les pools à effacement ne sont pas gérés ici.")}
+      onClose={onClose} busy={busy} error={error} canSubmit={!!body} submitLabel={risk ? tr("Confirmer et enregistrer") : edit ? tr("Enregistrer") : tr("Créer le pool")} danger={!!risk}
       onSubmit={() => send(!!risk)}>
       <UnvalidatedBanner />
-      {!edit && <Field label="Nom du pool" value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={63} aria-invalid={name !== "" && !nameOk}
-        hint={name === "" || nameOk ? "Lettres, chiffres, « _ », « - » et « . » ; ne peut pas être changé ensuite." : "Nom invalide : il doit commencer par une lettre ou un chiffre."} />}
-      {erasure && <p className={warn}>Pool à effacement : le nombre de copies (size) et la règle CRUSH ne peuvent pas être modifiés.</p>}
+      {!edit && <Field label={tr("Nom du pool")} value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={63} aria-invalid={name !== "" && !nameOk}
+        hint={name === "" || nameOk ? tr("Lettres, chiffres, « _ », « - » et « . » ; ne peut pas être changé ensuite.") : tr("Nom invalide : il doit commencer par une lettre ou un chiffre.")} />}
+      {erasure && <p className={warn}>{tr("Pool à effacement : le nombre de copies (size) et la règle CRUSH ne peuvent pas être modifiés.")}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Copies des données (size)" type="number" min={2} max={7} value={size} onChange={(e) => setSize(e.target.value)} disabled={erasure}
-          hint="Au moins 2 : avec une seule copie, la panne d'un disque fait perdre des données." aria-invalid={!copiesOk} />
-        <Field label="Copies minimales pour écrire (min_size)" type="number" min={2} max={7} value={minSize} onChange={(e) => setMinSize(e.target.value)}
-          hint="Au moins 2, et pas plus que size." aria-invalid={!copiesOk} />
+        <Field label={tr("Copies des données (size)")} type="number" min={2} max={7} value={size} onChange={(e) => setSize(e.target.value)} disabled={erasure}
+          hint={tr("Au moins 2 : avec une seule copie, la panne d'un disque fait perdre des données.")} aria-invalid={!copiesOk} />
+        <Field label={tr("Copies minimales pour écrire (min_size)")} type="number" min={2} max={7} value={minSize} onChange={(e) => setMinSize(e.target.value)}
+          hint={tr("Au moins 2, et pas plus que size.")} aria-invalid={!copiesOk} />
       </div>
-      {!copiesOk && <p className="text-xs text-danger">size et min_size doivent être des entiers de 2 à 7, avec min_size inférieur ou égal à size.</p>}
+      {!copiesOk && <p className="text-xs text-danger">{tr("size et min_size doivent être des entiers de 2 à 7, avec min_size inférieur ou égal à size.")}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1.5"><span className="text-sm text-muted">Groupes de placement (pg_num)</span>
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Groupes de placement (pg_num)")}</span>
           <select className="field" value={pgNum} onChange={(e) => setPgNum(e.target.value)}>
-            {!PG.includes(Number(pgNum)) && <option value={pgNum}>{pgNum} (actuel)</option>}{PG.map((n) => <option key={n} value={n}>{n}</option>)}
+            {!PG.includes(Number(pgNum)) && <option value={pgNum}>{tr("{pgNum} (actuel)", { pgNum })}</option>}{PG.map((n) => <option key={n} value={n}>{n}</option>)}
           </select></label>
-        <label className="block space-y-1.5"><span className="text-sm text-muted">Règle CRUSH</span>
+        <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Règle CRUSH")}</span>
           <select className="field" value={crush} onChange={(e) => setCrush(e.target.value)} disabled={erasure}>
-            <option value="">{edit ? "Inchangée" : "Règle par défaut"}</option>
-            {edit && pool!.crush_rule && !ruleNames.includes(pool!.crush_rule) && <option value={pool!.crush_rule}>{pool!.crush_rule} (actuelle)</option>}
+            <option value="">{edit ? tr("Inchangée") : tr("Règle par défaut")}</option>
+            {edit && pool!.crush_rule && !ruleNames.includes(pool!.crush_rule) && <option value={pool!.crush_rule}>{tr("{crush_rule} (actuelle)", { crush_rule: pool!.crush_rule })}</option>}
             {ruleNames.map((r) => <option key={r} value={r}>{r}</option>)}
           </select></label>
       </div>
-      <label className="block space-y-1.5"><span className="text-sm text-muted">Ajustement automatique des groupes (autoscaler)</span>
+      <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Ajustement automatique des groupes (autoscaler)")}</span>
         <select className="field" value={autoscale} onChange={(e) => setAutoscale(e.target.value as PoolAutoscale)}>{AUTOSCALE.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
 
       {!edit && (
         <>
-          <label className="block space-y-1.5"><span className="text-sm text-muted">Application</span>
+          <label className="block space-y-1.5"><span className="text-sm text-muted">{tr("Application")}</span>
             <select className="field" value={application} onChange={(e) => { const v = e.target.value as PoolApplication; setApplication(v); if (v !== "rbd") setAddStorage(false); }}>
               {APPLICATIONS.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
           <label className={`flex items-start gap-2 text-sm ${application === "rbd" ? "" : "opacity-50"}`}>
             <input type="checkbox" className="mt-0.5 size-4 accent-[var(--accent)]" checked={addStorage} disabled={application !== "rbd"} onChange={(e) => setAddStorage(e.target.checked)} />
-            <span>Créer aussi le stockage RBD associé<span className="block text-xs text-muted">Ajoute une définition de stockage à tout le cluster (visible dans « Stockage »).</span></span></label>
+            <span>{tr("Créer aussi le stockage RBD associé")}<span className="block text-xs text-muted">{tr("Ajoute une définition de stockage à tout le cluster (visible dans « Stockage »).")}</span></span></label>
         </>
       )}
 
       {risk && (
         <div className={`${warn} space-y-2`} role="alert">
-          <p className="font-medium">Confirmation requise</p>
+          <p className="font-medium">{tr("Confirmation requise")}</p>
           <ul className="list-disc space-y-1 pl-5">{risk.map((r) => <li key={r}>{r}</li>)}</ul>
-          <p>Clique sur « Confirmer et enregistrer » pour continuer, ou modifie le formulaire.</p>
+          <p>{tr("Clique sur « Confirmer et enregistrer » pour continuer, ou modifie le formulaire.")}</p>
         </div>
       )}
     </Modal>

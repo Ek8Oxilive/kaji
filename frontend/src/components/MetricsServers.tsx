@@ -5,6 +5,7 @@ import { TYPE_LABEL, type MetricsPreview, type MetricsRow, type MetricsServer, t
 import { Modal } from "./Modal";
 import { Button, Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Mode = { kind: "new" } | { kind: "edit"; row: MetricsRow } | { kind: "delete"; row: MetricsRow };
 type F = Record<string, string>;
 const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
@@ -15,15 +16,15 @@ export function MetricsServers({ connId }: { connId: number }) {
   const q = useQuery({ queryKey: ["metrics-servers", connId], queryFn: () => api<MetricsRow[]>(`/api/connections/${connId}/metrics/servers`) });
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Serveurs de métriques</h2><Button variant="ghost" onClick={() => setMode({ kind: "new" })}>Ajouter un serveur…</Button></div>
-      {q.error ? <Notice kind="error">{(q.error as Error).message}</Notice> : (q.data ?? []).length === 0 ? <p className="text-sm text-muted">Aucun serveur de métriques : Proxmox n'envoie ses métriques nulle part.</p> : (
+      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{tr("Serveurs de métriques")}</h2><Button variant="ghost" onClick={() => setMode({ kind: "new" })}>{tr("Ajouter un serveur…")}</Button></div>
+      {q.error ? <Notice kind="error">{(q.error as Error).message}</Notice> : (q.data ?? []).length === 0 ? <p className="text-sm text-muted">{tr("Aucun serveur de métriques : Proxmox n'envoie ses métriques nulle part.")}</p> : (
         <div className="overflow-x-auto rounded-xl border border-line"><table className="w-full min-w-[32rem] text-sm">
-          <thead><tr className="border-b border-line text-left text-xs text-muted">{["Nom", "Type", "Serveur", "État", ""].map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr></thead>
+          <thead><tr className="border-b border-line text-left text-xs text-muted">{[tr("Nom"), tr("Type"), tr("Serveur"), tr("État"), ""].map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr></thead>
           <tbody>{(q.data ?? []).map((r) => (
             <tr key={r.id} className={`border-b border-line/60 last:border-0 ${r.disable ? "opacity-60" : ""}`}>
               <td className="px-4 py-2 font-mono">{r.id}</td><td className="px-4 py-2 text-muted">{TYPE_LABEL[r.type]}</td><td className="px-4 py-2 font-mono text-muted">{r.server ?? "?"}:{r.port ?? "?"}</td>
-              <td className="px-4 py-2 text-muted">{r.disable ? "désactivé" : "actif"}</td>
-              <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMode({ kind: "edit", row: r })}>Modifier</button><button className="text-danger underline" onClick={() => setMode({ kind: "delete", row: r })}>Supprimer</button></td>
+              <td className="px-4 py-2 text-muted">{r.disable ? tr("désactivé") : "actif"}</td>
+              <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right text-xs"><button className="underline" onClick={() => setMode({ kind: "edit", row: r })}>{tr("Modifier")}</button><button className="text-danger underline" onClick={() => setMode({ kind: "delete", row: r })}>{tr("Supprimer")}</button></td>
             </tr>))}</tbody></table></div>)}
       {mode && <MetricsDialog connId={connId} mode={mode} onClose={() => setMode(null)} />}
     </section>
@@ -52,7 +53,7 @@ function MetricsDialog({ connId, mode, onClose }: { connId: number; mode: Mode; 
   const txt = (label: string, key: string, hint?: string, kind: "text" | "number" | "password" = "text") => (
     <Field label={label} type={kind} value={f[key] ?? ""} onChange={(e) => set(key)(e.target.value)} hint={hint} autoComplete="off" />);
   const sel = (label: string, key: string, opts: string[]) => (
-    <label className="block space-y-1.5 text-sm"><span className="text-muted">{label}</span><select className="field" value={f[key] ?? ""} onChange={(e) => set(key)(e.target.value)}><option value="">Défaut de Proxmox</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>);
+    <label className="block space-y-1.5 text-sm"><span className="text-muted">{label}</span><select className="field" value={f[key] ?? ""} onChange={(e) => set(key)(e.target.value)}><option value="">{tr("Défaut de Proxmox")}</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>);
 
   /** Corps : à la création tout ce qui est rempli ; en modification seulement ce qui a changé (secrets : seulement s'ils sont saisis). */
   const body = (extra: Record<string, unknown>) => {
@@ -85,33 +86,33 @@ function MetricsDialog({ connId, mode, onClose }: { connId: number; mode: Mode; 
   const ready = !!preview && (k !== "delete" || typed === row?.id) && (!needs || ack);
   const readyToLook = k === "new" ? id !== "" && (f.server ?? "") !== "" && (f.port ?? "") !== "" : k === "edit" ? !!d : true;
 
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{k === "delete" ? "Serveur supprimé." : "Enregistré, relu chez Proxmox."}</Notice></Modal>;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{k === "delete" ? tr("Serveur supprimé.") : tr("Enregistré, relu chez Proxmox.")}</Notice></Modal>;
   return (
-    <Modal title={k === "new" ? "Ajouter un serveur de métriques" : k === "edit" ? `Modifier ${row!.id}` : `Supprimer ${row!.id}`} subtitle="L'aperçu dit ce qui sera envoyé ; les secrets ne sont jamais affichés." onClose={busy ? () => {} : onClose}
-      onSubmit={run} submitLabel={k === "delete" ? "Supprimer" : "Appliquer"} danger={k === "delete" || needs} busy={busy} error={err} canSubmit={ready} wide>
+    <Modal title={k === "new" ? tr("Ajouter un serveur de métriques") : k === "edit" ? tr("Modifier {id}", { id: row!.id }) : tr("Supprimer {id}", { id: row!.id })} subtitle={tr("L'aperçu dit ce qui sera envoyé ; les secrets ne sont jamais affichés.")} onClose={busy ? () => {} : onClose}
+      onSubmit={run} submitLabel={k === "delete" ? tr("Supprimer") : tr("Appliquer")} danger={k === "delete" || needs} busy={busy} error={err} canSubmit={ready} wide>
       {k === "delete" ? <>
-        <Notice kind="error">Les métriques cessent de partir vers <code>{row!.server}:{row!.port}</code>. Retape <code>{row!.id}</code> pour confirmer.<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>
-      </> : k === "edit" && !d ? <p className="text-sm text-muted">Chargement…</p> : <>
-        {k === "new" && <div className="grid gap-4 sm:grid-cols-2"><Field label="Nom" value={id} onChange={(e) => setId(e.target.value)} maxLength={64} hint="Lettre puis lettres, chiffres, _ ou -" autoComplete="off" />
-          <label className="block space-y-1.5 text-sm"><span className="text-muted">Type</span><select className="field" value={type} onChange={(e) => { setType(e.target.value as MetricsType); setVssl(""); }}>{(Object.keys(TYPE_LABEL) as MetricsType[]).map((x) => <option key={x} value={x}>{TYPE_LABEL[x]}</option>)}</select></label></div>}
-        <div className="grid gap-4 sm:grid-cols-2">{txt("Serveur (nom ou adresse IP)", "server", "Adresses locales (127.x, localhost…) refusées")}{txt("Port", "port", "1 à 65535", "number")}</div>
-        {t === "influxdb" && <><div className="grid gap-4 sm:grid-cols-3">{sel("Protocole", "influxdbproto", ["udp", "http", "https"])}{txt("Organisation", "organization")}{txt("Bucket", "bucket")}</div>
-          <div className="grid gap-4 sm:grid-cols-3">{txt("Taille max. du corps (octets)", "max_body_size", undefined, "number")}{txt("MTU (UDP)", "mtu", "512 à 65536", "number")}{txt("Préfixe de chemin d'API", "api_path_prefix")}</div>
-          {txt(k === "edit" ? "Jeton d'accès (jamais relu : laisser vide pour conserver l'actuel)" : "Jeton d'accès", "token", "Écriture seule : Proxmox ne le renvoie jamais", "password")}
-          {k === "edit" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={clearSecret} onChange={(e) => setClearSecret(e.target.checked)} />Retirer le jeton</label>}</>}
-        {t === "graphite" && <div className="grid gap-4 sm:grid-cols-4">{sel("Protocole", "proto", ["udp", "tcp"])}{txt("Chemin racine", "path", "ex. proxmox.moncluster")}{txt("MTU (UDP)", "mtu", "512 à 65536", "number")}{txt("Délai TCP (s)", "timeout", undefined, "number")}</div>}
-        {t === "opentelemetry" && <><div className="grid gap-4 sm:grid-cols-3">{sel("Protocole", "otel_protocol", ["http", "https"])}{txt("Chemin OTLP", "otel_path", "ex. /v1/metrics")}{txt("Délai (s)", "otel_timeout", "1 à 10", "number")}</div>
-          <div className="grid gap-4 sm:grid-cols-2">{sel("Compression", "otel_compression", ["none", "gzip"])}{txt("Taille max. du corps (octets)", "otel_max_body_size", "1024 minimum", "number")}</div>
-          {txt(k === "edit" ? "En-têtes HTTP (jamais relus : laisser vide pour conserver les actuels)" : "En-têtes HTTP (JSON encodé en base64)", "otel_headers", "Écriture seule : Proxmox ne les renvoie jamais", "password")}
-          {k === "edit" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={clearSecret} onChange={(e) => setClearSecret(e.target.checked)} />Retirer les en-têtes</label>}
-          {txt("Attributs de ressource (JSON encodé en base64)", "otel_resource_attributes")}</>}
-        {t !== "graphite" && <label className="block space-y-1.5 text-sm"><span className="text-muted">Vérifier le certificat</span><select className="field" value={vssl} onChange={(e) => setVssl(e.target.value as typeof vssl)}><option value="">Défaut de Proxmox (oui)</option><option value="yes">Oui</option><option value="no">Non</option></select></label>}
-        <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span><b>Désactivé</b> : la configuration existe mais rien n'est envoyé</span></label>
+        <Notice kind="error">{tr("Les métriques cessent de partir vers")}{" "}<code>{row!.server}:{row!.port}</code>{tr(". Retape")}{" "}<code>{row!.id}</code>{" "}{tr("pour confirmer.")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>
+      </> : k === "edit" && !d ? <p className="text-sm text-muted">{tr("Chargement…")}</p> : <>
+        {k === "new" && <div className="grid gap-4 sm:grid-cols-2"><Field label={tr("Nom")} value={id} onChange={(e) => setId(e.target.value)} maxLength={64} hint={tr("Lettre puis lettres, chiffres, _ ou -")} autoComplete="off" />
+          <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Type")}</span><select className="field" value={type} onChange={(e) => { setType(e.target.value as MetricsType); setVssl(""); }}>{(Object.keys(TYPE_LABEL) as MetricsType[]).map((x) => <option key={x} value={x}>{TYPE_LABEL[x]}</option>)}</select></label></div>}
+        <div className="grid gap-4 sm:grid-cols-2">{txt(tr("Serveur (nom ou adresse IP)"), "server", tr("Adresses locales (127.x, localhost…) refusées"))}{txt(tr("Port"), "port", tr("1 à 65535"), "number")}</div>
+        {t === "influxdb" && <><div className="grid gap-4 sm:grid-cols-3">{sel(tr("Protocole"), "influxdbproto", ["udp", "http", "https"])}{txt(tr("Organisation"), "organization")}{txt(tr("Bucket"), "bucket")}</div>
+          <div className="grid gap-4 sm:grid-cols-3">{txt(tr("Taille max. du corps (octets)"), "max_body_size", undefined, "number")}{txt("MTU (UDP)", "mtu", tr("512 à 65536"), "number")}{txt(tr("Préfixe de chemin d'API"), "api_path_prefix")}</div>
+          {txt(k === "edit" ? tr("Jeton d'accès (jamais relu : laisser vide pour conserver l'actuel)") : tr("Jeton d'accès"), "token", tr("Écriture seule : Proxmox ne le renvoie jamais"), "password")}
+          {k === "edit" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={clearSecret} onChange={(e) => setClearSecret(e.target.checked)} />{tr("Retirer le jeton")}</label>}</>}
+        {t === "graphite" && <div className="grid gap-4 sm:grid-cols-4">{sel(tr("Protocole"), "proto", ["udp", "tcp"])}{txt(tr("Chemin racine"), "path", "ex. proxmox.moncluster")}{txt("MTU (UDP)", "mtu", tr("512 à 65536"), "number")}{txt(tr("Délai TCP (s)"), "timeout", undefined, "number")}</div>}
+        {t === "opentelemetry" && <><div className="grid gap-4 sm:grid-cols-3">{sel(tr("Protocole"), "otel_protocol", ["http", "https"])}{txt("Chemin OTLP", "otel_path", "ex. /v1/metrics")}{txt(tr("Délai (s)"), "otel_timeout", tr("1 à 10"), "number")}</div>
+          <div className="grid gap-4 sm:grid-cols-2">{sel(tr("Compression"), "otel_compression", ["none", "gzip"])}{txt(tr("Taille max. du corps (octets)"), "otel_max_body_size", "1024 minimum", "number")}</div>
+          {txt(k === "edit" ? tr("En-têtes HTTP (jamais relus : laisser vide pour conserver les actuels)") : tr("En-têtes HTTP (JSON encodé en base64)"), "otel_headers", tr("Écriture seule : Proxmox ne les renvoie jamais"), "password")}
+          {k === "edit" && <label className="flex gap-2 text-sm"><input type="checkbox" checked={clearSecret} onChange={(e) => setClearSecret(e.target.checked)} />{tr("Retirer les en-têtes")}</label>}
+          {txt(tr("Attributs de ressource (JSON encodé en base64)"), "otel_resource_attributes")}</>}
+        {t !== "graphite" && <label className="block space-y-1.5 text-sm"><span className="text-muted">{tr("Vérifier le certificat")}</span><select className="field" value={vssl} onChange={(e) => setVssl(e.target.value as typeof vssl)}><option value="">{tr("Défaut de Proxmox (oui)")}</option><option value="yes">{tr("Oui")}</option><option value="no">{tr("Non")}</option></select></label>}
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={disable} onChange={(e) => setDisable(e.target.checked)} /><span><b>{tr("Désactivé")}</b>{" "}{tr(": la configuration existe mais rien n'est envoyé")}</span></label>
       </>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>Aperçu</button>
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={!readyToLook} onClick={look}>{tr("Aperçu")}</button>
       {preview && <div className="space-y-3 text-sm">
-        {k === "delete" ? <Notice kind="ok">Sera supprimé : <code>{row!.id}</code>.</Notice> : <Notice kind="ok">Sera envoyé : <code>{Object.entries(preview.params).map(([a, b]) => `${a}=${b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <> · retiré : <code>{preview.remove.join(", ")}</code></> : null}</Notice>}
-        {needs && <Notice kind="error">Les métriques de <b>tout le cluster</b> partiront vers ce serveur.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>Je comprends, c'est le serveur voulu</span></label></Notice>}
+        {k === "delete" ? <Notice kind="ok">{tr("Sera supprimé :")}{" "}<code>{row!.id}</code>.</Notice> : <Notice kind="ok">{tr("Sera envoyé :")}{" "}<code>{Object.entries(preview.params).map(([a, b]) => `${a}=${b}`).join(", ") || "rien"}</code>{preview.remove?.length ? <>{" "}{tr("· retiré :")}{" "}<code>{preview.remove.join(", ")}</code></> : null}</Notice>}
+        {needs && <Notice kind="error">{tr("Les métriques de")}{" "}<b>{tr("tout le cluster")}</b>{" "}{tr("partiront vers ce serveur.")}<label className="mt-2 flex gap-2"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /><span>{tr("Je comprends, c'est le serveur voulu")}</span></label></Notice>}
       </div>}
     </Modal>
   );

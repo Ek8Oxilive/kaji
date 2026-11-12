@@ -1,5 +1,6 @@
 import { api, type TaskStatus } from "./api";
 
+import { tr, T } from "./i18n";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Attend la fin d'une tâche Proxmox (UPID). Renvoie null si elle dépasse le délai. */
@@ -19,9 +20,9 @@ export const LONG_TASK_SECONDS = 1800;
 export async function runTask(connId: number, node: string, start: () => Promise<{ upid: string }>, what: string, seconds = 90) {
   const { upid } = await start();
   const t = await waitTask(connId, node, upid, seconds);
-  if (!t) throw new Error(`${what} : la tâche prend trop de temps`);
-  if (!t.ok) throw new Error(`${what} : la tâche a échoué (${t.exitstatus ?? "erreur"})`);
+  if (!t) throw new Error(tr("{what} : la tâche prend trop de temps", { what }));
+  if (!t.ok) throw new Error(tr("{what} : la tâche a échoué ({p})", { what, p: t.exitstatus ?? "erreur" }));
   return t;                       // t.warnings : réussie avec avertissements (consulter le journal de la tâche)
 }
 
-export const WARN_SUFFIX = " — avec un avertissement Proxmox (voir le journal de la tâche)";
+export const WARN_SUFFIX = T(" — avec un avertissement Proxmox (voir le journal de la tâche)");

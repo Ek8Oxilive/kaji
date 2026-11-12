@@ -1,3 +1,4 @@
+import { tr } from "../i18n";
 /** Actions groupées d'un nœud et Wake-on-LAN (`docs/api/actions-groupees.md`). */
 export type BulkAction = "startall" | "stopall" | "migrateall";
 export type BulkGuest = { vmid: number; name: string | null; type: string | null; status: string | null };
@@ -7,4 +8,4 @@ export type BulkPlan = {
   target: string | null; target_ok: boolean | null; blocked: string | null; needs_accept_running: boolean;
 };
 export type BulkResult = { node: string; action: BulkAction; upid: string | null; vmids: number[] };
-export const BULK_LABEL: Record<BulkAction, string> = { startall: "Démarrer", stopall: "Arrêter", migrateall: "Migrer" };
+export const BULK_LABEL: Record<BulkAction, string> = { get startall() { return tr("Démarrer"); }, get stopall() { return tr("Arrêter"); }, get migrateall() { return tr("Migrer"); } };

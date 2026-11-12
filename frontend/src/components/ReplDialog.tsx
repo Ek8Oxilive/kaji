@@ -6,6 +6,7 @@ import type { ReplMode, ReplPreview } from "../lib/types/ha";
 import { Modal } from "./Modal";
 import { Field, Notice } from "./ui";
 
+import { tr } from "../lib/i18n";
 type Tri = "" | "yes" | "no";
 const tri = (t: Tri) => (t === "yes" ? true : t === "no" ? false : undefined);
 const triOf = (v: boolean | null | undefined): Tri => (v === true ? "yes" : v === false ? "no" : "");
@@ -52,35 +53,35 @@ export function ReplDialog({ connId, mode, presetGuest, onClose }: { connId: num
   const blocked = !!preview?.blocked, live = !!preview?.locks.live.length;
   const retypeOk = k !== "delete" || keep || typed === job?.id;
   const ready = !!preview && !blocked && (!live || ackLive) && retypeOk;
-  const title = k === "new" ? "Nouveau job de réplication" : k === "edit" ? `Modifier le job ${job!.id}` : k === "delete" ? `Supprimer le job ${job!.id}` : `Lancer ${job!.id} maintenant`;
+  const title = k === "new" ? tr("Nouveau job de réplication") : k === "edit" ? tr("Modifier le job {id}", { id: job!.id }) : k === "delete" ? tr("Supprimer le job {id}", { id: job!.id }) : `Lancer ${job!.id} maintenant`;
   const select = (label: string, v: string, set: (s: string) => void, opts: [string, string][]) => (
     <label className="block space-y-1 text-sm"><span className="text-muted">{label}</span><select className="field" value={v} onChange={(e) => set(e.target.value)}>{opts.map(([val, text]) => <option key={val} value={val}>{text}</option>)}</select></label>);
 
-  if (done) return <Modal title="Fait" onClose={onClose} onSubmit={onClose} submitLabel="Fermer" canSubmit><Notice kind="ok">{k === "delete" ? "Job marqué pour suppression : Proxmox le retire au prochain passage sur le nœud source." : "Enregistré, relu chez Proxmox."}</Notice></Modal>;
+  if (done) return <Modal title={tr("Fait")} onClose={onClose} onSubmit={onClose} submitLabel={tr("Fermer")} canSubmit><Notice kind="ok">{k === "delete" ? tr("Job marqué pour suppression : Proxmox le retire au prochain passage sur le nœud source.") : tr("Enregistré, relu chez Proxmox.")}</Notice></Modal>;
   return (
-    <Modal title={title} subtitle="Rien n'est écrit sans aperçu : le serveur dit ce qui bloque et ce qui est verrouillé." onClose={busy ? () => {} : onClose} onSubmit={run}
-      submitLabel={k === "delete" ? "Supprimer" : k === "now" ? "Lancer" : "Appliquer"} danger={live || k === "delete"} busy={busy} error={err} canSubmit={ready} wide>
+    <Modal title={title} subtitle={tr("Rien n'est écrit sans aperçu : le serveur dit ce qui bloque et ce qui est verrouillé.")} onClose={busy ? () => {} : onClose} onSubmit={run}
+      submitLabel={k === "delete" ? tr("Supprimer") : k === "now" ? tr("Lancer") : tr("Appliquer")} danger={live || k === "delete"} busy={busy} error={err} canSubmit={ready} wide>
       {k === "new" && <>
-        {presetGuest !== undefined ? <p className="text-sm"><span className="text-muted">Machine à répliquer</span> <b>{chosen ? `${chosen.name ?? chosen.vmid} (#${presetGuest})` : `#${presetGuest}`}</b></p> : select("Machine à répliquer", guest, (s) => { setGuest(s); setTarget(""); }, [["", guests.isLoading ? "Chargement…" : "Choisir une machine"], ...(guests.data ?? []).filter((g) => !g.template && g.vmid !== null).map((g) => [String(g.vmid), `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
-        {select("Nœud cible", target, setTarget, [["", "Choisir un nœud"], ...(cluster.data?.nodes ?? []).filter((n) => n.online && n.name !== chosen?.node).map((n) => [n.name, n.name] as [string, string])])}
+        {presetGuest !== undefined ? <p className="text-sm"><span className="text-muted">{tr("Machine à répliquer")}</span> <b>{chosen ? `${chosen.name ?? chosen.vmid} (#${presetGuest})` : `#${presetGuest}`}</b></p> : select(tr("Machine à répliquer"), guest, (s) => { setGuest(s); setTarget(""); }, [["", guests.isLoading ? tr("Chargement…") : tr("Choisir une machine")], ...(guests.data ?? []).filter((g) => !g.template && g.vmid !== null).map((g) => [String(g.vmid), `${g.type === "lxc" ? "ct" : "vm"}:${g.vmid} · ${g.name ?? ""} (${g.node})`] as [string, string])])}
+        {select(tr("Nœud cible"), target, setTarget, [["", tr("Choisir un nœud")], ...(cluster.data?.nodes ?? []).filter((n) => n.online && n.name !== chosen?.node).map((n) => [n.name, n.name] as [string, string])])}
       </>}
       {(k === "new" || k === "edit") && <>
-        <Field label="Planification" value={schedule} maxLength={128} onChange={(e) => setSchedule(e.target.value)} hint="Calendrier systemd : */15, mon..fri 02:00… Vide = défaut de Proxmox (*/15)" />
-        <Field label="Débit maximal (Mo/s)" type="number" min={1} step="any" value={rate} onChange={(e) => setRate(e.target.value)} hint="Vide = illimité" />
-        <Field label="Commentaire" value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} />
-        {select("Désactivé", disable, (s) => setDisable(s as Tri), [["", "Défaut (actif)"], ["yes", "Oui"], ["no", "Non"]])}
+        <Field label={tr("Planification")} value={schedule} maxLength={128} onChange={(e) => setSchedule(e.target.value)} hint={tr("Calendrier systemd : */15, mon..fri 02:00… Vide = défaut de Proxmox (*/15)")} />
+        <Field label={tr("Débit maximal (Mo/s)")} type="number" min={1} step="any" value={rate} onChange={(e) => setRate(e.target.value)} hint={tr("Vide = illimité")} />
+        <Field label={tr("Commentaire")} value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} />
+        {select(tr("Désactivé"), disable, (s) => setDisable(s as Tri), [["", tr("Défaut (actif)")], ["yes", tr("Oui")], ["no", tr("Non")]])}
       </>}
       {k === "delete" && <>
-        <label className="flex gap-2 text-sm"><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} /><span>Conserver les copies déjà répliquées sur le nœud cible</span></label>
-        {!keep && <Notice kind="error">Sans cette case, les copies sur le nœud cible seront <b>détruites</b>. Retape <code>{job!.id}</code> pour confirmer.<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>}
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} /><span>{tr("Conserver les copies déjà répliquées sur le nœud cible")}</span></label>
+        {!keep && <Notice kind="error">{tr("Sans cette case, les copies sur le nœud cible seront")}{" "}<b>{tr("détruites")}</b>{tr(". Retape")}{" "}<code>{job!.id}</code>{" "}{tr("pour confirmer.")}<input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" className="field mt-2" /></Notice>}
       </>}
-      {k === "now" && <p className="text-sm text-muted">Lance la synchronisation sur le nœud source <code>{job!.source ?? "?"}</code>, sans attendre la planification.</p>}
-      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k === "new" && (!guest || !target)} onClick={look}>Aperçu</button>
+      {k === "now" && <p className="text-sm text-muted">{tr("Lance la synchronisation sur le nœud source")}{" "}<code>{job!.source ?? "?"}</code>{tr(", sans attendre la planification.")}</p>}
+      <button type="button" className="rounded-xl border border-line bg-surface2 px-4 py-2 text-sm disabled:opacity-50" disabled={k === "new" && (!guest || !target)} onClick={look}>{tr("Aperçu")}</button>
       {preview && (
         <div className="space-y-3 text-sm">
-          {blocked && <Notice kind="error"><b>Bloqué</b> : {(preview.blockers ?? []).join(" ; ")}.</Notice>}
-          {!blocked && preview.locks.inert && <Notice kind="ok">Aucun verrou : le job sera créé, la première synchronisation suivra la planification.</Notice>}
-          {live && !blocked && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>Je comprends que cela s'applique tout de suite</span></label></Notice>}
+          {blocked && <Notice kind="error"><b>{tr("Bloqué")}</b> : {(preview.blockers ?? []).join(" ; ")}.</Notice>}
+          {!blocked && preview.locks.inert && <Notice kind="ok">{tr("Aucun verrou : le job sera créé, la première synchronisation suivra la planification.")}</Notice>}
+          {live && !blocked && <Notice kind="error">{preview.locks.live.join(" ; ")}.<label className="mt-2 flex gap-2"><input type="checkbox" checked={ackLive} onChange={(e) => setAckLive(e.target.checked)} /><span>{tr("Je comprends que cela s'applique tout de suite")}</span></label></Notice>}
         </div>)}
     </Modal>
   );
