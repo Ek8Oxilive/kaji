@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { MetricsServers } from "../components/MetricsServers";
 import { ResourceMappings } from "../components/ResourceMappings";
 import { NotificationsSection } from "../components/NotificationsSection";
+import { PoolsSection } from "../components/PoolsSection";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
@@ -148,6 +149,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
         {id !== null && <NotificationsSection connId={id} />}
         {id !== null && <MetricsServers connId={id} />}
         {id !== null && <ResourceMappings connId={id} />}
+        {id !== null && <PoolsSection connId={id} />}
         {Object.keys(d.readonly).length > 0 && (
           <section className="space-y-3"><h2 className="text-lg font-semibold">Non modifiable dans Kaji</h2>
             <dl className="panel p-4 text-sm">{Object.entries(d.readonly).map(([k, v]) => (
