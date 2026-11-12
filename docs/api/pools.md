@@ -1,6 +1,6 @@
 # Pools de ressources (lot #298)
 
-> **Non validé en réel au moment du code** (faux Proxmox strict, schéma officiel de Proxmox 9). Fichiers : `routers/pools.py`, `poolspec.py`, `tests/test_pools.py`,
+> **Validé en réel le 2026-11-12** (voir plus bas), après un correctif de lecture des membres. Fichiers : `routers/pools.py`, `poolspec.py`, `tests/test_pools.py`,
 > `components/PoolsSection.tsx` (section « Pools de ressources » de la page Datacenter), `lib/types/pools.ts`. La liste simple `GET /pools` existe depuis M4 (`routers/create.py`).
 
 Préfixe `/api/connections/{id}/pools`. Équivalent de Datacenter → Permissions → Pools. Droits Proxmox : `Pool.Allocate` sur `/pool/{poolid}` ; Proxmox exige **aussi le droit
@@ -41,7 +41,18 @@ retirer, ajouter des machines et des stockages, case « déplacer » quand une m
   pour ses pré-contrôles (déjà membre, retrait d'un non-membre, pool vide à la suppression). Premier jet du lot : membres toujours vides, corrigé le jour même (PR de suivi).
 - Créer un pool et ajouter une VM / un stockage : acceptés par Proxmox avec le token de Kaji (`PUT /pools` 200 ; la VM apparaît dans le pool dans la liste des machines).
 
-## Non validé en réel
-- l'acceptation de chaque appel (`POST`, `PUT` avec `vms` / `storage` / `delete` / `allow-move`, `DELETE ?poolid=`) par le token de Kaji, et le droit « modifier les permissions » exigé pour ajouter ou retirer ;
-- la forme réelle des membres dans `GET /pools` (le schéma officiel est suivi) ;
-- l'interface n'a pas été ouverte dans un navigateur au moment du code.
+## Validé en réel (2026-11-12, Proxmox 9.1.9, interface et API déployées, pools jetables `kajitest-pool` et `kajitest-pool2`, VM jetable 117)
+- **Créer** un pool (commentaire relu), refus d'un identifiant invalide (422), d'un doublon (409), pool inconnu (404).
+- **Ajouter** une VM et le stockage `local` : acceptés par le token de Kaji, sans droit en plus ; refus d'une machine ou d'un stockage inconnus (404), d'un élément déjà membre (409).
+- **Aperçu `dry_run`** : renvoie les appels prévus sans rien écrire.
+- **Déplacer** la VM 117 d'un pool à l'autre : 409 sans `allow_move`, 400 sans `confirm`, puis déplacée (elle sort bien de son pool d'origine).
+- **Retirer** la VM et le stockage : 400 sans `confirm`, 200 avec ; refus d'un non-membre (409).
+- **Machines protégées** : ajouter ou retirer le CT 116 est refusé en 409 (essayé en aperçu seulement, jamais en écriture).
+- **Supprimer** : 400 sans `confirm`, avec un mauvais nom ou une mauvaise casse ; suppression réussie des deux pools vides sans droit posé.
+- Interface (page Datacenter) : section, fenêtres « Créer un pool », « Gérer » (membres, machines et stockages à ajouter) et « Supprimer » (avertissement, membres comptés, bouton grisé tant que le nom n'est pas retapé), toutes ouvertes puis fermées sans valider sur `kaji-test`.
+- Audit `pool-create|update|delete` : succès et refus, sans secret. État final : 17 machines, VM 115 et CT 116 toujours dans `kaji-test`, aucun pool ni machine d'essai.
+
+## Pas vu en réel
+- supprimer un pool **non vide** ou portant des **droits (ACL)** : refusé par le serveur (couvert par les tests unitaires et mutations) ; non essayé sur `kaji-test` par prudence (suppression d'un pool qui porte les droits de Kaji) ;
+- le droit « modifier les permissions » évoqué par la doc de Proxmox n'a pas bloqué les ajouts avec ce token : le cas d'un token plus limité n'est pas essayé ;
+- retrait d'une machine d'un pool portant des droits (ACL) : l'effet sur les accès n'est pas mesuré (le serveur exige `confirm`).
