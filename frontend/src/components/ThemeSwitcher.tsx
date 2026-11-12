@@ -5,7 +5,7 @@ import { tr } from "../lib/i18n";
 export function ThemeSwitcher({ compact }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
   return (
-    <div role="radiogroup" aria-label={tr("Thème")} className="panel flex gap-1 p-1">
+    <div role="radiogroup" aria-label={tr("Thème")} className="panel flex flex-wrap gap-1 p-1">
       {THEMES.map((t) => (
         <button
           key={t.id}

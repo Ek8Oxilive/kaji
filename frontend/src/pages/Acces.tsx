@@ -42,7 +42,7 @@ function FixBox({ fix }: { fix: Fix }) {
     <div className="mt-2 space-y-2 rounded-xl border border-line bg-surface2 p-3">
       {fix.error ? <p className="text-xs text-warn">{fix.error}</p> : <>
         <p className="text-xs text-muted">{tr("À lancer")}{" "}<strong className="text-fg">{tr("en root, dans le shell d'un nœud Proxmox")}</strong>{tr(". Kaji n'exécute rien.")}</p>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/30 p-2 font-mono text-xs" aria-label={tr("Commandes pour : {label}", { label: tr(fix.label) })}>{text}</pre>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-[var(--code-bg)] p-2 font-mono text-xs" aria-label={tr("Commandes pour : {label}", { label: tr(fix.label) })}>{text}</pre>
         <Button variant="ghost" onClick={copy} className="!px-3 !py-1 text-xs">{copied ? tr("Copié ✓") : tr("Copier")}</Button>
       </>}
     </div>
