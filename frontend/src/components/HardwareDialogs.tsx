@@ -53,7 +53,7 @@ export function CpuDialog({ cfg, save, onClose }: Common) {
   const ok = Object.keys(body).length > 0 && Number.isInteger(num(cores)) && num(cores) >= 1 && (!qemu || (Number.isInteger(num(sockets)) && num(sockets) >= 1)) && /^[A-Za-z0-9_-]*$/.test(type);
   return (
     <Modal title="Processeurs" onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel="Enregistrer" onSubmit={() => run(() => save(body))}>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Cœurs" type="number" min={1} max={512} value={cores} onChange={(e) => setCores(e.target.value)} autoFocus />
         {qemu && <Field label="Sockets" type="number" min={1} max={8} value={sockets} onChange={(e) => setSockets(e.target.value)} />}
       </div>

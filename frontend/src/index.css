@@ -116,3 +116,9 @@ select option:disabled { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Écrans tactiles : champs et listes assez hauts pour le doigt ; pas de débordement horizontal de la page elle-même. */
+@media (pointer: coarse) {
+  .field, select.field { min-height: 2.75rem; font-size: 1rem; }     /* 16 px : évite le zoom automatique des champs sur iOS */
+}
+body { overflow-x: clip; }                                         /* `clip` et non `hidden` : `hidden` casserait les éléments collants (barre du haut, barre de tâches) */

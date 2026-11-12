@@ -117,7 +117,7 @@ export function CreateLxcWizard({ connId, nodes, onClose }: { connId: number; no
             </Select>
             {noTemplate && <Notice kind="error">Aucun modèle de conteneur sur ce nœud. Télécharges-en un depuis le catalogue officiel.</Notice>}
             <div><Button variant="ghost" onClick={() => setCatalog(true)} className="!px-3 !py-1.5" disabled={!f.node}>Télécharger un modèle…</Button></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Cœurs" type="number" min={1} max={512} value={f.cores} onChange={(e) => set("cores", e.target.value)} />
               <Field label="Swap (Mo)" type="number" min={0} step={128} value={f.swap} onChange={(e) => set("swap", e.target.value)} />
             </div>

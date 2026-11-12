@@ -8,7 +8,9 @@ import type { TaskList, TaskRow } from "../lib/types/taches";
 
 const OPEN_KEY = "kaji-taskbar-open";
 const SHOWN = 6;                                                   // tâches récentes montrées dans la barre
-const readOpen = () => { try { return localStorage.getItem(OPEN_KEY) !== "0"; } catch { return true; } };
+const smallScreen = () => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+// Sans choix enregistré : dépliée sur grand écran, repliée sur petit écran (elle y prendrait trop de place).
+const readOpen = () => { try { const v = localStorage.getItem(OPEN_KEY); return v === null ? !smallScreen() : v !== "0"; } catch { return !smallScreen(); } };
 const saveOpen = (v: boolean) => { try { localStorage.setItem(OPEN_KEY, v ? "1" : "0"); } catch { /* sans stockage : la barre reste dépliée à chaque visite */ } };
 
 /** Barre de tâches permanente, en bas de chaque page (comme celle de Proxmox) : tâches en cours et dernières tâches, journal en un clic.
@@ -34,7 +36,7 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
 
   return (
     <>
-    <footer aria-label="Barre de tâches" className="panel sticky bottom-0 z-30 mx-3 mb-3 !rounded-2xl p-2 md:mx-6">
+    <footer aria-label="Barre de tâches" className="panel sticky bottom-0 z-30 mx-2 mb-2 !rounded-2xl p-2 sm:mx-3 sm:mb-3 md:mx-6">
       <div className="flex flex-wrap items-center gap-3 px-2 text-sm">
         <button onClick={toggle} aria-expanded={open} className="rounded-lg px-2 py-1 text-left font-medium hover:bg-surface2">
           {open ? "▾" : "▸"} Tâches
@@ -51,10 +53,10 @@ export function TaskBar({ onOpenTasks }: { onOpenTasks: () => void }) {
           {rows.map((t) => (
             <li key={t.upid}>
               <button onClick={() => setSel(t)} className="flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-left text-xs hover:bg-surface2">
-                <span className="w-24 shrink-0"><Badge s={t.state} /></span>
+                <span className="w-20 shrink-0 sm:w-24"><Badge s={t.state} /></span>
                 <span className="min-w-0 flex-1 truncate">{label(t)}</span>
                 <span className="hidden shrink-0 text-muted sm:inline">{t.node}</span>
-                <span className="w-20 shrink-0 text-right text-muted">{duration(t.duration)}</span>
+                <span className="hidden w-20 shrink-0 text-right text-muted sm:inline">{duration(t.duration)}</span>
               </button>
             </li>
           ))}
