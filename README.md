@@ -608,7 +608,7 @@ Haute disponibilité (ressources, règles) et réplication de stockage. Toute é
 
 ### Cluster
 
-Informations de corosync en lecture seule.
+Informations de corosync, et création, jonction et retrait d'un nœud avec verrous.
 
 ![Informations du cluster ](docs/captures/cluster-1.jpg)
 
@@ -616,7 +616,15 @@ Informations de corosync en lecture seule.
 
 ![Nœuds (votes, adresses, liens), QDevice et commandes `pvecm` à copier pour créer, joindre ](docs/captures/cluster-2.jpg)
 
-*Nœuds (votes, adresses, liens), QDevice et commandes `pvecm` à copier pour créer, joindre ou retirer un nœud : Kaji ne modifie pas le cluster lui-même.*
+*Nœuds (votes, adresses, liens) et QDevice ; les commandes `pvecm` à copier restent disponibles.*
+
+![Boutons Créer un cluster et Joindre un cluster au-dessus des commandes à copier](docs/captures/cluster-ecriture-1.jpg)
+
+*Créer ou joindre un cluster depuis Kaji (opérations rares et risquées) ; « Retirer… » apparaît sur un nœud hors ligne.*
+
+![Fenêtre Créer un cluster : l'aperçu des verrous refuse, ce nœud est déjà dans un cluster](docs/captures/cluster-ecriture-2.jpg)
+
+*Fenêtre « Créer un cluster » : le serveur relit l'état chez Proxmox et refuse sur un nœud déjà en cluster (aperçu seulement, rien n'est écrit ; « Créer » reste grisé).*
 
 ### Datacenter
 
