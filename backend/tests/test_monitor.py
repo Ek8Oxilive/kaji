@@ -10,6 +10,7 @@ import pytest
 
 from app.deps import get_client_factory
 from app.main import app
+from app.routers.monitor import DENIED
 from app.monitorspec import COMMANDS, MAX_OUTPUT, check_command, clean_output
 from app.proxmox import ProxmoxClient
 
@@ -29,6 +30,8 @@ def _handler(request: httpx.Request) -> httpx.Response:
     form = {k: v[0] for k, v in parse_qs(request.content.decode()).items()} if request.content else {}
     CALLS.append({"method": request.method, "path": p, "form": form, "query": dict(request.url.params)})
     if request.method == "GET" and p == "/nodes/enzo/qemu/115/status/current":
+        if STATE.get("fail_state"):
+            return _json(STATE["fail_state"], {"data": None})
         return _json(200, {"data": STATE.get("current", {"status": "running", "qmpstatus": "running"})})
     if request.method == "POST" and p == "/nodes/enzo/qemu/115/monitor":
         if STATE.get("fail"):
@@ -198,8 +201,22 @@ def test_proxmox_error_is_translated_audited_without_leak(api, code):
     c, cid = api
     STATE["fail"] = code
     r = run(c, cid, "info status")
-    assert r.status_code == 502 and SECRET not in r.text and "10.0.0.5" not in r.text
-    assert (audit(c)[0]["action"], audit(c)[0]["status"]) == ("qemu-monitor", "error") and SECRET not in c.get("/api/audit").text
+    if code == 403:                                    # constaté en réel : explicite, sans le message brut de Proxmox
+        assert r.status_code == 403 and r.json()["detail"] == DENIED
+    else:
+        assert r.status_code == 502 and r.json()["detail"] != DENIED
+    assert SECRET not in r.text and "10.0.0.5" not in r.text
+    last = audit(c)[0]
+    assert (last["action"], last["status"]) == ("qemu-monitor", "error") and SECRET not in c.get("/api/audit").text
+    assert code != 403 or last["detail"] == DENIED
+
+
+def test_403_on_the_state_read_stays_generic(api):
+    """Seul le refus de la COMMANDE est expliqué : un 403 sur la lecture de l'état reste un 502 générique."""
+    c, cid = api
+    STATE["fail_state"] = 403
+    r = run(c, cid, "info status")
+    assert r.status_code == 502 and r.json()["detail"] != DENIED and writes() == []
 
 
 def test_invalid_path_params_are_refused_without_call(api):

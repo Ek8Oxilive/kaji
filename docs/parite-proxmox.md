@@ -86,7 +86,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réplication de la machine | 🟡 (onglet « Réplication » : jobs de la machine, nouveau / modifier / lancer / supprimer avec aperçu et verrous ; `docs/api/onglets-machine.md` ; ZFS absent : jamais écrit en réel) | M8 |
 | Pare-feu de la machine (règles, options, IPSet) | 🟡 (options et règles en écriture ; IPSet de machine livré en M7-2) | M7 |
 | Permissions de la machine | 🟡 (onglet « Permissions » : ACL sur la machine et héritées, écriture par la fenêtre de la page « Accès » ; `docs/api/onglets-machine.md` ; écriture jamais essayée en réel) | M6 |
-| Moniteur QEMU (`qm monitor`) | 🟡 (lecture seule : commandes « info » de la liste blanche, onglet « Moniteur » ; commandes libres : jamais, par choix de sécurité ; non validé en réel, `docs/api/moniteur-qemu.md`) | M14 |
+| Moniteur QEMU (`qm monitor`) | 🟡 (codé : commandes « info » de la liste blanche, onglet « Moniteur », garde-fous validés en réel ; **Proxmox 9 refuse le moniteur au token de Kaji** (403, probablement réservé à `root@pam`), donc inutilisable sans token root ; commandes libres : jamais ; `docs/api/moniteur-qemu.md`) | M14 |
 | Historique des tâches de la machine | ✅ (onglet « Tâches », journal en direct ; consoles masquées par défaut) | M13 |
 | Étiquettes (tags) et notes | ✅ (validé en réel le 2026-11-10 sur la VM 115 : ajouter et retirer une étiquette, écrire et restaurer les notes, HTML affiché comme texte ; empreinte périmée entre étiquettes et notes corrigée) | M13 |
 | Résumé avec graphiques d'historique | ✅ (onglet « Performances ») | M13 |

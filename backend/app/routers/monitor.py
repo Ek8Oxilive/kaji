@@ -4,7 +4,7 @@
 la VM doit être en marche (état relu chez Proxmox) ; la sortie est nettoyée et bornée. Audit `qemu-monitor` (la commande, jamais la sortie).
 Droit Proxmox : `VM.Monitor`. La route a la forme de la route générique `{action}` de `actions.py` (`ORDER = 90`) : ce module passe avant elle.
 """
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -15,10 +15,13 @@ from ..models import AdminUser
 from ..monitorspec import COMMANDS, check_command, clean_output
 from .actions import NODE
 from .auth import current_user
-from .cluster import Factory, _px
+from .cluster import FORBIDDEN_DETAIL, Factory, _px
 
 router = APIRouter(tags=["monitor"], dependencies=[Depends(current_user)])
 BASE = "/api/connections/{conn_id}/guests/{node}/qemu/{vmid}/monitor"
+# Constaté en réel (Proxmox 9.1.9, token avec PVEVMAdmin et Sys.Modify) : le moniteur est refusé (403) ; `VM.Monitor` n'existe plus dans les rôles.
+DENIED = ("Proxmox refuse le moniteur QEMU au token de Kaji (observé en réel sur Proxmox 9 : probablement réservé à root@pam). "
+          "Utilise `qm monitor` sur le nœud, dans la console.")
 
 
 class MonitorBody(BaseModel):
@@ -48,8 +51,10 @@ async def run_monitor(body: MonitorBody, conn_id: int, node: str = Path(pattern=
         try:
             return await _px(db, factory, conn_id, method, path, **kw)
         except HTTPException as e:
+            if method == "post" and e.detail == FORBIDDEN_DETAIL:         # le refus de Proxmox sur la commande elle-même
+                e = HTTPException(status.HTTP_403_FORBIDDEN, DENIED)
             log("error", str(e.detail))
-            raise
+            raise e
 
     command = check_command(body.command)
     if command is None:
