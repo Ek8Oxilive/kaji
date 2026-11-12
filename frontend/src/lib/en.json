@@ -2308,5 +2308,7 @@
  "Attention : {w}": "Warning: {w}",
  "Colle ces commandes dans la console du nœud (page Nœud, ou onglet Console) :": "Paste these commands into the node's console (Node page, or Console tab):",
  "Dépôt personnalisé…": "Custom repository…",
- "Fichier et commandes à copier : Proxmox n'écrit pas les dépôts libres.": "File and commands to copy: Proxmox does not write free-form repositories."
+ "Fichier et commandes à copier : Proxmox n'écrit pas les dépôts libres.": "File and commands to copy: Proxmox does not write free-form repositories.",
+ "Dans la console du nœud (page Nœud) : la même commande, avec les droits du nœud.": "In the node's console (Node page): the same command, with the node's rights.",
+ "La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.": "The second opens the interactive monitor: type the command, then “quit” to leave."
 }
