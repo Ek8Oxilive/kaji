@@ -51,8 +51,11 @@ def _handler(request: httpx.Request) -> httpx.Response:
         return _json(STATE["fail"][2])
     pools = STATE["pools"]
     if request.method == "GET" and path == "/pools":
-        return _json(400) if set(query) - {"poolid", "type"} else _json(200, [{"poolid": k, "comment": v["comment"], "members": _members(v)} for k, v in pools.items()
-                                                                              if "poolid" not in query or query["poolid"] == k])
+        if set(query) - {"poolid", "type"}:
+            return _json(400)
+        # Constaté en réel : sans `poolid`, la liste ne contient PAS les membres ; avec `poolid`, oui.
+        return _json(200, [({"poolid": k, "comment": v["comment"], "members": _members(v)} if "poolid" in query else {"poolid": k, "comment": v["comment"]})
+                           for k, v in pools.items() if "poolid" not in query or query["poolid"] == k])
     if request.method == "GET" and path == "/cluster/resources":
         return _json(400) if set(query) != {"type"} or query["type"] != "vm" else _json(200, STATE["resources"])
     if request.method == "GET" and path == "/storage":
