@@ -224,6 +224,10 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 *Bouton « Terminal série » de l'onglet Console d'une VM : terminal (xterm.js) sur son port série de type socket (ajouté dans l'onglet Périphériques, VM démarrée). Ici, une VM de test sans système : Proxmox répond « starting serial terminal on interface serial0 ».*
 
+![Onglet Console d'une VM avec le bouton SPICE](docs/captures/vm-console-spice.jpg)
+
+*Onglet Console d'une VM : « Ouvrir la console » (noVNC), **« SPICE (virt-viewer) »** et « Terminal série ». Le bouton SPICE télécharge un fichier `.vv` (ticket à usage unique, ~40 s) à ouvrir tout de suite avec virt-viewer ; la VM doit avoir une carte d'affichage `qxl` (onglet Périphériques). Un conteneur a aussi ce bouton (`docs/api/console-spice.md`).*
+
 ![Onglet **Snapshots** ](docs/captures/vm-snapshots.jpg)
 
 *Onglet **Snapshots** : points de restauration à créer, restaurer et supprimer.*
