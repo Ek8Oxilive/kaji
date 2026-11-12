@@ -114,7 +114,7 @@ function Screen({ c, children }: { c: ReturnType<typeof useConsole>; children: R
   );
 }
 
-/** Onglet « Console » d'une machine : noVNC (VM et conteneur) ou xterm.js (conteneur). */
+/** Onglet « Console » d'une machine : noVNC (VM et conteneur) ou xterm.js (conteneur, ou port série socket d'une VM). */
 export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) {
   const running = guest.status === "running";
   const c = useConsole(`/api/connections/${connId}/guests/${encodeURIComponent(guest.node)}/${guest.type}/${guest.vmid}/console`, (m) => ({ kind: m }));
@@ -127,6 +127,7 @@ export function ConsoleTab({ connId, guest }: { connId: number; guest: Guest }) 
           {guest.type === "lxc" ? "Ouvrir le terminal" : "Ouvrir la console"}
         </Button>
         {guest.type === "lxc" && <Button variant="ghost" onClick={() => c.start("vnc")} disabled={!running} className="!px-3 !py-1.5">Écran (noVNC)</Button>}
+        {guest.type === "qemu" && <Button variant="ghost" onClick={() => c.start("term")} disabled={!running || live} title="Terminal sur le port série de la VM (type socket, onglet Périphériques)" className="!px-3 !py-1.5">Terminal série</Button>}
       </Screen>
       <p className="text-xs text-muted">
         Une console donne un accès complet à la machine. Elle est journalisée (ouverture et fermeture, jamais ce que tu tapes ni ce qui s'affiche),

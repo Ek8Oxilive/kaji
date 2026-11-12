@@ -70,7 +70,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 |---|---|---|
 | Démarrer, éteindre, redémarrer, arrêt forcé | ✅ | M2 |
 | Réinitialiser (reset), suspendre, reprendre, hiberner | ✅ (validé en réel le 2026-11-09, VM 115 : reset, suspendre, reprendre (à la souris, #201 corrigé, « En pause »), hiberner (réussi, sans agent invité) ; Éteindre et Redémarrer ne sont pas proposés sur une VM en pause ; pas dans le menu des cartes ; `docs/api/alimentation-vm.md`) | M14 |
-| Console : noVNC ✅ ; xterm.js (port série), SPICE ⬜ | 🟡 | M9 / M14 |
+| Console : noVNC ✅ ; xterm.js (conteneur ✅, **port série socket d'une VM** : codé, `docs/api/console.md`) ; SPICE ⬜ | 🟡 | M9 / M14 |
 | Créer (assistant complet) | ✅ (VM et LXC créés puis supprimés en réel ; **démarrage depuis une ISO validé le 2026-11-12** : Alpine 3.24, écran noVNC jusqu'à `login:`) | M4 |
 | Matériel : CPU, RAM, disques (ajouter, déplacer, agrandir, détacher, supprimer), cartes réseau, CD/DVD, ordre de démarrage | ✅ (validé en réel : CPU, RAM, ajouter/détacher/supprimer un disque ; **déplacer un disque (`local-lvm` ↔ `dir`, source supprimée), l'agrandir (+1 Go) et ajouter / retirer une carte réseau validés le 2026-11-12**) | M4 |
 | Matériel avancé : passthrough PCI et USB **par correspondance** (`hostpciN`, `usbN`, `virtiofsN`) | 🟡 (codé, `docs/api/passthrough.md` ; les périphériques bruts sont réservés à root@pam) | M14 |

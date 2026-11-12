@@ -93,6 +93,14 @@ def _handler(request: httpx.Request) -> httpx.Response:
         if STATE.get("reply") is not None:
             return httpx.Response(200, json={"data": STATE["reply"]})
         return httpx.Response(200, json={"data": {"port": UP.port, "ticket": TICKET, "user": "kaji@pve!kaji", "upid": "UPID:x"}})
+    if p.endswith("/qemu/100/config"):
+        q = dict(request.url.params)
+        if q.get("current") != "1":                                         # strict : seule la configuration EN COURS d'utilisation compte
+            return httpx.Response(400, json={"data": None, "message": "current=1 attendu"})
+        return httpx.Response(200, json={"data": STATE.get("config", {})})
+    if p == "/nodes/pve1/qemu/100/termproxy" and STATE.get("reply") is None:
+        if dict(httpx.QueryParams(request.content.decode())).get("serial") not in ("serial0", "serial1", "serial2", "serial3"):
+            return httpx.Response(400, json={"data": None, "message": "serial invalide"})
     if p.endswith("/status/current"):
         return httpx.Response(200, json={"data": {"status": STATE.get("status", "running"), "template": STATE.get("template", 0)}})
     if p.endswith("/vncproxy") or p.endswith("/termproxy"):
@@ -177,10 +185,85 @@ def test_open_refused_when_not_running_or_template(api, status, template):
     assert not [x for x in CALLS if x[1].endswith("proxy")]            # rien n'est demandé à Proxmox
 
 
-def test_term_console_only_for_containers(api):
+def test_term_console_of_a_vm_needs_a_socket_serial_port(api):
     c, cid = api
-    assert c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term"}).status_code == 400
+    STATE["config"] = {"name": "x"}                                          # aucun port série
+    r = c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term"})
+    assert r.status_code == 409 and "port série" in r.json()["detail"]
     assert not [x for x in CALLS if x[0] == "POST"]
+
+
+@pytest.mark.parametrize("cfg", [{"serial0": "/dev/ttyS0"}, {"serial0": "socket,x=1"}, {"serial0": None}, {"serial4": "socket"}, {"SERIAL0": "socket"}])
+def test_only_a_plain_socket_serial_port_is_accepted(api, cfg):
+    c, cid = api
+    STATE["config"] = cfg
+    assert c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term"}).status_code == 409
+    assert not [x for x in CALLS if x[0] == "POST"]
+
+
+def test_vm_serial_terminal_asks_termproxy_with_the_first_socket_port(api):
+    STATE["config"] = {"serial1": "socket", "serial3": "socket", "serial0": "/dev/ttyS0"}
+    r = opened(api, "term", gtype="qemu", vmid=100)
+    assert set(r) == {"session", "kind", "expires_in"} and TICKET not in str(r)
+    assert [(m, p, f) for m, p, f in CALLS if m == "POST"] == [("POST", "/nodes/pve1/qemu/100/termproxy", {"serial": "serial1"})]
+    assert [x for x in CALLS if x[1].endswith("/qemu/100/config")]          # la configuration EN COURS d'utilisation a été lue (`current=1`, sinon le faux répond 400)
+
+
+def test_vm_serial_terminal_can_pick_a_port(api):
+    STATE["config"] = {"serial0": "socket", "serial2": "socket"}
+    c, cid = api
+    r = c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term", "serial": "serial2"})
+    assert r.status_code == 201
+    assert [f for m, p, f in CALLS if m == "POST"] == [{"serial": "serial2"}]
+
+
+def test_vm_serial_terminal_refuses_a_port_the_vm_does_not_have(api):
+    c, cid = api
+    STATE["config"] = {"serial0": "socket"}
+    r = c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term", "serial": "serial2"})
+    assert r.status_code == 409 and not [x for x in CALLS if x[0] == "POST"]
+
+
+@pytest.mark.parametrize("serial", ["serial4", "serial", "SERIAL0", "serial0 ", "serial0\n", "serial0;x=1", "../x", "", "serial٠"])
+def test_serial_is_validated_before_anything_is_asked(api, serial):
+    c, cid = api
+    STATE["config"] = {"serial0": "socket"}
+    r = c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term", "serial": serial})
+    assert r.status_code == 400 and not CALLS                                # rien n'est demandé à Proxmox
+    assert r.json()["detail"] == "Port série invalide : serial0 à serial3, et seulement pour le terminal d'une VM"   # message fixe : la valeur saisie n'est pas renvoyée
+
+
+@pytest.mark.parametrize("kind,gtype,vmid", [("vnc", "qemu", 100), ("term", "lxc", 105), ("vnc", "lxc", 105)])
+def test_serial_is_only_for_the_terminal_of_a_vm(api, kind, gtype, vmid):
+    c, cid = api
+    r = c.post(url(cid, gtype=gtype, vmid=vmid), json={"kind": kind, "serial": "serial0"})
+    assert r.status_code == 400 and not CALLS
+
+
+def test_vm_serial_terminal_needs_a_running_vm_and_reads_nothing_else(api):
+    c, cid = api
+    STATE.update(status="stopped", config={"serial0": "socket"})
+    assert c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term"}).status_code == 409
+    assert not [x for x in CALLS if x[0] == "POST" or x[1].endswith("/config")]
+
+
+def test_vm_serial_terminal_refusals_are_audited(api):
+    c, cid = api
+    STATE["config"] = {}
+    c.post(url(cid, gtype="qemu", vmid=100), json={"kind": "term"})
+    rows = audit_rows()
+    assert [(r.action, r.status, r.target) for r in rows] == [("console-open", "error", "qemu/100@pve1 (term)")]
+
+
+def test_vm_serial_terminal_relays_like_a_container_terminal(api):
+    STATE["config"] = {"serial0": "socket"}
+    UP.kind = "term"
+    c, cid = api
+    s = opened(api, "term", gtype="qemu", vmid=100)["session"]
+    with c.websocket_connect(f"/api/console/{s}", headers=ORIGIN, subprotocols=["binary"]) as ws:
+        ws.send_text("0:5:hello")
+        assert ws.receive_bytes() == b"echo:0:5:hello"
+    assert UP.received[0] == "kaji@pve!kaji:" + TICKET + "\n"            # connexion faite par le serveur, comme pour un conteneur
 
 
 @pytest.mark.parametrize("bad", [{"kind": "spice"}, {"kind": "VNC"}, {"kind": 5}, {"kind": None}])
