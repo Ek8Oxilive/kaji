@@ -196,6 +196,18 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 *Onglet **Périphériques** (VM) : carte d'affichage (type, mémoire, presse-papiers), **ports série en mode socket seulement** (jamais un périphérique de l'hôte) et carte son virtuelle. Les changements sont lus chez Proxmox après l'enregistrement.*
 
+![Options d'un disque de VM](docs/captures/vm-options-disque.jpg)
+
+*Matériel d'une VM, **Options…** d'un disque : cache, discard, E/S asynchrones, iothread, SSD, détection des zéros, sauvegarde, lecture seule, réplication et limites de débit et d'IOPS. Seules les options modifiées sont envoyées (volume et taille conservés) ; « Défaut de Proxmox » retire l'option.*
+
+![Options d'une carte réseau](docs/captures/vm-options-reseau.jpg)
+
+*Bouton **Options…** d'une carte réseau (VM ou conteneur) : limite de débit, MTU, files multiples, VLAN autorisés (trunks) et câble débranché ; l'adresse MAC, le bridge et le VLAN ne changent pas.*
+
+![Options du processeur d'une VM](docs/captures/vm-options-cpu.jpg)
+
+*Options du processeur : poids (`cpuunits`) et limite d'utilisation (`cpulimit`). Les cœurs autorisés (`affinity`) et les hugepages ne sont pas proposés : Proxmox les réserve à `root@pam`. Un réglage risqué (cache `unsafe`, sauvegarde désactivée, câble débranché) demande d'abord une case « J'accepte ».*
+
 ![Générateur aléatoire et watchdog](docs/captures/vm-peripheriques-2.jpg)
 
 *Suite de l'onglet : **générateur aléatoire** (source toujours `/dev/urandom`, non modifiable) et **watchdog** matériel virtuel (modèle, action). Une demande qui retirerait l'affichage de la console (`none`) exige une confirmation décidée par le serveur.*
