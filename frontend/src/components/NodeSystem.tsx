@@ -32,6 +32,8 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
   const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}`;
   const q = useQuery({ queryKey: ["node-system", connId, node], enabled: online, staleTime: 30_000, queryFn: () => api<Sys>(`${base}/system`) });
   const [logOn, setLogOn] = useState(false);
+  // Message des actions sur les services : gardé ICI (et non dans `Services`) car la section peut se remplacer par « Lecture impossible » pendant qu'un service redémarre, et le composant disparaîtrait avec son message.
+  const [svcMsg, setSvcMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const log = useQuery({ queryKey: ["node-syslog", connId, node], enabled: online && logOn, staleTime: 5_000, queryFn: () => api<SyslogLines>(`${base}/syslog?limit=200`) });
   if (!online) return <div className="rounded-xl border border-line bg-surface2 p-6 text-muted">{tr("Nœud hors ligne : système indisponible.")}</div>;
   if (q.error) return <Notice kind="error">{(q.error as Error).message} — <button className="underline" onClick={() => q.refetch()}>{tr("réessayer")}</button></Notice>;
@@ -62,7 +64,8 @@ export function NodeSystem({ connId, node, online }: { connId: number; node: str
             <NodeAcme connId={connId} node={node} enabled={true} /></div>)}</Block>
       </div>
 
-      <Block title={tr("Services")} section={d?.services}>{(list) => <Services connId={connId} node={node} list={list} />}</Block>
+      {svcMsg && <Notice kind={svcMsg.kind}>{svcMsg.text}</Notice>}
+      <Block title={tr("Services")} section={d?.services}>{(list) => <Services connId={connId} node={node} list={list} setMsg={setSvcMsg} />}</Block>
 
       <div className="panel space-y-2 p-4">
         <div className="flex items-center justify-between"><h3 className="font-semibold">{tr("Journal système")}</h3>
@@ -82,12 +85,11 @@ const WARN: Record<Service["risk"], string> = {
   get vital() { return tr("Service vital du cluster : un redémarrage peut faire perdre le quorum ou geler le cluster un moment."); },
 };
 
-function Services({ connId, node, list }: { connId: number; node: string; list: Service[] }) {
+function Services({ connId, node, list, setMsg }: { connId: number; node: string; list: Service[]; setMsg: (m: { kind: "ok" | "error"; text: string } | null) => void }) {
   const qc = useQueryClient();
   const [ask, setAsk] = useState<{ s: Service; action: ServiceAction } | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}/services`;
   const run = async (s: Service, action: ServiceAction) => {
     setAsk(null); setBusy(s.name); setMsg(null);
@@ -118,7 +120,6 @@ function Services({ connId, node, list }: { connId: number; node: string; list: 
   };
   return (
     <div className="space-y-2">
-      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
       <div className="divide-y divide-line/60 text-sm">
         {list.map((x) => (
           <div key={x.name} className="flex flex-wrap items-center gap-2 py-1.5">
