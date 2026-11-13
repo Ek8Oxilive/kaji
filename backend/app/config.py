@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     kaji_audit_retention_days: int = 365
     # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")
     kaji_protected_vmids: str = ""
+    # Option (décision d'Enzo, 2026-11-13) : le token permanent de Kaji, à qui le propriétaire a donné les droits d'administration,
+    # peut ouvrir la session administrateur d'un clic, sans coller de token. Désactivée par défaut : un Kaji compromis aurait alors ces droits.
+    kaji_admin_use_kaji_token: bool = False
 
     @property
     def protected_vmids(self) -> set[int]:

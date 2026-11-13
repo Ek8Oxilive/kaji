@@ -2559,5 +2559,7 @@
  "Supprimer la machine d'origine après la migration": "Delete the original machine after the migration",
  "Un identifiant, 1 (même nom), ou source:cible,source:cible": "One ID, 1 (same name), or source:target,source:target",
  "utilisateur@realm!nom ; droits d'allocation de VM et de stockage sur le cluster distant": "user@realm!name; VM and storage allocation permissions on the remote cluster",
- "Écriture seule : jamais relu ni affiché, vidé après l'envoi.": "Write-only: never read back or shown, cleared after sending."
+ "Écriture seule : jamais relu ni affiché, vidé après l'envoi.": "Write-only: never read back or shown, cleared after sending.",
+ "Ouvrir avec le jeton de Kaji": "Open with Kaji's token",
+ "Utilise le token permanent de Kaji (option KAJI_ADMIN_USE_KAJI_TOKEN) : rien à coller": "Uses Kaji's permanent token (KAJI_ADMIN_USE_KAJI_TOKEN option): nothing to paste"
 }

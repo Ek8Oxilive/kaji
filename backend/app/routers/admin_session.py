@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..adminsession import SECRET, TOKEN_ID, USER, AdminSession, sessions
+from ..config import get_settings
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser, UserSession
@@ -136,6 +137,41 @@ async def open_session(body: OpenBody, conn_id: int, db: Session = Depends(get_d
         await client.aclose()
     s = sessions.open(ksess.id, user.id, conn_id, body.user, body.token_id, body.secret)
     c.log("started", "session de 30 minutes ouverte (secret non conservé en base)")
+    return {**_status(s), **shape_permissions(perms)}
+
+
+KAJI_TOKEN_OFF = "Option désactivée : ajoute KAJI_ADMIN_USE_KAJI_TOKEN=true au .env de Kaji (et donne les droits d'administration à son token), puis redémarre"
+
+
+@router.get("/kaji-token")
+def kaji_token_allowed(conn_id: int, found: tuple[AdminUser, UserSession] = Depends(kaji_session)):
+    """L'option « ouvrir la session avec le token permanent de Kaji » est-elle activée ? (lecture seule)"""
+    return {"allowed": bool(get_settings().kaji_admin_use_kaji_token)}
+
+
+@router.post("/kaji-token", status_code=status.HTTP_201_CREATED)
+async def open_with_kaji_token(conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
+                               found: tuple[AdminUser, UserSession] = Depends(kaji_session)):
+    """Ouvre la session administrateur avec le token permanent de la connexion (option `KAJI_ADMIN_USE_KAJI_TOKEN`). Même durée, mêmes verrous d'écriture."""
+    user, ksess = found
+    conn = _get_or_404(db, conn_id)
+    c = Ctx(db, user, conn_id, "admin-session-open", f"{conn.user}!{conn.token_id}")
+    if not get_settings().kaji_admin_use_kaji_token:
+        c.refuse(KAJI_TOKEN_OFF, status.HTTP_403_FORBIDDEN)
+    if not sessions.allow_attempt(user.id):
+        c.refuse("Trop d'essais : attends une minute", status.HTTP_429_TOO_MANY_REQUESTS)
+    p = _params(conn)
+    client = factory(**p)
+    try:
+        perms = await client.get("/access/permissions")
+    except httpx.HTTPError as e:
+        err = http_error(e)
+        c.log("error", str(err.detail))
+        raise err from None
+    finally:
+        await client.aclose()
+    s = sessions.open(ksess.id, user.id, conn_id, conn.user, conn.token_id, SecretStr(p["token_secret"]))
+    c.log("started", "session de 30 minutes ouverte avec le token permanent de Kaji (option activée)")
     return {**_status(s), **shape_permissions(perms)}
 
 

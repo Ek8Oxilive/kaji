@@ -70,6 +70,7 @@ GET /api/connections/{conn_id}/access/users
 GET /api/connections/{conn_id}/access/users/{userid}/impact
 GET /api/connections/{conn_id}/access/users/{userid}/tokens
 GET /api/connections/{conn_id}/admin-session
+GET /api/connections/{conn_id}/admin-session/kaji-token
 GET /api/connections/{conn_id}/admin-session/whoami
 GET /api/connections/{conn_id}/backup-jobs
 GET /api/connections/{conn_id}/backup-jobs/{job_id}
@@ -186,6 +187,7 @@ POST /api/connections/{conn_id}/access/users/{userid}/tokens
 POST /api/connections/{conn_id}/acme/accounts
 POST /api/connections/{conn_id}/acme/accounts/{name}/delete
 POST /api/connections/{conn_id}/admin-session
+POST /api/connections/{conn_id}/admin-session/kaji-token
 POST /api/connections/{conn_id}/admin-session/renew
 POST /api/connections/{conn_id}/backup-jobs
 POST /api/connections/{conn_id}/ceph/nodes/{node}/init

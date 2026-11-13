@@ -88,7 +88,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/access.py` — Accès Proxmox (lecture seule) : utilisateurs, groupes, rôles,… — GET /access/users; GET /access/groups; GET /access/roles; GET /access/acl (+3)
 - `backend/app/routers/acl_write.py` — Écrire une entrée d'ACL (ajouter ou retirer), avec l'identité… — POST /access/acl/preview; PUT /access/acl
 - `backend/app/routers/actions.py` — Actions de contrôle sur les VM/LXC, suivi des tâches Proxmox… — POST //guests/{node}/{gtype}/{vmid}/{action}; GET //tasks/{node}/{upid}; GET //tasks/{node}/{upid}/log; GET /api/audit
-- `backend/app/routers/admin_session.py` — Session administrateur : ouvrir, consulter, renouveler, ferme… — GET /admin-session; POST /admin-session; POST /admin-session/renew; DELETE /admin-session (+1)
+- `backend/app/routers/admin_session.py` — Session administrateur : ouvrir, consulter, renouveler, ferme… — GET /admin-session; POST /admin-session; GET /admin-session/kaji-token; POST /admin-session/kaji-token (+3)
 - `backend/app/routers/aplinfo.py` — Télécharger un modèle de conteneur du catalogue officiel Prox… — POST //nodes/{node}/aplinfo
 - `backend/app/routers/auth.py` —  — GET /api/auth/status; POST /api/auth/setup; POST /api/auth/login; POST /api/auth/logout (+3)
 - `backend/app/routers/backup_jobs.py` — Sauvegardes planifiées (`/cluster/backup`) : lister, voir, cr… — GET /backup-jobs; GET /backup-jobs/{job_id}; POST /backup-jobs; PUT /backup-jobs/{job_id} (+1)

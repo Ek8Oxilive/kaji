@@ -26,3 +26,11 @@ Le token **permanent** de Kaji reste sans `Permissions.Modify` ni `User.Modify` 
 ## À savoir
 - **Transport** : si Kaji est servi en `http` sur le réseau local, le token collé circule en clair. L'interface l'affiche ; le mieux est de servir Kaji en `https` (proxy inverse).
 - **Créer le token** (dans Proxmox, pour l'occasion, puis le supprimer) : un token **sans séparation de privilèges** d'un compte qui a `Permissions.Modify` sur les chemins visés. Plus ces chemins sont étroits (ex. `/pool/kaji-test`), plus le risque est borné ; `can_modify_permissions` et `modify_paths` montrent ce que le token peut réellement.
+
+## Option : ouvrir la session avec le token permanent de Kaji (décision d'Enzo, 2026-11-13)
+
+Raisonnement du propriétaire : Kaji remplace l'interface de Proxmox ; s'il est compromis, c'est aussi grave que si Proxmox l'était. La protection se joue donc sur l'accès à Kaji (`KAJI_SETUP_TOKEN`, HTTPS, épinglage du certificat, verrous d'écriture), pas sur un token au rabais.
+
+- **Désactivée par défaut.** Activation : `KAJI_ADMIN_USE_KAJI_TOKEN=true` dans le `.env` de Kaji + redémarrage, **et** le propriétaire donne lui-même les droits d'administration au token de Kaji dans Proxmox (aucun agent ne le fait).
+- `GET …/admin-session/kaji-token` : `{ "allowed": bool }`. `POST …/admin-session/kaji-token` : ouvre la session (30 min, mêmes prolongations, même âge maximal) avec le token de la connexion ; vérifié auprès de Proxmox (`/access/permissions`) avant d'être gardé ; 403 si l'option est désactivée ; audit `admin-session-open` « token permanent de Kaji (option activée) », jamais le secret.
+- Les verrous des écritures (identifiant retapé, `COUPURE POSSIBLE`, `dry_run`, comptes protégés) ne changent pas. Bouton « Ouvrir avec le jeton de Kaji » de la page « Accès » (visible seulement si l'option est activée).
