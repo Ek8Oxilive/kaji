@@ -5,6 +5,7 @@ DELETE /api/connections/{conn_id}/access/tfa/{userid}/{entry}
 DELETE /api/connections/{conn_id}/access/users/{userid}
 DELETE /api/connections/{conn_id}/access/users/{userid}/tokens/{tokenid}
 DELETE /api/connections/{conn_id}/admin-session
+DELETE /api/connections/{conn_id}/alerts/rules/{rid}
 DELETE /api/connections/{conn_id}/backup-jobs/{job_id}
 DELETE /api/connections/{conn_id}/ceph/nodes/{node}/managers/{mgr}
 DELETE /api/connections/{conn_id}/ceph/nodes/{node}/mds/{mds}
@@ -74,6 +75,8 @@ GET /api/connections/{conn_id}/access/users/{userid}/tokens
 GET /api/connections/{conn_id}/admin-session
 GET /api/connections/{conn_id}/admin-session/kaji-token
 GET /api/connections/{conn_id}/admin-session/whoami
+GET /api/connections/{conn_id}/alerts/events
+GET /api/connections/{conn_id}/alerts/rules
 GET /api/connections/{conn_id}/backup-jobs
 GET /api/connections/{conn_id}/backup-jobs/{job_id}
 GET /api/connections/{conn_id}/ceph/config
@@ -198,6 +201,8 @@ POST /api/connections/{conn_id}/admin-session
 POST /api/connections/{conn_id}/admin-session/kaji-token
 POST /api/connections/{conn_id}/admin-session/renew
 POST /api/connections/{conn_id}/admin-session/ticket
+POST /api/connections/{conn_id}/alerts/rules
+POST /api/connections/{conn_id}/alerts/rules/{rid}/test
 POST /api/connections/{conn_id}/backup-jobs
 POST /api/connections/{conn_id}/ceph/nodes/{node}/init
 POST /api/connections/{conn_id}/ceph/nodes/{node}/managers
@@ -307,6 +312,7 @@ PUT /api/connections/{conn_id}/access/realms/{realm}
 PUT /api/connections/{conn_id}/access/tfa/{userid}/{entry}
 PUT /api/connections/{conn_id}/access/users/{userid}
 PUT /api/connections/{conn_id}/access/users/{userid}/groups
+PUT /api/connections/{conn_id}/alerts/rules/{rid}
 PUT /api/connections/{conn_id}/backup-jobs/{job_id}
 PUT /api/connections/{conn_id}/ceph/pools/{pool}
 PUT /api/connections/{conn_id}/datacenter/options

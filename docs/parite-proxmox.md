@@ -127,6 +127,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Journal du cluster (Datacenter → Journal du cluster) | 🟡 (lecture seule, section en bas de la page « Tâches », filtres gravité / nœud / texte, `docs/api/journal-cluster.md` ; format réel à vérifier) | M13 |
 | Utilisateurs de Kaji avec des rôles (administrateur, opérateur, lecture seule) | 🟡 (propre à Kaji, absent de Proxmox : politique appliquée par le serveur, gestion dans le dialogue Compte, migration n° 3, `docs/api/roles-kaji.md` ; pas essayé en réel) | M6 |
 | Actions planifiées (démarrer, éteindre, redémarrer, snapshot à heure fixe) | 🟡 (propre à Kaji, absent de Proxmox : planificateur côté Kaji, `docs/api/actions-planifiees.md` ; pas essayé en réel) | M13 |
+| Alertes (CPU, RAM, stockage, nœud hors ligne, tâche en échec) avec webhook | 🟡 (propre à Kaji, absent de Proxmox : règles, historique, webhook chiffré en écriture seule, `docs/api/alertes.md` ; pas essayé en réel ; pas d'e-mail) | M13 |
 | Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (page « Tâches », tiroir de journal et **barre permanente** repliable en bas de chaque page, `docs/api/barre-de-taches.md` ; arrêter une tâche en cours : validé en réel le 2026-11-12 (liste blanche de types, `docs/api/taches.md`)) | M13 |
 | Recherche globale | ✅ (palette Ctrl+K, validée en réel) | M3 |
 | Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type, **stockage** (lot #252, `docs/api/vue-par-stockage.md`)) | M13 |

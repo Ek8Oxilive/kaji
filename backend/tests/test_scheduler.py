@@ -176,6 +176,31 @@ def test_the_loop_runs_the_engine_survives_errors_and_stops_when_cancelled(env, 
     assert calls["n"] >= 3
 
 
+def test_the_loop_also_evaluates_alerts_and_an_alert_error_does_not_stop_scheduling(env, monkeypatch):
+    import app.alerts as al
+    import app.scheduler as sch
+    seen = {"alerts": 0, "due": 0}
+
+    async def fake_evaluate(db, factory_, now=None, notifier=None):
+        seen["alerts"] += 1
+        raise RuntimeError("boum")
+
+    async def fake_run_due(db, factory_, now=None):
+        seen["due"] += 1
+
+    monkeypatch.setattr(al, "evaluate", fake_evaluate)
+    monkeypatch.setattr(sch, "run_due", fake_run_due)
+
+    async def go():
+        task = asyncio.create_task(sch.loop(factory, lambda: Session(get_engine()), interval=0.01, alerts_every=0.03))
+        await asyncio.sleep(0.2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    asyncio.run(go())
+    assert seen["alerts"] >= 2 and seen["due"] >= seen["alerts"]                        # les alertes tournent moins souvent que le planificateur, et leur erreur ne l'arrête pas
+
+
 def test_the_scheduler_is_off_during_tests(client):
     from app.config import get_settings
     assert get_settings().kaji_scheduler is False

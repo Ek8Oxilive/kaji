@@ -6,6 +6,7 @@ une erreur d'une planification n'empêche pas les autres ; chaque exécution est
 """
 import asyncio
 import logging
+import time
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -75,8 +76,11 @@ async def run_due(db: Session, factory: Factory, now_utc: datetime | None = None
     return done
 
 
-async def loop(factory: Factory, session_factory, interval: float = 20.0) -> None:
-    """Réveille le planificateur toutes les `interval` secondes (la minute est dédoublonnée par `last_key`)."""
+async def loop(factory: Factory, session_factory, interval: float = 20.0, alerts_every: float = 60.0) -> None:
+    """Réveille le planificateur toutes les `interval` secondes (la minute est dédoublonnée par `last_key`) et évalue les alertes toutes les `alerts_every` secondes
+    (lot #413). Une erreur de l'un n'empêche jamais l'autre ni la boucle."""
+    from . import alerts
+    last_alerts = -alerts_every                                 # première évaluation tout de suite
     while True:
         try:
             with session_factory() as db:
@@ -85,4 +89,13 @@ async def loop(factory: Factory, session_factory, interval: float = 20.0) -> Non
             raise
         except Exception:                                       # jamais de plantage de la boucle
             log.exception("planificateur")
+        if time.monotonic() - last_alerts >= alerts_every:
+            last_alerts = time.monotonic()
+            try:
+                with session_factory() as db:
+                    await alerts.evaluate(db, factory)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("alertes")
         await asyncio.sleep(interval)
