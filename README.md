@@ -262,7 +262,7 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 ![Onglet Moniteur d'une VM](docs/captures/vm-moniteur.jpg)
 
-*Onglet **Moniteur** (VM en marche) : commandes `info …` de QEMU en lecture seule, choisies dans une liste (jamais de commande libre). Proxmox 9 refuse ces commandes au jeton de Kaji (403, message explicatif) : l'onglet affiche donc aussi **la commande à copier** (`echo '…' | qm monitor <id>` ou `qm monitor <id>`) à coller dans la console du nœud.*
+*Onglet **Moniteur** (VM en marche) : commandes `info …` de QEMU en lecture seule, choisies dans une liste (jamais de commande libre). Proxmox 9 refuse ces commandes au jeton de Kaji (403, message explicatif) : l'onglet affiche donc aussi **les commandes à copier** : `qm monitor <id>` (ouvre le moniteur dans la console du nœud) puis la commande choisie à taper dedans.*
 
 ![Options d'une VM : clavier et redémarrage](docs/captures/vm-options-clavier-reboot.jpg)
 
