@@ -16,7 +16,7 @@
 | Revue | **aucune relecture ni test d'intrusion par un tiers** |
 | Livraison | pas de versions étiquetées ni de journal des changements ; images de base désignées par étiquette |
 
-## Décision à prendre en premier : quelle identité côté Proxmox ?
+## Décision d'identité côté Proxmox (**retenue par Enzo le 2026-11-14 : option A, avec garde-fous**)
 C'est ce qui engage l'architecture et ce qu'une entreprise remarque d'abord : *qui a fait quoi ?*
 
 | Option | Principe | Pour | Contre |
@@ -25,7 +25,13 @@ C'est ce qui engage l'architecture et ce qu'une entreprise remarque d'abord : *q
 | **B. Ticket par session (mot de passe)** | La personne se connecte à Kaji avec son compte Proxmox ; Kaji obtient un ticket Proxmox temporaire | **Aucun secret stocké**, identité réelle, double authentification gérée | Le ticket expire (~2 h), mot de passe à retaper, pas de tâche planifiée ni d'alerte sans personne connectée |
 | **C. Statu quo (jeton partagé) + audit Kaji** | Un jeton limité, rôles de Kaji, journal de Kaji exporté | Simple, déjà fait | Les droits réels sont ceux du jeton, pas ceux de la personne ; journal Proxmox anonyme |
 
-**Recommandation (à valider par Enzo)** : **hybride B + C** pour les actions interactives et **jeton dédié limité** pour les tâches de fond (planificateur, alertes). **A** en second temps si une entreprise le demande. Raison : B évite de multiplier les secrets, et l'architecture de la session administrateur par ticket existe déjà (`docs/api/admin-session.md`, mot de passe jamais gardé).
+**Décision (Enzo, 2026-11-14)** : **option A** pour tout ce que la personne fait à la main, complétée par :
+1. **Chaque jeton avec date d'expiration et séparation de privilèges** (le jeton n'a que les droits qu'on lui donne, pas ceux du compte).
+2. **Un jeton de service limité** pour le planificateur et les alertes (personne n'est connecté) : jamais `Administrator`, uniquement les droits que ces fonctions exigent (`docs/api/acces.md`).
+3. **La session par mot de passe** (ticket, mot de passe jamais gardé : `docs/api/admin-session.md`) seulement pour les rares opérations que Proxmox interdit aux jetons (`allowtoken: 0` : écriture de la double authentification).
+4. **Chiffrement renforcé des jetons** : clé **séparée** des données, rotation documentée, et **test explicite que la base seule ne suffit pas à les lire**.
+
+**Risque accepté et à surveiller** : Kaji garde alors **tous** les jetons des utilisateurs (chiffrés) : qui obtient la base ET la clé les obtient tous. D'où les points 1 et 4, et le fait que les jetons soient à privilèges séparés et expirables. Kaji pourra aider l'administrateur à créer ces jetons (session administrateur, secret affiché une seule fois, comme l'écran des jetons de la page « Accès »).
 
 ## Jalons
 
@@ -39,12 +45,12 @@ Public : un collègue, un lab d'entreprise.
 - **Critères de sortie** : installation réussie par un tiers en suivant le guide seul ; restauration validée ; aucun secret dans les journaux (test existant) ; CI verte.
 
 ### J2. Pilote en entreprise (équipe réduite, réseau interne) : taille L
-- **Décision d'identité** ci-dessus, puis implémentation de la première option retenue.
+- **Identité par utilisateur (option A retenue)** : jeton Proxmox par utilisateur de Kaji (chiffré, clé séparée, expiration, privilèges séparés), **jeton de service limité** pour le planificateur et les alertes, **session par mot de passe** pour les opérations interdites aux jetons ; création assistée des jetons par l'administrateur.
 - **Connexion à Kaji d'entreprise** : OIDC (SSO) et/ou LDAP / AD ; **double authentification (TOTP) pour se connecter à Kaji** (aujourd'hui seulement pour les comptes Proxmox).
 - **Audit exportable** : syslog / fichier JSON horodaté, conservation configurable, jamais de secret.
 - **Limiteur de connexions persistant** (il est en mémoire : remis à zéro au redémarrage).
 - **Rôles par périmètre** (par pool ou par groupe de machines), en plus des 3 rôles actuels.
-- **Critères de sortie** : une personne se connecte par le SSO de l'entreprise ; une action est attribuée à son nom côté Kaji (et côté Proxmox selon l'option) ; l'audit arrive dans le SIEM de test ; un compte à rôle restreint ne peut pas sortir de son périmètre (test automatisé + essai réel).
+- **Critères de sortie** : une personne se connecte par le SSO de l'entreprise ; une action est attribuée à son nom **côté Kaji ET côté Proxmox** (journal de Proxmox relu en réel) ; **la base de Kaji seule ne permet pas de lire un jeton** (test automatisé) ; le planificateur tourne avec un jeton de service qui n'a que ses droits (refus constaté pour le reste) ; l'audit arrive dans le SIEM de test ; un compte à rôle restreint ne peut pas sortir de son périmètre (test automatisé + essai réel).
 
 ### J3. Pré-production (validation indépendante) : taille L, dépend de tiers
 - **Relecture de sécurité par une personne tierce** (authentification, rôles, sessions, consoles, chiffrement des secrets) et **test d'intrusion**.
@@ -64,7 +70,7 @@ Public : un collègue, un lab d'entreprise.
 | Jalon | Agent (PC A ou B) | Enzo | Tiers |
 |---|---|---|---|
 | J1 | guide, `SECURITY.md`, changelog, épinglage des images, test de restauration | choisir le nom des versions, publier | **installer depuis zéro** |
-| J2 | tout le code (SSO, TOTP, audit, rôles) une fois l'option d'identité choisie | **choisir l'option d'identité** ; fournir un IdP de test (Keycloak, Entra, etc.) | |
+| J2 | tout le code (identité par utilisateur, jeton de service, SSO, TOTP, audit, rôles) | ~~choisir l'option d'identité~~ **fait : option A** ; fournir un IdP de test (Keycloak, Entra, etc.) ; créer les comptes et jetons de test dans Proxmox | |
 | J3 | corrections, tests de non-régression | fournir des clusters (ZFS, Ceph, PBS) | **relecture + test d'intrusion** |
 | J4 | SBOM, signature, runbook | décision de passer en « stable » | exploitant non initié |
 
@@ -75,6 +81,6 @@ Public : un collègue, un lab d'entreprise.
 - **Charge de relecture** : une seule personne code et relit ; J3 existe pour corriger cela.
 
 ## Première étape proposée
-1. Enzo tranche l'option d'identité (recommandation : hybride B + C).
-2. Tickets J1 (GitHub, milestone « J1 lab partageable »), puis J2, J3, J4.
+1. ~~Enzo tranche l'option d'identité~~ **fait le 2026-11-14 : option A avec garde-fous.**
+2. Tickets et jalons GitHub (« J1 lab partageable » à « J4 production »).
 3. On commence par le guide d'installation en lab, parce qu'il révèle tout de suite ce qui manque à une installation neuve.
