@@ -119,6 +119,13 @@ def _handler(request: httpx.Request) -> httpx.Response:
     cfg = {k: (conv(k, v) if k != "dhcp-range" else v) for k, v in body.items() if (k not in (idkey, "delete", "digest", "type") and not (store == "subnets" and k == "vnet")) or (k == "type" and store == "zones")}
     if m == "POST":
         i = body[idkey]
+        if store == "subnets":
+            # constaté en réel (Proxmox 9, 2026-11-13) : l'identifiant `zone-adresse-préfixe` envoyé à la création est REFUSÉ (« Parameter verification failed ») ;
+            # le réseau se donne en CIDR et Proxmox fabrique l'identifiant
+            if "/" not in i:
+                return httpx.Response(500, json={"data": None}, extensions={"reason_phrase": b"create sdn subnet object failed: 400 Parameter verification failed."})
+            ip, plen = i.split("/")
+            i = f"{ST['pend']['vnets'][vnet]['zone']}-{ip}-{plen}"
         if i in pend:
             return httpx.Response(400, json={"data": None, "message": "exists"})
         if store == "subnets":
@@ -167,7 +174,18 @@ def test_subnet_creation_sends_vnet_in_the_body(api):
     call(c, cid, "POST", "/vnets", vnet="v1", zone="z1")
     assert call(c, cid, "POST", "/vnets/v1/subnets", subnet="10.99.0.0/24", gateway="10.99.0.1").status_code == 200
     body = WRITES[-1][2]
-    assert body["vnet"] == "v1" and body["subnet"] == "z1-10.99.0.0-24" and body["type"] == "subnet"
+    # le réseau part en CIDR (pas l'identifiant `zone-adresse-préfixe`, refusé en réel) ; Proxmox fabrique l'identifiant
+    assert body["vnet"] == "v1" and body["subnet"] == "10.99.0.0/24" and body["type"] == "subnet"
+    assert c.get(B.format(cid) + "/vnets/v1/subnets").json()[0]["subnet"] == "z1-10.99.0.0-24"
+
+
+def test_subnet_creation_sends_canonical_cidr(api):
+    c, cid = api
+    mkzone(c, cid)
+    call(c, cid, "POST", "/vnets", vnet="v1", zone="z1")
+    assert call(c, cid, "POST", "/vnets/v1/subnets", subnet="10.99.0.0/24").status_code == 200
+    assert WRITES[-1][2]["subnet"] == "10.99.0.0/24"
+    assert call(c, cid, "POST", "/vnets/v1/subnets", subnet="10.99.1.5/24").status_code == 422        # bits d'hôte : refusé avant tout envoi
 
 
 def test_subnets_of_unknown_vnet_is_404_not_502(api):
