@@ -84,6 +84,7 @@ GET /api/connections/{conn_id}/ceph/pools
 GET /api/connections/{conn_id}/ceph/rules
 GET /api/connections/{conn_id}/ceph/status
 GET /api/connections/{conn_id}/cluster/config
+GET /api/connections/{conn_id}/cluster/log
 GET /api/connections/{conn_id}/cluster/status
 GET /api/connections/{conn_id}/datacenter/options
 GET /api/connections/{conn_id}/events
