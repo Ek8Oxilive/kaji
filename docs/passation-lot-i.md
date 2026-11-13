@@ -15,7 +15,7 @@ Ordre conseillé :
 3. **C, relais SMTP** (30 min) : **d'abord choisir le fournisseur** (OVH ou SMTP Proton). Option 1 recommandée : relais Postfix sur `enzo` puis `enzo2`. **Ne jamais vider la file d'attente** (6 anciens messages) : c'est à Enzo de décider. Le test d'envoi de la cible `kaji-test` est un **vrai message** : seulement avec l'accord explicite d'Enzo sur l'adresse.
 4. **D, HTTPS Caddy** (20 min, facultatif, **en dernier**) : **sauvegarde du CT 116 avant** (Proxmox → 116 → Sauvegarde → « Sauvegarder maintenant »), car c'est la seule étape qui peut couper l'accès à Kaji. Accès de secours : interface Proxmox → `enzo` → 116 → Console. Jamais testé en réel (`docs/deploiement.md`).
 
-**État au 2026-11-13, 22h30 : A, B et C sont FAITS** (voir la ligne « V1 : étapes A, B et C faites » de `docs/REPRISE.md`). Il ne reste que **D (HTTPS, facultatif)**.
+**État au 2026-11-13, soir : A, B, C et D sont FAITS** (lignes « V1 : étapes … » de `docs/REPRISE.md`). Kaji est en `https://192.168.1.214`. **Redéployer avec les deux fichiers compose.**
 
 ## Comment vérifier en lecture seule (sans jamais lire un secret)
 - **Navigateur** : extension Claude in Chrome sur `http://192.168.1.214:8080` (VPN ; Enzo est déjà connecté à Kaji). Si l'extension est « non connectée », demander à Enzo de la reconnecter.
