@@ -155,6 +155,32 @@ def test_time_zone_matters(env):
     assert run() == [] and run(datetime(2026, 11, 16, 7, 30, tzinfo=timezone.utc))[0]["id"] == sid
 
 
+def test_the_loop_runs_the_engine_survives_errors_and_stops_when_cancelled(env, monkeypatch):
+    import app.scheduler as sch
+    calls = {"n": 0}
+
+    async def fake_run_due(db, factory, now=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("boum")                                          # une erreur ne tue pas la boucle
+
+    monkeypatch.setattr(sch, "run_due", fake_run_due)
+
+    async def go():
+        task = asyncio.create_task(sch.loop(factory, lambda: Session(get_engine()), interval=0.01))
+        await asyncio.sleep(0.15)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    asyncio.run(go())
+    assert calls["n"] >= 3
+
+
+def test_the_scheduler_is_off_during_tests(client):
+    from app.config import get_settings
+    assert get_settings().kaji_scheduler is False
+
+
 def test_the_slot_is_remembered_before_acting(env):
     """Même si l'action plante, la minute est mémorisée : pas de rejeu au tour suivant."""
     sid = add(env)

@@ -50,6 +50,21 @@ class ScheduleBody(BaseModel):
     confirm: StrictBool = False                                           # exigé pour `stop` (arrêt forcé) et `reboot` répétés : coupure sans arrêt propre
 
 
+def next_run(days: list[int], hhmm: str, tz: str, now_utc: datetime) -> datetime | None:
+    """Prochaine exécution (UTC) dans les 8 jours à venir, ou None. Une heure qui n'existe pas (changement d'heure) est sautée, comme à l'exécution."""
+    from datetime import timedelta, timezone
+    zone = ZoneInfo(tz)
+    local_now = now_utc.astimezone(zone)
+    h, m = int(hhmm[:2]), int(hhmm[3:])
+    for offset in range(0, 9):
+        day = (local_now + timedelta(days=offset)).date()
+        cand = datetime(day.year, day.month, day.day, h, m, tzinfo=zone)
+        utc = cand.astimezone(timezone.utc)
+        if cand.weekday() in days and utc > now_utc and utc.astimezone(zone).strftime("%H:%M") == hhmm:      # le second test écarte une heure inexistante
+            return utc
+    return None
+
+
 def is_due(days: list[int], hhmm: str, tz: str, now_utc: datetime, last_run_key: str | None) -> tuple[bool, str]:
     """`(due, clé)` : due si, dans le fuseau, le jour de semaine et la minute correspondent ET que cette minute n'a pas déjà été exécutée.
     La clé (`AAAA-MM-JJ HH:MM` locale) est à mémoriser pour ne pas rejouer la même minute."""

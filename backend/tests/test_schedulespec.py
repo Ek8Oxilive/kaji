@@ -52,6 +52,19 @@ def test_the_same_minute_is_never_replayed():
     assert S.is_due([0], "07:30", "UTC", utc(2026, 11, 23, 7, 30), key)[0] is True                       # la semaine suivante, oui
 
 
+def test_next_run_is_the_next_matching_slot_in_utc():
+    # dimanche 2026-11-15 12:00 UTC ; prochain lundi 07:30 à Paris = 06:30 UTC le 16
+    assert S.next_run([0], "07:30", "Europe/Paris", utc(2026, 11, 15, 12, 0)) == utc(2026, 11, 16, 6, 30)
+    assert S.next_run([0], "07:30", "Europe/Paris", utc(2026, 11, 16, 6, 30)) == utc(2026, 11, 23, 6, 30)       # le créneau en cours n'est pas « à venir »
+    assert S.next_run([0], "07:30", "Europe/Paris", utc(2026, 11, 16, 6, 29)) == utc(2026, 11, 16, 6, 30)
+    assert S.next_run([0, 3], "07:30", "UTC", utc(2026, 11, 16, 8, 0)) == utc(2026, 11, 19, 7, 30)               # jeudi
+
+
+def test_next_run_skips_the_hour_that_does_not_exist():
+    # dimanche 29 mars 2026 à Paris : 02:30 n'existe pas ; le prochain dimanche 02:30 est le 5 avril
+    assert S.next_run([6], "02:30", "Europe/Paris", utc(2026, 3, 28, 12, 0)) == utc(2026, 4, 5, 0, 30)
+
+
 def test_daylight_saving_change_day():
     # passage à l'heure d'été 2026 à Paris : dimanche 29 mars, 02:00 -> 03:00 ; 02:30 n'existe pas ce jour-là (jamais exécuté), 03:30 existe
     assert S.is_due([6], "02:30", "Europe/Paris", utc(2026, 3, 29, 1, 30), None)[0] is False
