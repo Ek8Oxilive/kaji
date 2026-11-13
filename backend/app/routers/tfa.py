@@ -18,7 +18,7 @@ from ..tfaspec import ENTRY_ID, PHRASE, USERID, TfaAdd, TfaUpdate, TotpSetup, ad
 from ..userwrite import protected_reason
 from .admin_session import admin_call, require_admin
 from .auth import current_user
-from .cluster import Factory, _px
+from .cluster import FORBIDDEN_DETAIL, Factory, _px
 from .connections import _get_or_404
 
 router = APIRouter(prefix="/api/connections/{conn_id}/access/tfa", tags=["tfa"])
@@ -50,10 +50,17 @@ class Ctx:
                         f"Renvoie la requête avec acknowledge_cut_access=true et phrase=\"{PHRASE}\"", status.HTTP_409_CONFLICT)
 
 
+TOKEN_FORBIDDEN = ("Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : "
+                   "il faut une session par ticket (connexion par mot de passe), que Kaji ne gère pas. À faire dans l'interface de Proxmox ou avec pvesh en root")
+
+
 async def _call(c: Ctx, db, factory, conn_id, s, method, path, **params):
     try:
         return await admin_call(db, factory, conn_id, s, method, path, **params)
     except HTTPException as e:
+        if e.detail == FORBIDDEN_DETAIL and method != "get":     # constaté en réel le 2026-11-13 : refus même avec le rôle Administrator (Kaji traduit le 403 de Proxmox)
+            c.log("error", TOKEN_FORBIDDEN)
+            raise HTTPException(status.HTTP_403_FORBIDDEN, TOKEN_FORBIDDEN) from None
         c.log("error", str(e.detail))
         raise
 
