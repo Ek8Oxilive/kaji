@@ -396,3 +396,5 @@ def test_proxmox_error_is_passed_on_without_leaking_its_message(api):
     ST["fail"] = True
     r = add_totp(c, cid)
     assert r.status_code in (403, 502) and no_secret(r.text, audit_text(c))
+    # constaté en réel (2026-11-13) : Proxmox refuse la TFA aux jetons d'API (allowtoken=0) même avec le rôle Administrator ; Kaji le dit
+    assert r.status_code == 403 and "allowtoken=0" in r.json()["detail"] and "allowtoken=0" in audit_text(c)
