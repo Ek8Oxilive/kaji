@@ -15,7 +15,7 @@ ISO = re.compile(r"^[A-Za-z0-9_.\-]+:iso/[A-Za-z0-9_.+\- ]+\.iso$")
 SIZE = re.compile(r"^(\d+(?:\.\d+)?)([KMGT]?)$")
 
 QEMU_SETTINGS = ("name", "memory", "balloon", "cores", "sockets", "vcpus", "cpu", "numa", "bios", "machine",
-                 "ostype", "boot", "agent", "onboot", "scsihw")
+                 "ostype", "boot", "agent", "onboot", "scsihw", "cpuunits", "cpulimit", "affinity", "hugepages")
 LXC_SETTINGS = ("hostname", "memory", "swap", "cores", "cpulimit", "cpuunits", "ostype", "onboot", "unprivileged")
 
 
@@ -43,7 +43,10 @@ def parse_net(key: str, value: str, lxc: bool) -> dict:
         mac = opts.get("hwaddr")
     return {"key": key, "model": model, "mac": mac, "bridge": opts.get("bridge"),
             "tag": int(opts["tag"]) if opts.get("tag", "").isdigit() else None,
-            "firewall": opts.get("firewall") == "1", "name": opts.get("name"), "ip": opts.get("ip"), "_raw": value}
+            "firewall": opts.get("firewall") == "1", "name": opts.get("name"), "ip": opts.get("ip"), "_raw": value,
+            "rate": opts.get("rate"), "mtu": int(opts["mtu"]) if opts.get("mtu", "").isdigit() else None,
+            "queues": int(opts["queues"]) if opts.get("queues", "").isdigit() else None, "link_down": opts.get("link_down") == "1",
+            "trunks": [t for t in opts.get("trunks", "").split(";") if t]}
 
 
 def rebuild_net(raw: str, lxc: bool, *, bridge: str | None = None, tag: int | None | bool = False,
