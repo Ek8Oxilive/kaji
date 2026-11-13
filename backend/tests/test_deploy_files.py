@@ -48,6 +48,13 @@ def test_caddy_waits_for_nginx_and_mounts_the_config_read_only():
     assert "./deploy/Caddyfile:/etc/caddy/Caddyfile:ro" in TLS and "./deploy/realip.conf:/etc/nginx/conf.d/realip.conf:ro" in TLS
 
 
+def test_caddy_has_a_default_sni_so_that_an_ip_address_works():
+    """Constaté en réel (2026-11-13) : ouvert par une adresse IP, le navigateur n'envoie pas de SNI et Caddy (dans Docker) ne trouvait aucun certificat."""
+    assert re.search(r"^\s*default_sni \{\$KAJI_TLS_HOST\}$", CADDY, re.M)
+    assert re.search(r"^\s*KAJI_TLS_HOST: \$\{KAJI_TLS_HOST:-localhost\}", TLS, re.M)
+    assert "KAJI_TLS_HOST" in ENV
+
+
 def test_env_example_documents_the_new_settings_and_keeps_the_safe_defaults():
     for name in ("KAJI_SETUP_TOKEN", "KAJI_TLS_SITE", "KAJI_TLS_PORT"):
         assert name in ENV

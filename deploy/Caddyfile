@@ -1,7 +1,11 @@
 # Caddy devant Kaji : termine le TLS (autorité interne de Caddy, `tls internal`) et relaie vers nginx (service « web »).
 # KAJI_TLS_SITE : adresse par laquelle tu ouvres Kaji, avec le port (ex. 192.168.1.214:8443 ou kaji.lan:8443).
+# KAJI_TLS_HOST : la même adresse SANS le port (ex. 192.168.1.214 ou kaji.lan).
 {
 	admin off
+	# Un navigateur n'envoie pas de nom (SNI) quand on ouvre Kaji par une ADRESSE IP, et dans Docker Caddy voit l'adresse interne du conteneur :
+	# sans nom par défaut il ne trouve aucun certificat (ERR_SSL_PROTOCOL_ERROR, constaté en réel le 2026-11-13).
+	default_sni {$KAJI_TLS_HOST}
 }
 
 {$KAJI_TLS_SITE} {
