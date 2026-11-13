@@ -97,7 +97,7 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
           <span className={fetching ? "inline-block animate-spin" : ""}>↻</span>{" "}{tr("Actualiser")}</Button>
       </header>
 
-      <Notice kind="ok">{tr("Lecture seule : cette page n'écrit encore aucun droit dans Proxmox. La session administrateur ci-dessous est le socle des prochaines écritures ; en attendant, les droits se gèrent dans l'interface de Proxmox.")}</Notice>
+      <Notice kind="ok">{tr("Cette page lit les droits de Kaji. Pour écrire des droits, des utilisateurs ou la double authentification, ouvre une session administrateur ci-dessous (30 minutes, en mémoire) : avec un jeton collé, avec le jeton de Kaji (si l'option est activée) ou avec un mot de passe.")}</Notice>
 
       <AdminSessionPanel connId={id} />
 

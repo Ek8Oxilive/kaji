@@ -89,7 +89,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
           <p className="text-sm text-muted">
             {active && s && s.active
               ? <>{tr("Session ouverte avec")}{" "}<code>{s.kind === "ticket" ? s.user : `${s.user}!${s.token_id}`}</code>{s.kind === "ticket" ? <>{" "}{tr("(mot de passe)")}</> : null}{" "}{tr("· il reste")}{" "}<b className={left < 120 ? "text-warn" : ""}>{clock(left)}</b></>
-              : tr("Fermé. Le token permanent de Kaji ne peut pas modifier les droits : l'écriture des droits passera par une session temporaire.")}
+              : tr("Fermé. Les écritures de droits, d'utilisateurs et de double authentification passent par une session administrateur temporaire.")}
           </p>
         </div>
         <div className="flex gap-2">

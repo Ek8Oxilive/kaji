@@ -2,8 +2,7 @@
 
 Préfixe : `/api/connections/{id}/admin-session`. **Cette fonction n'écrit aucun droit.** Elle garde en mémoire, le temps d'une session, un token
 d'administration collé par le propriétaire, pour que les futurs lots d'écriture (utilisateurs, ACL, tokens) puissent agir avec cette identité.
-Le token **permanent** de Kaji reste sans `Permissions.Modify` ni `User.Modify` : un Kaji compromis au repos ne peut pas se donner de droits
-(voir `docs/m6-ecriture.md`, décisions du propriétaire : option D, token collé, 30 minutes).
+À l'origine, le token **permanent** de Kaji restait sans `Permissions.Modify` ni `User.Modify` (un Kaji compromis au repos ne pouvait pas se donner de droits ; `docs/m6-ecriture.md`, option D, token collé, 30 minutes). **Depuis le 2026-11-13 il y a trois façons d'ouvrir la session** : un token collé (ci-dessous), le token de Kaji lui-même si le propriétaire lui a donné les droits et activé `KAJI_ADMIN_USE_KAJI_TOKEN` (section « Option » plus bas), ou le mot de passe d'un compte (section « Session par ticket », seule façon d'écrire la double authentification). Les écritures de droits, d'utilisateurs, de realms et de double authentification existent (voir `docs/api/`).
 
 | Route | Rôle |
 |---|---|

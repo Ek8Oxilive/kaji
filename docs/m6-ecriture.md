@@ -1,6 +1,8 @@
 # M6 : cadrage de l'écriture (utilisateurs, rôles, droits, tokens)
 
-**Statut : cadrage, aucun code.** La lecture seule est livrée (page « Accès », `docs/api/acces.md`). Ce document dit si et
+> **Mise à jour du 2026-11-13 : cette note est l'analyse de départ, la décision du propriétaire l'a dépassée.** Enzo a choisi que Kaji (qui remplace l'interface de Proxmox) puisse disposer des droits d'administration : le jeton de Kaji a reçu le rôle `Administrator`, et l'option `KAJI_ADMIN_USE_KAJI_TOKEN` (désactivée par défaut) ouvre la session administrateur d'un clic avec ce jeton. Les trois façons d'ouvrir la session sont décrites dans `docs/api/admin-session.md` ; le risque correspondant est la ligne « Moyenne » de `docs/securite.md`. Les verrous d'écriture décrits plus bas restent valables.
+
+**Statut (revu le 2026-11-13) : cadrage de départ ; l'écriture est LIVRÉE** (session administrateur, ACL, utilisateurs, groupes, jetons API, realms, double authentification : `docs/api/admin-session.md`, `acl-ecriture.md`, `utilisateurs-ecriture.md`, `tokens-ecriture.md`, `realms.md`, `tfa.md`), validée en réel seulement en partie (voir `docs/statut-fonctions.md`). La lecture seule est livrée (page « Accès », `docs/api/acces.md`). Ce document dit si et
 comment Kaji devrait **écrire** des droits dans Proxmox, avant d'en écrire une ligne. Il se termine par les décisions
 qu'il faut prendre.
 
