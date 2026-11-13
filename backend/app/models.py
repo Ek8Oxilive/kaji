@@ -75,3 +75,38 @@ class UserSession(Base):
     user_id: Mapped[int] = mapped_column(Integer, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class AlertRule(Base):
+    """Règle d'alerte (lot #413) : un seuil sur les ressources d'une connexion. Nouvelle table : `create_all` la crée. L'adresse du webhook est chiffrée (elle peut porter un jeton)."""
+
+    __tablename__ = "alert_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conn_id: Mapped[int] = mapped_column(Integer, index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(16))             # cpu, mem, storage, node_offline, task_failed
+    threshold: Mapped[int] = mapped_column(Integer, default=0)
+    minutes: Mapped[int] = mapped_column(Integer, default=5)  # durée pendant laquelle le seuil doit être dépassé avant l'alerte
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    webhook_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cursor: Mapped[int] = mapped_column(Integer, default=0)   # task_failed : fin de la dernière tâche déjà vue (epoch)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class AlertEvent(Base):
+    """État d'une alerte pour un sujet (nœud, stockage…) : pending (seuil dépassé, pas encore assez longtemps), firing, resolved."""
+
+    __tablename__ = "alert_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rule_id: Mapped[int] = mapped_column(Integer, index=True)
+    conn_id: Mapped[int] = mapped_column(Integer, index=True)
+    subject: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(10), index=True)
+    since: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    fired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    value: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
