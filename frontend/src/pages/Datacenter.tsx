@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ClusterSettings } from "../components/ClusterSettings";
+import { WebauthnSettings } from "../components/WebauthnSettings";
 import { MetricsServers } from "../components/MetricsServers";
 import { ResourceMappings } from "../components/ResourceMappings";
 import { NotificationsSection } from "../components/NotificationsSection";
@@ -143,6 +144,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
           </div>
         </section>
         {id !== null && <ClusterSettings connId={id} d={d} />}
+        {id !== null && <WebauthnSettings connId={id} d={d} />}
         <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Notes du datacenter")}</h2>
           <div className="panel space-y-3 p-5">
             <textarea className="field min-h-[10rem] font-mono text-sm" value={notes} onChange={(e) => setNotes(e.target.value)} aria-label={tr("Notes du datacenter")} maxLength={65536} />
