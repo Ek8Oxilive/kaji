@@ -7,6 +7,7 @@ os.environ.setdefault("KAJI_COOKIE_SECURE", "false")
 # toute variable de configuration utilisée par un test est fixée ici explicitement.
 os.environ["KAJI_PROTECTED_VMIDS"] = ""
 os.environ["KAJI_SESSION_HOURS"] = "12"
+os.environ["KAJI_SCHEDULER"] = "false"          # la boucle du planificateur ne tourne jamais pendant les tests (`run_due` est testé directement)
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

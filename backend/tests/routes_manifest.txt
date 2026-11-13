@@ -41,6 +41,7 @@ DELETE /api/connections/{conn_id}/notifications/matchers/{name}
 DELETE /api/connections/{conn_id}/notifications/targets/{typ}/{name}
 DELETE /api/connections/{conn_id}/pools/{poolid}
 DELETE /api/connections/{conn_id}/replication/{job}
+DELETE /api/connections/{conn_id}/schedules/{sid}
 DELETE /api/connections/{conn_id}/sdn/controllers/{controller}
 DELETE /api/connections/{conn_id}/sdn/dns/{dns}
 DELETE /api/connections/{conn_id}/sdn/fabrics/{fabric}
@@ -148,6 +149,7 @@ GET /api/connections/{conn_id}/pools
 GET /api/connections/{conn_id}/pools/overview
 GET /api/connections/{conn_id}/pools/{poolid}
 GET /api/connections/{conn_id}/replication
+GET /api/connections/{conn_id}/schedules
 GET /api/connections/{conn_id}/sdn/controllers
 GET /api/connections/{conn_id}/sdn/dns
 GET /api/connections/{conn_id}/sdn/fabrics
@@ -286,6 +288,7 @@ POST /api/connections/{conn_id}/notifications/targets/{typ}
 POST /api/connections/{conn_id}/pools
 POST /api/connections/{conn_id}/replication
 POST /api/connections/{conn_id}/replication/{job}/now
+POST /api/connections/{conn_id}/schedules
 POST /api/connections/{conn_id}/sdn/apply
 POST /api/connections/{conn_id}/sdn/controllers
 POST /api/connections/{conn_id}/sdn/dns
@@ -341,6 +344,7 @@ PUT /api/connections/{conn_id}/notifications/matchers/{name}
 PUT /api/connections/{conn_id}/notifications/targets/{typ}/{name}
 PUT /api/connections/{conn_id}/pools/{poolid}
 PUT /api/connections/{conn_id}/replication/{job}
+PUT /api/connections/{conn_id}/schedules/{sid}
 PUT /api/connections/{conn_id}/sdn/controllers/{controller}
 PUT /api/connections/{conn_id}/sdn/dns/{dns}
 PUT /api/connections/{conn_id}/sdn/fabrics/{fabric}

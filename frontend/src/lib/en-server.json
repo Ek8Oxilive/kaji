@@ -534,5 +534,13 @@
  "Tu ne peux pas changer ton propre rôle": "You cannot change your own role",
  "Il doit rester au moins un administrateur": "At least one administrator must remain",
  "Tu ne peux pas supprimer ton propre compte": "You cannot delete your own account",
- "Suppression : renvoie la requête avec confirm=true et le nom d'utilisateur retapé": "Deletion: resend the request with confirm=true and the username retyped"
+ "Suppression : renvoie la requête avec confirm=true et le nom d'utilisateur retapé": "Deletion: resend the request with confirm=true and the username retyped",
+ "Jours invalides (0 = lundi à 6 = dimanche, sans doublon)": "Invalid days (0 = Monday to 6 = Sunday, no duplicates)",
+ "Fuseau horaire inconnu (ex. Europe/Paris, UTC)": "Unknown time zone (e.g. Europe/Paris, UTC)",
+ "Machine protégée : aucune action planifiée dessus": "Protected machine: no scheduled action on it",
+ "Arrêt forcé planifié : renvoie la requête avec confirm=true (coupure sans arrêt propre, chaque semaine)": "Scheduled forced stop: resend the request with confirm=true (cut without a clean shutdown, every week)",
+ "Machine introuvable ou illisible chez Proxmox": "Machine not found or unreadable at Proxmox",
+ "Une machine modèle ne se planifie pas": "A template machine cannot be scheduled",
+ "Planification inconnue": "Unknown schedule",
+ "Suppression : renvoie la requête avec confirm=true": "Deletion: resend the request with confirm=true"
 }

@@ -110,3 +110,26 @@ class AlertEvent(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     value: Mapped[int | None] = mapped_column(Integer, nullable=True)
     detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
+class ScheduledAction(Base):
+    """Action planifiée sur une machine (lot #411) : une action de la liste blanche, des jours de semaine, une heure dans un fuseau. Nouvelle table : `create_all` la crée."""
+
+    __tablename__ = "scheduled_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conn_id: Mapped[int] = mapped_column(Integer, index=True)
+    node: Mapped[str] = mapped_column(String(63))
+    gtype: Mapped[str] = mapped_column(String(8))
+    vmid: Mapped[int] = mapped_column(Integer)
+    action: Mapped[str] = mapped_column(String(16))
+    days: Mapped[str] = mapped_column(String(16))             # « 0,1,4 » (0 = lundi)
+    time: Mapped[str] = mapped_column(String(5))              # « HH:MM »
+    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Paris")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    last_key: Mapped[str | None] = mapped_column(String(16), nullable=True)       # minute locale déjà traitée : jamais rejouée
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_status: Mapped[str | None] = mapped_column(String(16), nullable=True)    # ok, skipped, refused, error
+    last_detail: Mapped[str | None] = mapped_column(String(200), nullable=True)

@@ -21,7 +21,16 @@ async def lifespan(app: FastAPI):
     from sqlalchemy.orm import Session
     with Session(get_engine()) as db:
         audit.purge_old(db, get_settings().kaji_audit_retention_days)
+    task = None
+    if get_settings().kaji_scheduler:                                  # planificateur d'actions (lot #411) : une tâche de fond, arrêtée avec l'application
+        import asyncio
+
+        from . import scheduler
+        from .proxmox import ProxmoxClient
+        task = asyncio.create_task(scheduler.loop(ProxmoxClient, lambda: Session(get_engine())))
     yield
+    if task is not None:
+        task.cancel()
 
 
 app = FastAPI(title="Kaji", lifespan=lifespan)
