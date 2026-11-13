@@ -15,13 +15,22 @@ class ProxmoxClient:
 
     def __init__(self, host: str, user: str, token_id: str, token_secret: str,
                  port: int = 8006, verify_ssl: bool = False, pinned_cert: str | None = None,
-                 transport: httpx.AsyncBaseTransport | None = None):
+                 transport: httpx.AsyncBaseTransport | None = None, *, ticket: str | None = None, csrf: str | None = None, anonymous: bool = False):
+        """Authentification : par défaut un jeton d'API. `ticket` + `csrf` : session par ticket (cookie `PVEAuthCookie` + `CSRFPreventionToken`), seule façon
+        d'appeler les routes que Proxmox interdit aux jetons (`allowtoken: 0`, comme l'écriture de la double authentification). `anonymous` : aucune
+        authentification (seulement pour `POST /access/ticket`, qui interdit justement les jetons)."""
         # Certificat épinglé (PEM) : seul lui est accepté (`app/tlspin.py`) ; il prime sur `verify_ssl`.
         self._pin = pinned_cert
-        self._ws = (host, port, verify_ssl, f"PVEAPIToken={user}!{token_id}={token_secret}")
+        if anonymous:
+            auth_headers: dict[str, str] = {}
+        elif ticket is not None:
+            auth_headers = {"Cookie": f"PVEAuthCookie={quote(ticket, safe='')}", **({"CSRFPreventionToken": csrf} if csrf else {})}
+        else:
+            auth_headers = {"Authorization": f"PVEAPIToken={user}!{token_id}={token_secret}"}
+        self._ws = (host, port, verify_ssl, auth_headers.get("Authorization", ""))
         self._client = httpx.AsyncClient(
             base_url=f"https://{host}:{port}/api2/json",
-            headers={"Authorization": f"PVEAPIToken={user}!{token_id}={token_secret}"},
+            headers=auth_headers,
             verify=context_for(pinned_cert) if pinned_cert else verify_ssl,
             timeout=15,
             transport=transport,

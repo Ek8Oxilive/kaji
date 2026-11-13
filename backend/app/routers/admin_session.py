@@ -3,6 +3,7 @@
 Ce fichier n'écrit **aucun droit**. Il garde en mémoire, le temps d'une session, un token d'administration collé par le propriétaire, et fournit
 `require_admin` / `admin_client` aux futurs lots d'écriture. Le secret n'est jamais renvoyé, journalisé ni stocké en base.
 """
+import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -53,7 +54,7 @@ def _status(s: AdminSession | None) -> dict:
     if s is None:
         return {"active": False}
     left = s.seconds_left()
-    return {"active": True, "user": s.user, "token_id": s.token_id, "seconds_left": left, "expires_at": _iso(left), "renewals": s.renewals}
+    return {"active": True, "kind": s.kind, "user": s.user, "token_id": s.token_id, "seconds_left": left, "expires_at": _iso(left), "renewals": s.renewals}
 
 
 def shape_permissions(raw) -> dict:
@@ -80,6 +81,9 @@ class Ctx:
 def admin_client(db: Session, factory: Factory, conn_id: int, s: AdminSession):
     """Client Proxmox qui agit avec l'identité de la session administrateur (à fermer avec `aclose`)."""
     p = _params(_get_or_404(db, conn_id))
+    if s.kind == "ticket" and s.ticket is not None and s.csrf is not None:
+        return factory(host=p["host"], port=p["port"], user=s.user, token_id="", token_secret="", ticket=s.ticket.get_secret_value(), csrf=s.csrf.get_secret_value(),
+                       verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
     return factory(host=p["host"], port=p["port"], user=s.user, token_id=s.token_id, token_secret=s.secret.get_secret_value(),
                    verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
 
@@ -140,7 +144,75 @@ async def open_session(body: OpenBody, conn_id: int, db: Session = Depends(get_d
     return {**_status(s), **shape_permissions(perms)}
 
 
-KAJI_TOKEN_OFF = "Option désactivée : ajoute KAJI_ADMIN_USE_KAJI_TOKEN=true au .env de Kaji (et donne les droits d'administration à son token), puis redémarre"
+TICKET_RX = re.compile(r"^[^\s\x00-\x1f\x7f]{20,4096}$")
+CSRF_RX = re.compile(r"^[^\s\x00-\x1f\x7f]{8,512}$")
+BAD_LOGIN = "Identifiants refusés par Proxmox (compte, mot de passe ou code de double authentification)"
+
+
+class TicketBody(BaseModel):
+    username: str = Field(pattern=f"^{USER.pattern[1:-1]}$", max_length=100, description="Compte Proxmox complet, ex. root@pam")
+    password: SecretStr = Field(max_length=512, description="Jamais stocké, jamais renvoyé, jamais journalisé : il ne sert qu'à obtenir le ticket")
+    code: str | None = Field(default=None, pattern=r"^[0-9]{6,8}$", description="Code de double authentification du compte, s'il en a une")
+
+    @field_validator("password")
+    @classmethod
+    def _password(cls, v: SecretStr):
+        s = v.get_secret_value()
+        if not s or any(ord(ch) < 32 or ord(ch) == 127 for ch in s):
+            raise ValueError("Mot de passe invalide")
+        return v
+
+
+@router.post("/ticket", status_code=status.HTTP_201_CREATED)
+async def open_with_password(body: TicketBody, conn_id: int, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
+                             found: tuple[AdminUser, UserSession] = Depends(kaji_session)):
+    """Ouvre une session administrateur PAR TICKET : connexion à Proxmox avec le mot de passe d'un compte (saisi par le propriétaire). C'est la seule façon d'écrire la
+    double authentification (Proxmox interdit les jetons d'API sur ces routes). Le mot de passe n'est **jamais gardé** : seul le ticket (2 h chez Proxmox, 30 min ici) l'est,
+    en mémoire. Un compte à double authentification demande en plus `code`."""
+    user, ksess = found
+    c = Ctx(db, user, conn_id, "admin-session-open", f"{body.username} (mot de passe)")
+    if not sessions.allow_attempt(user.id):
+        c.refuse("Trop d'essais : attends une minute", status.HTTP_429_TOO_MANY_REQUESTS)
+    p = _params(_get_or_404(db, conn_id))
+    anon = factory(host=p["host"], port=p["port"], user="", token_id="", token_secret="", anonymous=True, verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
+    try:
+        res = await anon.post("/access/ticket", username=body.username, password=body.password.get_secret_value())
+        ticket = res.get("ticket") if isinstance(res, dict) else None
+        if isinstance(ticket, str) and ticket.startswith("PVE:!tfa!"):                 # le compte demande une double authentification
+            if body.code is None:
+                c.refuse("Ce compte a une double authentification : renseigne le code à usage unique", status.HTTP_409_CONFLICT)
+            res = await anon.post("/access/ticket", username=body.username, password=f"totp:{body.code}", **{"tfa-challenge": ticket})
+            ticket = res.get("ticket") if isinstance(res, dict) else None
+        csrf = res.get("CSRFPreventionToken") if isinstance(res, dict) else None
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code in (400, 401, 403):                                  # message de Proxmox jamais relayé : il pourrait citer le compte ou le mot de passe
+            c.refuse(BAD_LOGIN, status.HTTP_403_FORBIDDEN)
+        err = http_error(e)
+        c.log("error", str(err.detail))
+        raise err from None
+    except httpx.HTTPError as e:
+        err = http_error(e)
+        c.log("error", str(err.detail))
+        raise err from None
+    finally:
+        await anon.aclose()
+    if not (isinstance(ticket, str) and TICKET_RX.fullmatch(ticket) and not ticket.startswith("PVE:!tfa!") and isinstance(csrf, str) and CSRF_RX.fullmatch(csrf)):
+        c.refuse("Réponse de connexion illisible : session non ouverte", status.HTTP_502_BAD_GATEWAY)
+    probe = factory(host=p["host"], port=p["port"], user=body.username, token_id="", token_secret="", ticket=ticket, csrf=csrf, verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
+    try:
+        perms = await probe.get("/access/permissions")
+    except httpx.HTTPError as e:
+        err = http_error(e)
+        c.log("error", str(err.detail))
+        raise err from None
+    finally:
+        await probe.aclose()
+    s = sessions.open_ticket(ksess.id, user.id, conn_id, body.username, SecretStr(ticket), SecretStr(csrf))
+    c.log("started", "session de 30 minutes ouverte par mot de passe (mot de passe et ticket non conservés en base)")
+    return {**_status(s), **shape_permissions(perms)}
+
+
+KAJI_TOKEN_OFF ="Option désactivée : ajoute KAJI_ADMIN_USE_KAJI_TOKEN=true au .env de Kaji (et donne les droits d'administration à son token), puis redémarre"
 
 
 @router.get("/kaji-token")

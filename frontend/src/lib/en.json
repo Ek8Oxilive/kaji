@@ -2565,5 +2565,14 @@
  "Supprimer…": "Delete…",
  "Supprimer l'utilisateur {u}": "Delete user {u}",
  "Seuls les utilisateurs du realm pve se suppriment ici ; Kaji et root sont protégés": "Only users of the pve realm can be deleted here; Kaji and root are protected",
- "Débloquer un compte verrouillé (trop d'échecs)": "Unlock a locked account (too many failures)"
+ "Débloquer un compte verrouillé (trop d'échecs)": "Unlock a locked account (too many failures)",
+ "(mot de passe)": "(password)",
+ "Connexion avec le mot de passe d'un compte : nécessaire pour écrire la double authentification": "Log in with an account password: required to write two-factor authentication",
+ "Ouvrir avec un mot de passe…": "Open with a password…",
+ "Ouvrir une session par mot de passe": "Open a session with a password",
+ "Connexion à Proxmox avec un compte, pour les écritures que les jetons n'ont pas le droit de faire (double authentification). Session de {SESSION_MINUTES} minutes.": "Log in to Proxmox with an account, for the writes that tokens are not allowed to do (two-factor authentication). {SESSION_MINUTES}-minute session.",
+ "Mot de passe du compte": "Account password",
+ "Code de double authentification (si le compte en a une)": "Two-factor code (if the account has one)",
+ "Le mot de passe n'est jamais enregistré par Kaji : il sert une seule fois à obtenir un ticket, gardé en mémoire du serveur seulement. Tu le tapes toi-même ici.": "Kaji never stores the password: it is used once to obtain a ticket, kept in server memory only. You type it yourself here.",
+ "root@pam": "root@pam"
 }

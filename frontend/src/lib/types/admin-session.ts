@@ -4,7 +4,8 @@ export type AdminSessionState =
   | { active: false }
   | {
       active: true;
-      user: string;                 // compte Proxmox du token, ex. admin@pve
+      kind?: "token" | "ticket";    // « ticket » : ouverte par mot de passe (seule façon d'écrire la double authentification)
+      user: string;                // compte Proxmox du token, ex. admin@pve
       token_id: string;
       seconds_left: number;
       expires_at: string;
