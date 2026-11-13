@@ -1,4 +1,6 @@
 """SDN (zones, VNets, sous-réseaux) : lecture et écriture en attente, appliquer, annuler. Validation et verrous : `app/sdnspec.py`."""
+import ipaddress
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
@@ -290,8 +292,10 @@ async def _subnet_op(op: str, ctx: Ctx, vnet: str, sid: str | None, cidr: str | 
             ctx.refuse(str(e), 422)
     params = {}
     if op == "create":
-        # `vnet` aussi dans le corps : obligatoire chez Proxmox pour créer un sous-réseau (constaté en réel le 2026-11-13, sinon « Parameter verification failed »)
-        params = {"subnet": sid, "type": "subnet", "vnet": vnet, **params_of(change)}
+        # `vnet` aussi dans le corps (obligatoire dans le schéma de Proxmox 9). `subnet` = le réseau en CIDR canonique, comme le fait l'interface de Proxmox :
+        # Proxmox fabrique lui-même l'identifiant `zone-adresse-préfixe`. Envoyer cet identifiant à la création était refusé en réel (2026-11-13 :
+        # « create sdn subnet object failed: 400 Parameter verification failed »).
+        params = {"subnet": str(ipaddress.ip_network(cidr, strict=True)), "type": "subnet", "vnet": vnet, **params_of(change)}
     elif op == "update":
         params = params_of(change)
         if clear:
