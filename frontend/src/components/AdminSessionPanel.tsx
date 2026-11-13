@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { MAX_HOURS, SESSION_MINUTES, type AdminSessionState } from "../lib/types/admin-session";
 import { AclWriteDialog } from "./AclWriteDialog";
+import { AdminTicketDialog } from "./AdminTicketDialog";
 import { UserWriteDialog } from "./UserWriteDialog";
 import { RealmWriteDialog } from "./RealmWriteDialog";
 import { TfaDialog } from "./TfaDialog";
@@ -55,6 +56,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
   const q = useQuery({ queryKey: key, queryFn: () => api<AdminSessionState>(`/api/connections/${connId}/admin-session`), refetchInterval: 30_000 });
   const kt = useQuery({ queryKey: ["admin-session-kaji-token", connId], queryFn: () => api<{ allowed: boolean }>(`/api/connections/${connId}/admin-session/kaji-token`), staleTime: 300_000 });
   const [open, setOpen] = useState(false);
+  const [pwd, setPwd] = useState(false);
   const [acl, setAcl] = useState(false);
   const [usr, setUsr] = useState(false);
   const [rlm, setRlm] = useState(false);
@@ -86,7 +88,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
           <h2 className="text-lg font-semibold">{tr("Mode administrateur")}</h2>
           <p className="text-sm text-muted">
             {active && s && s.active
-              ? <>{tr("Session ouverte avec")}{" "}<code>{s.user}!{s.token_id}</code>{" "}{tr("· il reste")}{" "}<b className={left < 120 ? "text-warn" : ""}>{clock(left)}</b></>
+              ? <>{tr("Session ouverte avec")}{" "}<code>{s.kind === "ticket" ? s.user : `${s.user}!${s.token_id}`}</code>{s.kind === "ticket" ? <>{" "}{tr("(mot de passe)")}</> : null}{" "}{tr("· il reste")}{" "}<b className={left < 120 ? "text-warn" : ""}>{clock(left)}</b></>
               : tr("Fermé. Le token permanent de Kaji ne peut pas modifier les droits : l'écriture des droits passera par une session temporaire.")}
           </p>
         </div>
@@ -102,6 +104,8 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
             {kt.data?.allowed && <Button disabled={busy} onClick={() => act("POST", "/kaji-token")} className="!px-3 !py-1.5"
               title={tr("Utilise le token permanent de Kaji (option KAJI_ADMIN_USE_KAJI_TOKEN) : rien à coller")}>{tr("Ouvrir avec le jeton de Kaji")}</Button>}
             <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">{tr("Ouvrir une session")}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setPwd(true)} className="!px-3 !py-1.5"
+              title={tr("Connexion avec le mot de passe d'un compte : nécessaire pour écrire la double authentification")}>{tr("Ouvrir avec un mot de passe…")}</Button>
           </>}
         </div>
       </div>
@@ -111,6 +115,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
       {rlm && active && <RealmWriteDialog connId={connId} onClose={() => setRlm(false)} />}
       {tfa && active && <TfaDialog connId={connId} onClose={() => setTfa(false)} />}
       {acl && active && <AclWriteDialog connId={connId} onClose={() => setAcl(false)} />}
+      {pwd && <AdminTicketDialog connId={connId} onClose={() => setPwd(false)} onOpened={() => { setPwd(false); qc.invalidateQueries({ queryKey: key }); }} />}
       {open && <OpenDialog connId={connId} onClose={() => setOpen(false)} onOpened={() => { setOpen(false); qc.invalidateQueries({ queryKey: key }); }} />}
     </section>
   );

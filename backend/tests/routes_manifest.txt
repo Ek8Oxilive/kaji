@@ -193,6 +193,7 @@ POST /api/connections/{conn_id}/acme/accounts/{name}/delete
 POST /api/connections/{conn_id}/admin-session
 POST /api/connections/{conn_id}/admin-session/kaji-token
 POST /api/connections/{conn_id}/admin-session/renew
+POST /api/connections/{conn_id}/admin-session/ticket
 POST /api/connections/{conn_id}/backup-jobs
 POST /api/connections/{conn_id}/ceph/nodes/{node}/init
 POST /api/connections/{conn_id}/ceph/nodes/{node}/managers
