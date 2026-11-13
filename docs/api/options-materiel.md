@@ -24,5 +24,9 @@ Noms, énumérations et bornes lus dans le schéma officiel de Proxmox 9 (`apido
 ## Non géré (volontairement)
 Drapeaux du processeur (`cpu=…,flags=…`), `bps` en octets, rafales (`*_max`), `serial`, `wwn`, `product`, `vendor`, options des disques de conteneur (`rootfs`, `mpN`), `affinity` d'un conteneur.
 
-## Validé en réel
-Voir `docs/REPRISE.md` (ligne « Options fines du matériel »). Tests : `backend/tests/test_hw_options.py` (faux Proxmox strict qui applique la configuration, vérifie le `digest` et refuse toute option hors schéma).
+## Validé en réel (2026-11-13, VM 115 arrêtée, tout remis à l'identique)
+- **Disque `scsi0`**, par l'interface : `cache=none`, `discard=on`, `iothread=1`, `ssd=1`, `mbps_rd=50` écrits et relus par Proxmox (`format=raw` conservé) ; par l'API : `iops_rd` / `iops_wr`, `cache=unsafe` avec `confirm`, retour au défaut par `clear` ; refus constatés (`backup=0` et `cache=unsafe` sans `confirm` : 400, `mbps` avec `mbps_rd` : 422) ; l'aperçu `dry_run` n'écrit rien.
+- **Carte réseau `net0`** (ajoutée pour l'essai puis retirée), par l'interface : `rate=20`, `mtu=1500`, `queues=2`, `trunks=10;20-30` écrits, MAC conservée ; par l'API : `link_down` (confirm exigé, puis retiré avec `false`), refus (`mtu` 70000, plage de VLAN à l'envers, demande vide), retour au défaut par `clear`.
+- **CPU**, par l'interface : `cpuunits=2000` et `cpulimit=0.5` écrits ; le flux « case Risque : J'accepte » est vu à l'écran.
+- **Trouvé en réel : `affinity` ET `hugepages` sont réservés à `root@pam`** : Proxmox répond 500 « only root can set 'affinity' config » (et `'hugepages'`) au jeton de Kaji. Kaji répond donc **403** avec le message fixe « Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji » (jamais le message brut) et **ne propose plus ces deux champs** dans la fenêtre du processeur ; l'API les valide toujours (cœurs du nœud, format) mais Proxmox tranche.
+- **Jamais essayé en réel** : une VM en marche (changement « en attente »), un conteneur (carte `lxc`), `aio`, `ro`, `replicate`, `detect_zeroes`, `queues` sur un modèle non virtio (refusé par Kaji avant tout envoi), une machine protégée (tests seulement). Tests : `backend/tests/test_hw_options.py` (faux Proxmox strict qui applique la configuration, vérifie le `digest` et refuse toute option hors schéma).

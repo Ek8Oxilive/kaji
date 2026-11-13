@@ -17,9 +17,11 @@ export type DatacenterOptions = {
   registered_tags: string[]; user_tag_access: { user_allow: string | null; user_allow_list: string[] }; consent_text: string | null;
   ha: { shutdown_policy: string | null }; fencing: string | null; crs: { ha: string | null; ha_rebalance_on_start: boolean | null };
   bwlimit: Record<(typeof BW_KEYS)[number], number | null>; replication: { type: "secure" | "insecure" | null; network: string | null };
+  webauthn: { allow_subdomains: boolean | null; id: string | null; origin: string | null; rp: string | null };
   readonly: Record<string, string | null>; digest: string;
 };
-export type DatacenterPreview = { dry_run: true; params: Record<string, string | number>; remove: string[]; locks: { insecure: boolean; replication_insecure: boolean; ha: boolean; fencing_experimental: boolean } };
+export type DatacenterPreview = { dry_run: true; params: Record<string, string | number>; remove: string[];
+  locks: { insecure: boolean; replication_insecure: boolean; ha: boolean; fencing_experimental: boolean; webauthn: boolean; webauthn_break: boolean } };
 
 /** Haute disponibilité, fencing, ordonnancement (CRS), débits (lot #365). */
 export const SHUTDOWN_POLICIES = ["conditional", "failover", "freeze", "migrate"] as const;

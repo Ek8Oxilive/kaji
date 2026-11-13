@@ -235,8 +235,8 @@ def test_digest_covers_the_new_settings(api):
     assert put(c, cid, registered_tags=["a"], digest=d0).status_code == 409 and not CALLS
 
 
-def test_webauthn_is_still_never_written(api):
+def test_u2f_and_other_unknown_settings_are_never_written(api):
     c, cid = api
-    ST["opts"]["webauthn"] = "rp=x,origin=https://x"
-    r = put(c, cid, webauthn={"rp": "y"}, keyboard="fr")
+    ST["opts"]["u2f"] = "appid=https://x"
+    r = put(c, cid, u2f={"appid": "y"}, keyboard="fr")
     assert r.status_code == 200 and CALLS == [{"keyboard": "fr"}]
