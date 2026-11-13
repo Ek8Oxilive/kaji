@@ -12,6 +12,7 @@ BODY = {"name": "lab", "host": "10.0.0.5", "user": "kaji@pve", "token_id": "kaji
 ADMIN_UUID = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
 ADMIN = {"user": "admin@pve", "token_id": "kaji-admin", "secret": ADMIN_UUID}
 ADMIN_AUTH = f"PVEAPIToken=admin@pve!kaji-admin={ADMIN_UUID}"
+PERM_AUTH = f"PVEAPIToken=kaji@pve!kaji={PERM_SECRET}"
 PERMS = {"/": {"Sys.Audit": 1}, "/pool/kaji-test": {"Permissions.Modify": 1, "VM.Audit": 1}, "/vms": {"Permissions.Modify": 0}}
 SEEN: list[httpx.Request] = []
 ST: dict = {}
@@ -25,7 +26,10 @@ def _handler(request: httpx.Request) -> httpx.Response:
     p = request.url.path.removeprefix("/api2/json")
     if p != "/access/permissions" or request.method != "GET":
         return httpx.Response(501, json={"data": None, "message": "route inconnue du faux Proxmox"})
-    if request.headers.get("authorization") != ADMIN_AUTH:       # le token permanent, ou un faux : refusé
+    auth = request.headers.get("authorization")
+    if auth == PERM_AUTH and ST.get("perm_ok"):                  # le token permanent n'est accepté que s'il a reçu les droits (option du propriétaire)
+        return httpx.Response(200, json={"data": ST.get("perms", PERMS)})
+    if auth != ADMIN_AUTH:                                       # le token permanent, ou un faux : refusé
         return httpx.Response(401, json={"data": None, "message": PERM_SECRET})
     return httpx.Response(200, json={"data": ST.get("perms", PERMS)})
 
@@ -294,3 +298,46 @@ def test_store_renew_checks_the_connection_itself():
     st.open("jti-1", 1, 7, "a@pve", "t1", SecretStr(ADMIN_UUID))
     assert st.renew("jti-1", 8) is None and st.renew("jti-1", 7) is not None and st.get("jti-1", 8) is None
     assert st.close_owner(1) == 1 and st.get("jti-1") is None
+
+
+# ------------------------------------------- option : ouvrir avec le token permanent de Kaji (KAJI_ADMIN_USE_KAJI_TOKEN)
+@pytest.fixture
+def kaji_token_on(monkeypatch):
+    from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "kaji_admin_use_kaji_token", True)
+
+
+def test_kaji_token_option_is_off_by_default(api):
+    c, cid = api
+    assert c.get(u(cid, "/kaji-token")).json() == {"allowed": False}
+    ST["perm_ok"] = True
+    r = c.post(u(cid, "/kaji-token"))
+    assert r.status_code == 403 and "KAJI_ADMIN_USE_KAJI_TOKEN" in r.json()["detail"] and not calls()
+    assert c.get(u(cid)).json() == {"active": False}
+
+
+def test_kaji_token_option_opens_a_session_with_the_permanent_token(api, kaji_token_on):
+    c, cid = api
+    ST["perm_ok"] = True
+    assert c.get(u(cid, "/kaji-token")).json() == {"allowed": True}
+    r = c.post(u(cid, "/kaji-token"))
+    assert r.status_code == 201
+    j = r.json()
+    assert j["active"] is True and j["user"] == "kaji@pve" and j["token_id"] == "kaji" and j["seconds_left"] == 1800
+    assert len(calls()) == 1 and calls()[0].headers["authorization"] == PERM_AUTH
+    assert c.get(u(cid, "/whoami")).status_code == 200                    # la session sert aux routes d'écriture comme une autre
+    for t in (r.text, c.get(u(cid)).text, audit_text(c)):
+        assert PERM_SECRET not in t
+    assert "token permanent de Kaji" in audit_text(c)
+
+
+def test_kaji_token_option_without_rights_opens_nothing(api, kaji_token_on):
+    c, cid = api                                                          # Proxmox refuse le token (401) : rien n'est ouvert, pas de fuite
+    r = c.post(u(cid, "/kaji-token"))
+    assert r.status_code in (401, 403, 502) and PERM_SECRET not in r.text and PERM_SECRET not in audit_text(c)
+    assert c.get(u(cid)).json() == {"active": False}
+
+
+def test_kaji_token_option_requires_a_kaji_login(client):
+    assert client.post("/api/connections/1/admin-session/kaji-token").status_code == 401
+    assert client.get("/api/connections/1/admin-session/kaji-token").status_code == 401

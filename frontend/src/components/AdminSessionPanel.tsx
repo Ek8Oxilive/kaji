@@ -53,6 +53,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
   const qc = useQueryClient();
   const key = ["admin-session", connId];
   const q = useQuery({ queryKey: key, queryFn: () => api<AdminSessionState>(`/api/connections/${connId}/admin-session`), refetchInterval: 30_000 });
+  const kt = useQuery({ queryKey: ["admin-session-kaji-token", connId], queryFn: () => api<{ allowed: boolean }>(`/api/connections/${connId}/admin-session/kaji-token`), staleTime: 300_000 });
   const [open, setOpen] = useState(false);
   const [acl, setAcl] = useState(false);
   const [usr, setUsr] = useState(false);
@@ -97,7 +98,11 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
             <Button disabled={busy} onClick={() => setTfa(true)} className="!px-3 !py-1.5">{tr("Double authentification…")}</Button>
             <Button variant="ghost" disabled={busy} onClick={() => act("POST", "/renew")} className="!px-3 !py-1.5">{tr("Prolonger de {SESSION_MINUTES} min", { SESSION_MINUTES })}</Button>
             <Button variant="danger" disabled={busy} onClick={() => act("DELETE", "")} className="!px-3 !py-1.5">{tr("Fermer")}</Button>
-          </> : <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">{tr("Ouvrir une session")}</Button>}
+          </> : <>
+            {kt.data?.allowed && <Button disabled={busy} onClick={() => act("POST", "/kaji-token")} className="!px-3 !py-1.5"
+              title={tr("Utilise le token permanent de Kaji (option KAJI_ADMIN_USE_KAJI_TOKEN) : rien à coller")}>{tr("Ouvrir avec le jeton de Kaji")}</Button>}
+            <Button onClick={() => setOpen(true)} className="!px-3 !py-1.5">{tr("Ouvrir une session")}</Button>
+          </>}
         </div>
       </div>
       {active && s && s.active && s.renewals > 0 && <p className="text-xs text-muted">{tr("{renewals} prolongation(s) ; âge maximal {MAX_HOURS} h.", { renewals: s.renewals, MAX_HOURS })}</p>}
