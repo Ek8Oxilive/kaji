@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ClusterLog } from "../components/ClusterLog";
+import { SchedulesPanel } from "../components/SchedulesPanel";
 import { Badge, TaskDrawer, when } from "../components/TaskDrawer";
 import { Button, Notice } from "../components/ui";
 import { api, type Guest, type NodeInfo } from "../lib/api";
@@ -111,6 +112,8 @@ export function Taches({ onGoConnections }: { onGoConnections: () => void }) {
           )}
         {tasks.data && tasks.data.tasks.length >= limit && <p className="text-xs text-muted">{tr("Les {limit} tâches les plus récentes. Augmente le nombre pour remonter plus loin.", { limit })}</p>}
       </section>
+
+      <SchedulesPanel connId={id} />
 
       <ClusterLog connId={id} />
 

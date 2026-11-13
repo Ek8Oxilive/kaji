@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Option (décision d'Enzo, 2026-11-13) : le token permanent de Kaji, à qui le propriétaire a donné les droits d'administration,
     # peut ouvrir la session administrateur d'un clic, sans coller de token. Désactivée par défaut : un Kaji compromis aurait alors ces droits.
     kaji_admin_use_kaji_token: bool = False
+    # Planificateur d'actions (lot #411) : une seule instance de Kaji doit le faire tourner (un seul worker). `false` le coupe (tests, maintenance).
+    kaji_scheduler: bool = True
 
     @property
     def protected_vmids(self) -> set[int]:
