@@ -183,6 +183,7 @@ POST /api/connections/{conn_id}/access/realms
 POST /api/connections/{conn_id}/access/realms/{realm}/sync
 POST /api/connections/{conn_id}/access/tfa
 POST /api/connections/{conn_id}/access/tfa/totp-setup
+POST /api/connections/{conn_id}/access/tfa/{userid}/unlock
 POST /api/connections/{conn_id}/access/users
 POST /api/connections/{conn_id}/access/users/{userid}/tokens
 POST /api/connections/{conn_id}/acme/accounts

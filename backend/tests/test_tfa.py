@@ -37,7 +37,7 @@ def fresh():
     ST["tfa"] = {"bob@pve": [{"id": "t1", "type": "totp", "description": "téléphone", "created": 1700000000, "enable": 1}, {"id": "r1", "type": "recovery", "created": 1700000100, "enable": 1}],
                  "eve@pve": [], "carl@ldap": [{"id": "w1", "type": "webauthn", "description": "clé", "created": 1700000200, "enable": 0}],
                  "root@pam": [{"id": "x1", "type": "totp", "created": 1, "enable": 1}], "kaji@pve": [], "admin@pve": []}
-    ST.update(noapply=False, fail=False, next=1)
+    ST.update(noapply=False, fail=False, next=1, locked={"carl@ldap"})
 
 
 def _bad(msg):
@@ -55,7 +55,17 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if m == "GET" and p == "/access/permissions":
         return ok({"/pool/kaji-test": {"Permissions.Modify": 1}})
     if m == "GET" and p == "/access/tfa":
-        return ok([{"userid": u, "entries": list(e), **({"totp-locked": True} if u == "carl@ldap" else {})} for u, e in ST["tfa"].items() if e])
+        return ok([{"userid": u, "entries": list(e), **({"totp-locked": True} if u in ST["locked"] else {})} for u, e in ST["tfa"].items() if e])
+    um = re.fullmatch(r"/access/users/([^/]+)/unlock-tfa", p)
+    if um:                                                       # allowtoken=1 chez Proxmox : la route accepte un jeton, contrairement à /access/tfa
+        if m != "PUT":
+            return httpx.Response(501, json={"data": None, "message": "méthode inconnue"})
+        if ST["fail"]:
+            return httpx.Response(403, json={"data": None, "message": PERM_SECRET})
+        WRITES.append((m, p, body))
+        if not ST.get("unlock_noop"):
+            ST["locked"].discard(um.group(1))
+        return ok()
     mm = re.fullmatch(r"/access/tfa/([^/]+)(?:/([^/]+))?", p)
     if not mm:
         return httpx.Response(501, json={"data": None, "message": "route inconnue du faux Proxmox"})
@@ -398,3 +408,54 @@ def test_proxmox_error_is_passed_on_without_leaking_its_message(api):
     assert r.status_code in (403, 502) and no_secret(r.text, audit_text(c))
     # constaté en réel (2026-11-13) : Proxmox refuse la TFA aux jetons d'API (allowtoken=0) même avec le rôle Administrator ; Kaji le dit
     assert r.status_code == 403 and "allowtoken=0" in r.json()["detail"] and "allowtoken=0" in audit_text(c)
+
+
+# ---------------------------------------------------------------- débloquer un compte (unlock-tfa)
+def unlock(c, cid, uid="carl@ldap", **body):
+    return c.post(u(cid, f"/{uid}/unlock"), json=body)
+
+
+def test_unlock_dry_run_writes_nothing(api):
+    c, cid = api
+    r = unlock(c, cid, dry_run=True)
+    assert r.status_code == 200 and r.json() == {"dry_run": True, "locked": True} and not WRITES
+
+
+def test_unlock_needs_confirm_and_the_typed_name(api):
+    c, cid = api
+    assert unlock(c, cid).status_code == 400 and unlock(c, cid, confirm=True).status_code == 400
+    assert unlock(c, cid, confirm=True, type_name="autre@ldap").status_code == 400 and not WRITES and "carl@ldap" in ST["locked"]
+
+
+def test_unlock_works_and_is_read_back(api):
+    c, cid = api
+    r = unlock(c, cid, confirm=True, type_name="carl@ldap")
+    assert r.status_code == 200 and r.json() == {"unlocked": "carl@ldap"}
+    assert WRITES == [("PUT", "/access/users/carl@ldap/unlock-tfa", {})] and "carl@ldap" not in ST["locked"]
+    assert ("tfa-unlock", "started") in {(a["action"], a["status"]) for a in c.get("/api/audit").json()}
+
+
+def test_unlock_refuses_an_account_that_is_not_locked(api):
+    c, cid = api
+    r = unlock(c, cid, uid="bob@pve", confirm=True, type_name="bob@pve")
+    assert r.status_code == 409 and "pas verrouillé" in r.json()["detail"] and not WRITES
+
+
+def test_unlock_not_applied_by_proxmox_is_a_502(api):
+    c, cid = api
+    ST["unlock_noop"] = True
+    r = unlock(c, cid, confirm=True, type_name="carl@ldap")
+    assert r.status_code == 502 and "pas débloqué" in r.json()["detail"]
+
+
+def test_unlock_requires_the_admin_session(api):
+    c, cid = api
+    assert c.delete(f"/api/connections/{cid}/admin-session").status_code == 204
+    assert unlock(c, cid, confirm=True, type_name="carl@ldap").status_code == 403 and not WRITES
+
+
+def test_unlock_forbidden_by_proxmox_is_not_reported_as_the_tfa_token_rule(api):
+    """unlock-tfa accepte les jetons (allowtoken=1) : un 403 ici n'est PAS la règle « TFA interdite aux jetons »."""
+    c, cid = api
+    ST["fail"] = True
+    assert "allowtoken" not in unlock(c, cid, confirm=True, type_name="carl@ldap").text

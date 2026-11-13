@@ -163,7 +163,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/storage_config.py` — Configuration des stockages Proxmox : lire, ajouter, modifier… — GET /storage-config; GET /storage-config/{storage}; POST /storage-config; PUT /storage-config/{storage} (+1)
 - `backend/app/routers/task_list.py` — Journal des tâches (lecture seule) : liste des tâches de tous… — GET /tasks
 - `backend/app/routers/task_stop.py` — Arrêter une tâche en cours (bouton Stop du journal d'une tâch… — DELETE //tasks/{node}/{upid}
-- `backend/app/routers/tfa.py` — Double authentification (TFA) des utilisateurs (Datacenter →… — GET /access/tfa; GET /access/tfa/{userid}; POST /access/tfa/totp-setup; POST /access/tfa (+2)
+- `backend/app/routers/tfa.py` — Double authentification (TFA) des utilisateurs (Datacenter →… — GET /access/tfa; GET /access/tfa/{userid}; POST /access/tfa/totp-setup; POST /access/tfa (+3)
 - `backend/app/routers/token_write.py` — Créer, lister et révoquer des tokens d'API (utilisateurs du r… — GET /access/users/{userid}/tokens; POST /access/users/{userid}/tokens; DELETE /access/users/{userid}/tokens/{tokenid}
 - `backend/app/routers/user_write.py` — Écrire des utilisateurs (realm pve), des groupes et des appar… — POST /access/users; PUT /access/users/{userid}; GET /access/users/{userid}/impact; DELETE /access/users/{userid} (+3)
 - `backend/app/routers/volumes.py` — Volumes d'un stockage : protéger une sauvegarde, supprimer un… — PUT /nodes/{node}/storage/{storage}/backups/{volume}/protect; DELETE /nodes/{node}/storage/{storage}/files/{kind}/{name}; POST /nodes/{node}/storage/{storage}/prune/preview; POST /nodes/{node}/storage/{storage}/prune

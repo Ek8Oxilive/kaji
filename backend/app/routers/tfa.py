@@ -7,6 +7,7 @@ Le piège : ACTIVER la double authentification sur un compte dont le titulaire n
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from pydantic import BaseModel, Field, StrictBool
 from sqlalchemy.orm import Session
 
 from .. import audit
@@ -58,7 +59,7 @@ async def _call(c: Ctx, db, factory, conn_id, s, method, path, **params):
     try:
         return await admin_call(db, factory, conn_id, s, method, path, **params)
     except HTTPException as e:
-        if e.detail == FORBIDDEN_DETAIL and method != "get":     # constaté en réel le 2026-11-13 : refus même avec le rôle Administrator (Kaji traduit le 403 de Proxmox)
+        if e.detail == FORBIDDEN_DETAIL and method != "get" and path.startswith("/access/tfa/"):     # constaté en réel le 2026-11-13 : refus même avec le rôle Administrator (Kaji traduit le 403 de Proxmox)
             c.log("error", TOKEN_FORBIDDEN)
             raise HTTPException(status.HTTP_403_FORBIDDEN, TOKEN_FORBIDDEN) from None
         c.log("error", str(e.detail))
@@ -126,6 +127,35 @@ async def add_tfa(body: TfaAdd, conn_id: int, db: Session = Depends(get_db), fac
         codes = res.get("recovery") if isinstance(res, dict) else None
         out["recovery"] = [x for x in (codes if isinstance(codes, list) else [])[:20] if isinstance(x, str) and RECOVERY_CODE.fullmatch(x)]
     return out
+
+
+class UnlockBody(BaseModel):
+    confirm: StrictBool = False
+    type_name: str | None = Field(default=None, max_length=80, description="Identifiant de l'utilisateur retapé")
+    dry_run: StrictBool = False
+
+
+@router.post("/{userid}/unlock")
+async def unlock_tfa(body: UnlockBody, conn_id: int, userid: str = UID, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory),
+                     adm: tuple[AdminUser, AdminSession] = Depends(require_admin)):
+    """Débloque la double authentification d'un compte verrouillé après trop d'échecs (`PUT /access/users/{userid}/unlock-tfa`, accepté avec un jeton).
+    Ne baisse pas la sécurité (le compte garde ses entrées) : pas de phrase, mais `confirm` + identifiant retapé, et seulement si le compte est bien verrouillé."""
+    user, s = adm
+    c = Ctx(db, user, conn_id, "tfa-unlock", userid)
+
+    async def locked() -> bool:
+        return any(u["userid"] == userid and u["locked"] for u in shape_tfa(await _call(c, db, factory, conn_id, s, "get", "/access/tfa")))
+
+    if not await locked():
+        c.refuse("Ce compte n'est pas verrouillé", status.HTTP_409_CONFLICT)
+    if body.dry_run:
+        return {"dry_run": True, "locked": True}
+    c.confirmed(body.confirm, body.type_name, userid)
+    await _call(c, db, factory, conn_id, s, "put", f"/access/users/{userid}/unlock-tfa")
+    if await locked():
+        c.refuse("Proxmox n'a pas débloqué le compte", status.HTTP_502_BAD_GATEWAY)
+    c.log("started", "double authentification débloquée")
+    return {"unlocked": userid}
 
 
 @router.put("/{userid}/{entry}")

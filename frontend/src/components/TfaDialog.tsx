@@ -7,10 +7,11 @@ import { AccountSelect } from "./AccountSelect";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
-type Act = "totp" | "recovery" | "toggle" | "delete";
+type Act = "totp" | "recovery" | "toggle" | "delete" | "unlock";
 const ACT_LABEL: Record<Act, () => string> = {
   totp: () => tr("Ajouter un TOTP (application d'authentification)"), recovery: () => tr("Ajouter des codes de secours"),
   toggle: () => tr("Activer ou désactiver une entrée"), delete: () => tr("Supprimer une entrée"),
+  unlock: () => tr("Débloquer un compte verrouillé (trop d'échecs)"),
 };
 const TYPE_LABEL: Record<string, () => string> = { totp: () => tr("TOTP"), recovery: () => tr("Codes de secours"), webauthn: () => tr("WebAuthn"), u2f: () => tr("U2F"), yubico: () => tr("YubiKey") };
 
@@ -52,6 +53,7 @@ export function TfaDialog({ connId, onClose }: { connId: number; onClose: () => 
         const r = await api<{ recovery: string[] }>(base, { method: "POST", body: { userid, type: "recovery", ...(desc ? { description: desc } : {}), ...ok } });
         setCodes(r.recovery); setNoted(false);
       }
+      else if (act === "unlock") await api(`${base}/${encodeURIComponent(userid)}/unlock`, { method: "POST", body: { confirm: true, type_name: typed } });
       else if (act === "toggle") await api(`${base}/${encodeURIComponent(userid)}/${encodeURIComponent(entry)}`, { method: "PUT", body: { enable, ...ok } });
       else await api(`${base}/${encodeURIComponent(userid)}/${encodeURIComponent(entry)}?confirm=true&name=${encodeURIComponent(typed)}`, { method: "DELETE" });
       await qc.invalidateQueries({ queryKey: ["access", connId] });
