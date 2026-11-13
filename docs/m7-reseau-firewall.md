@@ -1,6 +1,6 @@
 # M7 : réseau et pare-feu, cadrage de l'écriture
 
-**Statut : lecture livrée (M7-1), écriture non commencée.** Ce document dit comment écrire sans pouvoir couper l'accès, et ce qu'il faut décider avant.
+**Statut (revu le 2026-11-13) : M7 est terminé côté code** (réseau d'un nœud, pare-feu : objets, options, règles, SDN en écriture, `docs/api/reseau-ecriture.md`, `pare-feu-*.md`, `sdn.md`) ; validé en réel sur des objets inertes et le SDN en attente, **jamais appliqué en réel** (voir `docs/statut-fonctions.md`). Texte d'origine : Ce document dit comment écrire sans pouvoir couper l'accès, et ce qu'il faut décider avant.
 
 ## 1. Pourquoi c'est le jalon le plus risqué
 Une règle de pare-feu ou une modification de bridge fausse peut **couper l'accès à Proxmox, à Kaji et aux machines**, sans retour possible depuis Kaji (s'il ne joint plus le nœud,

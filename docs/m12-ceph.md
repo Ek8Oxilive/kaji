@@ -1,6 +1,6 @@
 # M12 : cadrage de Ceph
 
-**Statut : cadrage, aucun code.** But du projet : ne perdre aucune fonctionnalité de l'interface de Proxmox (`docs/parite-proxmox.md`),
+**Statut (revu le 2026-11-13) : cadrage de départ ; M12 est codé** (lecture, écriture C2 / C3 / initialisation, destruction C4 : `docs/api/ceph.md`, `ceph-destruction.md`), **jamais validé en réel : le cluster n'a pas Ceph** (voir `docs/statut-fonctions.md`). Texte d'origine : But du projet : ne perdre aucune fonctionnalité de l'interface de Proxmox (`docs/parite-proxmox.md`),
 Ceph compris. Ce document dit ce qu'il y a à couvrir, **ce que le cluster de test permet réellement**, comment avancer sans risque, et
 les décisions à prendre.
 

@@ -11,7 +11,7 @@ Schéma lu sur `apidoc.js` de Proxmox 9 (`/access/domains`). Validation et liste
 | `DELETE /realms/{realm}` | session administrateur | Supprime |
 | `POST /realms/{realm}/sync` | session administrateur | Synchronise utilisateurs et groupes (LDAP, AD) |
 
-Le jeton de Kaji n'a pas `Realm.Allocate` : toute écriture passe par la **session administrateur** (M6-6), comme les utilisateurs et les ACL. Sans elle : 401 ou 403.
+Toute écriture passe par la **session administrateur** (M6-6), comme les utilisateurs et les ACL (à l'origine parce que le jeton de Kaji n'avait pas `Realm.Allocate` ; depuis le 2026-11-13 il a `Administrator`, mais l'écriture reste réservée à cette session et aux administrateurs de Kaji). Sans elle : 401 ou 403.
 
 ## Champs par type (un champ d'un autre type = 422)
 - **ldap** : `server1` (obligatoire), `server2`, `port`, `mode` (`ldap`, `ldaps`, `ldap+starttls`), `base_dn` (obligatoire), `bind_dn`, `password`, `user_attr` (obligatoire), `user_classes`, `filter`, `group_dn`, `group_filter`, `group_classes`, `group_name_attr`, `sync_attributes`, `verify`, `sslversion`, `case_sensitive`, `check_connection`, `comment`, `default`, `sync_defaults_options` (`scope`, `enable_new`, `remove_vanished`).
@@ -36,5 +36,5 @@ Validation : `server1` / `server2` : nom ou IP, adresses locales littérales ref
 `realm-create`, `realm-update`, `realm-delete`, `realm-sync`, refus compris, sans secret.
 
 ## Validation
-Faux Proxmox strict (`backend/tests/test_realms_write.py` : clés autorisées par type, motifs du schéma, secrets non relus, comptes par realm). **Jamais écrit en réel** : le jeton de Kaji n'a pas `Realm.Allocate`, et un realm mal réglé peut verrouiller la connexion. Pas de serveur LDAP, Active Directory ni OpenID sur le cluster.
+Faux Proxmox strict (`backend/tests/test_realms_write.py` : clés autorisées par type, motifs du schéma, secrets non relus, comptes par realm). **Jamais écrit en réel** : un realm mal réglé peut verrouiller la connexion (la création d'un realm LDAP jetable a été refusée par le garde-fou de l'outil le 2026-11-13, l'aperçu `dry_run` répond bien). Pas de serveur LDAP, Active Directory ni OpenID sur le cluster.
 **Hypothèses non vérifiées** : que Proxmox refuse un champ d'un autre type (le faux le suppose), le format exact de `sync-defaults-options` relu, le droit exact demandé par `GET /access/domains/{realm}`.

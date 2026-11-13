@@ -26,3 +26,8 @@ Préfixe : `/api/connections/{id}/access`. **Exige une session administrateur ou
 - Retirer le **dernier** groupe d'un utilisateur envoie `groups=""` : comportement de Proxmox déduit du schéma, non vérifié en réel.
 - Les tokens (création, révocation) viennent dans un lot à part.
 - Aucun essai réel : il faut un token d'administration.
+
+## Interface et validation réelle (2026-11-13)
+- Page « Accès » : avec une session administrateur ouverte, chaque utilisateur du realm `pve` (ni Kaji ni `root@pam`) a un bouton **« Supprimer… »** qui ouvre la fenêtre de suppression déjà réglée, avec l'impact affiché d'emblée (groupes, entrées d'ACL, jetons supprimés avec lui) et le nom à retaper. Les utilisateurs et les groupes se choisissent dans des **listes déroulantes** (`AccountSelect`) au lieu de se taper ; la création garde la saisie libre.
+- **Validé en réel** : la suppression d'un utilisateur jetable du realm `pve` par ce bouton (nom retapé, relu chez Proxmox, liste revenue à l'état d'origine). **Jamais essayés en réel** : créer un utilisateur, activer / désactiver, mot de passe, appartenances, groupes et jetons API.
+
