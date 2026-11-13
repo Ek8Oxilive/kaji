@@ -135,7 +135,7 @@ class RealmFields(BaseModel):
     @field_validator("domain", "client_id")
     @classmethod
     def _nospace(cls, v):
-        if v is not None and re.search(r"\s", v):
+        if v is not None and not re.fullmatch(r"\S+", v):
             raise ValueError("Pas d'espace dans cette valeur")
         return v
 
