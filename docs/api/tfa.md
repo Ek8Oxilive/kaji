@@ -1,0 +1,35 @@
+# Double authentification des utilisateurs (M6, lot #384)
+
+Préfixe `/api/connections/{conn_id}/access/tfa`. Équivalent de Datacenter → Permissions → Two Factor. Bouton **« Double authentification… »** du panneau « Session administrateur » de la page « Accès ».
+Schéma lu sur `apidoc.js` de Proxmox 9 (`/access/tfa`). Validation : `backend/app/tfaspec.py`.
+
+| Route | Droit | Effet |
+|---|---|---|
+| `GET /` | Kaji | Entrées de tous les utilisateurs que le jeton de Kaji peut voir (Proxmox renvoie tout ou seulement les siennes, selon ses privilèges) |
+| `GET /{userid}` | Kaji | Entrées d'un utilisateur |
+| `POST /totp-setup` | session Kaji | Génère un secret TOTP et son URI. **Rien n'est gardé côté serveur**, réponse `no-store` |
+| `POST /` | session administrateur | Ajoute un **TOTP** ou des **codes de secours** |
+| `PUT /{userid}/{entry}` | session administrateur | Active, désactive ou change la description |
+| `DELETE /{userid}/{entry}` | session administrateur | Supprime une entrée |
+
+Les écritures passent par la **session administrateur** (`User.Modify`). **Hors périmètre, volontairement** : enregistrer une clé **WebAuthn** ou **U2F** (cérémonie du navigateur), **YubiKey OTP**, et le champ `password` de Proxmox (le mot de passe de l'utilisateur : Kaji n'en demande ni n'en transmet jamais).
+
+## Ajouter
+- **TOTP** : `POST /totp-setup` renvoie `{secret, uri}` (20 octets aléatoires, base32 ; URI `otpauth://totp/…`, SHA1, 6 chiffres, 30 s). Le titulaire entre le secret dans son application ; on renvoie `POST /` avec `type: "totp"`, `totp` (l'URI) et `value` (le code de 6 à 8 chiffres affiché). L'URI ne revient jamais, n'est jamais journalisée (`SecretStr`).
+- **Codes de secours** : `type: "recovery"`, sans `totp` ni `value` (422 sinon). Proxmox renvoie les codes **une seule fois** ; Kaji les relaie dans la réponse (`recovery`, 20 au plus, forme vérifiée) sans jamais les journaliser ni les relire.
+- Validation de l'URI : `otpauth://totp/…` à secret base32 (16 caractères au moins), `algorithm` SHA1, `digits` 6 à 8, `period` 30, `issuer` sûr ; paramètre inconnu, double ou vide refusé. `description` : 255 caractères au plus, sans caractère de contrôle. Types `u2f`, `webauthn`, `yubico` : 422.
+
+## Verrous (décidés par le serveur)
+- **Session administrateur** exigée (401 ou 403 sinon).
+- **Comptes protégés** : `root@pam`, le compte de Kaji et celui de la session administrateur ne sont jamais modifiés (403).
+- **`confirm=true` et l'identifiant de l'utilisateur retapé** (`type_name`, ou `name` pour `DELETE`), 400 sinon. `dry_run` renvoie les verrous sans rien écrire.
+- **Coupure possible** : ajouter une entrée ou activer une entrée sur un compte qui n'a AUCUNE entrée active **active la double authentification** sur ce compte : si son titulaire n'a pas le secret ou les codes, il ne peut plus se connecter. Exige en plus `acknowledge_cut_access=true` et `phrase="COUPURE POSSIBLE"` (409 sinon). Un compte qui a déjà une entrée active n'est pas concerné.
+- **Désactiver ou supprimer** une entrée ne verrouille personne (c'est une baisse de sécurité, pas une coupure) : `confirm` + identifiant suffisent ; `locks.turns_off` signale que la dernière entrée active disparaît.
+- Relecture après chaque écriture (502 si Proxmox n'a pas appliqué).
+
+## Audit
+`tfa-totp-setup`, `tfa-add`, `tfa-update`, `tfa-delete`, refus compris. Le secret, l'URI, le code et les codes de secours n'y figurent jamais (« défini », type et identifiant d'entrée seulement).
+
+## Validation
+Faux Proxmox strict (`backend/tests/test_tfa.py` : clés autorisées, URI et code validés, `password` refusé, secrets non relus). **Jamais écrit en réel** : le jeton d'administration de Kaji n'a pas `User.Modify` sur `/access/groups`, et activer la double authentification peut verrouiller un compte.
+**Hypothèses non vérifiées** : que la lecture de `GET /access/tfa` avec le jeton de Kaji renvoie tous les utilisateurs, que Proxmox accepte une écriture faite avec un jeton sans `password`, le format brut exact d'une entrée.

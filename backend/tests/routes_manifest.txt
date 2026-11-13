@@ -1,6 +1,7 @@
 DELETE /api/connections/{conn_id}
 DELETE /api/connections/{conn_id}/access/groups/{groupid}
 DELETE /api/connections/{conn_id}/access/realms/{realm}
+DELETE /api/connections/{conn_id}/access/tfa/{userid}/{entry}
 DELETE /api/connections/{conn_id}/access/users/{userid}
 DELETE /api/connections/{conn_id}/access/users/{userid}/tokens/{tokenid}
 DELETE /api/connections/{conn_id}/admin-session
@@ -63,6 +64,8 @@ GET /api/connections/{conn_id}/access/groups
 GET /api/connections/{conn_id}/access/realms
 GET /api/connections/{conn_id}/access/realms/{realm}
 GET /api/connections/{conn_id}/access/roles
+GET /api/connections/{conn_id}/access/tfa
+GET /api/connections/{conn_id}/access/tfa/{userid}
 GET /api/connections/{conn_id}/access/users
 GET /api/connections/{conn_id}/access/users/{userid}/impact
 GET /api/connections/{conn_id}/access/users/{userid}/tokens
@@ -176,6 +179,8 @@ POST /api/connections/{conn_id}/access/acl/preview
 POST /api/connections/{conn_id}/access/groups
 POST /api/connections/{conn_id}/access/realms
 POST /api/connections/{conn_id}/access/realms/{realm}/sync
+POST /api/connections/{conn_id}/access/tfa
+POST /api/connections/{conn_id}/access/tfa/totp-setup
 POST /api/connections/{conn_id}/access/users
 POST /api/connections/{conn_id}/access/users/{userid}/tokens
 POST /api/connections/{conn_id}/acme/accounts
@@ -284,6 +289,7 @@ POST /api/connections/{conn_id}/storage-config
 POST /api/connections/{conn_id}/test
 PUT /api/connections/{conn_id}/access/acl
 PUT /api/connections/{conn_id}/access/realms/{realm}
+PUT /api/connections/{conn_id}/access/tfa/{userid}/{entry}
 PUT /api/connections/{conn_id}/access/users/{userid}
 PUT /api/connections/{conn_id}/access/users/{userid}/groups
 PUT /api/connections/{conn_id}/backup-jobs/{job_id}
