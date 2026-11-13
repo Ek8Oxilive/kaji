@@ -192,7 +192,7 @@ def build_endpoint(typ: str, body: EndpointFields, clear: list[str], *, creating
         if f not in allowed:
             raise ValueError(f"Le champ « {f} » ne s'applique pas au type {typ}")
         if f in ("headers", "secrets"):
-            p[wire] = [f"{x.name}={_b64(x.value.get_secret_value())}" for x in v]
+            p[wire] = [f"name={x.name},value={_b64(x.value.get_secret_value())}" for x in v]     # chaîne de propriétés (schéma de Proxmox 9) ; `nom=valeur` donne « unknown key » (constaté en réel)
         elif f == "body":
             p[wire] = _b64(v)
         elif isinstance(v, SecretStr):
