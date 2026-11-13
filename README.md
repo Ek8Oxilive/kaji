@@ -878,6 +878,14 @@ Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les p
 
 *Ouvrir une session administrateur : un token créé pour l'occasion, valable 30 minutes, gardé en mémoire du serveur seulement. Les champs sont vides ici.*
 
+![Tableau des utilisateurs avec le bouton Supprimer](docs/captures/acces-utilisateurs-supprimer.jpg)
+
+*Avec une session administrateur ouverte, chaque utilisateur du realm `pve` a un bouton **Supprimer…** ; Kaji et `root@pam` n'en ont pas (« – »), ils sont protégés.*
+
+![Fenêtre de suppression d'un utilisateur](docs/captures/acces-utilisateur-suppression.jpg)
+
+*Le bouton ouvre la suppression déjà réglée : l'utilisateur se choisit dans une liste (plus de saisie à la main, de même pour la double authentification, les ACL et les groupes), l'impact s'affiche tout de suite (groupes, entrées d'ACL, jetons supprimés avec lui) et « Appliquer » reste grisé tant que le nom n'est pas retapé. Fenêtre ouverte puis fermée sans valider.*
+
 ![Les rôles Proxmox se déplient pour montrer leurs privilèges (ici `PVEAuditor`, lecture seule).](docs/captures/acces-role-deplie.jpg)
 
 *Les rôles Proxmox se déplient pour montrer leurs privilèges (ici `PVEAuditor`, lecture seule).*
