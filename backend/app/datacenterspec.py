@@ -27,7 +27,8 @@ PROXY = re.compile(r"^http://(?P<host>[A-Za-z0-9.\-]{1,253}|\[[0-9A-Fa-f:]{2,39}
 TEXT_OK = re.compile(r"[^\x00-\x08\x0b\x0c\x0d\x0e-\x1f\x7f]*")                  # notes : \n et \t permis, tout autre caractère de contrôle refusé
 MAX_NOTES = 65536
 CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style", "registered_tags", "user_tag_access", "consent_text",
-             "ha", "fencing", "crs", "bwlimit", "replication")
+             "ha", "fencing", "crs", "bwlimit", "replication", "webauthn")
+WEBAUTHN_KEYS = ("allow-subdomains", "id", "origin", "rp")                    # ordre du schéma de Proxmox 9 (lot #381)
 HA_CLEARABLE = ("ha", "fencing", "crs")                                       # retirer l'un d'eux change le comportement de la HA : `confirm`
 SHUTDOWN_POLICIES = ("freeze", "failover", "conditional", "migrate")
 FENCING_MODES = ("watchdog", "hardware", "both")
@@ -35,7 +36,10 @@ FENCING_EXPERIMENTAL = ("hardware", "both")                                   # 
 CRS_HA = ("basic", "static")
 BW_KEYS = ("clone", "default", "migration", "move", "restore")                # ordre du schéma de Proxmox
 BW_MAX = 1_000_000_000                                                        # KiB/s (≈ 1 To/s) : garde-fou contre une faute de frappe
-KNOWN = {"ha": ("shutdown_policy",), "crs": ("ha", "ha-rebalance-on-start"), "bwlimit": BW_KEYS, "replication": ("type", "network")}
+KNOWN = {"ha": ("shutdown_policy",), "crs": ("ha", "ha-rebalance-on-start"), "bwlimit": BW_KEYS, "replication": ("type", "network"), "webauthn": WEBAUTHN_KEYS}
+DNS_NAME = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9\-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9\-]{0,61}[A-Za-z0-9])?)*$")
+ORIGIN = re.compile(r"^(?P<scheme>https|http)://(?P<host>[A-Za-z0-9.\-]{1,253})(:(?P<port>[0-9]{1,5}))?$")
+RP_NAME = re.compile(r"^[^,\"\x00-\x1f\x7f]{1,64}$")
 DELNAME = {"next_id": "next-id", "tag_style": "tag-style", "registered_tags": "registered-tags", "user_tag_access": "user-tag-access", "consent_text": "consent-text"}   # nom Kaji -> nom Proxmox (pour `delete=`)
 KEY = {v: k for k, v in DELNAME.items()}                                                                                                      # nom Proxmox -> clé lue
 TAGNAME = re.compile(r"^[a-z0-9_][a-z0-9_\-+.]{0,63}$")
@@ -174,6 +178,61 @@ def parse_replication(v) -> dict:
     return parse_migration(v)
 
 
+def check_webauthn_id(v: str) -> str:
+    """Identifiant de la partie de confiance : un NOM DE DOMAINE, sans protocole, port ni chemin ; jamais une adresse IP (WebAuthn la refuse)."""
+    if not DNS_NAME.fullmatch(v):
+        raise ValueError("Identifiant invalide (nom de domaine seulement, sans protocole, port ni chemin)")
+    try:
+        ipaddress.ip_address(v)
+    except ValueError:
+        return v.lower()
+    raise ValueError("Une adresse IP ne peut pas servir d'identifiant WebAuthn")
+
+
+def check_webauthn_origin(v: str) -> str:
+    """Origine du site : `https://hôte[:port]`, ou `http://localhost[:port]` ; sans identifiants, chemin ni paramètres."""
+    m = ORIGIN.fullmatch(v)
+    if not m:
+        raise ValueError("Origine invalide (https://hôte[:port], sans identifiants, chemin ni paramètres)")
+    host = m.group("host").lower()
+    if m.group("port") is not None and not 1 <= int(m.group("port")) <= 65535:
+        raise ValueError("Port invalide")
+    if m.group("scheme") == "http" and host != "localhost":
+        raise ValueError("http:// n'est permis que pour localhost")
+    if not (DNS_NAME.fullmatch(host)):
+        raise ValueError("Hôte invalide")
+    return v.lower()
+
+
+def origin_host(origin: str) -> str:
+    return ORIGIN.fullmatch(origin).group("host").lower()                         # type: ignore[union-attr]
+
+
+def check_webauthn_consistency(wid: str | None, origin: str | None, allow_subdomains: bool | None) -> None:
+    """Origine et identifiant doivent aller ensemble, sinon aucun navigateur ne validerait jamais un credential : on refuse avant d'écrire."""
+    if not wid or not origin:
+        return
+    host = origin_host(origin)
+    if host == wid:
+        return
+    if host.endswith("." + wid) and allow_subdomains is not False:
+        return
+    raise ValueError("L'origine doit être l'identifiant ou l'un de ses sous-domaines (et « sous-domaines autorisés » ne doit pas être désactivé)")
+
+
+def parse_webauthn(v) -> dict:
+    d = _props(v)
+    out: dict = {"allow_subdomains": _flag(d.get("allow-subdomains")), "id": None, "origin": None, "rp": None}
+    for k, check in (("id", check_webauthn_id), ("origin", check_webauthn_origin)):
+        try:
+            out[k] = check(d[k]) if isinstance(d.get(k), str) else None
+        except ValueError:
+            out[k] = None
+    rp = d.get("rp")
+    out["rp"] = rp if isinstance(rp, str) and RP_NAME.fullmatch(rp) else None
+    return out
+
+
 def shape_options(raw) -> dict:
     r = raw if isinstance(raw, dict) else {}
     out = {
@@ -187,11 +246,14 @@ def shape_options(raw) -> dict:
         "registered_tags": parse_tag_list(r.get("registered-tags")), "user_tag_access": parse_user_tag_access(r.get("user-tag-access")),
         "consent_text": _t(r.get("consent-text"), MAX_CONSENT),
         "ha": parse_ha(r.get("ha")), "fencing": _choice(r.get("fencing"), FENCING_MODES), "crs": parse_crs(r.get("crs")),
-        "bwlimit": parse_bwlimit(r.get("bwlimit")), "replication": parse_replication(r.get("replication")),
+        "bwlimit": parse_bwlimit(r.get("bwlimit")), "replication": parse_replication(r.get("replication")), "webauthn": parse_webauthn(r.get("webauthn")),
     }
     if out["migration"]["type"] is None and r.get("migration_unsecure") in (1, True, "1"):         # ancien réglage, remplacé par `migration`
         out["migration"]["type"] = "insecure"
     out["readonly"] = {k: e for k in KNOWN if (e := _extra(k, r.get(k))) is not None}            # sous-clés que Kaji ne connaît pas : lues, jamais réécrites
+    bad = [k for k in ("id", "origin", "rp") if k in _props(r.get("webauthn")) and out["webauthn"][k] is None]
+    if bad:                                                                                      # valeur présente mais illisible : lue seulement, jamais réécrite
+        out["readonly"]["webauthn"] = _t(",".join(sorted({*(out["readonly"].get("webauthn") or "").split(","), *bad} - {""})), 200)
     if r.get("fencing") is not None and out["fencing"] is None:
         out["readonly"]["fencing"] = _t(str(r["fencing"]), 200)                                  # mode inconnu : lu seulement
     return out
@@ -315,6 +377,31 @@ class ReplicationIn(MigrationIn):
     """Même forme que `migration` : `type` (secure / insecure) et `network` (CIDR, vide = retirer)."""
 
 
+class WebauthnIn(BaseModel):
+    """WebAuthn (lot #381) : `id` (nom de domaine), `origin` (https://hôte[:port]), `rp` (nom affiché), `allow_subdomains`. Les clés non renvoyées sont gardées."""
+    allow_subdomains: StrictBool | None = None
+    id: str | None = Field(default=None, max_length=253)
+    origin: str | None = Field(default=None, max_length=300)
+    rp: str | None = Field(default=None, max_length=64)
+
+    @field_validator("id")
+    @classmethod
+    def _id(cls, v):
+        return check_webauthn_id(v) if v is not None else v
+
+    @field_validator("origin")
+    @classmethod
+    def _origin(cls, v):
+        return check_webauthn_origin(v) if v is not None else v
+
+    @field_validator("rp")
+    @classmethod
+    def _rp(cls, v):
+        if v is not None and not RP_NAME.fullmatch(v):
+            raise ValueError("Nom invalide (64 caractères au plus, sans virgule, guillemet ni caractère de contrôle)")
+        return v
+
+
 class DatacenterOptions(BaseModel):
     keyboard: Literal[KEYBOARDS] | None = None                                    # type: ignore[valid-type]
     language: Literal[LANGUAGES] | None = None                                    # type: ignore[valid-type]
@@ -335,11 +422,12 @@ class DatacenterOptions(BaseModel):
     crs: CrsIn | None = None
     bwlimit: BwlimitIn | None = None
     replication: ReplicationIn | None = None
+    webauthn: WebauthnIn | None = None
     clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=len(CLEARABLE))  # type: ignore[valid-type]
     digest: str | None = Field(default=None, max_length=64, description="Empreinte lue par GET ; refus (409) si l'état a changé depuis")
     confirm: StrictBool = False
     acknowledge_cut_access: StrictBool = False
-    type_name: str | None = Field(default=None, max_length=40, description="« COUPURE POSSIBLE » pour un fencing matériel (expérimental)")
+    type_name: str | None = Field(default=None, max_length=40, description="« COUPURE POSSIBLE » pour un fencing matériel (expérimental) ou pour changer ou retirer un réglage WebAuthn déjà défini")
     dry_run: StrictBool = False
 
     @field_validator("description")
@@ -479,6 +567,14 @@ def build(body: DatacenterOptions, current: dict) -> tuple[dict, list[str], list
         typ = rep.type or cur.get("type") or "secure"
         net = cur.get("network") if rep.network is None else (rep.network or None)
         p["replication"] = f"type={typ}" + (f",network={net}" if net else "")
+    wa = body.webauthn
+    if wa is not None and any(v is not None for v in (wa.allow_subdomains, wa.id, wa.origin, wa.rp)):
+        writable("webauthn")
+        cur = current.get("webauthn") or {}
+        m = {k: (getattr(wa, k) if getattr(wa, k) is not None else cur.get(k)) for k in ("allow_subdomains", "id", "origin", "rp")}
+        check_webauthn_consistency(m["id"], m["origin"], m["allow_subdomains"])
+        p["webauthn"] = ",".join(([f"allow-subdomains={int(m['allow_subdomains'])}"] if m["allow_subdomains"] is not None else []) + ([f"id={m['id']}"] if m["id"] else [])
+                                 + ([f"origin={m['origin']}"] if m["origin"] else []) + ([f"rp={m['rp']}"] if m["rp"] else []))
     for name in KNOWN:
         if name in delete:
             writable(name)                                              # retirer effacerait aussi les sous-clés inconnues

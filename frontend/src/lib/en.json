@@ -2429,5 +2429,19 @@
  "Le nœud doit avoir des pages réservées, sinon la machine ne démarre pas": "The node must have reserved pages, otherwise the machine will not start",
  "Options du disque enregistrées": "Disk options saved",
  "Options de la carte enregistrées": "Card options saved",
- "Options du processeur enregistrées": "Processor options saved"
+ "Options du processeur enregistrées": "Processor options saved",
+ "Autoriser les sous-domaines": "Allow subdomains",
+ "Ce réglage contient des valeurs que Kaji ne sait pas lire ou ne gère pas : il se modifie dans l'interface de Proxmox.": "This setting contains values that Kaji cannot read or does not handle: edit it in the Proxmox interface.",
+ "Changer ou retirer une valeur déjà définie casse (ou peut casser) les credentials WebAuthn enregistrés : ces comptes ne pourront plus valider leur double authentification.": "Changing or removing a value that is already set breaks (or may break) the registered WebAuthn credentials: those accounts will no longer be able to complete two-factor authentication.",
+ "Identifiant de la partie de confiance (id)": "Relying party ID (id)",
+ "J'ai compris que les credentials existants peuvent être cassés": "I understand that existing credentials may be broken",
+ "L'adresse que les utilisateurs tapent dans leur navigateur : https://, ou http://localhost": "The address users type in their browser: https://, or http://localhost",
+ "Nom affiché (rp)": "Displayed name (rp)",
+ "Nom de domaine, sans protocole ni port. Le changer casse les credentials existants.": "Domain name, without protocol or port. Changing it breaks existing credentials.",
+ "Origine du site (origin)": "Site origin (origin)",
+ "Retirer WebAuthn": "Remove WebAuthn",
+ "Réglages WebAuthn enregistrés, relus chez Proxmox.": "WebAuthn settings saved and read back from Proxmox.",
+ "Sans virgule ni guillemet": "No comma or quote",
+ "WebAuthn": "WebAuthn",
+ "WebAuthn valide la double authentification dans le navigateur : un réglage faux peut empêcher des comptes de se connecter.": "WebAuthn validates two-factor authentication in the browser: a wrong setting can prevent accounts from logging in."
 }
