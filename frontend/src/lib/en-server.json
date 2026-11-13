@@ -500,5 +500,13 @@
  "Écriture d'un realm : renvoie la requête avec confirm=true et l'identifiant du realm retapé": "Realm write: send the request again with confirm=true and the realm ID retyped",
  "Les realms pam et pve sont intégrés": "The pam and pve realms are built in",
  "Valeur vide ou caractère de contrôle interdit": "Empty value or control character not allowed",
- "Secret invalide (vide, trop long ou caractère de contrôle)": "Invalid secret (empty, too long or control character)"
+ "Secret invalide (vide, trop long ou caractère de contrôle)": "Invalid secret (empty, too long or control character)",
+ "Machine protégée (KAJI_PROTECTED_VMIDS) : elle ne migre pas depuis Kaji": "Protected machine (KAJI_PROTECTED_VMIDS): it does not migrate from Kaji",
+ "Une VM en marche ne migre vers un autre cluster qu'à chaud (online=true) ; éteins-la pour une migration à froid": "A running VM only migrates to another cluster live (online=true); shut it down for a cold migration",
+ "Un conteneur en marche migre avec un redémarrage (restart=true) ou à chaud (online=true, expérimental)": "A running container migrates with a restart (restart=true) or live (online=true, experimental)",
+ "Migration vers un autre cluster (expérimentale) : renvoie la requête avec confirm=true": "Migration to another cluster (experimental): send the request again with confirm=true",
+ "delete supprime la machine d'origine après la migration : retape son nom exact": "delete removes the original machine after the migration: retype its exact name",
+ "Machine introuvable": "Machine not found",
+ "« restart » et « timeout » ne concernent que les conteneurs": "“restart” and “timeout” only apply to containers",
+ "Proxmox a refusé la migration (détail masqué : il pouvait contenir le jeton du cluster distant)": "Proxmox refused the migration (detail hidden: it could contain the remote cluster's token)"
 }
