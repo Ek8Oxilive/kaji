@@ -45,7 +45,7 @@ def test_a_missing_or_wrong_token_is_refused_and_creates_nothing(client, with_to
 def test_the_right_token_creates_the_account_and_logs_in(client, with_token):
     r = setup(client, TOKEN)
     assert r.status_code == 201 and "kaji_session" in r.headers["set-cookie"] and TOKEN not in r.text
-    assert client.get("/api/auth/me").json() == {"username": "admin"}
+    assert client.get("/api/auth/me").json() == {"username": "admin", "role": "admin"}
 
 
 def test_the_token_does_not_unlock_a_second_account(client, with_token):
