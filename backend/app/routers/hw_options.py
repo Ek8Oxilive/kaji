@@ -23,6 +23,8 @@ from .cluster import Factory, _px
 router = APIRouter(tags=["hw-options"], dependencies=[Depends(current_user)])
 B = "/api/connections/{conn_id}/guests/{node}"
 CONFIRM = "Confirmation requise (renvoie la requête avec confirm=true) : "
+# Constaté en réel (Proxmox 9, 2026-11-13) : « only root can set 'affinity' config » et « … 'hugepages' config » (comme keyctl / fuse d'un conteneur)
+ROOT_ONLY = "Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji"
 PROTECTED = "Machine protégée (KAJI_PROTECTED_VMIDS) : ses options ne se modifient pas depuis Kaji"
 
 
@@ -42,8 +44,10 @@ class _Ctx:
         try:
             return await _px(self.db, self.factory, self.conn_id, method, p, **kw)
         except HTTPException as e:
+            if method == "put" and "only root can set" in str(e.detail):
+                e = HTTPException(403, ROOT_ONLY)                      # message fixe : ni valeur saisie ni message brut de Proxmox
             self.log("error", str(e.detail))
-            raise
+            raise e
 
     async def config(self, current: bool = True) -> dict:
         cfg = await self.px("get", f"{self.path}/config", **({"current": 1} if current else {}))

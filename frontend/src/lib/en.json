@@ -2415,18 +2415,10 @@
  "Numéros ou plages séparés par « ; » ; vide = aucun": "Numbers or ranges separated by “;”; empty = none",
  "Câble débranché (la machine perd ce réseau)": "Cable unplugged (the machine loses this network)",
  "Options du processeur": "Processor options",
- "Priorité, limite et placement sur les cœurs du nœud. Sur une machine en marche, le changement s'applique au prochain démarrage.": "Priority, limit and placement on the node's cores. On a running machine the change applies at the next start.",
  "Poids CPU (cpuunits)": "CPU weight (cpuunits)",
  "Plus il est haut, plus la machine passe devant les autres quand le nœud est chargé": "The higher it is, the more the machine goes ahead of the others when the node is busy",
  "Limite d'utilisation (cpulimit)": "Usage limit (cpulimit)",
  "En nombre de cœurs ; 0 ou vide = illimité": "In number of cores; 0 or empty = unlimited",
- "Cœurs du nœud autorisés (affinity)": "Allowed node cores (affinity)",
- "Numéros ou plages ; vide = tous les cœurs": "Numbers or ranges; empty = all cores",
- "Hugepages": "Hugepages",
- "N'importe quelle taille": "Any size",
- "2 Mo": "2 MB",
- "1 Go": "1 GB",
- "Le nœud doit avoir des pages réservées, sinon la machine ne démarre pas": "The node must have reserved pages, otherwise the machine will not start",
  "Options du disque enregistrées": "Disk options saved",
  "Options de la carte enregistrées": "Card options saved",
  "Options du processeur enregistrées": "Processor options saved",
@@ -2443,5 +2435,7 @@
  "Réglages WebAuthn enregistrés, relus chez Proxmox.": "WebAuthn settings saved and read back from Proxmox.",
  "Sans virgule ni guillemet": "No comma or quote",
  "WebAuthn": "WebAuthn",
- "WebAuthn valide la double authentification dans le navigateur : un réglage faux peut empêcher des comptes de se connecter.": "WebAuthn validates two-factor authentication in the browser: a wrong setting can prevent accounts from logging in."
+ "WebAuthn valide la double authentification dans le navigateur : un réglage faux peut empêcher des comptes de se connecter.": "WebAuthn validates two-factor authentication in the browser: a wrong setting can prevent accounts from logging in.",
+ "Priorité et limite d'utilisation du processeur. Sur une machine en marche, le changement s'applique au prochain démarrage.": "Processor priority and usage limit. On a running machine the change applies at the next start.",
+ "Les cœurs autorisés (affinity) et les hugepages sont réservés à root@pam : Proxmox les refuse au jeton de Kaji, ils ne sont donc pas proposés ici.": "Allowed cores (affinity) and hugepages are reserved to root@pam: Proxmox refuses them to Kaji's token, so they are not offered here."
 }

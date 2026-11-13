@@ -479,5 +479,6 @@
  "Une adresse IP ne peut pas servir d'identifiant WebAuthn": "An IP address cannot be used as a WebAuthn ID",
  "Identifiant invalide (nom de domaine seulement, sans protocole, port ni chemin)": "Invalid ID (domain name only, without protocol, port or path)",
  "Origine invalide (https://hôte[:port], sans identifiants, chemin ni paramètres)": "Invalid origin (https://host[:port], without credentials, path or parameters)",
- "http:// n'est permis que pour localhost": "http:// is only allowed for localhost"
+ "http:// n'est permis que pour localhost": "http:// is only allowed for localhost",
+ "Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji": "Proxmox reserves this option to root@pam (affinity, hugepages): it is refused to Kaji's token"
 }
