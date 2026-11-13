@@ -542,5 +542,14 @@
  "Machine introuvable ou illisible chez Proxmox": "Machine not found or unreadable at Proxmox",
  "Une machine modèle ne se planifie pas": "A template machine cannot be scheduled",
  "Planification inconnue": "Unknown schedule",
- "Suppression : renvoie la requête avec confirm=true": "Deletion: resend the request with confirm=true"
+ "Suppression : renvoie la requête avec confirm=true": "Deletion: resend the request with confirm=true",
+ "Nom invalide (3 à 80 caractères, sans caractère de contrôle)": "Invalid name (3 to 80 characters, no control characters)",
+ "Seuil obligatoire : 1 à 100 (%)": "Threshold required: 1 to 100 (%)",
+ "Ce type de règle n'a pas de seuil": "This rule type has no threshold",
+ "Adresse du webhook et retrait demandés en même temps": "Webhook address and removal requested at the same time",
+ "Règle inconnue": "Unknown rule",
+ "Test d'envoi : renvoie la requête avec confirm=true (un vrai message part)": "Send test: resend the request with confirm=true (a real message is sent)",
+ "Cette règle n'a pas de webhook": "This rule has no webhook",
+ "Un test par minute et par règle : attends un peu": "One test per minute and per rule: wait a moment",
+ "Adresse du webhook illisible : saisis-la à nouveau": "Webhook address unreadable: enter it again"
 }
