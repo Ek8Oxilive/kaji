@@ -1,6 +1,6 @@
 # Option : HTTPS devant Kaji (Caddy, certificat interne). À ajouter au fichier principal :
 #   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
-# Puis dans .env : KAJI_COOKIE_SECURE=true, KAJI_TLS_SITE=<adresse de la machine>:8443 (voir docs/deploiement.md, « HTTPS »).
+# Puis dans .env : KAJI_COOKIE_SECURE=true, KAJI_TLS_SITE=<adresse de la machine> (sans port : HTTPS sur 443, le port 80 renvoie vers HTTPS) (voir docs/deploiement.md, « HTTPS »).
 # NON testé en réel par les agents (pas de Docker sur leur poste) : relis `docs/deploiement.md` avant de l'activer sur une machine qui compte.
 services:
   tls:
@@ -10,13 +10,14 @@ services:
       web:
         condition: service_healthy
     environment:
-      KAJI_TLS_SITE: ${KAJI_TLS_SITE:-localhost:8443}
+      KAJI_TLS_SITE: ${KAJI_TLS_SITE:-localhost}      # adresse SANS port (voir deploy/Caddyfile)
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data              # l'autorité interne et ses clés : à sauvegarder si tu veux garder la confiance des navigateurs
       - caddy-config:/config
     ports:
-      - "${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_TLS_PORT:-8443}:8443"
+      - "${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_TLS_PORT:-443}:443"
+      - "${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_HTTP_PORT:-80}:80"      # le port 80 ne sert qu'à renvoyer vers HTTPS (Caddy)
 
   web:
     volumes:

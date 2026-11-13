@@ -86,7 +86,7 @@ Ces quatre étapes touchent la configuration système ou la sécurité (jeton, n
 
 **Tu fais** (terminal du CT 116, `~/kaji`) :
 1. `cp .env .env.bak-https-$(date +%Y%m%d)` ; `grep -E 'KAJI_COOKIE_SECURE|KAJI_BIND|KAJI_TLS_SITE' .env` (note l'état de départ).
-2. Dans `.env` : `KAJI_COOKIE_SECURE=true`, `KAJI_TLS_SITE=<adresse de Kaji>:8443` (l'adresse par laquelle tu ouvres Kaji), et **garde `KAJI_BIND` tel quel** pour l'instant.
+2. Dans `.env` : `KAJI_COOKIE_SECURE=true`, `KAJI_TLS_SITE=<adresse de Kaji>` (l'adresse par laquelle tu ouvres Kaji, **sans port** : HTTPS sur 443 et le port 80 renvoie vers HTTPS), et **garde `KAJI_BIND` tel quel** pour l'instant.
 3. Lance, **détaché** (la console va se couper ; continue depuis la console de Proxmox) :
    `nohup sh -c 'cd ~/kaji && docker compose down && docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build' > /root/tls.log 2>&1 &`
    puis `tail -n 30 /root/tls.log` : le build doit finir sans erreur.

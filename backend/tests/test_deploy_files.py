@@ -48,6 +48,19 @@ def test_caddy_waits_for_nginx_and_mounts_the_config_read_only():
     assert "./deploy/Caddyfile:/etc/caddy/Caddyfile:ro" in TLS and "./deploy/realip.conf:/etc/nginx/conf.d/realip.conf:ro" in TLS
 
 
+def test_caddy_has_a_default_sni_so_that_an_ip_address_works():
+    """Constaté en réel (2026-11-13) : ouvert par une adresse IP, le navigateur n'envoie pas de SNI et Caddy (dans Docker) ne trouvait aucun certificat."""
+    assert re.search(r"^\s*default_sni \{\$KAJI_TLS_SITE\}$", CADDY, re.M)
+    assert re.search(r"^\s*KAJI_TLS_SITE: \$\{KAJI_TLS_SITE:-localhost\}", TLS, re.M)
+
+
+def test_https_is_on_443_and_port_80_is_published_for_the_redirect():
+    """Demande d'Enzo (2026-11-13) : se connecter sans taper de port, et que http renvoie vers https (redirection automatique de Caddy sur le port 80)."""
+    assert '"${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_TLS_PORT:-443}:443"' in TLS
+    assert '"${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_HTTP_PORT:-80}:80"' in TLS
+    assert ":8443" not in CADDY and "auto_https off" not in CADDY and "disable_redirects" not in CADDY
+
+
 def test_env_example_documents_the_new_settings_and_keeps_the_safe_defaults():
     for name in ("KAJI_SETUP_TOKEN", "KAJI_TLS_SITE", "KAJI_TLS_PORT"):
         assert name in ENV
