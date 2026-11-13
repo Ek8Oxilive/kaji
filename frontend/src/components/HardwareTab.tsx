@@ -5,6 +5,7 @@ import { mem } from "../lib/format";
 import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, MigrateDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { useToast } from "./Toast";
 import { PassthroughPanel } from "./PassthroughPanel";
+import { RemoteMigrateDialog } from "./RemoteMigrateDialog";
 import { CpuOptionsDialog, DiskOptionsDialog, NetOptionsDialog } from "./HwOptionsDialogs";
 import type { NetX } from "../lib/types/hwopts";
 import { Button, Notice } from "./ui";
@@ -12,7 +13,7 @@ import { Button, Notice } from "./ui";
 import { tr } from "../lib/i18n";
 type Dialog =
   | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
-  | { k: "delete" } | { k: "migrate" } | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
+  | { k: "delete" } | { k: "migrate" } | { k: "remote" } | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
   | { k: "reattach"; item: { key: string; volume: string } } | { k: "destroy"; item: { key: string; volume: string } }
   | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk }
   | { k: "diskopt"; disk: HwDisk } | { k: "netopt"; net: HwNet } | { k: "cpuopt" };
@@ -144,7 +145,8 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
           {guest.type === "qemu" && <PassthroughPanel connId={connId} guest={guest} />}
 
           <Section title={tr("Emplacement")}>
-            <Row label={tr("Nœud")} action={<Button variant="ghost" onClick={() => setDlg({ k: "migrate" })} className="!px-3 !py-1">{tr("Migrer")}</Button>}>
+            <Row label={tr("Nœud")} action={<span className="flex gap-2"><Button variant="ghost" onClick={() => setDlg({ k: "migrate" })} className="!px-3 !py-1">{tr("Migrer")}</Button>
+              <Button variant="ghost" onClick={() => setDlg({ k: "remote" })} className="!px-3 !py-1">{tr("Autre cluster…")}</Button></span>}>
               {guest.node} <span className="text-muted">{tr("· déplacer la machine vers un autre nœud du cluster")}</span>
             </Row>
           </Section>
@@ -169,6 +171,7 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
       {cfg && dlg?.k === "boot" && <BootDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "netadd" && <NetAddDialog cfg={cfg} connId={connId} node={guest.node} base={base} onDone={async () => { toast("ok", tr("Carte réseau ajoutée")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {dlg?.k === "netdel" && <NetRemoveDialog net={dlg.net} base={base} onDone={async () => { toast("ok", tr("Carte {key} retirée", { key: dlg.net.key })); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "remote" && <RemoteMigrateDialog connId={connId} node={guest.node} gtype={guest.type} vmid={guest.vmid} name={guest.name ?? String(guest.vmid)} running={guest.status === "running"} onClose={() => setDlg(null)} />}
       {dlg?.k === "migrate" && <MigrateDialog connId={connId} node={guest.node} gtype={guest.type} vmid={guest.vmid} name={guest.name ?? String(guest.vmid)}
         running={guest.status === "running"} base={base}
         onDone={async (target) => { toast("ok", tr("« {p} » migrée vers {target}", { p: guest.name ?? guest.vmid, target })); await qc.invalidateQueries({ queryKey: ["cluster", connId, "guests"] }); onMigrated(target); }} onClose={() => setDlg(null)} />}

@@ -217,6 +217,7 @@ POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/disks/{key}/move
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/disks/{key}/reattach
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/migrate
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets
+POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/remote-migrate
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/resize
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots
 POST /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/snapshots/{name}/rollback
