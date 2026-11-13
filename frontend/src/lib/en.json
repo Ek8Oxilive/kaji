@@ -2565,6 +2565,7 @@
  "Supprimer…": "Delete…",
  "Supprimer l'utilisateur {u}": "Delete user {u}",
  "Seuls les utilisateurs du realm pve se suppriment ici ; Kaji et root sont protégés": "Only users of the pve realm can be deleted here; Kaji and root are protected",
+ "Débloquer un compte verrouillé (trop d'échecs)": "Unlock a locked account (too many failures)",
  "Options du nœud…": "Node options…",
  "Options du nœud enregistrées. Relues chez Proxmox.": "Node options saved. Read back from Proxmox.",
  "Lecture des options du nœud impossible.": "Cannot read the node options.",

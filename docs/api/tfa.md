@@ -11,6 +11,7 @@ Schéma lu sur `apidoc.js` de Proxmox 9 (`/access/tfa`). Validation : `backend/a
 | `POST /` | session administrateur | Ajoute un **TOTP** ou des **codes de secours** |
 | `PUT /{userid}/{entry}` | session administrateur | Active, désactive ou change la description |
 | `DELETE /{userid}/{entry}` | session administrateur | Supprime une entrée |
+| `POST /{userid}/unlock` | session administrateur | Débloque la double authentification d'un compte verrouillé après trop d'échecs (`PUT /access/users/{userid}/unlock-tfa`, **`allowtoken: 1`** : accepté avec un jeton) |
 
 Les écritures passent par la **session administrateur** (`User.Modify`). **Hors périmètre, volontairement** : enregistrer une clé **WebAuthn** ou **U2F** (cérémonie du navigateur), **YubiKey OTP**, et le champ `password` de Proxmox (le mot de passe de l'utilisateur : Kaji n'en demande ni n'en transmet jamais).
 
@@ -35,3 +36,6 @@ Faux Proxmox strict (`backend/tests/test_tfa.py` : clés autorisées, URI et cod
 ## Essai réel du 2026-11-13 : les écritures sont IMPOSSIBLES avec un jeton
 Session administrateur ouverte avec le jeton de Kaji (rôle `Administrator` sur `/`, utilisateur ET jeton), compte jetable `kajitest@pve` : la lecture (`GET`) répond, l'aperçu `dry_run` aussi, mais l'écriture (`POST /access/tfa/{userid}`, codes de secours) est refusée par Proxmox (« Droits insuffisants »). **Cause lue dans le schéma de Proxmox 9 (`apidoc.js`)** : `POST`, `PUT` et `DELETE` de `/access/tfa/{userid}[/{id}]` ont **`allowtoken: 0`** : aucun jeton d'API ne peut les appeler, quels que soient ses droits (alors que ACL, realms, utilisateurs, groupes, rôles et jetons ont `allowtoken: 1`). Kaji le dit désormais dans le message (403). Faire marcher la TFA demanderait une session par **ticket** (connexion par mot de passe, avec code TFA si le compte en a, et `password` du compte pour certaines écritures) : non fait, décision à prendre. En attendant : lecture seule dans Kaji ; écriture dans l'interface de Proxmox ou `pvesh` en root. `PUT /access/users/{userid}/unlock-tfa` accepte les jetons (`allowtoken: 1`) : piste pour débloquer un compte, non implémentée.
 
+## Débloquer un compte (lot #399)
+`POST /{userid}/unlock` : `confirm=true` et l'identifiant retapé (`type_name`), `dry_run` possible. Refusé (409) si le compte n'est pas verrouillé (lu avec `GET /access/tfa` : `totp-locked` ou `tfa-locked-until`) ; relecture après l'appel (502 si Proxmox n'a pas débloqué). Pas de phrase : débloquer ne baisse pas la sécurité (le compte garde ses entrées). Audit `tfa-unlock`. Option « Débloquer un compte verrouillé » de la fenêtre « Double authentification… ».
+**Jamais essayé en réel** : aucun compte verrouillé sur le cluster (il faudrait enchaîner des échecs de TOTP sur un compte jetable).
