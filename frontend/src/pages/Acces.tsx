@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { AdminSessionPanel } from "../components/AdminSessionPanel";
+import { UserWriteDialog } from "../components/UserWriteDialog";
 import { Button, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
 import type { AccessAcl, AccessGroup, AccessRealm, AccessRole, AccessUser, Feature, Fix } from "../lib/types/acces";
+import type { AdminSessionState } from "../lib/types/admin-session";
 
 import { tr, locale } from "../lib/i18n";
 const when = (s: number | null) => (s ? new Date(s * 1000).toLocaleDateString(locale()) : tr("jamais"));
@@ -64,6 +66,9 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
   const anyMissing = (features.data ?? []).some((x) => x.status === "missing");
   const fixes = useQuery({ ...get<Fix[]>("fixes"), enabled: id !== null && anyMissing });
   const [openFix, setOpenFix] = useState<string | null>(null);
+  const adm = useQuery({ queryKey: ["admin-session", id], enabled: id !== null, refetchInterval: 30_000, queryFn: () => api<AdminSessionState>(`/api/connections/${id}/admin-session`) });
+  const adminActive = !!adm.data && adm.data.active;                     // même requête que le panneau : on propose la suppression seulement avec une session ouverte
+  const [delUser, setDelUser] = useState<string | null>(null);
 
   if (conns.isLoading) return <div className="mx-auto max-w-5xl space-y-3">{[0, 1, 2].map((i) => <div key={i} className="panel h-14 animate-pulse" />)}</div>;
   if (!active || id === null) return (
@@ -133,7 +138,7 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
         {(d) => d.length === 0 ? <Empty>{tr("Aucun utilisateur visible.")}</Empty> : (
           <div className="panel overflow-x-auto">
             <table className="w-full min-w-[30rem] text-sm">
-              <thead><tr className="border-b border-line text-left text-xs text-muted"><th scope="col" className={th}>{tr("Utilisateur")}</th><th scope="col" className={th}>{tr("Realm")}</th><th scope="col" className={th}>{tr("État")}</th><th scope="col" className={th}>{tr("Expire")}</th></tr></thead>
+              <thead><tr className="border-b border-line text-left text-xs text-muted"><th scope="col" className={th}>{tr("Utilisateur")}</th><th scope="col" className={th}>{tr("Realm")}</th><th scope="col" className={th}>{tr("État")}</th><th scope="col" className={th}>{tr("Expire")}</th>{adminActive && <th scope="col" className={th}><span className="sr-only">{tr("Actions")}</span></th>}</tr></thead>
               <tbody>
                 {d.map((u) => (
                   <tr key={u.userid} className="border-b border-line/60 last:border-0">
@@ -141,6 +146,11 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
                     <td className="px-4 py-2 text-muted">{u.realm_type ?? u.realm ?? "–"}</td>
                     <td className="px-4 py-2"><span className={u.enabled ? "text-ok" : "text-danger"}>{u.enabled ? tr("Actif") : tr("Désactivé")}</span></td>
                     <td className="px-4 py-2 text-muted">{when(u.expire)}</td>
+                    {adminActive && <td className="px-4 py-2 text-right">
+                      {u.realm === "pve" && u.userid !== active.user && u.userid !== "root@pam"
+                        ? <Button variant="danger" onClick={() => setDelUser(u.userid)} className="!px-3 !py-1 text-xs" title={tr("Supprimer l'utilisateur {u}", { u: u.userid })}>{tr("Supprimer…")}</Button>
+                        : <span className="text-xs text-muted" title={tr("Seuls les utilisateurs du realm pve se suppriment ici ; Kaji et root sont protégés")}>–</span>}
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -206,6 +216,8 @@ export function Acces({ onGoConnections }: { onGoConnections: () => void }) {
           </div>
         )}
       </Block>
+
+      {delUser && <UserWriteDialog connId={id} preset={{ act: "delete-user", id: delUser }} onClose={() => setDelUser(null)} />}
     </div>
   );
 }

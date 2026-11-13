@@ -2561,5 +2561,8 @@
  "utilisateur@realm!nom ; droits d'allocation de VM et de stockage sur le cluster distant": "user@realm!name; VM and storage allocation permissions on the remote cluster",
  "Écriture seule : jamais relu ni affiché, vidé après l'envoi.": "Write-only: never read back or shown, cleared after sending.",
  "Ouvrir avec le jeton de Kaji": "Open with Kaji's token",
- "Utilise le token permanent de Kaji (option KAJI_ADMIN_USE_KAJI_TOKEN) : rien à coller": "Uses Kaji's permanent token (KAJI_ADMIN_USE_KAJI_TOKEN option): nothing to paste"
+ "Utilise le token permanent de Kaji (option KAJI_ADMIN_USE_KAJI_TOKEN) : rien à coller": "Uses Kaji's permanent token (KAJI_ADMIN_USE_KAJI_TOKEN option): nothing to paste",
+ "Supprimer…": "Delete…",
+ "Supprimer l'utilisateur {u}": "Delete user {u}",
+ "Seuls les utilisateurs du realm pve se suppriment ici ; Kaji et root sont protégés": "Only users of the pve realm can be deleted here; Kaji and root are protected"
 }

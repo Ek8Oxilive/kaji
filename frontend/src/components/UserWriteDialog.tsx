@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { AccountSelect } from "./AccountSelect";
 import { Modal } from "./Modal";
 import { SecretOnceDialog } from "./SecretOnceDialog";
 import { Notice } from "./ui";
@@ -19,10 +20,10 @@ type Impact = { protected: boolean; groups: string[]; acl_entries: number; token
 type TokenRow = { tokenid: string; privsep: boolean; expire: number | null; comment: string | null };
 
 /** Écrire des utilisateurs (realm pve), des groupes et des appartenances. Une écriture à la fois ; le serveur revérifie tout et refuse les identités protégées. */
-export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: () => void }) {
+export function UserWriteDialog({ connId, preset, onClose }: { connId: number; preset?: { act: "delete-user"; id: string }; onClose: () => void }) {
   const qc = useQueryClient();
-  const [act, setAct] = useState<Act>("create-user");
-  const [id, setId] = useState(""), [group, setGroup] = useState(""), [comment, setComment] = useState(""), [password, setPassword] = useState("");
+  const [act, setAct] = useState<Act>(preset?.act ?? "create-user");
+  const [id, setId] = useState(preset?.id ?? ""), [group, setGroup] = useState(""), [comment, setComment] = useState(""), [password, setPassword] = useState("");
   const [enable, setEnable] = useState(true), [add, setAdd] = useState(true), [typed, setTyped] = useState("");
   const [impact, setImpact] = useState<Impact | null>(null);
   const [tokens, setTokens] = useState<TokenRow[] | null>(null), [days, setDays] = useState(""), [secret, setSecret] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: 
     setErr(null);
     try { setImpact(await api<Impact>(`${base}/users/${encodeURIComponent(id)}/impact`)); } catch (e) { setErr((e as Error).message); }
   };
+  useEffect(() => { if (preset) void look(); }, []);              // eslint-disable-line react-hooks/exhaustive-deps -- depuis le bouton du tableau : l'impact s'affiche d'emblée
   const listTokens = async () => {
     setErr(null);
     try { setTokens(await api<TokenRow[]>(`${base}/users/${encodeURIComponent(id)}/tokens`)); } catch (e) { setErr((e as Error).message); }
@@ -83,7 +85,9 @@ export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: 
       <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Action")}</span>
         <select className="field" value={act} onChange={(e) => reset(e.target.value as Act)}>{(Object.keys(LABEL) as Act[]).map((a) => <option key={a} value={a}>{LABEL[a]}</option>)}</select></label>
       <label className="block space-y-1 text-sm"><span className="text-muted">{isGroup ? tr("Identifiant du groupe") : tr("Utilisateur")}</span>
-        <input className="field" value={id} onChange={(e) => setId(e.target.value.trim())} placeholder={isGroup ? tr("staff") : tr("bob@pve")} autoComplete="off" /></label>
+        {act === "create-user" || act === "create-group"
+          ? <input className="field" value={id} onChange={(e) => setId(e.target.value.trim())} placeholder={isGroup ? tr("staff") : tr("bob@pve")} autoComplete="off" />
+          : <AccountSelect connId={connId} kind={isGroup ? "groups" : "users"} realm="pve" value={id} onChange={setId} placeholder={isGroup ? tr("staff") : tr("bob@pve")} />}</label>
       {isToken && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Nom du token")}</span>
         <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder={tr("ci")} autoComplete="off" /></label>}
       {act === "revoke-token" && <>
@@ -97,7 +101,7 @@ export function UserWriteDialog({ connId, onClose }: { connId: number; onClose: 
       </>}
       {act === "member" && <>
         <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Groupe")}</span>
-          <input className="field" value={group} onChange={(e) => setGroup(e.target.value.trim())} placeholder={tr("staff")} autoComplete="off" /></label>
+          <AccountSelect connId={connId} kind="groups" value={group} onChange={setGroup} placeholder={tr("staff")} /></label>
         <label className="flex gap-4 text-sm"><label className="flex gap-1.5"><input type="radio" checked={add} onChange={() => setAdd(true)} />{tr("Ajouter")}</label><label className="flex gap-1.5"><input type="radio" checked={!add} onChange={() => setAdd(false)} />{tr("Retirer")}</label></label>
         <p className="text-xs text-muted">{tr("Ajouter à un groupe donne ses droits à l'utilisateur : un groupe qui permet de modifier les droits est refusé par le serveur.")}</p>
       </>}

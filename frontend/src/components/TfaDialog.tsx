@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { tr } from "../lib/i18n";
 import { ENTRY_ID, TFA_PHRASE, USERID, type TfaEntry, type TfaUser, type TotpSetup } from "../lib/types/tfa";
+import { AccountSelect } from "./AccountSelect";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
@@ -89,7 +90,7 @@ export function TfaDialog({ connId, onClose }: { connId: number; onClose: () => 
       <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Action")}</span>
         <select className="field" value={act} onChange={(e) => { setAct(e.target.value as Act); setEntry(""); }}>{(Object.keys(ACT_LABEL) as Act[]).map((a) => <option key={a} value={a}>{ACT_LABEL[a]()}</option>)}</select></label>
       <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Utilisateur")}</span>
-        <input className="field" value={userid} onChange={(e) => setUserid(e.target.value.trim())} placeholder={tr("bob@pve")} autoComplete="off" /></label>
+        <AccountSelect connId={connId} kind="users" value={userid} onChange={setUserid} placeholder={tr("bob@pve")} /></label>
       {needEntry && <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Entrée")}</span>
         <select className="field" value={entry} onChange={(e) => setEntry(e.target.value)}><option value="">{tr("Choisir…")}</option>
           {entries.map((e) => <option key={e.id} value={e.id}>{TYPE_LABEL[e.type]?.() ?? e.type} · {e.id}{e.description ? ` · ${e.description}` : ""}{e.enabled ? "" : tr(" (désactivé)")}</option>)}</select>

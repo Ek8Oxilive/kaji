@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import type { AccessRole } from "../lib/types/acces";
 import type { AclChange, AclPreview } from "../lib/types/admin-session";
+import { AccountSelect } from "./AccountSelect";
 import { Modal } from "./Modal";
 import { Notice } from "./ui";
 
@@ -60,7 +61,9 @@ export function AclWriteDialog({ connId, presetPath, onClose }: { connId: number
           <select className="field" value={f.kind} onChange={(e) => set({ kind: e.target.value as AclChange["kind"], ugid: "" })}><option value="user">{tr("un utilisateur")}</option><option value="group">{tr("un groupe")}</option><option value="token">{tr("un token")}</option></select></label>
       </div>
       <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Identifiant")}</span>
-        <input className="field" value={f.ugid} onChange={(e) => set({ ugid: e.target.value.trim() })} placeholder={KIND_HINT[f.kind]} autoComplete="off" /></label>
+        {f.kind === "token"
+          ? <input className="field" value={f.ugid} onChange={(e) => set({ ugid: e.target.value.trim() })} placeholder={KIND_HINT[f.kind]} autoComplete="off" />
+          : <AccountSelect connId={connId} kind={f.kind === "group" ? "groups" : "users"} value={f.ugid} onChange={(v) => set({ ugid: v })} placeholder={KIND_HINT[f.kind]} />}</label>
       <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Chemin")}</span>
         <input className="field" value={f.path} onChange={(e) => set({ path: e.target.value.trim() })} placeholder={tr("/pool/kaji-test")} autoComplete="off" />
         <span className="block text-xs text-muted">{tr("Un pool, une VM, un stockage ou un nœud :")}{" "}<code>{tr("/pool/…")}</code>, <code>{tr("/vms/115")}</code>, <code>{tr("/storage/…")}</code>, <code>{tr("/nodes/…")}</code>{tr(". Jamais")}{" "}<code>/</code>{" "}{tr("ni")}{" "}<code>{tr("/access")}</code>.</span></label>
