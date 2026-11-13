@@ -17,7 +17,7 @@ docker compose up -d --build
 Ouvre http://127.0.0.1:8080 et **crée tout de suite le compte administrateur** (première configuration) : tant qu'il n'existe pas,
 n'importe qui atteignant la page peut le créer. Garde donc `KAJI_BIND=127.0.0.1` jusqu'à cette étape.
 
-Dans `.env`, pense aussi à `KAJI_PROTECTED_VMIDS` (machines que Kaji refuse de supprimer, ex. `105,108`).
+Dans `.env`, pense aussi à `KAJI_PROTECTED_VMIDS` (machines que Kaji refuse de supprimer **et sur lesquelles il refuse toute action planifiée**, ex. `105,108`) et à `KAJI_SETUP_TOKEN` (voir plus bas). `KAJI_ADMIN_USE_KAJI_TOKEN` reste **désactivé** tant que tu n'as pas décidé de donner les droits d'administration au jeton de Kaji (voir `docs/securite.md`).
 
 ## Accès depuis un autre poste, HTTPS
 Le cookie de session est `Secure` : il n'est accepté par le navigateur qu'en **HTTPS** ou sur `localhost`. En HTTP sur ton réseau
@@ -60,8 +60,8 @@ code », c'est que tu as redescendu de version : restaure une sauvegarde d'avant
 État : `docker compose exec backend python -m app.migrations status`.
 
 ## Sauvegarde et restauration
-**Il faut sauvegarder DEUX choses ensemble : la base ET `KAJI_SECRET_KEY`.** La base contient les tokens Proxmox **chiffrés** avec cette
-clé : l'une sans l'autre est inutilisable.
+**Il faut sauvegarder DEUX choses ensemble : la base ET `KAJI_SECRET_KEY`.** La base contient les tokens Proxmox et les adresses de webhook des alertes **chiffrés** avec cette
+clé : l'une sans l'autre est inutilisable. Elle contient aussi les utilisateurs de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit.
 ```bash
 docker volume ls                                                   # repère le volume, ex. kaji_kaji-data
 docker run --rm -v kaji_kaji-data:/data -v "$PWD":/backup alpine tar czf /backup/kaji-data.tgz -C /data .
@@ -71,17 +71,18 @@ Restauration : recrée le volume, extrais l'archive dedans, remets le même `.en
 **Perdre la clé** = les connexions Proxmox enregistrées sont à ressaisir (le compte et l'audit restent).
 
 ## Mot de passe perdu
-La création de compte par l'interface n'est possible qu'à la toute première utilisation. Pour un mot de passe oublié, **sur le serveur** :
+La création du **premier** compte par l'écran de première configuration n'est possible qu'une fois ; les autres comptes se créent ensuite par un administrateur (bouton « Compte » → « Gérer les utilisateurs »). Pour un mot de passe oublié, **sur le serveur** :
 ```bash
-docker compose exec backend python -m app.admin_cli reset-password
+docker compose exec backend python -m app.admin_cli reset-password                 # s'il n'y a qu'un compte
+docker compose exec backend python -m app.admin_cli reset-password --user <nom>    # sinon : « Plusieurs comptes : précise lequel avec --user »
 ```
-Le nouveau mot de passe est saisi de façon masquée ; toutes les sessions sont révoquées ; l'opération est inscrite dans l'audit.
+Le nouveau mot de passe est saisi de façon masquée ; toutes les sessions du compte sont révoquées ; l'opération est inscrite dans l'audit. Le rôle du compte ne change pas.
 Les connexions Proxmox sont conservées.
 
 ## Ce que fait (et ne fait pas) cette configuration
-- Backend : utilisateur sans privilèges, **un seul processus** (le limiteur de connexions et le flux temps réel vivent en mémoire :
-  ne pas lancer plusieurs workers), jamais publié sur le réseau, base en `600`.
+- Backend : utilisateur sans privilèges, **un seul processus** (le limiteur de connexions, le flux temps réel, **le planificateur d'actions et l'évaluation des alertes** vivent en mémoire :
+  ne pas lancer plusieurs workers ni deux instances, les actions et les alertes seraient doublées ; `KAJI_SCHEDULER=false` les coupe), jamais publié sur le réseau, base en `600`.
 - Frontend : politique de sécurité de contenu (CSP) restrictive, pas de script en ligne, `X-Frame-Options: DENY`, cache illimité pour
   les fichiers à hash, jamais pour l'application.
-- **Non fournis par défaut** : le HTTPS (option Caddy ci-dessus), l'authentification à deux facteurs, la supervision.
+- **Non fournis par défaut** : le HTTPS (option Caddy ci-dessus), l'authentification à deux facteurs pour se connecter à Kaji, l'envoi d'e-mails (les alertes passent par un webhook).
 - **Images non verrouillées par empreinte** : `python:3.12-slim`, `node:22-alpine` et `nginx:1.27-alpine` sont désignées par leur étiquette.

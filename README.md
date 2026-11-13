@@ -9,14 +9,16 @@ Le gouvernail de ton homelab (« kaji » signifie gouvernail en japonais). Inter
 - Les clusters Proxmox s'ajoutent depuis l'interface (hôte, utilisateur, token API) : rien à mettre dans un fichier de configuration.
 - Les tokens sont stockés **chiffrés** en base (Fernet, clé dérivée de `KAJI_SECRET_KEY`). Les mots de passe sont hachés en argon2id.
 - Session par cookie HttpOnly / SameSite=Strict.
-
+- **Plusieurs utilisateurs, trois rôles** : `admin` (tout), `operator` (lire, démarrer / arrêter / redémarrer une machine, créer un snapshot), `viewer` (lecture seule). Le premier compte créé est administrateur ; il gère les autres depuis le bouton « Compte » ([docs/api/roles-kaji.md](docs/api/roles-kaji.md)). Le serveur applique le rôle à chaque requête. **Les rôles protègent l'accès à Kaji** : auprès de Proxmox, Kaji agit avec son jeton, le même pour tous.
+- **Propre à Kaji** (absent de l'interface de Proxmox) : **actions planifiées** (démarrer, éteindre, redémarrer, snapshot à heure fixe, [docs/api/actions-planifiees.md](docs/api/actions-planifiees.md)) et **alertes** (CPU, RAM, stockage, nœud hors ligne, tâche en échec, avec webhook facultatif, [docs/api/alertes.md](docs/api/alertes.md)). Ils tournent dans le processus de Kaji : **ne lance qu'une seule instance** (`KAJI_SCHEDULER=false` les coupe).
+- **Écrire des droits ou la double authentification** demande une « session administrateur » temporaire (30 minutes, en mémoire) : avec un jeton collé, avec le jeton de Kaji (option `KAJI_ADMIN_USE_KAJI_TOKEN`) ou avec le mot de passe d'un compte (seul moyen pour la double authentification, que Proxmox interdit aux jetons). Le mot de passe n'est jamais gardé ([docs/api/admin-session.md](docs/api/admin-session.md)).
 > **Sécurité :** Kaji détient un token Proxmox aux droits étendus. Ne l'expose pas sur Internet : réseau local ou VPN, derrière HTTPS. Crée le compte admin avant toute exposition réseau.
 
 ## Stack
-FastAPI (Python) · SQLAlchemy / SQLite · React + Vite + Tailwind (à venir) · Docker Compose (à venir)
+FastAPI (Python 3.12) · SQLAlchemy / SQLite · React + Vite + Tailwind · Docker Compose (backend + nginx ; HTTPS Caddy en option)
 
 ## Interface web
-Deux thèmes commutables depuis l'en-tête (le choix est mémorisé dans le navigateur) : **Sombre** et **Glass**. Pour en ajouter un, il suffit de définir un jeu de variables CSS dans `frontend/src/index.css` et de l'inscrire dans `frontend/src/lib/theme.tsx`.
+Quatre thèmes commutables depuis l'en-tête (le choix est mémorisé dans le navigateur) : **Sombre**, **Glass**, **Clair** et **Auto** (suit le système ; voir [docs/themes.md](docs/themes.md)), et l'interface existe en **français et en anglais** (sélecteur FR | EN). Pour en ajouter un, il suffit de définir un jeu de variables CSS dans `frontend/src/index.css` et de l'inscrire dans `frontend/src/lib/theme.tsx`.
 
 Pour l'essayer en local (Node 20+), après avoir lancé le backend :
 ```bash
@@ -906,8 +908,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 La documentation interactive de l'API est sur http://127.0.0.1:8000/docs.
 
-### API (jalon M1)
-Toutes les routes, sauf `/api/health` et `/api/auth/*`, demandent une session.
+### API (extrait)
+Kaji expose environ **360 routes**. Ce tableau n'en montre qu'une partie (les premières) ; la liste complète, avec le rôle de chaque fichier, est dans [docs/CARTE.md](docs/CARTE.md), et chaque fonction a sa fiche dans [`docs/api/`](docs/api/). Toutes les routes, sauf 5 (`/api/health` et quatre de `/api/auth/`), demandent une session ; les écritures sont **réservées aux administrateurs**, sauf les actions d'alimentation et les snapshots (rôle `operator`).
 
 | Route | Rôle |
 |---|---|
@@ -966,6 +968,9 @@ Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add
 | `KAJI_PROTECTED_VMIDS` | Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. `105,108`). **Recommandé** pour tes machines importantes. | vide |
 | `DATABASE_URL` | Base de données | `sqlite:///./kaji.db` |
 | `KAJI_SESSION_HOURS` | Durée de session | `12` |
+| `KAJI_SETUP_TOKEN` | Jeton de première configuration : tant qu'aucun compte n'existe, l'écran de création du compte administrateur l'exige (sinon le premier qui atteint le port le crée). **Recommandé.** | vide |
+| `KAJI_ADMIN_USE_KAJI_TOKEN` | Ouvre la session administrateur d'un clic avec le jeton de Kaji, à qui tu as donné les droits d'administration dans Proxmox. **Désactivé par défaut** : activé, compromettre Kaji revient à compromettre l'administration de Proxmox (voir [docs/securite.md](docs/securite.md)). | `false` |
+| `KAJI_SCHEDULER` | Lance le planificateur d'actions et l'évaluation des alertes dans le processus de Kaji. `false` les coupe. | `true` |
 
 ## Tests
 ```bash
@@ -979,13 +984,13 @@ cd backend
 - Messages de commit en [Conventional Commits](https://www.conventionalcommits.org/), avec le **jalon** de [PLAN.md](PLAN.md) et la zone en scope : `type(Mx/zone): message`.
   - Exemples : `feat(M2/actions): démarrer et arrêter une VM`, `fix(M1/auth): expiration du cookie`, `docs(M0): précise le démarrage`.
   - Types : `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`. Hors jalon (outillage, docs générales) : `chore(repo): ...`.
-- Chaque PR est rattachée au **milestone GitHub** correspondant (M0 à M10).
-- La CI (pytest) doit être verte avant merge.
+- Chaque PR est rattachée au **milestone GitHub** correspondant (M0 à M15).
+- La CI (tests du backend, build du frontend, build des images Docker) doit être verte avant merge ; tout texte visible du frontend passe par `tr("…")` avec sa traduction (voir [docs/interface-langue.md](docs/interface-langue.md)).
 
 ## Licence
 [MIT](LICENSE)
 
-Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour **changer le mot de passe** (l'actuel est exigé, 12 caractères minimum) et **déconnecter toutes les sessions**.
+Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour **changer le mot de passe** (l'actuel est exigé, 12 caractères minimum), **déconnecter toutes les sessions** et, pour un administrateur, **gérer les utilisateurs de Kaji** et leurs rôles.
 
 ## Durcissement
 - **Sessions révocables** : chaque jeton renvoie à une session enregistrée en base ; la déconnexion, le changement de mot de passe et `logout-all` les suppriment, un jeton copié devient donc inutilisable.
@@ -994,7 +999,8 @@ Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour *
 - **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
 - Dépendances **à version fixée**, mises à jour par Dependabot.
 - **Migrations de schéma** : versionnées, **sauvegardées** (copie `kaji.db.bak-vN-…` en `600` avant toute migration, les 5 dernières sont gardées), **atomiques** (une transaction par migration, schéma compris) ; Kaji refuse de démarrer sur une base plus récente que le code. `python -m app.migrations status` (ou `upgrade`) depuis `backend/`.
-- Non couvert : l'authentification à deux facteurs, la récupération d'un mot de passe oublié (supprimer `kaji.db` recrée le compte, mais efface aussi les connexions).
+- **Rôles** vérifiés par le serveur à chaque requête ; tout ce qui n'est pas explicitement permis à un rôle est refusé.
+- Non couvert : l'authentification à deux facteurs **pour se connecter à Kaji** (la gestion de celle des comptes Proxmox existe) ; mot de passe oublié : `python -m app.admin_cli reset-password --user <nom>` sur le serveur (voir [docs/deploiement.md](docs/deploiement.md)).
 
 ## Sécurité des secrets
 Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.

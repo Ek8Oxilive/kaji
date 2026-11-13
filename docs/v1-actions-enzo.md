@@ -1,6 +1,6 @@
-# V1 : les actions à faire à la main, pas à pas (Enzo, avec PC A)
+# V1 : les actions à faire à la main, pas à pas (Enzo, avec PC A ou PC B)
 
-Ces quatre étapes touchent la configuration système ou la sécurité (jeton, nœud, HTTPS) : **les agents ne les font pas, même sur demande**. Tu tapes, **PC A vérifie après chaque étape, en lecture seule**. Aucune valeur secrète ne passe par le chat : PC A n'a besoin d'aucun mot de passe ni jeton.
+Ces quatre étapes touchent la configuration système ou la sécurité (jeton, nœud, HTTPS) : **les agents ne les font pas, même sur demande**. Tu tapes, **PC A ou PC B vérifie après chaque étape, en lecture seule**. Aucune valeur secrète ne passe par le chat : PC A ou PC B n'a besoin d'aucun mot de passe ni jeton.
 
 **Ordre conseillé** : A (jeton, 5 min) → B (dépôt en doublon, 5 min) → C (relais SMTP, 30 min) → D (HTTPS, facultatif, 20 min, en dernier).
 **Non testé par les agents** : aucune de ces commandes n'a été lancée sur ton cluster par un agent. Chaque étape a donc un retour arrière.
@@ -24,7 +24,7 @@ Ces quatre étapes touchent la configuration système ou la sécurité (jeton, n
    (un simple `restart` ne relit pas `.env`). Rouvre ensuite le terminal.
 5. Contrôle sans afficher le jeton : `docker compose exec -T backend sh -c 'test -n "$KAJI_SETUP_TOKEN" && echo défini || echo absent'` → doit répondre `défini`.
 
-**PC A vérifie** : `/api/health` répond 200 et ta session est toujours valide. **Limite** : `GET /api/auth/status` n'affiche `setup_token_required` que s'il n'existe aucun compte ; ici il restera `false` même si le jeton est défini. La seule preuve est donc la commande de l'étape 5.
+**PC A ou PC B vérifie** : `/api/health` répond 200 et ta session est toujours valide. **Limite** : `GET /api/auth/status` n'affiche `setup_token_required` que s'il n'existe aucun compte ; ici il restera `false` même si le jeton est défini. La seule preuve est donc la commande de l'étape 5.
 
 **Retour arrière** : `cp .env.bak-<date> .env` puis la même commande de recréation.
 
@@ -41,7 +41,7 @@ Ces quatre étapes touchent la configuration système ou la sécurité (jeton, n
 4. `rm /etc/apt/sources.list.d/pve-no-subscription.list`
 5. `apt update` : plus d'avertissement « configured multiple times », aucune erreur.
 
-**PC A vérifie** : page Nœud `enzo2` → section « Dépôts de paquets » (lecture) : le fichier `.list` n'apparaît plus, `proxmox.sources` reste actif. Aucune écriture de ma part.
+**PC A ou PC B vérifie** : page Nœud `enzo2` → section « Dépôts de paquets » (lecture) : le fichier `.list` n'apparaît plus, `proxmox.sources` reste actif. Aucune écriture de ma part.
 
 **Retour arrière** : `cp -a /root/pve-no-subscription.list.bak /etc/apt/sources.list.d/pve-no-subscription.list`.
 
@@ -73,7 +73,7 @@ Ces quatre étapes touchent la configuration système ou la sécurité (jeton, n
 5. Test : `printf 'Subject: test relais\n\ntest\n' | sendmail toi@exemple.fr`, puis `journalctl -u postfix -n 30 --no-pager` : cherche `status=sent`.
 6. **File d'attente** : les 6 anciens messages partiront au prochain passage. **À toi de décider** : les laisser partir (`postqueue -f`), ou les supprimer. **Je ne vide jamais la file.**
 
-**PC A fait / vérifie, avec ton accord explicite sur l'adresse** : Kaji → Datacenter → Notifications → cible `kaji-test` → « Tester » : c'est un **vrai message** (nom de la cible retapé). Tu me confirmes la réception. Puis **suppression de `kaji-test`** (nom retapé) **seulement quand tu me le dis à ce moment-là**, pour revenir à `mail-to-root` seule.
+**PC A ou PC B fait / vérifie, avec ton accord explicite sur l'adresse** : Kaji → Datacenter → Notifications → cible `kaji-test` → « Tester » : c'est un **vrai message** (nom de la cible retapé). Tu me confirmes la réception. Puis **suppression de `kaji-test`** (nom retapé) **seulement quand tu me le dis à ce moment-là**, pour revenir à `mail-to-root` seule.
 
 **Retour arrière** : `cp /root/main.cf.bak /etc/postfix/main.cf`, supprime `/etc/postfix/sasl_passwd` et `/etc/postfix/sasl_passwd.db`, `systemctl restart postfix`.
 
@@ -94,7 +94,7 @@ Ces quatre étapes touchent la configuration système ou la sécurité (jeton, n
 5. Ouvre `https://<adresse>:8443`, connecte-toi, page Connexions → « Tester ».
 6. Une fois que tout marche, **seulement alors**, `KAJI_BIND=127.0.0.1` dans `.env` pour fermer le port 8080, et recrée avec la même commande qu'à l'étape 3.
 
-**PC A vérifie** : `/api/health` et `/api/auth/status` répondent en HTTPS, le cookie de session est `Secure`, la connexion Proxmox testée par Kaji répond OK, l'épingle du certificat est inchangée, et le limiteur de connexions voit bien l'adresse du client (pas celle du proxy).
+**PC A ou PC B vérifie** : `/api/health` et `/api/auth/status` répondent en HTTPS, le cookie de session est `Secure`, la connexion Proxmox testée par Kaji répond OK, l'épingle du certificat est inchangée, et le limiteur de connexions voit bien l'adresse du client (pas celle du proxy).
 
 **Retour arrière** : `cp .env.bak-https-<date> .env`, puis `nohup sh -c 'cd ~/kaji && docker compose -f docker-compose.yml -f docker-compose.tls.yml down && docker compose up -d --build' > /root/tls-undo.log 2>&1 &`.
 

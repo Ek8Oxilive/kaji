@@ -13,7 +13,7 @@ Schéma lu sur `apidoc.js` de Proxmox 9 : `GET` (droit `Sys.Audit`) et `PUT /nod
 - **Seules les options demandées partent chez Proxmox.** Une demande de `wakeonlan` partielle est **fusionnée** avec la valeur actuelle (la MAC est obligatoire au final). Une option à la fois modifiée et retirée, ou retirée deux fois : 422. Champs inconnus ignorés, jamais transmis.
 - `digest` lu juste avant : exigé (400 s'il manque, 409 s'il est périmé). Seule une configuration **vide** (Proxmox ne renvoie alors pas de digest) s'écrit sans.
 - `confirm=true` exigé ; `dry_run` renvoie les paramètres sans rien écrire. Relecture après l'écriture, chaque changement vérifié (502 sinon). Audit `node-options` : noms des options seulement, jamais les valeurs.
-- **Jamais touchés** : les notes (`description`, voir `docs/api/notes.md`) et l'ACME (`docs/api/acme.md`) de la même configuration. Un `wakeonlan` illisible par Kaji (clé inconnue…) fait **refuser** sa réécriture, les autres options restent modifiables.
+- **Jamais touchés** : les notes (`description`, voir `docs/api/notes.md`) et l'ACME (`docs/api/systeme-noeud.md`) de la même configuration. Un `wakeonlan` illisible par Kaji (clé inconnue…) fait **refuser** sa réécriture, les autres options restent modifiables.
 
 ## Validation
 Faux Proxmox strict (`backend/tests/test_node_options.py` : clés, formats `wakeonlan`, bornes, digest, relecture de chaque option), 44 tests, 20 mutations tuées.
