@@ -91,7 +91,7 @@ def test_reads_both_settings_from_strings_and_objects_and_they_are_no_longer_rea
         assert j["next_id"] == {"lower": 200, "upper": 900}
         assert j["tag_style"] == {"shape": "dense", "ordering": "config", "case_sensitive": True,
                                   "color_map": [{"tag": "prod", "color": "ff0000", "text": "ffffff"}, {"tag": "dev", "color": "00ff00", "text": None}]}
-        assert "next-id" not in j["readonly"] and "tag-style" not in j["readonly"] and "ha" in j["readonly"]
+        assert "next-id" not in j["readonly"] and "tag-style" not in j["readonly"] and j["readonly"] == {}
 
 
 def test_absent_or_garbage_values_give_empty_structures():
@@ -238,10 +238,10 @@ def test_digest_covers_the_new_settings_and_stale_digest_is_refused(api):
     assert put(c, cid, next_id={"lower": 300}, digest=d0).status_code == 409 and not CALLS
 
 
-def test_other_readonly_settings_are_still_never_written(api):
+def test_unknown_subkeys_of_the_cluster_settings_are_ignored(api):
     c, cid = api
-    r = put(c, cid, ha={"shutdown_policy": "freeze"}, fencing="hardware", crs={"ha": "static"}, bwlimit={"default": 1}, replication={"x": 1}, keyboard="fr")
-    assert r.status_code == 200 and CALLS == [{"keyboard": "fr"}]                      # seul le clavier est envoyé : ha, fencing, crs, bwlimit, replication sont ignorés
+    r = put(c, cid, ha={"x": "freeze"}, crs={"x": "static"}, bwlimit={"x": 1}, replication={"x": 1}, keyboard="fr")
+    assert r.status_code == 200 and CALLS == [{"keyboard": "fr"}]                      # seul le clavier est envoyé : aucune sous-clé reconnue (les réglages ont leur fichier : test_datacenter_cluster_settings.py)
 
 
 def test_audit_records_without_leaking_the_secret(api):

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { ClusterSettings } from "../components/ClusterSettings";
 import { MetricsServers } from "../components/MetricsServers";
 import { ResourceMappings } from "../components/ResourceMappings";
 import { NotificationsSection } from "../components/NotificationsSection";
@@ -21,7 +22,7 @@ const textToColors = (s: string): TagColor[] => s.split("\n").map((l) => l.trim(
 
 const LABELS: Record<string, string> = { get ha() { return tr("Haute disponibilité"); }, get fencing() { return tr("Mode de fencing"); }, get crs() { return tr("Ordonnancement des ressources"); }, get bwlimit() { return tr("Limites de débit"); }, get "next-id"() { return tr("Plage des identifiants libres"); }, get "tag-style"() { return tr("Style des étiquettes"); }, get replication() { return tr("Réplication"); } };
 
-/** Datacenter → Options et notes. Liste blanche côté serveur ; HA, fencing, CRS, débits : affichés, jamais modifiés ici. */
+/** Datacenter → Options et notes. Liste blanche côté serveur ; HA, fencing, CRS, débits et réplication : section `ClusterSettings` (lot #365). */
 export function Datacenter({ onGoConnections }: { onGoConnections: () => void }) {
   const { active, id } = useActiveConnection();
   const qc = useQueryClient();
@@ -141,6 +142,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
             <div className="flex justify-end"><Button disabled={!changed || busy !== null} onClick={() => save("options", changes)}>{busy === "options" ? "…" : insecureNew ? tr("Appliquer (migration non chiffrée)") : tr("Appliquer")}</Button></div>
           </div>
         </section>
+        {id !== null && <ClusterSettings connId={id} d={d} />}
         <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Notes du datacenter")}</h2>
           <div className="panel space-y-3 p-5">
             <textarea className="field min-h-[10rem] font-mono text-sm" value={notes} onChange={(e) => setNotes(e.target.value)} aria-label={tr("Notes du datacenter")} maxLength={65536} />
@@ -155,7 +157,7 @@ export function Datacenter({ onGoConnections }: { onGoConnections: () => void })
           <section className="space-y-3"><h2 className="text-lg font-semibold">{tr("Non modifiable dans Kaji")}</h2>
             <dl className="panel p-4 text-sm">{Object.entries(d.readonly).map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 border-b border-line/60 py-1.5 last:border-0"><dt className="text-muted">{LABELS[k] ?? k}</dt><dd className="max-w-[60%] break-all text-right font-mono text-xs">{v}</dd></div>))}</dl>
-            <p className="text-xs text-muted">{tr("Ces réglages (HA, fencing, ordonnancement, débits) peuvent couper l'accès ou déplacer des machines : à modifier dans l'interface de Proxmox.")}</p>
+            <p className="text-xs text-muted">{tr("Réglages ou sous-clés que Kaji ne connaît pas (version plus récente de Proxmox) : ils sont gardés tels quels et se modifient dans l'interface de Proxmox.")}</p>
           </section>)}
       </>}
     </div>

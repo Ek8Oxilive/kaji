@@ -3,7 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import audit
-from ..datacenterspec import DELNAME, KEY, DatacenterOptions, build, digest_of, parse_next_id, parse_tag_list, parse_tag_style, parse_user_tag_access, shape_options
+from ..clusterwrite import PHRASE
+from ..datacenterspec import (DELNAME, FENCING_EXPERIMENTAL, HA_CLEARABLE, KEY, DatacenterOptions, build, digest_of, parse_bwlimit, parse_crs, parse_ha, parse_next_id, parse_replication,
+                              parse_tag_list, parse_tag_style, parse_user_tag_access, shape_options)
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -40,12 +42,20 @@ def _same(k: str, got, want) -> bool:
         return got == parse_next_id(want)
     if k == "tag-style":
         return got == parse_tag_style(want)
+    if k == "ha":
+        return got == parse_ha(want)
+    if k == "crs":
+        return got == parse_crs(want)
+    if k == "bwlimit":
+        return got == parse_bwlimit(want)
+    if k == "replication":
+        return got == parse_replication(want)
     return got == want
 
 
 def _blank(v) -> bool:
     """Réglage retiré : absent, chaîne vide, ou objet sans aucune valeur (constaté : les notes retirées reviennent en chaîne vide)."""
-    return v in (None, "") or (isinstance(v, list) and not v) or (isinstance(v, dict) and not any(v.values()))
+    return v in (None, "") or (isinstance(v, list) and not v) or (isinstance(v, dict) and all(x is None or x == "" or x is False or (isinstance(x, list) and not x) for x in v.values()))   # 0 est une valeur (débit), pas du vide
 
 
 @router.put("/options")
@@ -72,11 +82,21 @@ async def put_options(body: DatacenterOptions, conn_id: int, db: Session = Depen
     except ValueError as e:
         refuse(str(e), status.HTTP_422_UNPROCESSABLE_ENTITY)
     insecure = "migration" in params and params["migration"].startswith("type=insecure") and cur["migration"]["type"] != "insecure"
-    locks = {"insecure": insecure}
+    rep_insecure = "replication" in params and params["replication"].startswith("type=insecure") and cur["replication"]["type"] != "insecure"
+    ha_effect = any(k in params for k in ("ha", "crs", "fencing")) or any(k in delete for k in HA_CLEARABLE)       # change ce que fait la HA à l'arrêt, à la reprise ou au placement
+    hw_fencing = params.get("fencing") in FENCING_EXPERIMENTAL and cur["fencing"] != params["fencing"]
+    locks = {"insecure": insecure, "replication_insecure": rep_insecure, "ha": ha_effect, "fencing_experimental": hw_fencing}
     if body.dry_run:
         return {"dry_run": True, "params": {k: ("défini" if k in ("description", "consent-text") else v) for k, v in params.items()}, "remove": delete, "locks": locks}
     if insecure and not body.confirm:
         refuse("Migration non chiffrée : le trafic de migration (mémoire des machines) circulera en clair. Renvoie la requête avec confirm=true", status.HTTP_409_CONFLICT)
+    if rep_insecure and not body.confirm:
+        refuse("Réplication non chiffrée : le trafic de réplication (disques des machines) circulera en clair. Renvoie la requête avec confirm=true", status.HTTP_409_CONFLICT)
+    if ha_effect and not body.confirm:
+        refuse("Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true", status.HTTP_409_CONFLICT)
+    if hw_fencing and not (body.acknowledge_cut_access and body.type_name == PHRASE):
+        refuse("Fencing matériel (expérimental dans Proxmox) : sans appareils configurés dans /etc/pve/ha/fence.cfg, la HA ne reprendra plus les machines d'un nœud tombé. "
+               f"Renvoie la requête avec acknowledge_cut_access=true et type_name=\"{PHRASE}\"", status.HTTP_409_CONFLICT)
     send = dict(params)
     if delete:
         send["delete"] = ",".join(DELNAME.get(k, k) for k in delete)

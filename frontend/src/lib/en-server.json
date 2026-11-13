@@ -454,5 +454,7 @@
  "Le certificat présenté n'est plus celui que tu as vu : relis son empreinte avant de l'épingler": "The presented certificate is no longer the one you saw: re-read its fingerprint before pinning it",
  "Confirmation requise (renvoie la requête avec confirm=true) : sans épingle, le certificat de Proxmox n'est plus vérifié comme avant": "Confirmation required (resend the request with confirm=true): without a pin, Proxmox's certificate is no longer verified as before",
  "Aucun certificat n'est épinglé pour cette connexion": "No certificate is pinned for this connection",
- "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid"
+ "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid",
+ "Réplication non chiffrée : le trafic de réplication (disques des machines) circulera en clair. Renvoie la requête avec confirm=true": "Unencrypted replication: replication traffic (machine disks) will travel in clear text. Send the request again with confirm=true",
+ "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true"
 }

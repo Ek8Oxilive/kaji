@@ -22,14 +22,23 @@ Préfixe `/api/connections/{conn_id}/datacenter`. Page « Datacenter » du menu.
 | `registered_tags` | **Étiquettes réservées** (modifiables seulement avec `Sys.Modify`) : liste de 100 au plus, chacune `[a-z0-9_][a-z0-9_.+-]{0,63}` (mise en minuscules, doublons écartés) ; liste vide = retirer le réglage ; envoyé `registered-tags=a;b` |
 | `user_tag_access` | **Droits des utilisateurs sur les étiquettes** : `user_allow` (`none`, `list`, `existing`, `free`) et `user_allow_list` (étiquettes, utile seulement avec `list`, qui en exige au moins une ; la liste courante est gardée si on ne la renvoie pas) ; envoyé `user-tag-access=user-allow=list,user-allow-list=a;b` |
 | `consent_text` | **Texte de consentement** affiché à tous avant la connexion : 3000 caractères au plus, `\n` et `\t` permis, aucun autre caractère de contrôle ; vide = retirer ; **jamais copié dans l'audit ni dans l'aperçu** (« défini ») |
-| `clear` | `keyboard`, `language`, `console`, `description`, `mac_prefix`, `migration`, `max_workers`, `email_from`, `http_proxy`, `next_id`, `tag_style`, `registered_tags`, `user_tag_access`, `consent_text` (envoyé en `delete=` sous le nom Proxmox : `next-id`, `tag-style`, `registered-tags`, `user-tag-access`, `consent-text`) |
+| `ha` | **Haute disponibilité** (lot #365) : `{shutdown_policy: freeze|failover|conditional|migrate}` ; envoyé `ha=shutdown_policy=…` |
+| `fencing` | **Mode de fencing** : `watchdog`, `hardware`, `both` (les deux derniers sont « EXPERIMENTAL & WIP » chez Proxmox) |
+| `crs` | **Ordonnancement des ressources** : `{ha: basic|static, ha_rebalance_on_start: booléen strict}` ; fusionné avec l'état lu (changer le mode garde l'indicateur, et inversement) ; envoyé `crs=ha=static,ha-rebalance-on-start=1` |
+| `bwlimit` | **Limites de débit** en Kio/s : `clone`, `default`, `migration`, `move`, `restore`, entiers 0 à 1 000 000 000 (décimaux, booléens, chaînes et négatifs refusés) ; les clés non renvoyées sont **gardées**, `remove: ["move", …]` en retire, plus aucune clé = réglage retiré ; envoyé `bwlimit=default=1000,move=500` (ordre du schéma) |
+| `replication` | **Réseau de réplication** : même forme que `migration` (`type` secure / insecure, `network` CIDR sans bits d'hôte, `""` = retirer le réseau) ; fusionné avec l'état lu |
+| `clear` | `keyboard`, `language`, `console`, `description`, `mac_prefix`, `migration`, `max_workers`, `email_from`, `http_proxy`, `next_id`, `tag_style`, `registered_tags`, `user_tag_access`, `consent_text`, `ha`, `fencing`, `crs`, `bwlimit`, `replication` (envoyé en `delete=` sous le nom Proxmox : `next-id`, `tag-style`, `registered-tags`, `user-tag-access`, `consent-text`) |
 
-**Lus mais jamais écrits** (`readonly` dans la lecture) : `ha`, `fencing`, `crs`, `bwlimit`, `replication` : risque élevé (HA, fencing, ordonnancement) ou hors périmètre. Tout champ inconnu ou hors liste est **ignoré**, jamais transmis.
+**Lecture seule** (`readonly` dans la lecture) : seulement ce que Kaji ne sait pas écrire sans le casser : une **sous-clé inconnue** de `ha`, `crs`, `bwlimit` ou `replication` (Proxmox plus récent) ou un mode de `fencing` inconnu. Un `PUT` remplace la chaîne entière : modifier ou retirer un réglage qui porte une sous-clé inconnue est **refusé (422)** plutôt que de la perdre. Tout champ inconnu ou hors liste est **ignoré**, jamais transmis. Schéma lu sur `apidoc.js` de Proxmox 9 (`PUT /cluster/options`).
 
 ## Verrous
 - **`digest`** : Proxmox n'a pas de `digest` pour ces options. Kaji calcule le sien (empreinte des valeurs lues) ; `GET` le renvoie, `PUT` accepte `digest` et répond **409** si l'état a changé depuis (rien n'est écrit). Facultatif pour l'API, toujours envoyé par la page.
 - **Migration non chiffrée** : passer `type` à `insecure` (depuis `secure` ou sans réglage) exige `confirm=true` (409 sinon) : la mémoire des machines circulerait en clair.
-- `dry_run=true` : renvoie `params`, `remove`, `locks.insecure` ; n'écrit rien. Rien à modifier = 422.
+- **Réglage de la HA** (`ha`, `crs`, `fencing`, ou les retirer avec `clear`) : exige `confirm=true` (409 sinon) : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Décidé par le serveur, pas seulement par la page.
+- **Fencing matériel** (`hardware` ou `both`, depuis un autre mode) : en plus de `confirm`, `acknowledge_cut_access=true` et `type_name="COUPURE POSSIBLE"` (409 sinon) : sans appareils dans `/etc/pve/ha/fence.cfg`, que Kaji ne peut pas lire, la HA ne reprend plus les machines d'un nœud tombé.
+- **Réplication non chiffrée** : passer `type` à `insecure` (depuis `secure` ou sans réglage) exige `confirm=true`.
+- `bwlimit` et une réplication chiffrée n'exigent aucune confirmation (réversibles, sans coupure).
+- `dry_run=true` : renvoie `params`, `remove` et `locks` (`insecure`, `replication_insecure`, `ha`, `fencing_experimental`) ; n'écrit rien. Rien à modifier = 422. La page l'appelle toujours d'abord et n'affiche la confirmation que si un verrou est levé.
 - Après l'écriture, l'état est **relu** (502 si Proxmox n'a pas appliqué ; les notes sont comparées sans le saut de ligne final que Proxmox ajoute).
 
 ## Audit
