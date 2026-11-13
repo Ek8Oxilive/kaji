@@ -157,9 +157,12 @@ GET /api/health
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit
+PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cpu-options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/devices
+PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/disks/{key}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
+PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}/options
 POST /api/auth/login
 POST /api/auth/logout
 POST /api/auth/logout-all

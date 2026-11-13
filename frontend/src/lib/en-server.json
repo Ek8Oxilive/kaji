@@ -456,5 +456,22 @@
  "Aucun certificat n'est épinglé pour cette connexion": "No certificate is pinned for this connection",
  "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid",
  "Réplication non chiffrée : le trafic de réplication (disques des machines) circulera en clair. Renvoie la requête avec confirm=true": "Unencrypted replication: replication traffic (machine disks) will travel in clear text. Send the request again with confirm=true",
- "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true"
+ "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true",
+ "Machine protégée (KAJI_PROTECTED_VMIDS) : ses options ne se modifient pas depuis Kaji": "Protected machine (KAJI_PROTECTED_VMIDS): its options cannot be changed from Kaji",
+ "Disque inconnu ou format de configuration non géré": "Unknown disk or unsupported configuration format",
+ "Un lecteur CD/DVD ou cloud-init n'a pas ces options": "A CD/DVD or cloud-init drive does not have these options",
+ "iothread : seulement sur un disque virtio, ou scsi avec le contrôleur virtio-scsi-single": "iothread: only on a virtio disk, or scsi with the virtio-scsi-single controller",
+ "ssd : pas disponible sur un disque virtio": "ssd: not available on a virtio disk",
+ "mbps ne se combine pas avec mbps_rd / mbps_wr": "mbps cannot be combined with mbps_rd / mbps_wr",
+ "iops ne se combine pas avec iops_rd / iops_wr": "iops cannot be combined with iops_rd / iops_wr",
+ "mtu et queues : seulement sur une carte de modèle virtio": "mtu and queues: only on a virtio-model card",
+ "queues : seulement sur une carte de VM": "queues: only on a VM card",
+ "mtu d'un conteneur : de 64 à 65535": "container mtu: 64 to 65535",
+ "mtu d'une VM : de 1 à 65520": "VM mtu: 1 to 65520",
+ "cache=unsafe : des données écrites peuvent être perdues en cas de coupure": "cache=unsafe: written data may be lost on a power cut",
+ "cache=writeback : des données écrites peuvent être perdues en cas de coupure": "cache=writeback: written data may be lost on a power cut",
+ "backup=0 : ce disque ne sera plus inclus dans les sauvegardes": "backup=0: this disk will no longer be included in backups",
+ "link_down : la machine perd son réseau tant que le câble est débranché": "link_down: the machine loses its network while the cable is unplugged",
+ "hugepages : la machine ne démarrera pas si le nœud n'a pas assez de pages réservées": "hugepages: the machine will not start if the node has too few reserved pages",
+ "affinity : la machine n'utilisera que ces cœurs du nœud (elle sera aussi limitée après une migration)": "affinity: the machine will only use these node cores (it stays limited after a migration too)"
 }
