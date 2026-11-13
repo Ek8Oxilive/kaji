@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from .. import audit
+from .. import audit, roles
 from ..adminsession import sessions as admin_sessions
 from ..config import get_settings
 from ..db import get_db
@@ -69,8 +69,10 @@ def _start_session(db: Session, response: Response, user_id: int) -> None:
     )
 
 
-def _session_of(request: Request, db: Session) -> tuple[AdminUser, UserSession] | None:
-    """La session du cookie, seulement si elle existe encore en base, n'a pas expiré et correspond à l'utilisateur."""
+def _session_of(request: Request, db: Session, *, enforce: bool = True) -> tuple[AdminUser, UserSession] | None:
+    """La session du cookie, seulement si elle existe encore en base, n'a pas expiré et correspond à l'utilisateur.
+    `enforce` : refuse (403) ce que le rôle de l'utilisateur ne permet pas (`app/roles.py`), à chaque requête. À désactiver seulement pour lire l'état
+    de la connexion (statut, déconnexion) ou quand l'appelant contrôle le rôle lui-même (WebSocket)."""
     token = request.cookies.get(COOKIE)
     decoded = decode_session(get_settings().kaji_secret_key, token) if token else None
     if decoded is None:
@@ -80,6 +82,10 @@ def _session_of(request: Request, db: Session) -> tuple[AdminUser, UserSession] 
     user = db.get(AdminUser, uid)
     if sess is None or user is None or sess.user_id != uid or _aware(sess.expires_at) < _now():
         return None
+    if enforce and not roles.allowed(user.role, request.method, request.url.path):
+        audit.record(db, username=user.username, connection_id=None, action="role-refused", target=f"{request.method} {request.url.path}"[:200],
+                     status="error", detail=f"rôle {roles.normalize(user.role)}")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ton rôle ne permet pas cette action")
     return user, sess
 
 
@@ -97,7 +103,7 @@ def _has_admin(db: Session) -> bool:
 @router.get("/status")
 def auth_status(request: Request, db: Session = Depends(get_db)):
     setup_required = not _has_admin(db)
-    return {"setup_required": setup_required, "authenticated": _session_of(request, db) is not None,
+    return {"setup_required": setup_required, "authenticated": _session_of(request, db, enforce=False) is not None,
             "setup_token_required": setup_required and bool(get_settings().kaji_setup_token)}
 
 
@@ -138,7 +144,7 @@ def login(body: Credentials, request: Request, response: Response, db: Session =
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """Révoque la session courante côté serveur : un jeton copié ne sert plus à rien après la déconnexion."""
-    found = _session_of(request, db)
+    found = _session_of(request, db, enforce=False)
     if found:
         admin_sessions.close(found[1].id)               # la session administrateur disparaît avec la session de connexion
         db.delete(found[1])
@@ -183,4 +189,4 @@ def change_password(body: PasswordChange, request: Request, response: Response,
 
 @router.get("/me")
 def me(user: AdminUser = Depends(current_user)):
-    return {"username": user.username}
+    return {"username": user.username, "role": roles.normalize(user.role)}

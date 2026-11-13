@@ -354,7 +354,7 @@ def test_the_real_migration_adds_the_column_to_an_existing_database(tmp_path):
         c.execute(text("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, name TEXT, applied_at TEXT)"))
         c.execute(text("INSERT INTO schema_migrations VALUES (1, 'schéma initial', '2026-01-01')"))
     r = run_migrations(e)
-    assert r["applied"] == [2] and r["backup"] is not None and MIGRATIONS[-1].version == 2
+    assert r["applied"] == [2, 3] and r["backup"] is not None and MIGRATIONS[-1].version == 3
     assert "tls_cert_pem" in {col["name"] for col in inspect(e).get_columns("connections")}
     with e.connect() as c:
         row = c.execute(text("SELECT name, host, tls_cert_pem FROM connections")).one()

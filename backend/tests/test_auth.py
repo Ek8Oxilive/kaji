@@ -14,7 +14,7 @@ def test_setup_creates_admin_and_logs_in(client):
     assert r.status_code == 201
     assert "httponly" in r.headers["set-cookie"].lower()
     assert "samesite=strict" in r.headers["set-cookie"].lower()
-    assert client.get("/api/auth/me").json() == {"username": "admin"}
+    assert client.get("/api/auth/me").json() == {"username": "admin", "role": "admin"}          # le premier compte est administrateur
     assert client.get("/api/auth/status").json() == {"setup_required": False, "authenticated": True, "setup_token_required": False}
 
 

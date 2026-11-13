@@ -527,5 +527,12 @@
  "Identifiants refusés par Proxmox (compte, mot de passe ou code de double authentification)": "Credentials refused by Proxmox (account, password or two-factor code)",
  "Ce compte a une double authentification : renseigne le code à usage unique": "This account has two-factor authentication: enter the one-time code",
  "Réponse de connexion illisible : session non ouverte": "Unreadable login answer: session not opened",
- "Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : ferme la session et rouvre-la par mot de passe (bouton « Ouvrir avec un mot de passe… » de la page Accès)": "Proxmox forbids changing two-factor authentication with an API token (schema: allowtoken=0), whatever its privileges: close the session and reopen it with a password (the “Open with a password…” button on the Access page)"
+ "Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : ferme la session et rouvre-la par mot de passe (bouton « Ouvrir avec un mot de passe… » de la page Accès)": "Proxmox forbids changing two-factor authentication with an API token (schema: allowtoken=0), whatever its privileges: close the session and reopen it with a password (the “Open with a password…” button on the Access page)",
+ "Ton rôle ne permet pas cette action": "Your role does not allow this action",
+ "Ce nom d'utilisateur existe déjà": "This username already exists",
+ "Utilisateur inconnu": "Unknown user",
+ "Tu ne peux pas changer ton propre rôle": "You cannot change your own role",
+ "Il doit rester au moins un administrateur": "At least one administrator must remain",
+ "Tu ne peux pas supprimer ton propre compte": "You cannot delete your own account",
+ "Suppression : renvoie la requête avec confirm=true et le nom d'utilisateur retapé": "Deletion: resend the request with confirm=true and the username retyped"
 }
