@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { MAX_HOURS, SESSION_MINUTES, type AdminSessionState } from "../lib/types/admin-session";
 import { AclWriteDialog } from "./AclWriteDialog";
 import { UserWriteDialog } from "./UserWriteDialog";
+import { RealmWriteDialog } from "./RealmWriteDialog";
 import { TfaDialog } from "./TfaDialog";
 import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
@@ -55,6 +56,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
   const [open, setOpen] = useState(false);
   const [acl, setAcl] = useState(false);
   const [usr, setUsr] = useState(false);
+  const [rlm, setRlm] = useState(false);
   const [tfa, setTfa] = useState(false);
   const [left, setLeft] = useState(0);
   const [err, setErr] = useState<string | null>(null);
@@ -91,6 +93,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
           {active ? <>
             <Button disabled={busy} onClick={() => setAcl(true)} className="!px-3 !py-1.5">{tr("Modifier une ACL…")}</Button>
             <Button disabled={busy} onClick={() => setUsr(true)} className="!px-3 !py-1.5">{tr("Utilisateurs et groupes…")}</Button>
+            <Button disabled={busy} onClick={() => setRlm(true)} className="!px-3 !py-1.5">{tr("Realms…")}</Button>
             <Button disabled={busy} onClick={() => setTfa(true)} className="!px-3 !py-1.5">{tr("Double authentification…")}</Button>
             <Button variant="ghost" disabled={busy} onClick={() => act("POST", "/renew")} className="!px-3 !py-1.5">{tr("Prolonger de {SESSION_MINUTES} min", { SESSION_MINUTES })}</Button>
             <Button variant="danger" disabled={busy} onClick={() => act("DELETE", "")} className="!px-3 !py-1.5">{tr("Fermer")}</Button>
@@ -100,6 +103,7 @@ export function AdminSessionPanel({ connId }: { connId: number }) {
       {active && s && s.active && s.renewals > 0 && <p className="text-xs text-muted">{tr("{renewals} prolongation(s) ; âge maximal {MAX_HOURS} h.", { renewals: s.renewals, MAX_HOURS })}</p>}
       {err && <Notice kind="error">{err}</Notice>}
       {usr && active && <UserWriteDialog connId={connId} onClose={() => setUsr(false)} />}
+      {rlm && active && <RealmWriteDialog connId={connId} onClose={() => setRlm(false)} />}
       {tfa && active && <TfaDialog connId={connId} onClose={() => setTfa(false)} />}
       {acl && active && <AclWriteDialog connId={connId} onClose={() => setAcl(false)} />}
       {open && <OpenDialog connId={connId} onClose={() => setOpen(false)} onOpened={() => { setOpen(false); qc.invalidateQueries({ queryKey: key }); }} />}

@@ -58,7 +58,7 @@ export function RemoteMigrateDialog({ connId, node, gtype, vmid, name, running, 
     <Modal title={tr("Migrer « {name} » vers un autre cluster", { name })} subtitle={tr("Fonction expérimentale de Proxmox, jamais essayée par Kaji sur un vrai cluster. Le jeton du cluster distant n'est ni gardé ni affiché.")}
       onClose={busy ? () => {} : onClose} onSubmit={dry ? run : preview} submitLabel={dry ? tr("Migrer") : tr("Aperçu")} danger={del} busy={busy} error={err} canSubmit={dry ? canRun : valid} wide>
       <div className="grid gap-3 sm:grid-cols-2">
-        {field("host", tr("Nœud du cluster distant"), { ph: "pve.autre.example.org", hint: tr("Nom ou adresse IP ; les adresses locales sont refusées") })}
+        {field("host", tr("Nœud du cluster distant"), { ph: "pve.autre.example.org", hint: tr("Nom ou adresse IP (le réseau local convient) ; la boucle locale et les adresses réservées sont refusées") })}
         {field("port", tr("Port (facultatif)"), { ph: "8006" })}
         {field("token", tr("Jeton d'API du cluster distant"), { ph: "migrate@pve!kaji", hint: tr("utilisateur@realm!nom ; droits d'allocation de VM et de stockage sur le cluster distant") })}
         {field("secret", tr("Secret du jeton"), { type: "password", hint: tr("Écriture seule : jamais relu ni affiché, vidé après l'envoi.") })}
