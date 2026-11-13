@@ -52,6 +52,7 @@ DELETE /api/connections/{conn_id}/sdn/zones/{zone}
 DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 DELETE /api/connections/{conn_id}/tls
+DELETE /api/kaji-users/{user_id}
 GET /api/audit
 GET /api/auth/me
 GET /api/auth/status
@@ -161,6 +162,7 @@ GET /api/connections/{conn_id}/tasks/{node}/{upid}
 GET /api/connections/{conn_id}/tasks/{node}/{upid}/log
 GET /api/connections/{conn_id}/tls
 GET /api/health
+GET /api/kaji-users
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/cloudinit
@@ -292,6 +294,7 @@ POST /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets
 POST /api/connections/{conn_id}/sdn/zones
 POST /api/connections/{conn_id}/storage-config
 POST /api/connections/{conn_id}/test
+POST /api/kaji-users
 PUT /api/connections/{conn_id}/access/acl
 PUT /api/connections/{conn_id}/access/realms/{realm}
 PUT /api/connections/{conn_id}/access/tfa/{userid}/{entry}
@@ -343,3 +346,4 @@ PUT /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 PUT /api/connections/{conn_id}/sdn/zones/{zone}
 PUT /api/connections/{conn_id}/storage-config/{storage}
 PUT /api/connections/{conn_id}/tls
+PUT /api/kaji-users/{user_id}
