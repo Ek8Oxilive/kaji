@@ -456,5 +456,11 @@
  "Aucun certificat n'est épinglé pour cette connexion": "No certificate is pinned for this connection",
  "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid",
  "Réplication non chiffrée : le trafic de réplication (disques des machines) circulera en clair. Renvoie la requête avec confirm=true": "Unencrypted replication: replication traffic (machine disks) will travel in clear text. Send the request again with confirm=true",
- "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true"
+ "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true",
+ "Réglage WebAuthn : il peut empêcher des comptes de valider leur double authentification. Renvoie la requête avec confirm=true": "WebAuthn setting: it can prevent accounts from completing two-factor authentication. Send the request again with confirm=true",
+ "L'origine doit être l'identifiant ou l'un de ses sous-domaines (et « sous-domaines autorisés » ne doit pas être désactivé)": "The origin must be the ID or one of its subdomains (and “allow subdomains” must not be disabled)",
+ "Une adresse IP ne peut pas servir d'identifiant WebAuthn": "An IP address cannot be used as a WebAuthn ID",
+ "Identifiant invalide (nom de domaine seulement, sans protocole, port ni chemin)": "Invalid ID (domain name only, without protocol, port or path)",
+ "Origine invalide (https://hôte[:port], sans identifiants, chemin ni paramètres)": "Invalid origin (https://host[:port], without credentials, path or parameters)",
+ "http:// n'est permis que pour localhost": "http:// is only allowed for localhost"
 }

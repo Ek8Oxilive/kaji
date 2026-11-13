@@ -134,7 +134,7 @@ def test_put_sends_exact_params_and_returns_fresh_state(api):
 
 def test_unknown_and_out_of_scope_fields_are_never_forwarded(api):
     c, cid = api
-    r = c.put(url(cid), json={"keyboard": "de", "consent-text": "x", "notify": "x", "next-id": "lower=1", "registered-tags": "a", "webauthn": "x", "migration_unsecure": 1, "tag-style": "shape=full",
+    r = c.put(url(cid), json={"keyboard": "de", "consent-text": "x", "notify": "x", "next-id": "lower=1", "registered-tags": "a", "u2f": "x", "migration_unsecure": 1, "tag-style": "shape=full",
                               "ha-resources": "x", "replication_type": "insecure"})
     assert r.status_code == 200 and CALLS[-1][1] == {"keyboard": "de"} and ST["opts"]["fencing"] == "watchdog" and ST["opts"]["ha"] == {"shutdown_policy": "migrate"}
 
@@ -148,7 +148,7 @@ def test_unknown_and_out_of_scope_fields_are_never_forwarded(api):
     {"http_proxy": "http://h:99999"}, {"http_proxy": "http://h:0"}, {"http_proxy": "http://h/chemin"}, {"http_proxy": "http://h?x=1"}, {"http_proxy": "http://h:8080/x"}, {"http_proxy": "http:// h"},
     {"http_proxy": "http://h\n"}, {"http_proxy": ""},
     {"migration": {"type": "bogus"}}, {"migration": {"network": "10.0.0.1/24"}}, {"migration": {"network": "abc"}}, {"migration": {"network": "10.0.0.0/33"}}, {"migration": "secure"},
-    {"description": "a\x00b"}, {"description": "a\rb"}, {"description": "x" * 65537}, {"clear": ["../x"]}, {"clear": ["webauthn"]},
+    {"description": "a\x00b"}, {"description": "a\rb"}, {"description": "x" * 65537}, {"clear": ["../x"]}, {"clear": ["u2f"]},
     {"keyboard": "de", "clear": ["keyboard"]}, {}, {"clear": []}, {"dry_run": "yes", "keyboard": "de"}, {"confirm": "true", "keyboard": "de"}, {"digest": "x" * 65, "keyboard": "de"},
 ])
 def test_invalid_input_is_refused_without_any_proxmox_write(api, b):
