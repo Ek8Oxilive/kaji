@@ -3,7 +3,8 @@
 Champs gérés : `keyboard`, `language`, `console`, `description` (notes du datacenter), `mac_prefix`, `migration` (`type`, `network`), `max_workers`, `email_from`, `http_proxy`,
 `next_id` (plage des identifiants libres : `lower`, `upper`), `tag_style` (`shape`, `ordering`, `case_sensitive`, `color_map`),
 `registered_tags` (étiquettes réservées à `Sys.Modify`), `user_tag_access` (`user_allow`, `user_allow_list`) et `consent_text` (texte affiché avant la connexion).
-Lus mais JAMAIS écrits (risque élevé, hors périmètre) : `ha`, `fencing`, `crs`, `bwlimit`, `replication`.
+`ha` (`shutdown_policy`), `fencing`, `crs` (`ha`, `ha-rebalance-on-start`), `bwlimit` (`clone`, `default`, `migration`, `move`, `restore`, en KiB/s) et `replication` (`type`, `network`)
+(lot #365, schéma de Proxmox 9 lu sur `apidoc.js`). Une sous-clé inconnue de Kaji (version plus récente de Proxmox) est LUE en `readonly` et fait REFUSER l'écriture de ce réglage : un `PUT` remplace la chaîne entière, elle serait perdue.
 Le `PUT /cluster/options` de Proxmox n'a PAS de `digest` : Kaji calcule le sien (empreinte des valeurs lues) pour refuser, en 409, une modification faite sur un état périmé.
 Rien n'est transmis sans validation ; un champ inconnu est ignoré ; `http_proxy` : `http://hôte[:port]`, sans identifiants, ni boucle locale, ni adresse non spécifiée, de liaison locale ou multicast.
 """
@@ -25,8 +26,16 @@ EMAIL = re.compile(r"^[A-Za-z0-9._%+\-]{1,64}@[A-Za-z0-9.\-]{1,190}$")
 PROXY = re.compile(r"^http://(?P<host>[A-Za-z0-9.\-]{1,253}|\[[0-9A-Fa-f:]{2,39}\])(:(?P<port>[0-9]{1,5}))?/?$")
 TEXT_OK = re.compile(r"[^\x00-\x08\x0b\x0c\x0d\x0e-\x1f\x7f]*")                  # notes : \n et \t permis, tout autre caractère de contrôle refusé
 MAX_NOTES = 65536
-CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style", "registered_tags", "user_tag_access", "consent_text")
-READONLY = ("ha", "fencing", "crs", "bwlimit", "replication")
+CLEARABLE = ("keyboard", "language", "console", "description", "mac_prefix", "migration", "max_workers", "email_from", "http_proxy", "next_id", "tag_style", "registered_tags", "user_tag_access", "consent_text",
+             "ha", "fencing", "crs", "bwlimit", "replication")
+HA_CLEARABLE = ("ha", "fencing", "crs")                                       # retirer l'un d'eux change le comportement de la HA : `confirm`
+SHUTDOWN_POLICIES = ("freeze", "failover", "conditional", "migrate")
+FENCING_MODES = ("watchdog", "hardware", "both")
+FENCING_EXPERIMENTAL = ("hardware", "both")                                   # « EXPERIMENTAL & WIP » (Proxmox) : exige /etc/pve/ha/fence.cfg, que Kaji ne peut pas lire
+CRS_HA = ("basic", "static")
+BW_KEYS = ("clone", "default", "migration", "move", "restore")                # ordre du schéma de Proxmox
+BW_MAX = 1_000_000_000                                                        # KiB/s (≈ 1 To/s) : garde-fou contre une faute de frappe
+KNOWN = {"ha": ("shutdown_policy",), "crs": ("ha", "ha-rebalance-on-start"), "bwlimit": BW_KEYS, "replication": ("type", "network")}
 DELNAME = {"next_id": "next-id", "tag_style": "tag-style", "registered_tags": "registered-tags", "user_tag_access": "user-tag-access", "consent_text": "consent-text"}   # nom Kaji -> nom Proxmox (pour `delete=`)
 KEY = {v: k for k, v in DELNAME.items()}                                                                                                      # nom Proxmox -> clé lue
 TAGNAME = re.compile(r"^[a-z0-9_][a-z0-9_\-+.]{0,63}$")
@@ -117,6 +126,54 @@ def parse_migration(v) -> dict:
     return {"type": _choice(d.get("type"), ("secure", "insecure")), "network": net}
 
 
+def _extra(name: str, v) -> str | None:
+    """Sous-clés d'un réglage que Kaji ne connaît pas (`a=1,b=2` ou objet) : lues, jamais réécrites."""
+    unknown = sorted(str(k) for k in _props(v) if k not in KNOWN[name])
+    return _t(",".join(unknown), 200) if unknown else None
+
+
+def _flag(v):
+    """Booléen de Proxmox (`1`, `0`, `true`, `false`, entier ou booléen) -> True / False, sinon None."""
+    if isinstance(v, bool):
+        return v
+    if str(v).lower() in ("1", "true", "yes", "on"):
+        return True
+    if str(v).lower() in ("0", "false", "no", "off"):
+        return False
+    return None
+
+
+def parse_ha(v) -> dict:
+    return {"shutdown_policy": _choice(_props(v).get("shutdown_policy"), SHUTDOWN_POLICIES)}
+
+
+def parse_crs(v) -> dict:
+    d = _props(v)
+    return {"ha": _choice(d.get("ha"), CRS_HA), "ha_rebalance_on_start": _flag(d.get("ha-rebalance-on-start"))}
+
+
+def _limit(v):
+    """Débit en KiB/s : nombre positif ou nul (entier si possible), sinon None."""
+    if isinstance(v, bool):
+        return None
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return None
+    if not 0 <= n <= BW_MAX:                                                      # écarte aussi NaN
+        return None
+    return int(n) if n == int(n) else n
+
+
+def parse_bwlimit(v) -> dict:
+    d = _props(v)
+    return {k: _limit(d.get(k)) for k in BW_KEYS}
+
+
+def parse_replication(v) -> dict:
+    return parse_migration(v)
+
+
 def shape_options(raw) -> dict:
     r = raw if isinstance(raw, dict) else {}
     out = {
@@ -129,10 +186,14 @@ def shape_options(raw) -> dict:
         "next_id": parse_next_id(r.get("next-id")), "tag_style": parse_tag_style(r.get("tag-style")),
         "registered_tags": parse_tag_list(r.get("registered-tags")), "user_tag_access": parse_user_tag_access(r.get("user-tag-access")),
         "consent_text": _t(r.get("consent-text"), MAX_CONSENT),
+        "ha": parse_ha(r.get("ha")), "fencing": _choice(r.get("fencing"), FENCING_MODES), "crs": parse_crs(r.get("crs")),
+        "bwlimit": parse_bwlimit(r.get("bwlimit")), "replication": parse_replication(r.get("replication")),
     }
     if out["migration"]["type"] is None and r.get("migration_unsecure") in (1, True, "1"):         # ancien réglage, remplacé par `migration`
         out["migration"]["type"] = "insecure"
-    out["readonly"] = {k: _t(json.dumps(r[k], sort_keys=True) if isinstance(r.get(k), (dict, list)) else str(r[k]), 200) for k in READONLY if r.get(k) is not None}
+    out["readonly"] = {k: e for k in KNOWN if (e := _extra(k, r.get(k))) is not None}            # sous-clés que Kaji ne connaît pas : lues, jamais réécrites
+    if r.get("fencing") is not None and out["fencing"] is None:
+        out["readonly"]["fencing"] = _t(str(r["fencing"]), 200)                                  # mode inconnu : lu seulement
     return out
 
 
@@ -231,6 +292,29 @@ class UserTagAccessIn(BaseModel):
         return list(dict.fromkeys(out))
 
 
+class HaIn(BaseModel):
+    shutdown_policy: Literal[SHUTDOWN_POLICIES] | None = None                     # type: ignore[valid-type]
+
+
+class CrsIn(BaseModel):
+    ha: Literal[CRS_HA] | None = None                                             # type: ignore[valid-type]
+    ha_rebalance_on_start: StrictBool | None = None
+
+
+class BwlimitIn(BaseModel):
+    """Débits en KiB/s (entiers ≥ 0). Les clés non renvoyées sont gardées ; `remove` en retire certaines ; plus aucune clé = réglage retiré."""
+    clone: StrictInt | None = Field(default=None, ge=0, le=BW_MAX)
+    default: StrictInt | None = Field(default=None, ge=0, le=BW_MAX)
+    migration: StrictInt | None = Field(default=None, ge=0, le=BW_MAX)
+    move: StrictInt | None = Field(default=None, ge=0, le=BW_MAX)
+    restore: StrictInt | None = Field(default=None, ge=0, le=BW_MAX)
+    remove: list[Literal[BW_KEYS]] = Field(default=[], max_length=5)               # type: ignore[valid-type]
+
+
+class ReplicationIn(MigrationIn):
+    """Même forme que `migration` : `type` (secure / insecure) et `network` (CIDR, vide = retirer)."""
+
+
 class DatacenterOptions(BaseModel):
     keyboard: Literal[KEYBOARDS] | None = None                                    # type: ignore[valid-type]
     language: Literal[LANGUAGES] | None = None                                    # type: ignore[valid-type]
@@ -246,9 +330,16 @@ class DatacenterOptions(BaseModel):
     registered_tags: list[str] | None = Field(default=None, max_length=MAX_TAGS, description="Liste vide = retirer le réglage")
     user_tag_access: UserTagAccessIn | None = None
     consent_text: str | None = Field(default=None, max_length=MAX_CONSENT)
-    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=14)             # type: ignore[valid-type]
+    ha: HaIn | None = None
+    fencing: Literal[FENCING_MODES] | None = None                                 # type: ignore[valid-type]
+    crs: CrsIn | None = None
+    bwlimit: BwlimitIn | None = None
+    replication: ReplicationIn | None = None
+    clear: list[Literal[CLEARABLE]] = Field(default=[], max_length=len(CLEARABLE))  # type: ignore[valid-type]
     digest: str | None = Field(default=None, max_length=64, description="Empreinte lue par GET ; refus (409) si l'état a changé depuis")
     confirm: StrictBool = False
+    acknowledge_cut_access: StrictBool = False
+    type_name: str | None = Field(default=None, max_length=40, description="« COUPURE POSSIBLE » pour un fencing matériel (expérimental)")
     dry_run: StrictBool = False
 
     @field_validator("description")
@@ -351,6 +442,46 @@ def build(body: DatacenterOptions, current: dict) -> tuple[dict, list[str], list
             p["consent-text"] = body.consent_text
         elif "consent_text" not in delete:
             delete.append("consent_text")                               # texte vide : on retire le réglage
+    unknown = current.get("readonly") or {}
+
+    def writable(name: str):
+        """Refuse d'écrire un réglage dont la valeur lue porte des sous-clés inconnues de Kaji (elles seraient perdues)."""
+        if name in unknown and name in KNOWN:
+            raise ValueError(f"« {name} » contient des clés que Kaji ne gère pas ({unknown[name]}) : modifie ce réglage dans l'interface de Proxmox")
+    if body.ha is not None and body.ha.shutdown_policy is not None:
+        writable("ha")
+        p["ha"] = f"shutdown_policy={body.ha.shutdown_policy}"
+    if body.fencing is not None:
+        p["fencing"] = body.fencing
+    if body.crs is not None and (body.crs.ha is not None or body.crs.ha_rebalance_on_start is not None):
+        writable("crs")
+        cur = current.get("crs") or {}
+        mode = body.crs.ha or cur.get("ha")
+        reb = body.crs.ha_rebalance_on_start if body.crs.ha_rebalance_on_start is not None else cur.get("ha_rebalance_on_start")
+        p["crs"] = ",".join(([f"ha={mode}"] if mode else []) + ([f"ha-rebalance-on-start={int(reb)}"] if reb is not None else []))
+    bw = body.bwlimit
+    if bw is not None and (bw.remove or any(getattr(bw, k) is not None for k in BW_KEYS)):
+        writable("bwlimit")
+        both = [k for k in bw.remove if getattr(bw, k) is not None]
+        if both:
+            raise ValueError(f"Débit à la fois modifié et retiré : {', '.join(both)}")
+        cur = current.get("bwlimit") or {}
+        merged = {k: (getattr(bw, k) if getattr(bw, k) is not None else cur.get(k)) for k in BW_KEYS if k not in bw.remove}
+        parts = [f"{k}={v}" for k, v in merged.items() if v is not None]
+        if parts:
+            p["bwlimit"] = ",".join(parts)
+        elif "bwlimit" not in delete:
+            delete.append("bwlimit")                                    # plus aucune limite : on retire le réglage
+    rep = body.replication
+    if rep is not None and (rep.type is not None or rep.network is not None):
+        writable("replication")
+        cur = current.get("replication") or {}
+        typ = rep.type or cur.get("type") or "secure"
+        net = cur.get("network") if rep.network is None else (rep.network or None)
+        p["replication"] = f"type={typ}" + (f",network={net}" if net else "")
+    for name in KNOWN:
+        if name in delete:
+            writable(name)                                              # retirer effacerait aussi les sous-clés inconnues
     clash = [k for k in delete if DELNAME.get(k, k) in p]
     if clash:
         raise ValueError("Réglage à la fois modifié et retiré")

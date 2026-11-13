@@ -15,6 +15,25 @@ export type DatacenterOptions = {
   email_from: string | null; http_proxy: string | null; migration: { type: "secure" | "insecure" | null; network: string | null };
   next_id: { lower: number | null; upper: number | null }; tag_style: TagStyle;
   registered_tags: string[]; user_tag_access: { user_allow: string | null; user_allow_list: string[] }; consent_text: string | null;
+  ha: { shutdown_policy: string | null }; fencing: string | null; crs: { ha: string | null; ha_rebalance_on_start: boolean | null };
+  bwlimit: Record<(typeof BW_KEYS)[number], number | null>; replication: { type: "secure" | "insecure" | null; network: string | null };
   readonly: Record<string, string | null>; digest: string;
 };
-export type DatacenterPreview = { dry_run: true; params: Record<string, string | number>; remove: string[]; locks: { insecure: boolean } };
+export type DatacenterPreview = { dry_run: true; params: Record<string, string | number>; remove: string[]; locks: { insecure: boolean; replication_insecure: boolean; ha: boolean; fencing_experimental: boolean } };
+
+/** Haute disponibilité, fencing, ordonnancement (CRS), débits (lot #365). */
+export const SHUTDOWN_POLICIES = ["conditional", "failover", "freeze", "migrate"] as const;
+export const SHUTDOWN_LABELS: Record<string, string> = {
+  get conditional() { return tr("conditional : récupère à l'extinction, gèle au redémarrage"); }, get failover() { return tr("failover : récupère toujours"); },
+  get freeze() { return tr("freeze : gèle, sans récupération"); }, get migrate() { return tr("migrate : migre les services en marche"); },
+};
+export const FENCING_MODES = ["watchdog", "hardware", "both"] as const;
+export const FENCING_LABELS: Record<string, string> = {
+  get watchdog() { return tr("watchdog : fencing logiciel (défaut)"); }, get hardware() { return tr("hardware : appareils de fencing (expérimental)"); }, get both() { return tr("both : les deux (expérimental)"); },
+};
+export const FENCING_PHRASE = "COUPURE POSSIBLE";
+export const CRS_MODES = ["basic", "static"] as const;
+export const BW_KEYS = ["clone", "default", "migration", "move", "restore"] as const;
+export const BW_LABELS: Record<string, string> = {
+  get clone() { return tr("Clonage"); }, get default() { return tr("Par défaut"); }, get migration() { return tr("Migration"); }, get move() { return tr("Déplacement de disque"); }, get restore() { return tr("Restauration"); },
+};

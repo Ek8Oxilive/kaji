@@ -235,8 +235,8 @@ def test_digest_covers_the_new_settings(api):
     assert put(c, cid, registered_tags=["a"], digest=d0).status_code == 409 and not CALLS
 
 
-def test_webauthn_and_other_readonly_settings_are_still_never_written(api):
+def test_webauthn_is_still_never_written(api):
     c, cid = api
     ST["opts"]["webauthn"] = "rp=x,origin=https://x"
-    r = put(c, cid, webauthn={"rp": "y"}, ha={"shutdown_policy": "freeze"}, keyboard="fr")
+    r = put(c, cid, webauthn={"rp": "y"}, keyboard="fr")
     assert r.status_code == 200 and CALLS == [{"keyboard": "fr"}]
