@@ -208,6 +208,10 @@ Une page par machine, avec des onglets : Matériel, Options, Périphériques (VM
 
 *Options du processeur : poids (`cpuunits`) et limite d'utilisation (`cpulimit`). Les cœurs autorisés (`affinity`) et les hugepages ne sont pas proposés : Proxmox les réserve à `root@pam`. Un réglage risqué (cache `unsafe`, sauvegarde désactivée, câble débranché) demande d'abord une case « J'accepte ».*
 
+![Migrer une VM vers un autre cluster](docs/captures/vm-migration-distante.jpg)
+
+*Bouton **Autre cluster…** (onglet Matériel) : migration vers un autre cluster Proxmox, fonction expérimentale chez Proxmox. Le jeton du cluster distant est en écriture seule, l'empreinte de son certificat est obligatoire, les adresses de boucle locale ou réservées sont refusées, et supprimer l'original exige le nom retapé et la phrase `COUPURE POSSIBLE`. Fenêtre ouverte puis fermée sans valider.*
+
 ![Générateur aléatoire et watchdog](docs/captures/vm-peripheriques-2.jpg)
 
 *Suite de l'onglet : **générateur aléatoire** (source toujours `/dev/urandom`, non modifiable) et **watchdog** matériel virtuel (modèle, action). Une demande qui retirerait l'affichage de la console (`none`) exige une confirmation décidée par le serveur.*
@@ -661,6 +665,10 @@ Informations de corosync, et création, jonction et retrait d'un nœud avec verr
 ![Confirmation d'un réglage de la haute disponibilité](docs/captures/datacenter-ha-confirmation.jpg)
 
 *Un réglage de la HA (ici le CRS en mode `static`) lève un verrou décidé par le serveur : l'écran montre le risque et le paramètre exact, et n'écrit qu'après la case de confirmation. Le fencing matériel exige en plus la phrase `COUPURE POSSIBLE`.*
+
+![Section WebAuthn des options du datacenter](docs/captures/datacenter-webauthn.jpg)
+
+*Section **WebAuthn** : identifiant de la partie de confiance (`id`), origine du site, nom affiché et sous-domaines. Aucune valeur n'est réglée sur ce cluster. Toute écriture demande une confirmation ; changer ou retirer une valeur déjà définie exige en plus la phrase `COUPURE POSSIBLE` (cela casse les credentials existants).*
 
 ![Notes du datacenter et début des notifications](docs/captures/datacenter-2.jpg)
 
