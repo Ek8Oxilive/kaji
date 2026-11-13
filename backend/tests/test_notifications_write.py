@@ -1,5 +1,6 @@
 """Notifications en écriture (lot #151, étape 2) : faux Proxmox STRICT (chemins, paramètres par type, tableaux, base64). Comme en réel supposé : secrets jamais relus."""
 import base64
+import re
 from urllib.parse import parse_qs
 
 import httpx
@@ -30,13 +31,32 @@ SECRET_KEYS = {"password", "token", "header", "secret", "body"}
 MKEYS = {"comment", "disable", "invert-match", "mode", "match-field", "match-severity", "match-calendar", "target"}
 
 
+def _pairs_error(items) -> str | None:
+    """En-têtes et secrets d'un webhook : chaîne de propriétés `name=<nom>,value=<base64>` (schéma de Proxmox 9, `apidoc.js`). L'ancien `nom=valeur` donne, chez le vrai Proxmox,
+    `error: unknown key "<nom>"` (constaté en réel le 2026-11-13 avec `Content-Type=…`)."""
+    for h in items:
+        props = [p.partition("=") for p in h.split(",")]
+        for k, sep, _ in props:
+            if k not in ("name", "value") or not sep:
+                return f'error: unknown key "{k}"'
+        d = {k: v for k, _, v in props}
+        if set(d) != {"name", "value"} or len(props) != 2 or not re.fullmatch(r"[A-Za-z0-9\-]{1,64}", d["name"]):
+            return "en-tête mal formé"
+        try:
+            if not d["value"] or base64.b64decode(d["value"], validate=True) is None:
+                return "valeur mal encodée"
+        except ValueError:
+            return "valeur mal encodée"
+    return None
+
+
 def fresh():
     ST.clear()
     ST.update(noapply=False, fail=False, leaky=False, pve_digest=None,
               endpoints={"sendmail": {"mail-to-root": {"origin": "builtin", "mailto-user": ["root@pam"]}},
                          "smtp": {"smtp1": {"origin": "user-created", "server": "smtp.example.org", "port": 587, "mode": "starttls", "from-address": "pve@example.org", "mailto": ["a@example.org"], "password": SMTP_PW}},
                          "gotify": {"gotify1": {"origin": "user-created", "server": "https://gotify.example.org", "token": TOKEN}},
-                         "webhook": {"hook1": {"origin": "user-created", "url": "https://hooks.example.org/x", "method": "post", "header": [f"X-Auth={b64(HDRV)}"], "secret": [f"key={b64('v')}"], "body": b64("corps"), "disable": 1}}},
+                         "webhook": {"hook1": {"origin": "user-created", "url": "https://hooks.example.org/x", "method": "post", "header": [f"name=X-Auth,value={b64(HDRV)}"], "secret": [f"name=key,value={b64('v')}"], "body": b64("corps"), "disable": 1}}},
               matchers={"default-matcher": {"origin": "builtin", "target": ["mail-to-root"], "mode": "all"}, "m1": {"origin": "user-created", "target": ["smtp1"], "match-severity": ["error"], "mode": "any"}})
 
 
@@ -86,10 +106,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
             return bad("existe déjà")
         if "disable" in body and body["disable"] not in ("0", "1"):
             return bad("disable 0/1")
-        for h in body.get("header", []) + body.get("secret", []):
-            n, _, v = h.partition("=")
-            if not v or base64.b64decode(v, validate=True) is None:
-                return bad("en-tête mal encodé")
+        err = _pairs_error(body.get("header", []) + body.get("secret", []))
+        if err:
+            return bad(err)
         if "body" in body:
             base64.b64decode(body["body"], validate=True)
         if not ST["noapply"]:
@@ -114,6 +133,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
             return bad("digest différent")
         if set(body.get("delete", [])) - KEYS[typ]:
             return bad("delete invalide")
+        err = _pairs_error(body.get("header", []) + body.get("secret", []))
+        if err:
+            return bad(err)
         if not ST["noapply"]:
             for k, v in body.items():
                 if k not in ("delete", "digest"):
@@ -198,7 +220,7 @@ def test_create_each_type_with_exact_params_and_no_secret_back(api):
     r = c.post(url(cid, "/targets/webhook"), json={"name": "h2", "url": "https://hooks.example.org/y", "method": "put", "headers": [{"name": "X-Auth", "value": HDRV}], "secrets": [{"name": "key", "value": "v1"}],
                                                    "body": "{{ title }}", "disable": True, "confirm": True})
     assert r.status_code == 201 and no_secret(r.text) and r.json()["header_names"] == ["X-Auth"] and r.json()["secret_names"] == ["key"] and r.json()["body_set"] is True and r.json()["method"] == "put"
-    assert CALLS[-1][2] == {"name": "h2", "url": "https://hooks.example.org/y", "method": "put", "header": [f"X-Auth={b64(HDRV)}"], "secret": [f"key={b64('v1')}"], "body": b64("{{ title }}"), "disable": "1"}
+    assert CALLS[-1][2] == {"name": "h2", "url": "https://hooks.example.org/y", "method": "put", "header": [f"name=X-Auth,value={b64(HDRV)}"], "secret": [f"name=key,value={b64('v1')}"], "body": b64("{{ title }}"), "disable": "1"}
     assert c.post(url(cid, "/targets/sendmail"), json={"name": "s2", "mailto": ["a@example.org"], "from_address": "pve@example.org", "confirm": True}).status_code == 201
     assert CALLS[-1][2] == {"name": "s2", "mailto": ["a@example.org"], "from-address": "pve@example.org"}
     assert no_secret(audit_text(c)) and "password=défini" in audit_text(c) and "token=défini" in audit_text(c)
@@ -268,7 +290,7 @@ def test_update_exact_params_clear_and_digest(api):
     assert CALLS[-1] == ("PUT", f"{B}/endpoints/smtp/smtp1", {"port": "465", "mailto": ["z@example.org"], "password": SMTP_PW + "2", "delete": ["mode"]})
     assert "mode" not in ST["endpoints"]["smtp"]["smtp1"]
     assert c.put(url(cid, "/targets/webhook/hook1"), json={"disable": False, "headers": [{"name": "X-New", "value": "v"}], "clear": ["body"], "confirm": True}).status_code == 200
-    assert CALLS[-1][2] == {"disable": "0", "header": [f"X-New={b64('v')}"], "delete": ["body"]}
+    assert CALLS[-1][2] == {"disable": "0", "header": [f"name=X-New,value={b64('v')}"], "delete": ["body"]}
 
 
 def test_clear_sends_proxmox_names_with_dashes(api):
@@ -436,3 +458,29 @@ def test_requires_authentication(client):
     for m, p in (("post", "/targets/smtp"), ("put", "/targets/smtp/x1"), ("delete", "/targets/smtp/x1"), ("post", "/targets/x1/test"), ("post", "/matchers"), ("put", "/matchers/x1"),
                  ("delete", "/matchers/x1"), ("get", "/targets/smtp/x1"), ("get", "/matchers/x1")):
         assert getattr(client, m)(url(1, p)).status_code == 401
+
+
+# ---------------------------------------------------------------- format réel des en-têtes et secrets (constaté en réel le 2026-11-13)
+def test_the_strict_fake_refuses_the_old_header_format_like_the_real_proxmox():
+    assert _pairs_error([f"Content-Type={b64('application/json')}"]) == 'error: unknown key "Content-Type"'      # ce que le vrai Proxmox a répondu (500)
+    assert _pairs_error([f"name=Content-Type,value={b64('application/json')}"]) is None
+    assert _pairs_error(["name=X-A"]) and _pairs_error(["name=X-A,value=x,extra=1"]) and _pairs_error(["name=Bad Name,value=eA=="]) and _pairs_error(["name=X-A,value=!!"])
+    assert _pairs_error(["value=eA==,name=X-A"]) is None
+
+
+def test_webhook_header_is_sent_as_a_property_string_the_real_failing_case(api):
+    c, cid = api
+    r = c.post(url(cid, "/targets/webhook"), json={"name": "h3", "url": "https://hooks.example.org/z", "method": "post", "disable": True,
+                                                    "headers": [{"name": "Content-Type", "value": "application/json"}], "confirm": True})
+    assert r.status_code == 201, r.text
+    assert CALLS[-1][2]["header"] == [f"name=Content-Type,value={b64('application/json')}"]
+    assert r.json()["header_names"] == ["Content-Type"] and "application/json" not in r.text and b64("application/json") not in r.text
+
+
+def test_header_and_secret_named_like_a_property_key_are_still_sent_correctly(api):
+    c, cid = api
+    r = c.post(url(cid, "/targets/webhook"), json={"name": "h4", "url": "https://hooks.example.org/z", "method": "post",
+                                                    "headers": [{"name": "name", "value": "v1"}, {"name": "value", "value": "v2"}], "secrets": [{"name": "name", "value": "s1"}], "confirm": True})
+    assert r.status_code == 201, r.text
+    assert CALLS[-1][2]["header"] == [f"name=name,value={b64('v1')}", f"name=value,value={b64('v2')}"] and CALLS[-1][2]["secret"] == [f"name=name,value={b64('s1')}"]
+    assert r.json()["header_names"] == ["name", "value"] and r.json()["secret_names"] == ["name"]

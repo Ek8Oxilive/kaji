@@ -49,4 +49,11 @@ Champs par type (liste blanche, un champ d'un autre type = 422 ; tableaux envoy�
 `notif-target-create|update|delete`, `notif-matcher-create|update|delete`, `notif-test`, refus compris.
 
 ## Validation
-Faux Proxmox strict (`backend/tests/test_notifications_write.py`, secrets non relus, tableaux, base64), 53 mutations. **Jamais écrit en réel** : le token de Kaji n'a (probablement) pas `Mapping.Modify` ; ajouter une cible ou une règle puis la supprimer se fera avec l'accord d'Enzo, et le **test d'envoi** seulement vers une adresse qu'il indique.
+Faux Proxmox strict (`backend/tests/test_notifications_write.py`, secrets non relus, tableaux, base64), 53 mutations, puis 8 pour le format des en-têtes. Le test d'envoi réel n'a jamais été lancé : il attend un relais SMTP sur le nœud (`docs/v1-actions-enzo.md`) et une adresse choisie par Enzo.
+
+## Constaté en réel (2026-11-13, lot #373)
+Cibles DÉSACTIVÉES, sans identifiants, adresse de documentation `192.0.2.10`, créées, modifiées, supprimées par l'API de Kaji ; liste des cibles identique à la fin.
+- **SMTP** (sans authentification) : créée, relue (`server`, `port`, `mode`, `from_address`, `mailto`), modifiée (port, `mode` `starttls`, commentaire retiré par `clear`), supprimée avec le nom retapé ; refus sans `confirm` (400), `digest` périmé (409), test d'envoi d'une cible désactivée (409, en `dry_run`).
+- **Webhook** : créé, relu, modifié (`method`, corps retiré par `clear`), supprimé.
+- **Défaut trouvé et corrigé** : **les en-têtes et secrets d'un webhook s'écrivent en chaîne de propriétés `name=<nom>,value=<base64>`** (schéma de Proxmox 9). Kaji envoyait `<nom>=<base64>` et Proxmox répondait 500 `unknown key "Content-Type"`. Le faux Proxmox avait la même erreur, c'est pourquoi aucun test ne la voyait. La lecture des noms accepte maintenant cette chaîne, un objet `{name}` et l'ancien `nom=valeur`.
+- **Piège de l'outil de test** : l'extension Chrome peut rejouer un script JavaScript ; ne mettre qu'UNE écriture par appel, sinon l'audit montre deux passages et la réponse affichée peut être celle du rejeu.

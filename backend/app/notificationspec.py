@@ -29,13 +29,23 @@ def _list(v, n: int = 200) -> list[str]:
     return [t for x in items[:MAX_ITEMS] if isinstance(x, str) and (t := _t(x.strip(), n))]
 
 
+def _name_of(x) -> str | None:
+    """Nom d'une entrée d'en-tête ou de secret : chaîne de propriétés `name=X,value=…` (format du schéma de Proxmox 9), objet `{name}` ou ancien `nom=valeur`. La valeur n'est jamais gardée."""
+    if isinstance(x, dict):
+        x = x.get("name")
+        n = x.strip() if isinstance(x, str) else ""
+    elif isinstance(x, str):
+        named = [v for k, _, v in (p.partition("=") for p in x.split(",")) if k.strip() == "name"]
+        n = (named[0] if named else x.partition("=")[0]).strip()
+    else:
+        return None
+    return n if HEADER_NAME.fullmatch(n) else None
+
+
 def _names_of(v) -> list[str]:
-    """Noms seulement d'une liste `nom=valeur` (en-têtes, secrets d'un webhook) : la valeur peut être un jeton, elle ne sort jamais."""
-    out = []
-    for x in (v if isinstance(v, list) else v.split(",") if isinstance(v, str) else [])[:MAX_ITEMS]:
-        if isinstance(x, str) and HEADER_NAME.fullmatch(n := x.partition("=")[0].strip()):
-            out.append(n)
-    return out
+    """Noms seulement d'une liste d'en-têtes ou de secrets d'un webhook : la valeur peut être un jeton, elle ne sort jamais."""
+    items = v if isinstance(v, list) else v.split(",") if isinstance(v, str) else []
+    return [n for x in items[:MAX_ITEMS] if (n := _name_of(x))]
 
 
 def shape_targets(raw) -> list[dict]:

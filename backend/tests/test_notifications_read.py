@@ -131,3 +131,12 @@ def test_shape_fields_and_values_are_bounded_and_filtered():
     assert shape_fields([{"name": "b"}, {"name": "a"}, {"name": "../x"}, {"name": "a"}, "junk"]) == ["a", "b"]
     assert shape_fields([{"name": f"f{i}"} for i in range(300)]) and len(shape_fields([{"name": f"f{i}"} for i in range(300)])) == 100
     assert shape_field_values([{"field": "type", "value": "x" * 500}, {"field": "../x", "value": "y"}])[0]["value"] == "x" * 120 and len(shape_field_values([{"field": "type", "value": "y"}] * 800)) == 500
+
+
+# --- noms d'en-têtes et de secrets : formats lus (schéma de Proxmox 9 : `name=<nom>,value=<base64>`) ---
+def test_names_are_read_from_property_strings_objects_and_the_legacy_form_without_ever_keeping_a_value():
+    v = "VALEUR-SECRETE-xyz"
+    hook = shape_endpoint({"name": "h1", "method": "post", "header": [f"name=Content-Type,value={v}", f"value={v},name=X-Env", {"name": "X-Obj", "value": v}, f"X-Old={v}", "name=Bad Name,value=x", {"name": "../x"}, 5],
+                           "secret": [f"name=api-key,value={v}", "name=only-name"]}, "webhook")
+    assert hook["header_names"] == ["Content-Type", "X-Env", "X-Obj", "X-Old"] and hook["secret_names"] == ["api-key", "only-name"]
+    assert v not in repr(hook) and "value" not in hook
