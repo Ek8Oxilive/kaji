@@ -319,6 +319,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/securite.md` — Revue de sécurité de Kaji (2026-11-12, en vue de la V1)
 - `docs/statut-fonctions.md` — Statut des fonctions de Kaji (pour la V1)
 - `docs/themes.md` — Thèmes de l'interface
+- `docs/v1-actions-enzo.md` — V1 : les actions à faire à la main, pas à pas (Enzo, avec PC…
 - `docs/api/README.md` — Documentation d'API par fonction
 - `docs/api/acces.md` — Accès : droits de Kaji, utilisateurs, rôles, ACL (lecture seu…
 - `docs/api/acl-ecriture.md` — Écrire une entrée d'ACL (ajouter, retirer)
