@@ -22,6 +22,18 @@ ST: dict = {}
 def _handler(request: httpx.Request) -> httpx.Response:
     p = request.url.path.removeprefix("/api2/json")
     CALLS.append((request.method, p, request.content.decode()))
+    tm = re.fullmatch(r"/nodes/enzo/tasks/(UPID:[^/]+)/status", p)
+    if tm:                                                                       # suivi de la tâche lancée
+        ST["polls"] = ST.get("polls", 0) + 1
+        mode = ST.get("task", "ok")
+        if mode == "unreadable":
+            return httpx.Response(500, json={"data": None, "message": SECRET})
+        if mode == "running":
+            return httpx.Response(200, json={"data": {"status": "running"}})
+        if mode == "running-then-ok":
+            return httpx.Response(200, json={"data": {"status": "running"} if ST["polls"] < 3 else {"status": "stopped", "exitstatus": "OK"}})
+        exit_status = {"ok": "OK", "warn": "WARNINGS: 2", "failed": "NUMA needs to be enabled for memory hotplug", "empty": ""}[mode]
+        return httpx.Response(200, json={"data": {"status": "stopped", "exitstatus": exit_status}})
     m = re.fullmatch(r"/nodes/enzo/(qemu|lxc)/(\d+)/(status/current|status/(start|shutdown|reboot|stop)|snapshot)", p)
     if not m:
         return httpx.Response(404, json={"data": None, "message": "route inconnue"})
@@ -41,7 +53,10 @@ def factory(**kw):
 
 
 @pytest.fixture
-def env(client):
+def env(client, monkeypatch):
+    import app.scheduler as sch
+    monkeypatch.setattr(sch, "FOLLOW_EVERY", 0.005)                             # attentes minuscules dans les tests
+    monkeypatch.setattr(sch, "FOLLOW_SECONDS", 0.1)
     CALLS.clear(); ST.clear()
     client.post("/api/auth/setup", json={"username": "admin", "password": PWD})
     cid = client.post("/api/connections", json=BODY).json()["id"]
@@ -204,6 +219,41 @@ def test_the_loop_also_evaluates_alerts_and_an_alert_error_does_not_stop_schedul
 def test_the_scheduler_is_off_during_tests(client):
     from app.config import get_settings
     assert get_settings().kaji_scheduler is False
+
+
+def test_a_task_that_fails_at_proxmox_is_an_error_not_an_ok(env, client):
+    """Constaté en réel : Proxmox accepte la demande puis la tâche échoue (VM d'essai : « NUMA needs to be enabled for memory hotplug »)."""
+    sid = add(env)
+    ST["task"] = "failed"
+    out = run()
+    assert out[0]["status"] == "error" and "NUMA needs to be enabled" in out[0]["detail"] and row(sid)[0] == "error"
+    assert ("schedule-start", "error") in {(a["action"], a["status"]) for a in client.get("/api/audit").json()}
+
+
+def test_task_outcomes_ok_warnings_empty_unreadable_and_slow(env):
+    expect = {"ok": ("ok", "start"), "warn": ("ok", "start"), "empty": ("error", "état inconnu"), "unreadable": ("ok", "tâche non suivie")}
+    for i, (mode, (status, text)) in enumerate(expect.items()):
+        ST.clear(); ST["task"] = mode
+        add(env, vmid=130 + i, time=f"07:{30 + i}")
+        out = run(datetime(2026, 11, 16, 6, 30 + i, tzinfo=timezone.utc))
+        assert out[-1]["status"] == status and text in out[-1]["detail"], (mode, out)
+    ST.clear(); ST["task"] = "running"
+    add(env, vmid=140, time="07:40")
+    out = run(datetime(2026, 11, 16, 6, 40, tzinfo=timezone.utc))
+    assert out[-1]["status"] == "ok" and "demandée" in out[-1]["detail"] and ST["polls"] >= 3             # suivie jusqu'au délai, sans bloquer plus
+
+
+def test_a_slow_task_is_followed_until_it_finishes(env):
+    sid = add(env)
+    ST["task"] = "running-then-ok"
+    out = run()
+    assert out[0] == {"id": sid, "status": "ok", "detail": "start"} and ST["polls"] == 3
+
+
+def test_snapshot_task_is_followed_too(env):
+    add(env, action="snapshot", gtype="lxc", vmid=130)
+    ST["task"] = "failed"
+    assert run()[0]["status"] == "error"
 
 
 def test_the_slot_is_remembered_before_acting(env):
