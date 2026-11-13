@@ -5,6 +5,8 @@ import { mem } from "../lib/format";
 import { BootDialog, CdromDialog, CpuDialog, DeleteGuestDialog, DiskAddDialog, DiskDestroyDialog, DiskDetachDialog, DiskMoveDialog, DiskReattachDialog, MemoryDialog, MigrateDialog, NetAddDialog, NetDialog, NetRemoveDialog, ResizeDialog, SwapDialog } from "./HardwareDialogs";
 import { useToast } from "./Toast";
 import { PassthroughPanel } from "./PassthroughPanel";
+import { CpuOptionsDialog, DiskOptionsDialog, NetOptionsDialog } from "./HwOptionsDialogs";
+import type { NetX } from "../lib/types/hwopts";
 import { Button, Notice } from "./ui";
 
 import { tr } from "../lib/i18n";
@@ -12,7 +14,8 @@ type Dialog =
   | { k: "memory" } | { k: "cpu" } | { k: "swap" } | { k: "boot" } | { k: "netadd" } | { k: "netdel"; net: HwNet }
   | { k: "delete" } | { k: "migrate" } | { k: "diskadd" } | { k: "detach"; disk: HwDisk } | { k: "move"; disk: HwDisk }
   | { k: "reattach"; item: { key: string; volume: string } } | { k: "destroy"; item: { key: string; volume: string } }
-  | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk };
+  | { k: "net"; net: HwNet } | { k: "cdrom"; disk: HwDisk } | { k: "resize"; disk: HwDisk }
+  | { k: "diskopt"; disk: HwDisk } | { k: "netopt"; net: HwNet } | { k: "cpuopt" };
 
 function Row({ label, children, pending, action }: { label: string; children: ReactNode; pending?: string | null; action?: ReactNode }) {
   return (
@@ -33,6 +36,11 @@ const Section = ({ title, action, children }: { title: string; action?: ReactNod
     <div>{children}</div>
   </section>
 );
+
+const DISK_OPTS = ["cache", "discard", "aio", "iothread", "ssd", "backup", "ro", "replicate", "detect_zeroes", "mbps_rd", "mbps_wr", "iops_rd", "iops_wr"];
+const diskSummary = (o: Record<string, string>) => DISK_OPTS.filter((k) => o[k] !== undefined).map((k) => `${k}=${o[k]}`).join(" · ");
+const netSummary = (n: NetX) => [n.rate ? `rate=${n.rate}` : "", n.mtu ? `mtu=${n.mtu}` : "", n.queues ? `queues=${n.queues}` : "", n.link_down ? "link_down" : "", n.trunks?.length ? `trunks=${n.trunks.join(";")}` : ""].filter(Boolean).join(" · ");
+const cpuSummary = (s: Record<string, string | number>) => ["cpuunits", "cpulimit", "affinity", "hugepages"].filter((k) => s[k] !== undefined).map((k) => `${k}=${s[k]}`).join(" · ");
 
 const cores = (n: unknown) => `${n} ${Number(n) > 1 ? tr("cœurs") : tr("cœur")}`;
 
@@ -79,10 +87,11 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
             <Row label={tr("Mémoire")} pending={pend("memory")} action={<Edit onClick={() => setDlg({ k: "memory" })} />}>
               {mem(s.memory)}{qemu && s.balloon !== undefined && <span className="text-muted">{" "}{tr("· minimum {p}", { p: Number(s.balloon) === 0 ? tr("ballooning désactivé") : mem(s.balloon) })}</span>}
             </Row>
-            <Row label={tr("Processeurs")} pending={pend("cores") ?? pend("sockets") ?? pend("cpu")} action={<Edit onClick={() => setDlg({ k: "cpu" })} />}>
+            <Row label={tr("Processeurs")} pending={pend("cores") ?? pend("sockets") ?? pend("cpu") ?? pend("cpuunits") ?? pend("cpulimit") ?? pend("affinity") ?? pend("hugepages")} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "cpu" })} />{qemu && <Edit label={tr("Options…")} onClick={() => setDlg({ k: "cpuopt" })} />}</div>}>
               {qemu
                 ? <>{tr("{p} vCPU", { p: Number(s.cores ?? 1) * Number(s.sockets ?? 1) })}{" "}<span className="text-muted">{tr("({p} socket{p2} × {p3}) · {p4}", { p: s.sockets ?? 1, p2: Number(s.sockets ?? 1) > 1 ? "s" : "", p3: cores(s.cores ?? 1), p4: String(s.cpu ?? "kvm64") })}</span></>
                 : <>{s.cores ? cores(s.cores) : tr("illimité")}</>}
+              {qemu && cpuSummary(s) && <div className="text-xs text-muted">{cpuSummary(s)}</div>}
             </Row>
             {qemu && <Row label={tr("Démarrage")} pending={pend("boot")} action={<Edit onClick={() => setDlg({ k: "boot" })} />}>
               {cfg.boot_order.length ? cfg.boot_order.join(" → ") : <span className="text-muted">{tr("ordre par défaut")}</span>}
@@ -93,8 +102,9 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
           <Section title={tr("Disques")} action={<Edit label={tr("+ Ajouter")} onClick={() => setDlg({ k: "diskadd" })} />}>
             {disks.length === 0 && <p className="py-2 text-sm text-muted">{tr("Aucun disque.")}</p>}
             {disks.map((d) => (
-              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<div className="flex flex-wrap justify-end gap-1.5"><Edit label={tr("Agrandir")} onClick={() => setDlg({ k: "resize", disk: d })} /><Edit label={tr("Déplacer")} onClick={() => setDlg({ k: "move", disk: d })} />{d.key !== "rootfs" && <Edit label={tr("Détacher")} onClick={() => setDlg({ k: "detach", disk: d })} />}</div>}>
+              <Row key={d.key} label={d.key} pending={pend(d.key)} action={<div className="flex flex-wrap justify-end gap-1.5">{qemu && <Edit label={tr("Options…")} onClick={() => setDlg({ k: "diskopt", disk: d })} />}<Edit label={tr("Agrandir")} onClick={() => setDlg({ k: "resize", disk: d })} /><Edit label={tr("Déplacer")} onClick={() => setDlg({ k: "move", disk: d })} />{d.key !== "rootfs" && <Edit label={tr("Détacher")} onClick={() => setDlg({ k: "detach", disk: d })} />}</div>}>
                 {d.storage}:{d.volume} <span className="text-muted">· {d.size ?? "taille inconnue"}</span>
+                {qemu && diskSummary(d.options) && <div className="text-xs text-muted">{diskSummary(d.options)}</div>}
               </Row>
             ))}
           </Section>
@@ -122,10 +132,11 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
           <Section title={tr("Cartes réseau")} action={<Edit label={tr("+ Ajouter")} onClick={() => setDlg({ k: "netadd" })} />}>
             {cfg.nets.length === 0 && <p className="py-2 text-sm text-muted">{tr("Aucune carte réseau.")}</p>}
             {cfg.nets.map((n) => (
-              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "net", net: n })} /><Button variant="danger" onClick={() => setDlg({ k: "netdel", net: n })} className="!px-3 !py-1" aria-label={tr("Retirer {key}", { key: n.key })}>{tr("Retirer")}</Button></div>}>
+              <Row key={n.key} label={n.name ?? n.key} pending={pend(n.key)} action={<div className="flex gap-1.5"><Edit onClick={() => setDlg({ k: "net", net: n })} /><Edit label={tr("Options…")} onClick={() => setDlg({ k: "netopt", net: n })} /><Button variant="danger" onClick={() => setDlg({ k: "netdel", net: n })} className="!px-3 !py-1" aria-label={tr("Retirer {key}", { key: n.key })}>{tr("Retirer")}</Button></div>}>
                 <span>{n.bridge ?? "?"}</span>
                 <span className="text-muted">{n.tag ? ` · VLAN ${n.tag}` : ""}{n.firewall ? " · firewall" : ""}{n.model ? ` · ${n.model}` : ""}{n.ip ? ` · ${n.ip}` : ""}</span>
                 {n.mac && <div className="font-mono text-xs text-muted">{n.mac}</div>}
+                {netSummary(n as NetX) && <div className="text-xs text-muted">{netSummary(n as NetX)}</div>}
               </Row>
             ))}
           </Section>
@@ -147,6 +158,9 @@ export function HardwareTab({ connId, guest, onDeleted, onMigrated }: { connId: 
           <p className="text-xs text-muted">{tr("Les options avancées restantes (TPM, GPU virtuel, hotplug…) ne sont pas gérées.")}</p>
         </>}
 
+      {dlg?.k === "diskopt" && <DiskOptionsDialog disk={dlg.disk} base={base} onDone={async () => { toast("ok", tr("Options du disque enregistrées")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {dlg?.k === "netopt" && <NetOptionsDialog net={dlg.net as NetX} lxc={!qemu} base={base} onDone={async () => { toast("ok", tr("Options de la carte enregistrées")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
+      {cfg && dlg?.k === "cpuopt" && <CpuOptionsDialog cfg={cfg} base={base} onDone={async () => { toast("ok", tr("Options du processeur enregistrées")); await qc.invalidateQueries({ queryKey: qk }); }} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "memory" && <MemoryDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "cpu" && <CpuDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
       {cfg && dlg?.k === "swap" && <SwapDialog cfg={cfg} save={save} onClose={() => setDlg(null)} />}
