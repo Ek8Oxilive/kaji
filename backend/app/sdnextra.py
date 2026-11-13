@@ -338,10 +338,10 @@ def shape_fabrics(raw) -> list[dict]:
     out = []
     for r in _rows(raw):
         e = _eff(r)
-        i = r.get("id")
+        i = e.get("id")                       # un objet NEUF n'a pas d'`id` au premier niveau : il est dans `pending` (relevé en réel, Proxmox 9, 2026-11-13)
         if not isinstance(i, str) or not FABRIC_ID.fullmatch(i):
             continue
-        out.append({"id": i, "protocol": r.get("protocol") if r.get("protocol") in FABRIC_TYPES else None, "state": r.get("state") if r.get("state") in STATES else None,
+        out.append({"id": i, "protocol": e.get("protocol") if e.get("protocol") in FABRIC_TYPES else None, "state": r.get("state") if r.get("state") in STATES else None,
                     "ip_prefix": _s(e.get("ip_prefix"), 18), "ip6_prefix": _s(e.get("ip6_prefix"), 43), "area": _s(e.get("area"), 15), "hello_interval": _i(e.get("hello_interval")),
                     "csnp_interval": _i(e.get("csnp_interval")), "digest": _s(r.get("digest"), 64)})
     return sorted(out, key=lambda x: x["id"])
@@ -351,7 +351,7 @@ def shape_fabric_nodes(raw) -> list[dict]:
     out = []
     for r in _rows(raw):
         e = _eff(r)
-        n = r.get("node_id")
+        n = e.get("node_id")                  # même API que les fabrics : un nœud NEUF peut avoir tout dans `pending`
         if not isinstance(n, str) or not NODE.fullmatch(n):
             continue
         ifs = []

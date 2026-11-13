@@ -47,6 +47,10 @@ def listing(kind):
         if kind in PENDING:
             if i not in ST["run"][kind]:
                 item["state"] = "new"
+                if kind == "fabrics":
+                    # forme RÉELLE (Proxmox 9, relevée par `pvesh get /cluster/sdn/fabrics/fabric --pending 1` le 2026-11-13) : un objet NEUF n'a ni `id` ni
+                    # champs au premier niveau, tout est dans `pending`
+                    item = {"digest": DIGEST, "pending": {idk: i, **cfg}, "state": "new"}
             elif ST["run"][kind][i] != cfg:
                 item["state"] = "changed"
         out.append(item)
@@ -299,6 +303,22 @@ def test_dns_create_update_delete(api):
 
 
 FAB = dict(id="fab1", protocol="ospf", ip_prefix="10.10.0.0/24", area="0")
+
+
+def test_shape_fabrics_reads_the_real_pending_shape():
+    # sortie EXACTE de `pvesh get /cluster/sdn/fabrics/fabric --pending 1 --output-format json` sur Proxmox 9 (2026-11-13) : un objet NEUF n'a ni `id` ni champs
+    # au premier niveau, tout est dans `pending`
+    from app.sdnextra import shape_fabric_nodes, shape_fabrics
+    raw = [{"digest": "5" * 64, "pending": {"hello_interval": 5, "id": "kfab", "ip_prefix": "10.98.0.0/24", "protocol": "openfabric"}, "state": "new"},
+           {"digest": "5" * 64, "pending": {"area": "0", "id": "kosp", "ip_prefix": "10.97.0.0/24", "protocol": "ospf"}, "state": "new"}]
+    out = shape_fabrics(raw)
+    assert [(f["id"], f["protocol"], f["state"], f["ip_prefix"]) for f in out] == [("kfab", "openfabric", "new", "10.98.0.0/24"), ("kosp", "ospf", "new", "10.97.0.0/24")]
+    assert out[0]["hello_interval"] == 5 and out[1]["area"] == "0"
+    # un objet sans identifiant lisible reste ignoré, un objet existant (champs au premier niveau) reste lu
+    assert shape_fabrics([{"pending": {"protocol": "ospf"}, "state": "new"}, {"id": "ok", "protocol": "ospf", "ip_prefix": "10.1.0.0/24"}])[0]["id"] == "ok"
+    # même tolérance pour les nœuds de fabric (même API)
+    nodes = shape_fabric_nodes([{"pending": {"node_id": "enzo", "ip": "10.98.0.1", "interfaces": ["name=nic1"]}, "state": "new"}])
+    assert nodes[0]["node"] == "enzo" and nodes[0]["ip"] == "10.98.0.1" and nodes[0]["interfaces"] == ["nic1"] and nodes[0]["state"] == "new"
 
 
 def test_fabric_and_nodes(api):
