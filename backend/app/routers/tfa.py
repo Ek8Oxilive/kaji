@@ -52,14 +52,14 @@ class Ctx:
 
 
 TOKEN_FORBIDDEN = ("Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : "
-                   "il faut une session par ticket (connexion par mot de passe), que Kaji ne gère pas. À faire dans l'interface de Proxmox ou avec pvesh en root")
+                   "ferme la session et rouvre-la par mot de passe (bouton « Ouvrir avec un mot de passe… » de la page Accès)")
 
 
 async def _call(c: Ctx, db, factory, conn_id, s, method, path, **params):
     try:
         return await admin_call(db, factory, conn_id, s, method, path, **params)
     except HTTPException as e:
-        if e.detail == FORBIDDEN_DETAIL and method != "get" and path.startswith("/access/tfa/"):     # constaté en réel le 2026-11-13 : refus même avec le rôle Administrator (Kaji traduit le 403 de Proxmox)
+        if e.detail == FORBIDDEN_DETAIL and method != "get" and path.startswith("/access/tfa/") and s.kind == "token":     # constaté en réel le 2026-11-13 : refus même avec le rôle Administrator (Kaji traduit le 403 de Proxmox)
             c.log("error", TOKEN_FORBIDDEN)
             raise HTTPException(status.HTTP_403_FORBIDDEN, TOKEN_FORBIDDEN) from None
         c.log("error", str(e.detail))

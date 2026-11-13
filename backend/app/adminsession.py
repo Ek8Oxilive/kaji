@@ -42,12 +42,16 @@ class AdminSession:
     opened_at: float = 0.0
     expires_at: float = 0.0
     renewals: int = 0
+    kind: str = "token"               # « token » (jeton d'API) ou « ticket » (connexion par mot de passe : le seul à pouvoir écrire la double authentification)
+    ticket: SecretStr | None = field(default=None, repr=False)
+    csrf: SecretStr | None = field(default=None, repr=False)
 
     def seconds_left(self) -> int:
         return max(0, int(self.expires_at - _now()))
 
     def __repr__(self) -> str:        # jamais le secret, même par accident (journal, assertion, débogueur)
-        return f"AdminSession(conn={self.conn_id}, token={self.user}!{self.token_id}, left={self.seconds_left()}s)"
+        who = f"{self.user} (ticket)" if self.kind == "ticket" else f"{self.user}!{self.token_id}"
+        return f"AdminSession(conn={self.conn_id}, {who}, left={self.seconds_left()}s)"
 
 
 class AdminSessions:
@@ -66,6 +70,16 @@ class AdminSessions:
         with self._lock:
             self._purge(now)
             self._items[jti] = s                     # remplace une session éventuelle
+        return s
+
+    def open_ticket(self, jti: str, owner_id: int, conn_id: int, user: str, ticket: SecretStr, csrf: SecretStr) -> AdminSession:
+        """Session par ticket : le mot de passe n'existe plus à ce stade (il n'a servi qu'à obtenir le ticket, jamais gardé)."""
+        now = _now()
+        s = AdminSession(conn_id=conn_id, owner_id=owner_id, user=user, token_id="", secret=SecretStr(""), opened_at=now, expires_at=now + TTL_SECONDS,
+                         kind="ticket", ticket=ticket, csrf=csrf)
+        with self._lock:
+            self._purge(now)
+            self._items[jti] = s
         return s
 
     def get(self, jti: str, conn_id: int | None = None) -> AdminSession | None:
