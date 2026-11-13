@@ -91,7 +91,12 @@ async def list_vnets(conn_id: int, db: Session = Depends(get_db), factory: Facto
 
 @router.get("/vnets/{vnet}/subnets")
 async def list_subnets(conn_id: int, vnet: str = VNET_P, db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
-    return shape_subnets(await _px(db, factory, conn_id, "get", f"/cluster/sdn/vnets/{vnet}/subnets", pending=1))
+    try:
+        return shape_subnets(await _px(db, factory, conn_id, "get", f"/cluster/sdn/vnets/{vnet}/subnets", pending=1))
+    except HTTPException as e:
+        if "does not exist" in str(e.detail):             # Proxmox répond 500 « sdn vnet '…' does not exist » : c'est un 404 (constaté en réel)
+            raise HTTPException(404, "VNet inconnu") from None
+        raise
 
 
 # ------------------------------------------------------------------ zones
@@ -285,7 +290,8 @@ async def _subnet_op(op: str, ctx: Ctx, vnet: str, sid: str | None, cidr: str | 
             ctx.refuse(str(e), 422)
     params = {}
     if op == "create":
-        params = {"subnet": sid, "type": "subnet", **params_of(change)}
+        # `vnet` aussi dans le corps : obligatoire chez Proxmox pour créer un sous-réseau (constaté en réel le 2026-11-13, sinon « Parameter verification failed »)
+        params = {"subnet": sid, "type": "subnet", "vnet": vnet, **params_of(change)}
     elif op == "update":
         params = params_of(change)
         if clear:

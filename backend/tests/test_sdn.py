@@ -19,7 +19,7 @@ ST: dict = {}
 ZONE_OK = {"zone", "type", "nodes", "mtu", "ipam", "dns", "reversedns", "dnszone", "dhcp", "bridge", "tag", "vlan-protocol", "peers", "vxlan-port", "controller", "vrf-vxlan", "exitnodes",
            "exitnodes-primary", "exitnodes-local-routing", "advertise-subnets", "disable-arp-nd-suppression", "rt-import", "delete", "digest"}
 VNET_OK = {"vnet", "zone", "alias", "tag", "vlanaware", "isolate-ports", "delete", "digest"}
-SUB_OK = {"subnet", "type", "gateway", "snat", "dhcp-dns-server", "dnszoneprefix", "dhcp-range", "delete", "digest"}
+SUB_OK = {"subnet", "type", "gateway", "snat", "dhcp-dns-server", "dnszoneprefix", "dhcp-range", "delete", "digest", "vnet"}
 BOOLS = {"exitnodes-local-routing", "advertise-subnets", "disable-arp-nd-suppression", "vlanaware", "isolate-ports", "snat"}
 INTS = {"mtu", "tag", "vxlan-port", "vrf-vxlan"}
 
@@ -91,25 +91,32 @@ def _handler(request: httpx.Request) -> httpx.Response:
     if sub:
         vnet, store, ok, idkey = parts[3], "subnets", SUB_OK, "subnet"
         if vnet not in ST["pend"]["vnets"]:
-            return httpx.Response(500, json={"data": None, "message": f"sdn vnet '{vnet}' does not exist"})
+            # le vrai Proxmox met son message dans la phrase de raison HTTP (c'est ce que Kaji relit)
+            return httpx.Response(500, json={"data": None}, extensions={"reason_phrase": f"sdn vnet '{vnet}' does not exist".encode()})
         sid = parts[5] if len(parts) > 5 else None
     else:
         sid = parts[3] if len(parts) > 3 else None
         vnet = None
     if m == "GET":
+        if sub and ST.get("sub_fail"):
+            return httpx.Response(500, json={"data": None}, extensions={"reason_phrase": b"cluster file system unavailable"})
         if sid:
             return httpx.Response(501, json={"data": None})
         return httpx.Response(200, json={"data": listing(store, idkey, vnet)})
     bad = set(body) - ok
     if bad or any(body.get(k) not in ("0", "1") for k in set(body) & BOOLS) or any(not body[k].isdigit() for k in set(body) & INTS):
         return httpx.Response(400, json={"data": None, "message": f"paramètres refusés {sorted(bad)}"})
+    # constaté en réel (Proxmox 9, 2026-11-13) : `vnet` est un paramètre OBLIGATOIRE du corps pour CRÉER un sous-réseau (en plus du chemin) ;
+    # sans lui : « create sdn subnet object failed: 400 Parameter verification failed »
+    if sub and m == "POST" and body.get("vnet") != vnet:
+        return httpx.Response(400, json={"data": None, "message": "Parameter verification failed: vnet manquant dans le corps"})
     if m != "POST" and body.get("digest") not in (None, DIGEST):
         return httpx.Response(400, json={"data": None, "message": "digest"})
     WRITES.append((m, p, body))
     if ST.get("noapply"):
         return httpx.Response(200, json={"data": None})
     pend = ST["pend"][store]
-    cfg = {k: (conv(k, v) if k != "dhcp-range" else v) for k, v in body.items() if k not in (idkey, "delete", "digest", "type") or (k == "type" and store == "zones")}
+    cfg = {k: (conv(k, v) if k != "dhcp-range" else v) for k, v in body.items() if (k not in (idkey, "delete", "digest", "type") and not (store == "subnets" and k == "vnet")) or (k == "type" and store == "zones")}
     if m == "POST":
         i = body[idkey]
         if i in pend:
@@ -151,6 +158,31 @@ def audit_pairs(c):
 
 def mkzone(c, cid, zone="z1", **b):
     return call(c, cid, "POST", "/zones", zone=zone, type=b.pop("type", "simple"), **b)
+
+
+def test_subnet_creation_sends_vnet_in_the_body(api):
+    # constaté en réel (Proxmox 9, 2026-11-13) : sans `vnet` dans le corps, « create sdn subnet object failed: 400 Parameter verification failed »
+    c, cid = api
+    mkzone(c, cid)
+    call(c, cid, "POST", "/vnets", vnet="v1", zone="z1")
+    assert call(c, cid, "POST", "/vnets/v1/subnets", subnet="10.99.0.0/24", gateway="10.99.0.1").status_code == 200
+    body = WRITES[-1][2]
+    assert body["vnet"] == "v1" and body["subnet"] == "z1-10.99.0.0-24" and body["type"] == "subnet"
+
+
+def test_subnets_of_unknown_vnet_is_404_not_502(api):
+    c, cid = api
+    r = c.get(B.format(cid) + "/vnets/nope/subnets")
+    assert r.status_code == 404 and r.json()["detail"] == "VNet inconnu"
+
+
+def test_other_subnet_read_failures_stay_errors(api):
+    c, cid = api
+    mkzone(c, cid)
+    call(c, cid, "POST", "/vnets", vnet="v1", zone="z1")
+    ST["sub_fail"] = True
+    r = c.get(B.format(cid) + "/vnets/v1/subnets")
+    assert r.status_code == 502 and "VNet inconnu" not in r.text
 
 
 def test_full_stack_is_staged_not_applied(api):
