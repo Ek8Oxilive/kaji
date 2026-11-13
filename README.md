@@ -574,6 +574,10 @@ Interfaces des nœuds, pare-feu (datacenter, nœud, machine) et SDN. Tout change
 
 *SDN : appliquer ou annuler les changements en attente (verrou explicite).*
 
+![SDN validé en réel : zone, VNet et sous-réseau en attente](docs/captures/reseau-sdn-en-attente.jpg)
+
+*SDN créé **par l'interface** sur le vrai cluster (validé le 2026-11-13) : une zone, un VNet et un sous-réseau `10.99.0.0/24 via 10.99.0.1`, tous en attente (état `new`, rien appliqué), puis « Annuler les modifications… » qui remet tout à zéro.*
+
 ![Supprimer une interface réseau](docs/captures/reseau-interface-supprimer.jpg)
 
 *Supprimer une interface réseau : préparer ne change rien, appliquer recharge le réseau. Pour l'interface d'administration, le verrou « coupure d'accès possible » exige une case et la phrase `COUPURE POSSIBLE`.*
