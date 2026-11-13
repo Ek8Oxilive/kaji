@@ -18,5 +18,5 @@
 - `commands`, dans l'ordre : `grep -E '^sourcedir /etc/chrony/sources.d' /etc/chrony/chrony.conf` (contrôle), `cat > <fichier> <<'KAJI_EOF' … KAJI_EOF` (délimiteur entre guillemets : le shell n'interprète rien), `chronyc reload sources`, `chronyc sources -v` (vérification).
 - `warnings` : la première commande doit afficher la ligne `sourcedir` (sinon le nœud n'a pas la configuration Debian habituelle : ne rien écrire), NTS (le serveur doit le proposer), pas d'`iburst`, adresse du réseau local.
 
-**Limite honnête** : le format (`sourcedir /etc/chrony/sources.d`, fichiers `*.sources`) est celui de Debian ; Kaji ne peut pas relire la configuration du nœud et **ne l'a pas vu en réel** sur `enzo`. D'où la commande de contrôle en premier.
+**Limite honnête** : le format (`sourcedir /etc/chrony/sources.d`, fichiers `*.sources`) est celui de Debian ; Kaji ne peut pas relire la configuration du nœud ; **Enzo a confirmé le 2026-11-13 sur `enzo`** que `sourcedir /etc/chrony/sources.d` est bien dans `/etc/chrony/chrony.conf` (écriture du fichier et rechargement : jamais lancés). D'où la commande de contrôle en premier.
 Pas d'entrée d'audit (aucune écriture, aucun secret). Tests : `backend/tests/test_ntp_commands.py` (38 cas, 18 mutations tuées).

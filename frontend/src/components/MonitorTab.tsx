@@ -46,15 +46,16 @@ export function MonitorTab({ connId, guest, running }: { connId: number; guest: 
         <Button onClick={run} disabled={busy || !running}>{busy ? "…" : tr("Exécuter")}</Button>
       </div>
       {err && <Notice kind="error">{err}</Notice>}
-      {/* Proxmox 9 réserve le moniteur à root@pam : la même commande se lance dans la console du nœud (commande à copier, rien n'est envoyé d'ici). */}
+      {/* Proxmox 9 réserve le moniteur à root@pam : il s'ouvre dans la console du nœud (commandes à copier, rien n'est envoyé d'ici).
+          Constaté en réel sur le nœud (2026-11-13) : `echo '…' | qm monitor <id>` ouvre le moniteur mais n'affiche AUCUNE réponse : il faut taper la commande dans le moniteur interactif. */}
       <div className="space-y-1.5 border-t border-line/60 pt-3 text-sm">
-        <p className="text-muted">{tr("Dans la console du nœud (page Nœud) : la même commande, avec les droits du nœud.")}</p>
-        {[`echo '${command}' | qm monitor ${guest.vmid}`, `qm monitor ${guest.vmid}`].map((c, i) => (
+        <p className="text-muted">{tr("Dans la console du nœud (page Nœud) : ouvre le moniteur, puis tape la commande choisie.")}</p>
+        {[`qm monitor ${guest.vmid}`, command].map((c, i) => (
           <div key={c} className="flex items-center gap-2">
             <code className="min-w-0 flex-1 overflow-x-auto rounded bg-surface px-2 py-1 text-xs text-fg">{c}</code>
             <Button type="button" variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => copy(i, c)}>{copied === i ? tr("Copié") : tr("Copier")}</Button>
           </div>))}
-        <p className="text-xs text-muted">{tr("La seconde ouvre le moniteur interactif : tape la commande, puis « quit » pour en sortir.")}</p>
+        <p className="text-xs text-muted">{tr("La première ouvre le moniteur (invite « qm> »), la seconde se tape dedans ; « quit » en sort.")}</p>
       </div>
       {result && (
         <div className="space-y-1.5">
