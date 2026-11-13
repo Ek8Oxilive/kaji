@@ -16,16 +16,40 @@ from sqlalchemy.orm import Session
 from . import audit
 from .config import get_settings
 from .models import ScheduledAction
+from .routers.actions import UPID
 from .routers.cluster import Factory, _px
 from .schedulespec import ACTIONS, is_due, text_to_days
 
 log = logging.getLogger("kaji.scheduler")
 ACTOR = "planificateur"
 POWER = {"start", "shutdown", "reboot", "stop"}
+FOLLOW_SECONDS = 15.0          # durée maximale pendant laquelle on suit la tâche Proxmox lancée (au-delà : « demandée »)
+FOLLOW_EVERY = 1.0
 
 
 def _target(s: ScheduledAction) -> str:
     return f"{s.gtype}/{s.vmid}@{s.node}"
+
+
+async def _follow(db: Session, factory: Factory, s: ScheduledAction, upid, what: str) -> tuple[str, str]:
+    """Suit la tâche Proxmox lancée : `ok` seulement si elle se termine en `OK` (ou `WARNINGS`), `error` avec son état de sortie sinon ;
+    encore en cours après `FOLLOW_SECONDS` : `ok` avec « demandée » (on ne bloque pas les autres planifications plus longtemps)."""
+    if not isinstance(upid, str) or not UPID.fullmatch(upid):
+        return "ok", f"{what} (tâche non suivie)"
+    deadline = time.monotonic() + FOLLOW_SECONDS               # l'horloge, pas un compteur : une boucle ne peut pas rester bloquée
+    while True:
+        try:
+            t = await _px(db, factory, s.conn_id, "get", f"/nodes/{s.node}/tasks/{upid}/status")
+        except HTTPException:
+            return "ok", f"{what} (tâche non suivie)"
+        if isinstance(t, dict) and t.get("status") == "stopped":
+            exit_status = str(t.get("exitstatus", ""))[:150]
+            if exit_status == "OK" or exit_status.startswith("WARNINGS"):
+                return "ok", what
+            return "error", f"la tâche Proxmox a échoué : {exit_status or 'état inconnu'}"
+        if time.monotonic() >= deadline:
+            return "ok", f"{what} demandée (tâche encore en cours)"
+        await asyncio.sleep(FOLLOW_EVERY)
 
 
 async def _execute(db: Session, factory: Factory, s: ScheduledAction, now_utc: datetime) -> tuple[str, str]:
@@ -38,8 +62,8 @@ async def _execute(db: Session, factory: Factory, s: ScheduledAction, now_utc: d
     try:
         if s.action == "snapshot":
             name = "kaji-" + now_utc.strftime("%Y%m%d-%H%M")
-            await _px(db, factory, s.conn_id, "post", f"{base}/snapshot", snapname=name)
-            return "ok", f"snapshot {name}"
+            upid = await _px(db, factory, s.conn_id, "post", f"{base}/snapshot", snapname=name)
+            return await _follow(db, factory, s, upid, f"snapshot {name}")
         current = await _px(db, factory, s.conn_id, "get", f"{base}/status/current")
         running = isinstance(current, dict) and current.get("status") == "running"
         if s.action == "start" and running:
@@ -48,8 +72,8 @@ async def _execute(db: Session, factory: Factory, s: ScheduledAction, now_utc: d
             return "skipped", "déjà arrêtée"
         if isinstance(current, dict) and str(current.get("template")) == "1":
             return "refused", "machine modèle"
-        await _px(db, factory, s.conn_id, "post", f"{base}/status/{s.action}")
-        return "ok", s.action
+        upid = await _px(db, factory, s.conn_id, "post", f"{base}/status/{s.action}")
+        return await _follow(db, factory, s, upid, s.action)
     except HTTPException as e:
         return "error", str(e.detail)[:180]
 
