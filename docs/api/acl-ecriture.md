@@ -1,7 +1,7 @@
 # Écrire une entrée d'ACL (ajouter, retirer)
 
 Préfixe : `/api/connections/{id}/access/acl`. **Exige une session administrateur ouverte** (`docs/api/admin-session.md`) : toutes les lectures et l'écriture se font avec
-l'identité du token d'administration collé, jamais avec le token permanent de Kaji (403 sans session). Une seule entrée à la fois ; aucune écriture en masse.
+l'identité du token d'administration collé, jamais directement avec le token permanent de Kaji (403 sans session ; la session peut s'ouvrir avec ce jeton si `KAJI_ADMIN_USE_KAJI_TOKEN` est activée, voir `docs/api/admin-session.md`). Une seule entrée à la fois ; aucune écriture en masse.
 
 | Route | Rôle |
 |---|---|

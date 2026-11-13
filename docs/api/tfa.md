@@ -32,7 +32,7 @@ Les écritures passent par la **session administrateur** (`User.Modify`). **Hors
 `tfa-totp-setup`, `tfa-add`, `tfa-update`, `tfa-delete`, refus compris. Le secret, l'URI, le code et les codes de secours n'y figurent jamais (« défini », type et identifiant d'entrée seulement).
 
 ## Validation
-Faux Proxmox strict (`backend/tests/test_tfa.py` : clés autorisées, URI et code validés, `password` refusé, secrets non relus). **Jamais écrit en réel** : le jeton d'administration de Kaji n'a pas `User.Modify` sur `/access/groups`, et activer la double authentification peut verrouiller un compte.
+Faux Proxmox strict (`backend/tests/test_tfa.py` : clés autorisées, URI et code validés, `password` refusé, secrets non relus). **Jamais écrit en réel** : activer la double authentification peut verrouiller un compte, et l'écriture exige une session ouverte par mot de passe (Proxmox l'interdit aux jetons, voir plus bas). La lecture, l'aperçu `dry_run` et le message de refus d'un jeton ont été vus en réel le 2026-11-13.
 ## Essai réel du 2026-11-13 : les écritures sont IMPOSSIBLES avec un jeton
 > **Mise à jour (lot #407)** : les écritures marchent désormais avec une session ouverte **par mot de passe** (`POST …/admin-session/ticket`, `docs/api/admin-session.md`). Elles restent impossibles avec une session par jeton (message clair).
 
