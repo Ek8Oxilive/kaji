@@ -474,5 +474,11 @@
  "link_down : la machine perd son réseau tant que le câble est débranché": "link_down: the machine loses its network while the cable is unplugged",
  "hugepages : la machine ne démarrera pas si le nœud n'a pas assez de pages réservées": "hugepages: the machine will not start if the node has too few reserved pages",
  "affinity : la machine n'utilisera que ces cœurs du nœud (elle sera aussi limitée après une migration)": "affinity: the machine will only use these node cores (it stays limited after a migration too)",
+ "Réglage WebAuthn : il peut empêcher des comptes de valider leur double authentification. Renvoie la requête avec confirm=true": "WebAuthn setting: it can prevent accounts from completing two-factor authentication. Send the request again with confirm=true",
+ "L'origine doit être l'identifiant ou l'un de ses sous-domaines (et « sous-domaines autorisés » ne doit pas être désactivé)": "The origin must be the ID or one of its subdomains (and “allow subdomains” must not be disabled)",
+ "Une adresse IP ne peut pas servir d'identifiant WebAuthn": "An IP address cannot be used as a WebAuthn ID",
+ "Identifiant invalide (nom de domaine seulement, sans protocole, port ni chemin)": "Invalid ID (domain name only, without protocol, port or path)",
+ "Origine invalide (https://hôte[:port], sans identifiants, chemin ni paramètres)": "Invalid origin (https://host[:port], without credentials, path or parameters)",
+ "http:// n'est permis que pour localhost": "http:// is only allowed for localhost",
  "Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji": "Proxmox reserves this option to root@pam (affinity, hugepages): it is refused to Kaji's token"
 }
