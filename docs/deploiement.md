@@ -33,7 +33,7 @@ Pour écouter sur le réseau : `KAJI_BIND=0.0.0.0` dans `.env`, puis `docker com
 ### HTTPS fourni en option : Caddy (`docker-compose.tls.yml`)
 Un conteneur Caddy termine le TLS avec **son autorité interne** (`tls internal`) et relaie vers nginx ; nginx reprend l'adresse du client que Caddy lui donne (`deploy/realip.conf`, réseau Docker à adresses fixes `172.29.77.0/24`), donc **le limiteur de connexions voit bien chaque client**.
 ```bash
-# .env : KAJI_COOKIE_SECURE=true, KAJI_TLS_SITE=192.168.1.10:8443 (l'adresse par laquelle tu ouvres Kaji, avec le port), KAJI_BIND=127.0.0.1
+# .env : KAJI_COOKIE_SECURE=true, KAJI_TLS_SITE=192.168.1.10:8443 (l'adresse par laquelle tu ouvres Kaji, avec le port), KAJI_TLS_HOST=192.168.1.10 (la même, sans le port), KAJI_BIND=127.0.0.1
 docker compose down                     # le réseau change de sous-réseau : il doit être recréé
 docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
 docker compose cp tls:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt   # à installer comme autorité de confiance dans ton navigateur ou ton système
