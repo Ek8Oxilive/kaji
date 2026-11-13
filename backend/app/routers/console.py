@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Request, WebSocket,
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import audit
+from .. import audit, roles
 from .. import db as dbm
 from ..consolespec import (IDLE_TIMEOUT, MAX_DURATION, MAX_MESSAGE, NODE_IDLE_TIMEOUT, NODE_MAX_DURATION, SESSION_TTL,
                            ConsoleSessions, Kind, Target, origin_ok, valid_proxy_reply)
@@ -146,8 +146,8 @@ async def console_ws(ws: WebSocket, session: str, factory: Factory = Depends(get
         return
     dbm.get_engine()
     with dbm._SessionLocal() as db:
-        found = _session_of(ws, db)
-        if found is None:
+        found = _session_of(ws, db, enforce=False)
+        if found is None or not roles.allowed(found[0].role, "GET", ws.url.path, websocket=True):          # une console = accès complet à la machine : administrateurs seulement
             await ws.close(code=1008)
             return
         username, owner = found[0].username, found[1].id

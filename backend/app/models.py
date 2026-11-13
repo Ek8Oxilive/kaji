@@ -46,6 +46,8 @@ class AdminUser(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # `admin`, `operator` ou `viewer` (`app/roles.py`) ; les comptes d'avant ce champ sont tous `admin` (migration n° 3)
+    role: Mapped[str] = mapped_column(String(16), default="admin", server_default="admin")
 
 
 class AuditLog(Base):

@@ -511,5 +511,12 @@
  "Proxmox a refusé la migration (détail masqué : il pouvait contenir le jeton du cluster distant)": "Proxmox refused the migration (detail hidden: it could contain the remote cluster's token)",
  "Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : il faut une session par ticket (connexion par mot de passe), que Kaji ne gère pas. À faire dans l'interface de Proxmox ou avec pvesh en root": "Proxmox forbids changing two-factor authentication with an API token (schema: allowtoken=0), whatever its privileges: it needs a ticket session (password login), which Kaji does not handle. Do it in the Proxmox interface or with pvesh as root",
  "Ce compte n'est pas verrouillé": "This account is not locked",
- "Proxmox n'a pas débloqué le compte": "Proxmox did not unlock the account"
+ "Proxmox n'a pas débloqué le compte": "Proxmox did not unlock the account",
+ "Ton rôle ne permet pas cette action": "Your role does not allow this action",
+ "Ce nom d'utilisateur existe déjà": "This username already exists",
+ "Utilisateur inconnu": "Unknown user",
+ "Tu ne peux pas changer ton propre rôle": "You cannot change your own role",
+ "Il doit rester au moins un administrateur": "At least one administrator must remain",
+ "Tu ne peux pas supprimer ton propre compte": "You cannot delete your own account",
+ "Suppression : renvoie la requête avec confirm=true et le nom d'utilisateur retapé": "Deletion: resend the request with confirm=true and the username retyped"
 }

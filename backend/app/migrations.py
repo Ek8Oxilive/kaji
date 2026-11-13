@@ -41,9 +41,14 @@ def _v2_tls_pin(conn: Connection) -> None:
     add_column(conn, "connections", "tls_cert_pem TEXT")            # épinglage du certificat Proxmox (V1)
 
 
+def _v3_roles(conn: Connection) -> None:
+    add_column(conn, "admin_users", "role VARCHAR(16) NOT NULL DEFAULT 'admin'")      # rôles des utilisateurs de Kaji : les comptes existants restent administrateurs
+
+
 MIGRATIONS: list[Migration] = [
     Migration(1, "schéma initial"),
     Migration(2, "épinglage du certificat Proxmox", _v2_tls_pin),
+    Migration(3, "rôles des utilisateurs de Kaji", _v3_roles),
 ]
 
 
