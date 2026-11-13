@@ -93,22 +93,30 @@ function Services({ connId, node, list, setMsg }: { connId: number; node: string
   const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}/services`;
   const run = async (s: Service, action: ServiceAction) => {
     setAsk(null); setBusy(s.name); setMsg(null);
+    let accepted = false;                                   // la demande a-t-elle été ACCEPTÉE (tâche créée) ? un refus au départ reste une erreur
     try {
-      await runTask(connId, node, () => api(`${base}/${s.name}/${action}`, { method: "POST", body: { confirm: true, type_name: s.risk === "vital" ? typed : undefined } }), tr(VERB[action][1]));
+      await runTask(connId, node, async () => {
+        const r = await api<{ upid: string }>(`${base}/${s.name}/${action}`, { method: "POST", body: { confirm: true, type_name: s.risk === "vital" ? typed : undefined } });
+        accepted = true;
+        return r;
+      }, tr(VERB[action][1]));
       setMsg({ kind: "ok", text: tr("{p} de « {name} » terminé.", { p: tr(VERB[action][1]), name: s.name }) });
     } catch (e) {
-      // `pvedaemon` exécute lui-même la tâche : en se redémarrant il l'interrompt, et Proxmox la marque « échec (received interrupt) » alors que le service est reparti.
-      // On ne le dit réussi qu'après avoir RELU l'état du service (running), jamais sur le seul texte de l'erreur.
+      // `pvedaemon` exécute lui-même la tâche : en se redémarrant il l'interrompt (Proxmox : « échec, received interrupt ») et le suivi de la tâche peut
+      // échouer le temps du redémarrage (595 « Connection refused »), alors que le service repart. On ne le dit réussi que si la demande a été acceptée
+      // ET après avoir RELU l'état du service (running, plusieurs essais) : jamais sur le seul texte de l'erreur.
       let restarted = false;
-      if (s.name === "pvedaemon" && (action === "restart" || action === "reload") && (e as Error).message.includes("received interrupt")) {
-        try {
-          await new Promise((r) => setTimeout(r, 2500));
-          const fresh = await api<{ services?: { data?: Service[] } }>(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/system`);
-          restarted = fresh.services?.data?.find((x) => x.name === s.name)?.state === "running";
-        } catch { /* illisible : on garde l'erreur d'origine */ }
+      if (accepted && s.name === "pvedaemon" && (action === "restart" || action === "reload")) {
+        for (let i = 0; i < 8 && !restarted; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            const fresh = await api<{ services?: { data?: Service[] } }>(`/api/connections/${connId}/nodes/${encodeURIComponent(node)}/system`);
+            restarted = fresh.services?.data?.find((x) => x.name === s.name)?.state === "running";
+          } catch { /* injoignable pour l'instant : on réessaie */ }
+        }
       }
       setMsg(restarted
-        ? { kind: "ok", text: tr("{p} de « {name} » terminé : le service est reparti (Proxmox signale « interrompu », car ce démon exécute lui-même la tâche).", { p: tr(VERB[action][1]), name: s.name }) }
+        ? { kind: "ok", text: tr("{p} de « {name} » terminé : le service est reparti (le suivi de la tâche a été coupé pendant le redémarrage, ce démon exécute lui-même la tâche).", { p: tr(VERB[action][1]), name: s.name }) }
         : { kind: "error", text: (e as Error).message });
     }
     setBusy(null); setTyped("");
