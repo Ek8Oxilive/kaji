@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { NodeOptionsForm } from "./NodeOptionsForm";
 import { NtpForm } from "./NtpForm";
 import { Button, Notice } from "./ui";
 
@@ -13,7 +14,7 @@ const zones = (): string[] => { try { return (Intl as unknown as { supportedValu
 export function NodeConfig({ connId, node, dns, timezone }: { connId: number; node: string; dns: { search: string | null; servers: string[] } | null; timezone: string | null }) {
   const qc = useQueryClient();
   const base = `/api/connections/${connId}/nodes/${encodeURIComponent(node)}`;
-  const [open, setOpen] = useState<"dns" | "time" | "hosts" | "ntp" | null>(null);
+  const [open, setOpen] = useState<"dns" | "time" | "hosts" | "ntp" | "options" | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState(dns?.search ?? "");
@@ -33,7 +34,7 @@ export function NodeConfig({ connId, node, dns, timezone }: { connId: number; no
     } catch (e) { setMsg({ kind: "error", text: (e as Error).message }); }
     setBusy(false);
   };
-  const toggle = (k: "dns" | "time" | "hosts" | "ntp") => { setMsg(null); setOpen(open === k ? null : k); };
+  const toggle = (k: "dns" | "time" | "hosts" | "ntp" | "options") => { setMsg(null); setOpen(open === k ? null : k); };
 
   return (
     <div className="panel space-y-3 p-4">
@@ -43,6 +44,7 @@ export function NodeConfig({ connId, node, dns, timezone }: { connId: number; no
         <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => toggle("time")}>{tr("Fuseau horaire")}</Button>
         <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => toggle("hosts")}>{tr("Fichier hosts")}</Button>
         <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => toggle("ntp")}>{tr("Serveurs NTP…")}</Button>
+        <Button variant="ghost" className="!px-3 !py-1.5" onClick={() => toggle("options")}>{tr("Options du nœud…")}</Button>
       </div>
       {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
       {open === "dns" && (
@@ -59,6 +61,7 @@ export function NodeConfig({ connId, node, dns, timezone }: { connId: number; no
           <Button type="submit" disabled={busy || !tz}>{tr("Enregistrer le fuseau")}</Button>
         </form>)}
       {open === "ntp" && <NtpForm base={base} />}
+      {open === "options" && <NodeOptionsForm base={base} />}
       {open === "hosts" && (
         hostsQ.isLoading ? <div className="h-24 animate-pulse rounded bg-surface2" />
           : hostsQ.error || !hostsQ.data?.digest ? <Notice kind="error">{tr("Lecture du fichier hosts impossible.")}</Notice>

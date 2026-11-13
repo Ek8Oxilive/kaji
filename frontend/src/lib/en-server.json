@@ -509,5 +509,14 @@
  "Machine introuvable": "Machine not found",
  "« restart » et « timeout » ne concernent que les conteneurs": "“restart” and “timeout” only apply to containers",
  "Proxmox a refusé la migration (détail masqué : il pouvait contenir le jeton du cluster distant)": "Proxmox refused the migration (detail hidden: it could contain the remote cluster's token)",
- "Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : il faut une session par ticket (connexion par mot de passe), que Kaji ne gère pas. À faire dans l'interface de Proxmox ou avec pvesh en root": "Proxmox forbids changing two-factor authentication with an API token (schema: allowtoken=0), whatever its privileges: it needs a ticket session (password login), which Kaji does not handle. Do it in the Proxmox interface or with pvesh as root"
+ "Proxmox interdit de modifier la double authentification avec un jeton d'API (schéma : allowtoken=0), quels que soient ses droits : il faut une session par ticket (connexion par mot de passe), que Kaji ne gère pas. À faire dans l'interface de Proxmox ou avec pvesh en root": "Proxmox forbids changing two-factor authentication with an API token (schema: allowtoken=0), whatever its privileges: it needs a ticket session (password login), which Kaji does not handle. Do it in the Proxmox interface or with pvesh as root",
+ "Une option ne peut pas être à la fois modifiée et retirée": "An option cannot be both changed and removed",
+ "Adresse de diffusion IPv4 invalide": "Invalid IPv4 broadcast address",
+ "Option retirée en double": "Option removed twice",
+ "Le réglage de réveil actuel du nœud n'est pas lisible par Kaji : modification refusée par précaution": "The node's current wake-on-LAN setting cannot be read by Kaji: change refused as a precaution",
+ "L'adresse MAC est obligatoire pour le réveil à distance": "The MAC address is required for wake-on-LAN",
+ "Configuration du nœud illisible : modification refusée par précaution": "Node configuration unreadable: change refused as a precaution",
+ "Le digest lu avec les options est obligatoire": "The digest read with the options is required",
+ "Les options du nœud ont changé entre-temps : recharge et recommence": "The node options changed in the meantime: reload and try again",
+ "Écriture des options du nœud : renvoie la requête avec confirm=true": "Writing node options: resend the request with confirm=true"
 }
