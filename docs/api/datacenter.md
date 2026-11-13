@@ -44,6 +44,15 @@ Préfixe `/api/connections/{conn_id}/datacenter`. Page « Datacenter » du menu.
 ## Audit
 Action `datacenter-options`, refus compris ; le contenu des notes n'est jamais copié (« défini »).
 
+## Constaté en réel (2026-11-13, lot #365)
+Cluster sans ressource HA, les cinq réglages absents au départ ; tout a été retiré à la fin (même `digest` qu'au départ, watchdog de la HA resté en `standby`).
+- Débit : `bwlimit=restore=100000` écrit par la page puis relu ; ajouter `migration` garde `restore` ; retirer les deux clés supprime le réglage.
+- Réplication : `type=secure,network=…` écrit, réseau retiré, réglage retiré ; `insecure` sans `confirm` : 409.
+- CRS `static` par la page (aperçu, panneau, case de confirmation) puis `ha-rebalance-on-start` ajouté en gardant le mode ; `ha.shutdown_policy` et `fencing=watchdog` : 409 sans `confirm`, acceptés avec ; `clear` des trois avec `confirm`.
+- Fencing `hardware` / `both` : 409 sans la phrase `COUPURE POSSIBLE` (le mode n'a pas changé) ; l'aperçu annonce `fencing_experimental`. **Jamais écrit.**
+- Le format renvoyé par Proxmox est lu correctement par le parseur (`readonly` resté vide), mais le format brut (objet ou chaîne) n'a pas été noté.
+- Non essayé : effet d'un débit sur une migration, `shutdown_policy` ou CRS avec de vraies ressources HA.
+
 ## Validation
 Faux Proxmox strict (`backend/tests/test_datacenter.py`), 31 mutations.
 

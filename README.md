@@ -638,6 +638,14 @@ Informations de corosync, et création, jonction et retrait d'un nœud avec verr
 
 *Options du datacenter : clavier, langue, visionneuse de console, e-mail d'expédition, préfixe MAC, tâches parallèles, proxy, migration.*
 
+![Haute disponibilité, ordonnancement et débits](docs/captures/datacenter-ha-debits.jpg)
+
+*Section « Haute disponibilité, ordonnancement et débits » : politique d'arrêt des nœuds, mode de fencing, ordonnancement des ressources (CRS), cinq limites de débit en Kio/s et réseau de réplication. Rien n'est envoyé sans passer par un aperçu.*
+
+![Confirmation d'un réglage de la haute disponibilité](docs/captures/datacenter-ha-confirmation.jpg)
+
+*Un réglage de la HA (ici le CRS en mode `static`) lève un verrou décidé par le serveur : l'écran montre le risque et le paramètre exact, et n'écrit qu'après la case de confirmation. Le fencing matériel exige en plus la phrase `COUPURE POSSIBLE`.*
+
 ![Notes du datacenter et début des notifications](docs/captures/datacenter-2.jpg)
 
 *Notes du datacenter, puis la section **Notifications** qui commence.*
