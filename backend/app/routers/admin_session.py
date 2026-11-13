@@ -81,7 +81,7 @@ class Ctx:
 def admin_client(db: Session, factory: Factory, conn_id: int, s: AdminSession):
     """Client Proxmox qui agit avec l'identité de la session administrateur (à fermer avec `aclose`)."""
     p = _params(_get_or_404(db, conn_id))
-    if s.kind == "ticket" and s.ticket is not None and s.csrf is not None:
+    if getattr(s, "kind", "token") == "ticket" and getattr(s, "ticket", None) is not None and getattr(s, "csrf", None) is not None:
         return factory(host=p["host"], port=p["port"], user=s.user, token_id="", token_secret="", ticket=s.ticket.get_secret_value(), csrf=s.csrf.get_secret_value(),
                        verify_ssl=p["verify_ssl"], pinned_cert=p.get("pinned_cert"))
     return factory(host=p["host"], port=p["port"], user=s.user, token_id=s.token_id, token_secret=s.secret.get_secret_value(),
