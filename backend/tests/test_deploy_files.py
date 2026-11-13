@@ -54,6 +54,16 @@ def test_caddy_has_a_default_sni_so_that_an_ip_address_works():
     assert re.search(r"^\s*KAJI_TLS_SITE: \$\{KAJI_TLS_SITE:-localhost\}", TLS, re.M)
 
 
+def test_the_certificate_covers_the_address_and_a_dns_name():
+    """Constaté en réel (2026-11-13) : `kaji.home` donnait ERR_SSL_PROTOCOL_ERROR car le certificat ne couvrait que l'adresse IP."""
+    assert "{$KAJI_TLS_SITE}, {$KAJI_TLS_NAME} {" in CADDY
+    assert re.search(r"^\s*KAJI_TLS_NAME: \$\{KAJI_TLS_NAME:-kaji\.localhost\}", TLS, re.M)
+    assert "KAJI_TLS_NAME" in ENV
+    default_site = re.search(r"KAJI_TLS_SITE:-([^}]+)\}", TLS).group(1)
+    default_name = re.search(r"KAJI_TLS_NAME:-([^}]+)\}", TLS).group(1)
+    assert default_site != default_name                                                         # deux adresses identiques : Caddy refuserait de démarrer
+
+
 def test_https_is_on_443_and_port_80_is_published_for_the_redirect():
     """Demande d'Enzo (2026-11-13) : se connecter sans taper de port, et que http renvoie vers https (redirection automatique de Caddy sur le port 80)."""
     assert '"${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_TLS_PORT:-443}:443"' in TLS

@@ -11,6 +11,7 @@ services:
         condition: service_healthy
     environment:
       KAJI_TLS_SITE: ${KAJI_TLS_SITE:-localhost}      # adresse SANS port (voir deploy/Caddyfile)
+      KAJI_TLS_NAME: ${KAJI_TLS_NAME:-kaji.localhost}  # un nom en plus de l'adresse (ex. kaji.home) ; doit différer de KAJI_TLS_SITE
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data              # l'autorité interne et ses clés : à sauvegarder si tu veux garder la confiance des navigateurs
