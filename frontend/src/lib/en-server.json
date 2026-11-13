@@ -473,5 +473,6 @@
  "backup=0 : ce disque ne sera plus inclus dans les sauvegardes": "backup=0: this disk will no longer be included in backups",
  "link_down : la machine perd son réseau tant que le câble est débranché": "link_down: the machine loses its network while the cable is unplugged",
  "hugepages : la machine ne démarrera pas si le nœud n'a pas assez de pages réservées": "hugepages: the machine will not start if the node has too few reserved pages",
- "affinity : la machine n'utilisera que ces cœurs du nœud (elle sera aussi limitée après une migration)": "affinity: the machine will only use these node cores (it stays limited after a migration too)"
+ "affinity : la machine n'utilisera que ces cœurs du nœud (elle sera aussi limitée après une migration)": "affinity: the machine will only use these node cores (it stays limited after a migration too)",
+ "Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji": "Proxmox reserves this option to root@pam (affinity, hugepages): it is refused to Kaji's token"
 }

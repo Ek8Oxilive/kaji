@@ -127,24 +127,21 @@ export function NetOptionsDialog({ net, lxc, base, onDone, onClose }: { net: Net
 // ------------------------------------------------------------------ CPU
 export function CpuOptionsDialog({ cfg, base, onDone, onClose }: { cfg: HwConfig; base: string; onDone: () => Promise<void>; onClose: () => void }) {
   const s = cfg.settings;
-  const init = { cpuunits: s.cpuunits != null ? String(s.cpuunits) : "", cpulimit: s.cpulimit != null ? String(s.cpulimit) : "", affinity: s.affinity != null ? String(s.affinity) : "", hugepages: s.hugepages != null ? String(s.hugepages) : "" };
+  const init = { cpuunits: s.cpuunits != null ? String(s.cpuunits) : "", cpulimit: s.cpulimit != null ? String(s.cpulimit) : "" };
   const [v, setV] = useState(init);
   const { busy, error, run, box, needsAccept } = useOptionsSubmit(onClose, onDone);
   const body: CpuOptionsBody = {};
   const clear: string[] = [];
   if (v.cpuunits !== init.cpuunits) (v.cpuunits.trim() === "" ? clear.push("cpuunits") : (body.cpuunits = asNum(v.cpuunits)));
   if (v.cpulimit !== init.cpulimit) (v.cpulimit.trim() === "" ? clear.push("cpulimit") : (body.cpulimit = asNum(v.cpulimit)));
-  if (v.affinity !== init.affinity) (v.affinity.trim() === "" ? clear.push("affinity") : (body.affinity = v.affinity.trim()));
-  if (v.hugepages !== init.hugepages) (v.hugepages === "" ? clear.push("hugepages") : (body.hugepages = v.hugepages));
   if (clear.length) body.clear = clear;
-  const ok = Object.keys(body).length > 0 && numOk(v.cpuunits, 1, 262144, true) && numOk(v.cpulimit, 0, 128, false) && (v.affinity.trim() === "" || /^[0-9]{1,4}(-[0-9]{1,4})?(,[0-9]{1,4}(-[0-9]{1,4})?)*$/.test(v.affinity.trim())) && !needsAccept;
+  const ok = Object.keys(body).length > 0 && numOk(v.cpuunits, 1, 262144, true) && numOk(v.cpulimit, 0, 128, false) && !needsAccept;
   return (
-    <Modal title={tr("Options du processeur")} subtitle={tr("Priorité, limite et placement sur les cœurs du nœud. Sur une machine en marche, le changement s'applique au prochain démarrage.")}
+    <Modal title={tr("Options du processeur")} subtitle={tr("Priorité et limite d'utilisation du processeur. Sur une machine en marche, le changement s'applique au prochain démarrage.")}
       onClose={onClose} busy={busy} error={error} canSubmit={ok} submitLabel={tr("Enregistrer")} onSubmit={() => run((confirm) => api(`${base}/cpu-options`, { method: "PATCH", body: { ...body, confirm } }))}>
       <NumField label={tr("Poids CPU (cpuunits)")} value={v.cpuunits} onChange={(x) => setV({ ...v, cpuunits: x })} min={1} max={262144} hint={tr("Plus il est haut, plus la machine passe devant les autres quand le nœud est chargé")} />
       <NumField label={tr("Limite d'utilisation (cpulimit)")} value={v.cpulimit} onChange={(x) => setV({ ...v, cpulimit: x })} min={0} max={128} step={0.1} hint={tr("En nombre de cœurs ; 0 ou vide = illimité")} />
-      <Field label={tr("Cœurs du nœud autorisés (affinity)")} value={v.affinity} onChange={(e) => setV({ ...v, affinity: e.target.value })} placeholder="0,5,8-11" hint={tr("Numéros ou plages ; vide = tous les cœurs")} />
-      <Pick label={tr("Hugepages")} value={v.hugepages} onChange={(x) => setV({ ...v, hugepages: x })} choices={[["any", tr("N'importe quelle taille")], ["2", tr("2 Mo")], ["1024", tr("1 Go")]]} hint={tr("Le nœud doit avoir des pages réservées, sinon la machine ne démarre pas")} />
+      <p className="text-xs text-muted">{tr("Les cœurs autorisés (affinity) et les hugepages sont réservés à root@pam : Proxmox les refuse au jeton de Kaji, ils ne sont donc pas proposés ici.")}</p>
       {box}
     </Modal>);
 }

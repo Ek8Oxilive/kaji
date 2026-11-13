@@ -91,6 +91,9 @@ def _handler(request: httpx.Request) -> httpx.Response:
             if k in ("digest", "delete"):
                 continue
             if parts[2] == "qemu" and (k.startswith(("scsi", "virtio", "sata", "ide", "net")) or k in CPU_OK):
+                if k in ("affinity", "hugepages"):
+                    # constaté en réel (Proxmox 9, 2026-11-13) : réservé à root@pam, refusé au token de Kaji
+                    return _json(500, {"data": None}, f"only root can set '{k}' config")
                 if k in CPU_OK:
                     if k == "cpuunits" and not (1 <= int(v) <= 262144):
                         return _json(400, {"data": None}, "cpuunits")
@@ -342,9 +345,9 @@ def test_net_silent_non_write_is_reported(api):
 # ------------------------------------------------------------------ CPU
 def test_cpu_options_are_written_with_the_digest(api):
     c, cid = api
-    r = cpu(c, cid, cpuunits=2000, cpulimit=2.5, affinity="0,5,8-11", confirm=True)
+    r = cpu(c, cid, cpuunits=2000, cpulimit=2.5)
     assert r.status_code == 200, r.text
-    assert puts()[0]["form"] == {"cpuunits": "2000", "cpulimit": "2.5", "affinity": "0,5,8-11", "digest": DIGEST}
+    assert puts()[0]["form"] == {"cpuunits": "2000", "cpulimit": "2.5", "digest": DIGEST}
     assert cfg()["cpuunits"] == "2000"
 
 
@@ -370,13 +373,13 @@ def test_affinity_beyond_node_cores_is_refused_before_any_write(api):
     c, cid = api
     r = cpu(c, cid, affinity="0-12", confirm=True)
     assert r.status_code == 422 and "12 cœurs" in r.json()["detail"] and not puts()
-    assert cpu(c, cid, affinity="0-11", confirm=True).status_code == 200
+    assert cpu(c, cid, affinity="0-11", confirm=True).status_code == 403                      # valide, mais refusé par Proxmox : root@pam
 
 
 def test_affinity_unreadable_node_status_leaves_the_decision_to_proxmox(api):
     c, cid = api
     ST["status_down"] = True
-    assert cpu(c, cid, affinity="0-99", confirm=True).status_code == 200
+    assert cpu(c, cid, affinity="0-99", confirm=True).status_code == 403                      # Proxmox décide : ici « root seulement »
 
 
 @pytest.mark.parametrize("body", [
@@ -395,7 +398,16 @@ def test_cpu_risky_options_need_confirm(api, body, why):
     c, cid = api
     r = cpu(c, cid, **body)
     assert r.status_code == 400 and why in r.json()["detail"] and not puts()
-    assert cpu(c, cid, confirm=True, **body).status_code == 200
+    assert cpu(c, cid, confirm=True, **body).status_code == 403                               # confirmé, mais réservé à root@pam chez Proxmox
+
+
+@pytest.mark.parametrize("body", [{"affinity": "0-3"}, {"hugepages": "2"}, {"hugepages": "any"}, {"cpuunits": 100, "affinity": "0-3"}])
+def test_root_only_options_get_a_fixed_message_and_change_nothing(api, body):
+    c, cid = api
+    r = cpu(c, cid, confirm=True, **body)
+    assert r.status_code == 403 and r.json()["detail"] == "Proxmox réserve cette option à root@pam (affinity, hugepages) : elle est refusée au token de Kaji"
+    assert "only root" not in r.text and "cpuunits" not in cfg() and "affinity" not in cfg() and "hugepages" not in cfg()
+    assert any(e["status"] == "error" and "root@pam" in (e.get("detail") or "") for e in c.get("/api/audit").json())
 
 
 def test_cpu_dry_run_and_silent_non_write(api):
@@ -434,7 +446,8 @@ def test_requires_login_and_validates_path(api):
 def test_config_read_exposes_the_new_options(api):
     c, cid = api
     net(c, cid, "net0", rate=5, mtu=1500, trunks=["10", "20-30"])
-    cpu(c, cid, cpuunits=100, affinity="0-3", confirm=True)
+    cpu(c, cid, cpuunits=100)
+    ST["cfgs"][("qemu", 115)]["affinity"] = "0-3"                                              # posé par root : Kaji le LIT sans pouvoir l'écrire
     ST["cfgs"][("qemu", 115)]["net0"] += ",link_down=1"
     j = c.get(f"/api/connections/{cid}/guests/enzo/qemu/115/config").json()
     n0 = next(n for n in j["nets"] if n["key"] == "net0")
