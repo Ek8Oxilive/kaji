@@ -126,6 +126,7 @@ GET /api/connections/{conn_id}/nodes/{node}/isos
 GET /api/connections/{conn_id}/nodes/{node}/metrics
 GET /api/connections/{conn_id}/nodes/{node}/network
 GET /api/connections/{conn_id}/nodes/{node}/notes
+GET /api/connections/{conn_id}/nodes/{node}/oci/tags
 GET /api/connections/{conn_id}/nodes/{node}/power
 GET /api/connections/{conn_id}/nodes/{node}/replication
 GET /api/connections/{conn_id}/nodes/{node}/replication/{job}/log
@@ -269,6 +270,7 @@ POST /api/connections/{conn_id}/nodes/{node}/qemu
 POST /api/connections/{conn_id}/nodes/{node}/restore
 POST /api/connections/{conn_id}/nodes/{node}/services/{service}/{action}
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/download-url
+POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/oci-pull
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/prune/preview
 POST /api/connections/{conn_id}/nodes/{node}/storage/{storage}/upload

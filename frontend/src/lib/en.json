@@ -2565,5 +2565,16 @@
  "Supprimer…": "Delete…",
  "Supprimer l'utilisateur {u}": "Delete user {u}",
  "Seuls les utilisateurs du realm pve se suppriment ici ; Kaji et root sont protégés": "Only users of the pve realm can be deleted here; Kaji and root are protected",
- "Débloquer un compte verrouillé (trop d'échecs)": "Unlock a locked account (too many failures)"
+ "Débloquer un compte verrouillé (trop d'échecs)": "Unlock a locked account (too many failures)",
+ "Télécharger une image OCI…": "Download an OCI image…",
+ "Télécharger une image OCI": "Download an OCI image",
+ "Le nœud {node} télécharge l'image depuis un registre sur Internet, dans le stockage {storage}.": "Node {node} downloads the image from a registry on the Internet, into storage {storage}.",
+ "Image (registre/dépôt:étiquette)": "Image (registry/repository:tag)",
+ "Voir les étiquettes du dépôt": "Show the repository tags",
+ "Aucune étiquette.": "No tags.",
+ "Choisir une étiquette…": "Choose a tag…",
+ "Nom du fichier (facultatif)": "File name (optional)",
+ "Les registres locaux sont refusés. Une image déjà présente dans le stockage est refusée par Proxmox. Aucun identifiant de registre n'est géré (images publiques seulement).": "Local registries are refused. An image already present in the storage is refused by Proxmox. No registry credentials are handled (public images only).",
+ "Je veux que le nœud télécharge cette image depuis Internet": "I want the node to download this image from the Internet",
+ "Image « {reference} » téléchargée dans {storage}": "Image “{reference}” downloaded into {storage}"
 }
