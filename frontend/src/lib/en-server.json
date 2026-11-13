@@ -456,5 +456,20 @@
  "Aucun certificat n'est épinglé pour cette connexion": "No certificate is pinned for this connection",
  "Jeton de première configuration manquant ou invalide": "First-setup token missing or invalid",
  "Réplication non chiffrée : le trafic de réplication (disques des machines) circulera en clair. Renvoie la requête avec confirm=true": "Unencrypted replication: replication traffic (machine disks) will travel in clear text. Send the request again with confirm=true",
- "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true"
+ "Réglage de la haute disponibilité : il change ce que fait la HA à l'arrêt d'un nœud, à la reprise ou au placement des machines. Renvoie la requête avec confirm=true": "High availability setting: it changes what HA does when a node stops, on recovery or when placing machines. Send the request again with confirm=true",
+ "Ce realm existe déjà": "This realm already exists",
+ "Realm inconnu": "Unknown realm",
+ "Realm intégré : il ne se supprime pas": "Built-in realm: it cannot be deleted",
+ "Ce realm porte le compte de Kaji ou celui de la session administrateur : le supprimer couperait Kaji": "This realm holds the account of Kaji or of the admin session: deleting it would cut Kaji off",
+ "Seuls les realms LDAP et Active Directory se synchronisent": "Only LDAP and Active Directory realms can be synchronized",
+ "Proxmox n'a pas créé le realm": "Proxmox did not create the realm",
+ "Proxmox n'a pas appliqué tous les réglages du realm": "Proxmox did not apply all the realm settings",
+ "Proxmox n'a pas supprimé le realm": "Proxmox did not delete the realm",
+ "Le realm a changé depuis ta lecture (digest périmé) : recharge avant de modifier": "The realm changed since you read it (stale digest): reload before editing",
+ "Configuration du realm illisible": "Unreadable realm configuration",
+ "Type de realm non géré": "Unsupported realm type",
+ "Écriture d'un realm : renvoie la requête avec confirm=true et l'identifiant du realm retapé": "Realm write: send the request again with confirm=true and the realm ID retyped",
+ "Les realms pam et pve sont intégrés": "The pam and pve realms are built in",
+ "Valeur vide ou caractère de contrôle interdit": "Empty value or control character not allowed",
+ "Secret invalide (vide, trop long ou caractère de contrôle)": "Invalid secret (empty, too long or control character)"
 }
