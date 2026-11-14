@@ -565,5 +565,10 @@
  "Ce jeton est déjà expiré.": "This token has already expired.",
  "Proxmox ne dit pas quand ce jeton expire : indique sa date d'expiration (expires_at).": "Proxmox does not say when this token expires: give its expiry date (expires_at).",
  "Proxmox refuse ce jeton (identifiant ou secret incorrect, jeton expiré ou supprimé).": "Proxmox rejects this token (wrong id or secret, expired or deleted token).",
- "Aucun jeton personnel pour cette connexion": "No personal token for this connection"
+ "Aucun jeton personnel pour cette connexion": "No personal token for this connection",
+ "Aucun jeton de service pour cette connexion (KAJI_REQUIRE_SERVICE_TOKEN) : l'administrateur doit en enregistrer un.": "No service token for this connection (KAJI_REQUIRE_SERVICE_TOKEN): the administrator must register one.",
+ "Le jeton de service de cette connexion a expiré : l'administrateur doit en enregistrer un nouveau.": "This connection's service token has expired: the administrator must register a new one.",
+ "Proxmox refuse le jeton de service de cette connexion (révoqué, expiré ou supprimé chez lui) : l'administrateur doit en enregistrer un nouveau.": "Proxmox rejects this connection's service token (revoked, expired or deleted on its side): the administrator must register a new one.",
+ "Proxmox ne dit pas quels droits a ce jeton : impossible de vérifier qu'il est limité, donc refusé (un jeton de service ne s'enregistre jamais « sur parole »).": "Proxmox does not say which rights this token has: it cannot be checked to be limited, so it is refused (a service token is never registered \"on trust\").",
+ "Aucun jeton de service pour cette connexion": "No service token for this connection"
 }
