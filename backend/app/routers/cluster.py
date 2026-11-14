@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import REFUSED_DETAIL, SERVICE_REFUSED_DETAIL, PersonalTokenRefused, ServiceTokenRefused, get_client_factory
-from ..proxmox import ProxmoxClient
+from ..proxmox import ProxmoxClient, ProxmoxProtocolError
 from ..storagespec import shape_storages
 from .auth import current_user
 from ..tagspec import parse_tags
@@ -37,6 +37,8 @@ def http_error(e: Exception) -> HTTPException:
         detail = {401: "Token refusé par Proxmox", 403: FORBIDDEN_DETAIL}.get(
             code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
         return HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
+    if isinstance(e, ProxmoxProtocolError):
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, "Réponse inattendue : ce n'est pas l'API de Proxmox (mauvaise adresse, proxy ou portail captif ?)")
     if isinstance(e, httpx.TimeoutException):
         return HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
     if isinstance(e, httpx.ConnectError) and "CERTIFICATE" in str(e).upper():

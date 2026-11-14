@@ -116,6 +116,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_USER_TOKEN_MAX_DAYS` | `90` (défaut) | Durée maximale acceptée pour un jeton personnel. |
 | `KAJI_REQUIRE_SERVICE_TOKEN` | `false` (défaut) | `true` : le planificateur et les alertes ne font rien pour une connexion sans **jeton de service** limité (`docs/api/jeton-service.md`) au lieu d'utiliser le jeton partagé. |
 | `KAJI_SERVICE_TOKEN_MAX_DAYS` | `365` (défaut) | Échéance maximale acceptée pour un jeton de service. |
+| `KAJI_MAX_CONCURRENT_REQUESTS` | `100` (défaut) | Requêtes simultanées au plus ; au-delà, **503** immédiat au lieu d'un blocage (`docs/robustesse.md`). |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
 | `KAJI_TRUST_PROXY` | laisse `false` | Le `docker-compose.yml` le règle déjà pour le conteneur. |
 | `KAJI_AUDIT_RETENTION_DAYS` | `365` (défaut) | Conservation du journal d'audit de Kaji, en jours (`0` = indéfiniment). |

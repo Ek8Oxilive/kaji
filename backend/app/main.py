@@ -5,7 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .config import get_settings
 from .db import init_db
+from .limits import ConcurrencyLimit
 from .routers import load_routers
 
 
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Kaji", lifespan=lifespan)
+app.add_middleware(ConcurrencyLimit)       # lit KAJI_MAX_CONCURRENT_REQUESTS à chaque requête ; 503 tout de suite au-delà, au lieu de tout bloquer (app/limits.py)
 for _router in load_routers():           # ordre déclaré par chaque module (voir routers/__init__.py)
     app.include_router(_router)
 

@@ -31,17 +31,30 @@ def secure_sqlite_file(url: str) -> None:
     os.chmod(f, 0o600)                           # et resserré s'il existait déjà en 644
 
 
+# Une requête GARDE sa connexion à la base pendant qu'elle attend Proxmox (la session de la requête reste ouverte). Avec le pool par défaut de SQLAlchemy (5 + 10 de débordement), une
+# quinzaine de requêtes lentes vers Proxmox suffisent à saturer le pool : tout le reste attend jusqu'à 30 s, y compris les pages qui n'ont pas besoin de Proxmox (constaté le 2026-11-14,
+# lot #457). Les connexions SQLite sont ouvertes à la demande et légères : le plafond est relevé (docs/robustesse.md : chiffres mesurés et limite restante).
+DB_POOL_SIZE = 50
+DB_POOL_OVERFLOW = 100
+
+
+def engine_kwargs(url: str) -> dict:
+    kwargs: dict = {}
+    if url.startswith("sqlite"):
+        kwargs["connect_args"] = {"check_same_thread": False}
+        if url in ("sqlite://", "sqlite:///:memory:"):
+            kwargs["poolclass"] = StaticPool  # une seule connexion pour la base en mémoire
+        else:
+            kwargs["pool_size"], kwargs["max_overflow"] = DB_POOL_SIZE, DB_POOL_OVERFLOW
+    return kwargs
+
+
 def get_engine():
     global _engine, _SessionLocal
     if _engine is None:
         url = get_settings().database_url
         secure_sqlite_file(url)
-        kwargs = {}
-        if url.startswith("sqlite"):
-            kwargs["connect_args"] = {"check_same_thread": False}
-            if url in ("sqlite://", "sqlite:///:memory:"):
-                kwargs["poolclass"] = StaticPool  # une seule connexion pour la base en mémoire
-        _engine = create_engine(url, **kwargs)
+        _engine = create_engine(url, **engine_kwargs(url))
         _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
 
