@@ -11,6 +11,8 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 - `SECURITY.md` (signalement d'une vulnérabilité, versions suivies) et ce `CHANGELOG.md` (#426).
 - **Jetons Proxmox personnels** (option A du cadrage, #440) : chaque utilisateur de Kaji enregistre son propre jeton par connexion (« Compte » → « Mon jeton Proxmox ») ; Proxmox applique ses droits et nomme la personne dans son journal. Privilèges séparés et expiration exigés (relus chez Proxmox quand c'est possible), jamais `root@pam` ni le jeton partagé, chiffrés par une **clé séparée** `KAJI_TOKEN_KEY` (ou fichier), rotation `rotate-token-key`, contrôle par `verify` et `restore`, option `KAJI_REQUIRE_USER_TOKEN`, flux temps réel cloisonné par utilisateur. **Pas encore essayé en réel.**
 
+- **Runbook d'exploitation** (`docs/runbook.md`, #461) et commande **`rotate-secret-key`** : ré-chiffre les jetons des connexions et les webhooks d'alerte lors d'un changement de `KAJI_SECRET_KEY` (tout ou rien, rejouable), au lieu de tout ressaisir. **Procédures jamais rejouées par un tiers.**
+
 ### Modifié
 - Images de base Docker (`python`, `node`, `nginx`, `caddy`) **épinglées par empreinte** ; script `tools/image_digests.sh` pour les vérifier ou les mettre à jour, Dependabot pour les écosystèmes `docker` et `docker-compose`, et étape de CI qui tire l'image Caddy ; procédure de publication d'une version dans `docs/images-et-versions.md` (#427).
 

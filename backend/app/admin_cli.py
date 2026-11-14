@@ -5,6 +5,7 @@
     docker compose exec backend python -m app.admin_cli verify
     docker compose run --rm -T --no-deps backend python -m app.admin_cli restore - --yes < kaji.db      (voir tools/restore.sh)
     docker compose exec backend python -m app.admin_cli rotate-token-key --yes      (rotation de KAJI_TOKEN_KEY : docs/deploiement.md)
+    docker compose exec backend python -m app.admin_cli rotate-secret-key --yes     (rotation de KAJI_SECRET_KEY : docs/runbook.md)
 
 `backup` copie la base de façon cohérente (sans arrêter Kaji), `verify` relit les jetons et webhooks chiffrés avec la clé actuelle (sans rien afficher de secret),
 `restore` remplace la base par une sauvegarde après l'avoir vérifiée (Kaji doit être arrêté ; la clé `KAJI_SECRET_KEY` n'est PAS dans la base : `docs/deploiement.md`).
@@ -132,6 +133,36 @@ def rotate_cmd(argv: list[str]) -> int:
     return 0
 
 
+def rotate_secret_cmd(argv: list[str]) -> int:
+    """`rotate-secret-key --yes` : ré-chiffre les jetons des connexions et les webhooks d'alerte avec KAJI_SECRET_KEY (la nouvelle) ; KAJI_SECRET_KEY_PREVIOUS = l'ancienne."""
+    from sqlalchemy.orm import Session
+
+    from . import audit
+    from .config import check_secret_key, get_settings
+    from .db import get_engine
+    from .secretrotate import SecretRotationError, rotate_secret_key
+    if "--yes" not in argv:
+        print("usage : rotate-secret-key --yes   (fais d'abord une sauvegarde : tools/backup.sh ; les sessions tomberont toutes)")
+        return 2
+    s = get_settings()
+    try:
+        try:
+            check_secret_key(s.kaji_secret_key)
+        except RuntimeError as e:
+            raise AdminError(str(e))
+        with Session(get_engine()) as db:
+            res = rotate_secret_key(db, s.kaji_secret_key, s.kaji_secret_key_previous.strip())
+            audit.record(db, username="cli-local", connection_id=None, action="secret-key-rotated", target="connections, alert_rules", status="started",
+                         detail=f"{res.connections} connexion(s) et {res.webhooks} webhook(s) ré-chiffré(s), {res.already_current} déjà à jour")
+    except (AdminError, SecretRotationError) as e:
+        print(f"Échec : {e}")
+        return 1
+    print(f"Rotation faite : {res.connections} jeton(s) de connexion et {res.webhooks} webhook(s) ré-chiffré(s), {res.already_current} déjà à jour. "
+          "Retire maintenant KAJI_SECRET_KEY_PREVIOUS de la configuration et redémarre Kaji : toutes les sessions sont invalides (reconnexion). "
+          "Les anciennes sauvegardes restent chiffrées avec l'ANCIENNE clé : garde-la tant que tu en as besoin.")
+    return 0
+
+
 def verify_cmd(argv: list[str]) -> int:
     from pathlib import Path
 
@@ -190,6 +221,8 @@ def main(argv: list[str]) -> int:
         return restore_cmd(argv[1:])
     if argv and argv[0] == "rotate-token-key":
         return rotate_cmd(argv[1:])
+    if argv and argv[0] == "rotate-secret-key":
+        return rotate_secret_cmd(argv[1:])
     if not argv or argv[0] != "reset-password":
         print(__doc__)
         return 2
