@@ -87,4 +87,4 @@ Les connexions Proxmox sont conservées.
 - Frontend : politique de sécurité de contenu (CSP) restrictive, pas de script en ligne, `X-Frame-Options: DENY`, cache illimité pour
   les fichiers à hash, jamais pour l'application.
 - **Non fournis par défaut** : le HTTPS (option Caddy ci-dessus), l'authentification à deux facteurs pour se connecter à Kaji, l'envoi d'e-mails (les alertes passent par un webhook).
-- **Images non verrouillées par empreinte** : `python:3.12-slim`, `node:22-alpine` et `nginx:1.27-alpine` sont désignées par leur étiquette.
+- **Images de base épinglées par empreinte** (`python`, `node`, `nginx`, `caddy` : `nom:étiquette@sha256:…`) : une reconstruction redonne les mêmes images. Contrepartie : elles ne reçoivent plus de correctif de sécurité tant que l'empreinte n'est pas mise à jour (Dependabot ou `tools/image_digests.sh`) : `docs/images-et-versions.md`.
