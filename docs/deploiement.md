@@ -1,5 +1,7 @@
 # Déploiement avec Docker
 
+> **Première installation ? Suis plutôt le guide pas à pas `docs/installation-lab.md`** (prérequis, jeton Proxmox au moindre privilège, variables, HTTPS, sauvegarde). Cette page en est le détail technique.
+
 Deux conteneurs : **backend** (FastAPI, base SQLite dans un volume) et **web** (nginx : fichiers statiques et relais de `/api`).
 Seul `web` écoute sur le réseau, **par défaut sur cette machine uniquement** (`127.0.0.1:8080`).
 
@@ -38,7 +40,7 @@ docker compose down                     # le réseau change de sous-réseau : il
 docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build
 docker compose cp tls:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt   # à installer comme autorité de confiance dans ton navigateur ou ton système
 ```
-Ouvre ensuite `https://<adresse>:8443`. **Non testé en réel par les agents** (pas de Docker sur leur poste) : essaie d'abord sur une machine qui ne compte pas, et garde l'ancien accès HTTP (`KAJI_BIND`) tant que le HTTPS n'est pas vérifié. Pense à sauvegarder le volume `caddy-data` (clé de l'autorité interne). Avec Tailscale, `tailscale serve` fait la même chose sans Caddy.
+Ouvre ensuite `https://<adresse>` (port 443, `KAJI_TLS_PORT`). **Non testé en réel par les agents** (pas de Docker sur leur poste) : essaie d'abord sur une machine qui ne compte pas, et garde l'ancien accès HTTP (`KAJI_BIND`) tant que le HTTPS n'est pas vérifié. Pense à sauvegarder le volume `caddy-data` (clé de l'autorité interne). Avec Tailscale, `tailscale serve` fait la même chose sans Caddy.
 
 ## Épinglage du certificat de Proxmox (page « Connexions »)
 Le certificat par défaut de Proxmox n'est signé par aucune autorité publique, donc « Vérifier le certificat SSL » ne marche pas sans l'avoir remplacé. **Épingler** règle cela : bouton « Épingler le certificat… » sur la connexion, compare l'empreinte SHA-256 affichée à celle de ton nœud (`openssl x509 -fingerprint -sha256 -noout -in /etc/pve/local/pve-ssl.pem` sur le nœud, ou la colonne « Empreinte du certificat » de la page Cluster), coche la case et confirme. Kaji n'acceptera plus **que ce certificat**, y compris pour les consoles ; s'il change (renouvellement, ou usurpation), les appels échouent avec un message clair jusqu'à ce que tu épingles le nouveau. Changer l'hôte ou le port de la connexion retire l'épingle. Détails : `docs/api/connexions-tls.md`.
