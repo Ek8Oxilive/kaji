@@ -48,7 +48,7 @@ Public : un collègue, un lab d'entreprise.
 - **Identité par utilisateur (option A retenue ; jeton par utilisateur codé le 2026-11-14, #440, essai réel à faire)** : jeton Proxmox par utilisateur de Kaji (chiffré, clé séparée, expiration, privilèges séparés), **jeton de service limité** pour le planificateur et les alertes, **session par mot de passe** pour les opérations interdites aux jetons ; création assistée des jetons par l'administrateur.
 - **Connexion à Kaji d'entreprise** : OIDC (SSO) et/ou LDAP / AD ; **double authentification (TOTP) pour se connecter à Kaji** (aujourd'hui seulement pour les comptes Proxmox).
 - **Audit exportable** : syslog / fichier JSON horodaté, conservation configurable, jamais de secret.
-- **Limiteur de connexions persistant** (il est en mémoire : remis à zéro au redémarrage).
+- **Limiteur de connexions persistant** (il était en mémoire : remis à zéro au redémarrage) : **codé le 2026-11-14 (#446)**, table `login_failures`, à valider par un redémarrage réel.
 - **Rôles par périmètre** (par pool ou par groupe de machines), en plus des 3 rôles actuels.
 - **Critères de sortie** : une personne se connecte par le SSO de l'entreprise ; une action est attribuée à son nom **côté Kaji ET côté Proxmox** (journal de Proxmox relu en réel) ; **la base de Kaji seule ne permet pas de lire un jeton** (test automatisé) ; le planificateur tourne avec un jeton de service qui n'a que ses droits (refus constaté pour le reste) ; l'audit arrive dans le SIEM de test ; un compte à rôle restreint ne peut pas sortir de son périmètre (test automatisé + essai réel).
 

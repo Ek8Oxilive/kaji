@@ -14,6 +14,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 - **Runbook d'exploitation** (`docs/runbook.md`, #461) et commande **`rotate-secret-key`** : ré-chiffre les jetons des connexions et les webhooks d'alerte lors d'un changement de `KAJI_SECRET_KEY` (tout ou rien, rejouable), au lieu de tout ressaisir. **Procédures jamais rejouées par un tiers.**
 
 ### Modifié
+- **Limiteur de connexions persistant** (#446) : les échecs de connexion (et de jeton de première configuration) sont gardés en base (`login_failures`, clé et heure seulement) ; un redémarrage ne remet plus le compteur à zéro. Même comportement : 5 échecs par 5 minutes et par adresse.
 - Images de base Docker (`python`, `node`, `nginx`, `caddy`) **épinglées par empreinte** ; script `tools/image_digests.sh` pour les vérifier ou les mettre à jour, Dependabot pour les écosystèmes `docker` et `docker-compose`, et étape de CI qui tire l'image Caddy ; procédure de publication d'une version dans `docs/images-et-versions.md` (#427).
 
 - Test de mise à jour entre versions : bases d'exemple produites par le code réel de `v1.0.0-rc1` et de deux anciens états du schéma, migrées vers le code courant en CI sans perte de valeur ; une base d'exemple par étiquette Git exigée, produite par `tools/snapshot_db.py` (#456).
