@@ -90,6 +90,7 @@ Sur la machine de Kaji :
 ```bash
 git clone https://github.com/Ek8Oxilive/kaji.git && cd kaji
 # Pour une version figée, choisis une étiquette plutôt que main : git tag -l, puis git checkout v1.0.0-rc1
+# (les images de base Docker sont épinglées par empreinte : docs/images-et-versions.md)
 cp .env.example .env
 chmod 600 .env
 ```
@@ -206,6 +207,7 @@ Les migrations de schéma s'exécutent au démarrage, **après une copie de la b
 
 ## 10. Pour aller plus loin
 - `docs/deploiement.md` : détails Docker, limiteur de connexions derrière un proxy, ce que fait (et ne fait pas) la configuration.
+- `docs/images-et-versions.md` : images de base épinglées, mise à jour des empreintes, nommage et publication des versions.
 - `docs/securite.md` : revue de sécurité, ce qui est vérifié, ce qui reste à décider.
 - `docs/statut-fonctions.md` : quelles fonctions sont « validées en réel » et lesquelles sont « expérimentales ».
 - `docs/cadrage-prod-entreprise.md` : ce qui sépare ce lab d'une production en entreprise.

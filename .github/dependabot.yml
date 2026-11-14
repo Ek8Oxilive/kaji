@@ -12,3 +12,13 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+  # Images de base épinglées par empreinte (`image:étiquette@sha256:…`) : Dependabot propose l'étiquette ET l'empreinte (docs/images-et-versions.md).
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly }
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }

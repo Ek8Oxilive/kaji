@@ -10,6 +10,9 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 - Guide « Installer Kaji en lab » (`docs/installation-lab.md`) et test qui le garde aligné sur les droits Proxmox, `.env.example` et les fichiers Docker Compose (#430).
 - `SECURITY.md` (signalement d'une vulnérabilité, versions suivies) et ce `CHANGELOG.md` (#426).
 
+### Modifié
+- Images de base Docker (`python`, `node`, `nginx`, `caddy`) **épinglées par empreinte** ; script `tools/image_digests.sh` pour les vérifier ou les mettre à jour, Dependabot pour les écosystèmes `docker` et `docker-compose`, et étape de CI qui tire l'image Caddy ; procédure de publication d'une version dans `docs/images-et-versions.md` (#427).
+
 ### Corrigé
 - `docs/deploiement.md` : le HTTPS fourni par Caddy écoute sur le port 443, pas 8443 (#430).
 
