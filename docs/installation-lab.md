@@ -209,4 +209,4 @@ Les migrations de schéma s'exécutent au démarrage, **après une copie de la b
 - `docs/securite.md` : revue de sécurité, ce qui est vérifié, ce qui reste à décider.
 - `docs/statut-fonctions.md` : quelles fonctions sont « validées en réel » et lesquelles sont « expérimentales ».
 - `docs/cadrage-prod-entreprise.md` : ce qui sépare ce lab d'une production en entreprise.
-- **Signaler un problème** : un ticket sur le dépôt. **Une faille de sécurité** : pas de ticket public, voir `SECURITY.md` quand il existera (ticket #426) ; d'ici là, contacte le propriétaire du dépôt directement.
+- **Signaler un problème** : un ticket sur le dépôt. **Une faille de sécurité** : pas de ticket public, suis `SECURITY.md` (signalement privé). L'historique des versions est dans `CHANGELOG.md`.
