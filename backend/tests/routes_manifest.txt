@@ -51,6 +51,7 @@ DELETE /api/connections/{conn_id}/sdn/ipams/{ipam}
 DELETE /api/connections/{conn_id}/sdn/vnets/{vnet}
 DELETE /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 DELETE /api/connections/{conn_id}/sdn/zones/{zone}
+DELETE /api/connections/{conn_id}/service-token
 DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 DELETE /api/connections/{conn_id}/tls
@@ -162,6 +163,7 @@ GET /api/connections/{conn_id}/sdn/ipams
 GET /api/connections/{conn_id}/sdn/vnets
 GET /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets
 GET /api/connections/{conn_id}/sdn/zones
+GET /api/connections/{conn_id}/service-token
 GET /api/connections/{conn_id}/storage-config
 GET /api/connections/{conn_id}/storage-config/{storage}
 GET /api/connections/{conn_id}/storages
@@ -361,6 +363,7 @@ PUT /api/connections/{conn_id}/sdn/ipams/{ipam}
 PUT /api/connections/{conn_id}/sdn/vnets/{vnet}
 PUT /api/connections/{conn_id}/sdn/vnets/{vnet}/subnets/{subnet}
 PUT /api/connections/{conn_id}/sdn/zones/{zone}
+PUT /api/connections/{conn_id}/service-token
 PUT /api/connections/{conn_id}/storage-config/{storage}
 PUT /api/connections/{conn_id}/tls
 PUT /api/kaji-users/{user_id}
