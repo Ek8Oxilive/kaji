@@ -82,5 +82,5 @@ Public : un collègue, un lab d'entreprise.
 
 ## Première étape proposée
 1. ~~Enzo tranche l'option d'identité~~ **fait le 2026-11-14 : option A avec garde-fous.**
-2. Tickets et jalons GitHub (« J1 lab partageable » à « J4 production »).
+2. ~~Tickets et jalons GitHub (« J1 lab partageable » à « J4 production »).~~ **Fait le 2026-11-14** : J1 #425 à #429, J2 #440 à #448, J3 #449 à #457, J4 #458 à #463.
 3. On commence par le guide d'installation en lab, parce qu'il révèle tout de suite ce qui manque à une installation neuve.
