@@ -63,14 +63,47 @@ code », c'est que tu as redescendu de version : restaure une sauvegarde d'avant
 
 ## Sauvegarde et restauration
 **Il faut sauvegarder DEUX choses ensemble : la base ET `KAJI_SECRET_KEY`.** La base contient les tokens Proxmox et les adresses de webhook des alertes **chiffrés** avec cette
-clé : l'une sans l'autre est inutilisable. Elle contient aussi les utilisateurs de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit.
+clé : l'une sans l'autre est inutilisable. Elle contient aussi les utilisateurs de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit. La clé est dans `.env`, **jamais dans la base** : sauvegarde `.env` à part, en lieu sûr (gestionnaire de mots de passe).
+
+### Sauvegarder (sans arrêter Kaji)
+```bash
+tools/backup.sh [DOSSIER]          # défaut : ./sauvegardes ; crée kaji-AAAAMMJJ-HHMMSS.db en 600 (dossier en 700)
+```
+Le script demande au conteneur une **copie cohérente de la base en service** (API de sauvegarde de SQLite : une copie de fichier faite pendant une écriture peut être déchirée), puis **relit cette copie avec la clé actuelle** (`verify`) : si un jeton ou un webhook n'est pas lisible, il échoue et le dit. Il affiche l'**empreinte de la clé** (8 caractères qui permettent de reconnaître la clé sans la révéler) : note-la avec la sauvegarde de `.env`. Il ne sauvegarde pas la clé lui-même. Le HTTPS (Caddy) est détecté tout seul.
+
+Pas de sauvegarde automatique fournie. Une ligne `cron` peut appeler le script (`0 3 * * * cd /chemin/vers/kaji && tools/backup.sh /chemin/sûr`) : **non essayé**. Pense à purger les anciennes copies et à les emmener **hors de la machine**.
+
+### Contrôler une base ou une sauvegarde
+```bash
+docker compose exec backend python -m app.admin_cli verify                      # la base en service
+docker compose exec -T backend python -m app.admin_cli verify --file - < kaji-….db     # une sauvegarde
+```
+Affiche l'intégrité SQLite, le numéro de schéma, le nombre de comptes par rôle, de connexions (**jetons déchiffrés : n/n**, certificats épinglés), de règles d'alerte (**webhooks déchiffrés : n/n**), d'actions planifiées et d'entrées d'audit. **Jamais une valeur secrète** ; code de sortie 1 s'il y a un problème (base abîmée, aucun administrateur, secret illisible avec cette clé).
+
+### Restaurer
+```bash
+# 1. remets le MÊME .env (même KAJI_SECRET_KEY) que celui de la sauvegarde
+tools/restore.sh kaji-AAAAMMJJ-HHMMSS.db          # demande de taper RESTAURER (--yes pour passer la question)
+```
+Déroulé : arrêt du backend → `restore` dans un conteneur jetable → redémarrage → `verify`. `restore` **refuse, sans rien modifier**, un fichier qui n'est pas une base SQLite saine de Kaji, un schéma plus récent que le code (mets Kaji à jour d'abord), ou une sauvegarde dont un jeton ou un webhook n'est **pas lisible avec la clé actuelle** (mauvais `.env`). L'ancienne base reste dans le volume (`kaji.db.avant-restauration-AAAAMMJJ-HHMMSS`, à supprimer à la main quand tu es sûr) et son journal SQLite périmé est retiré. Les sessions enregistrées au moment de la sauvegarde devraient rester valides tant qu'elles n'ont pas expiré (**non vérifié**) ; les migrations s'appliquent au démarrage si la sauvegarde est plus ancienne.
+Termine par un essai à la main : connexion à Kaji, page « Connexions » → « Tester », actions planifiées et alertes présentes.
+
+**Perdre la clé** = les connexions Proxmox enregistrées et les webhooks sont à ressaisir (les comptes, les rôles et l'audit restent lisibles). `tools/restore.sh` **refuse** alors la sauvegarde, par prudence : elle remplacerait une base qui marche par une base dont les jetons sont inutilisables. Pour récupérer quand même les comptes et l'audit, utilise la méthode de secours (copie du volume, ci-dessous), puis ressaisis les connexions et les webhooks.
+
+### Ce qui a été essayé, et ce qui ne l'a pas été
+- **Essayé (tests automatiques, vraies bases SQLite)** : sauvegarde d'une base en service avec une écriture non validée (absente de la copie), aller-retour complet sauvegarde → perte → restauration → relecture par l'application des comptes, rôles, jeton, webhooks, planification, audit ; refus avec la mauvaise clé, un fichier tronqué ou étranger, un schéma trop récent ; retour en arrière si le remplacement final échoue ; aucun secret affiché.
+- **Essayé avec un faux `docker`** (qui exécute les vraies commandes) : l'enchaînement des deux scripts, la confirmation, les refus, les droits des fichiers, le choix des fichiers Compose.
+- **PAS essayé : le vrai Docker** (volume, utilisateur du conteneur, `compose run`, `--wait`). Le critère de sortie du jalon J1 (« restauration validée ») n'est donc **pas** rempli tant qu'une sauvegarde n'a pas été restaurée sur une machine avec Docker (ticket #429).
+
+### Autre méthode : copie du volume entier (secours)
+Arrête d'abord le backend (`docker compose stop backend`), puis :
 ```bash
 docker volume ls                                                   # repère le volume, ex. kaji_kaji-data
 docker run --rm -v kaji_kaji-data:/data -v "$PWD":/backup alpine tar czf /backup/kaji-data.tgz -C /data .
+docker compose start backend
 cp .env /chemin/sûr/kaji.env                                       # la clé, séparément de la base
 ```
-Restauration : recrée le volume, extrais l'archive dedans, remets le même `.env`, puis `docker compose up -d`.
-**Perdre la clé** = les connexions Proxmox enregistrées sont à ressaisir (le compte et l'audit restent).
+Restauration : recrée le volume, extrais l'archive dedans, remets le même `.env`, puis `docker compose up -d`. Cette méthode copie aussi les anciennes sauvegardes de migration (`kaji.db.bak-vN-…`).
 
 ## Mot de passe perdu
 La création du **premier** compte par l'écran de première configuration n'est possible qu'une fois ; les autres comptes se créent ensuite par un administrateur (bouton « Compte » → « Gérer les utilisateurs »). Pour un mot de passe oublié, **sur le serveur** :
