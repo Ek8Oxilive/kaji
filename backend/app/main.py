@@ -27,7 +27,8 @@ async def lifespan(app: FastAPI):
 
         from . import scheduler
         from .proxmox import ProxmoxClient
-        task = asyncio.create_task(scheduler.loop(ProxmoxClient, lambda: Session(get_engine())))
+        from .deps import service_factory
+        task = asyncio.create_task(scheduler.loop(service_factory(ProxmoxClient), lambda: Session(get_engine())))
     yield
     if task is not None:
         task.cancel()
