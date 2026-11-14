@@ -172,3 +172,13 @@ class ServiceToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     refused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+
+class LoginFailure(Base):
+    """Un échec de connexion (ou de jeton de première configuration, de mot de passe…) par clé, pour le limiteur PERSISTANT (lot #446) : un redémarrage ne remet plus le compteur à zéro.
+    Ne contient JAMAIS de mot de passe ni d'identifiant saisi : seulement la clé (adresse IP, éventuellement préfixée) et l'heure."""
+
+    __tablename__ = "login_failures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(80), index=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
