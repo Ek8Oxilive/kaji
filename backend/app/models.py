@@ -153,3 +153,14 @@ class UserToken(Base):
     verified: Mapped[bool] = mapped_column(Boolean, default=False)       # vrai si Proxmox a confirmé les privilèges séparés ET l'expiration (relus avec le jeton lui-même)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     refused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)      # Proxmox a répondu 401 : jeton expiré ou révoqué chez lui
+
+
+class LoginFailure(Base):
+    """Un échec de connexion (ou de jeton de première configuration, de mot de passe…) par clé, pour le limiteur PERSISTANT (lot #446) : un redémarrage ne remet plus le compteur à zéro.
+    Ne contient JAMAIS de mot de passe ni d'identifiant saisi : seulement la clé (adresse IP, éventuellement préfixée) et l'heure."""
+
+    __tablename__ = "login_failures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    key: Mapped[str] = mapped_column(String(80), index=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)

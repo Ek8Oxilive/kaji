@@ -139,7 +139,7 @@ Le nouveau mot de passe est saisi de façon masquée ; toutes les sessions du co
 Les connexions Proxmox sont conservées.
 
 ## Ce que fait (et ne fait pas) cette configuration
-- Backend : utilisateur sans privilèges, **un seul processus** (le limiteur de connexions, le flux temps réel, **le planificateur d'actions et l'évaluation des alertes** vivent en mémoire :
+- Backend : utilisateur sans privilèges, **un seul processus** (le flux temps réel, **le planificateur d'actions et l'évaluation des alertes** vivent en mémoire :
   ne pas lancer plusieurs workers ni deux instances, les actions et les alertes seraient doublées ; `KAJI_SCHEDULER=false` les coupe), jamais publié sur le réseau, base en `600`.
 - Frontend : politique de sécurité de contenu (CSP) restrictive, pas de script en ligne, `X-Frame-Options: DENY`, cache illimité pour
   les fichiers à hash, jamais pour l'application.
