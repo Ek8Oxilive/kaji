@@ -1,4 +1,4 @@
-"""Rotation de la clé des jetons Proxmox personnels (lot #440) : ré-chiffre chaque jeton avec la clé COURANTE.
+"""Rotation de la clé des jetons Proxmox personnels ET des jetons de service (lots #440 et #441) : ré-chiffre chaque jeton avec la clé COURANTE.
 
 Procédure (docs/deploiement.md) : sauvegarde (`tools/backup.sh`) ; `KAJI_TOKEN_KEY` = nouvelle clé et `KAJI_TOKEN_KEY_PREVIOUS` = ancienne, redémarrage ; `rotate-token-key` ; retrait de
 `KAJI_TOKEN_KEY_PREVIOUS`, redémarrage. Tout ou rien : une seule transaction, relecture de chaque jeton avec la SEULE nouvelle clé avant de valider. Ne renvoie que des nombres.
@@ -9,7 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from . import tokenkey
-from .models import UserToken
+from .models import ServiceToken, UserToken
 
 
 class RotationError(Exception):
@@ -29,7 +29,7 @@ def rotate_all(db: Session, key_list: list[str], *, drop_unreadable: bool = Fals
         raise RotationError("Il faut les DEUX clés : KAJI_TOKEN_KEY (la nouvelle) et KAJI_TOKEN_KEY_PREVIOUS (l'ancienne).")
     current = [key_list[0]]
     res = RotationResult()
-    rows = list(db.scalars(select(UserToken).order_by(UserToken.id)))
+    rows = list(db.scalars(select(UserToken).order_by(UserToken.id))) + list(db.scalars(select(ServiceToken).order_by(ServiceToken.id)))      # jetons personnels ET jetons de service
     res.total = len(rows)
     unreadable = [r for r in rows if not tokenkey.readable(r.secret_enc, key_list)]
     if unreadable and not drop_unreadable:

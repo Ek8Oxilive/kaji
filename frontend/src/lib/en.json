@@ -2713,5 +2713,19 @@
  "déclaré, non contrôlé par Proxmox": "declared, not checked by Proxmox",
  "expire le {date}": "expires on {date}",
  "sous la forme compte@realm!identifiant-du-jeton": "as account@realm!token-id",
- "{n} jour(s)": "{n} day(s)"
+ "{n} jour(s)": "{n} day(s)",
+ "Aucun": "None",
+ "Aucun jeton de service": "No service token",
+ "Ce jeton a les privilèges séparés (« Privilege Separation » coché) : sans cela il aurait tous les droits de son compte.": "This token has separated privileges (\"Privilege Separation\" ticked): without it, it would have all its account's rights.",
+ "Droits acceptés (et eux seuls) : {rights}. Un jeton qui en détient d'autres est refusé : jamais Administrator.": "Accepted rights (and only these): {rights}. A token holding any others is refused: never Administrator.",
+ "Enregistrer le jeton de service": "Save the service token",
+ "Jeton de service": "Service token",
+ "Jeton de service enregistré : ses droits sont limités à ce qui est nécessaire.": "Service token saved: its rights are limited to what is needed.",
+ "Jeton de service retiré de Kaji.": "Service token removed from Kaji.",
+ "Jeton de service…": "Service token…",
+ "Jeton enregistré, mais il lui manque : {rights}. Le planificateur et les alertes échoueront sans ces droits.": "Token saved, but it lacks: {rights}. The scheduler and alerts will fail without these rights.",
+ "Sans jeton de service, le planificateur et les alertes ne font rien pour cette connexion.": "Without a service token, the scheduler and alerts do nothing for this connection.",
+ "Sans jeton de service, le planificateur et les alertes utilisent le jeton partagé de la connexion.": "Without a service token, the scheduler and alerts use the connection's shared token.",
+ "enregistré par {name}": "saved by {name}",
+ "{name} : utilisé par le planificateur d'actions et les alertes, quand personne n'est connecté.": "{name}: used by the action scheduler and alerts when nobody is logged in."
 }

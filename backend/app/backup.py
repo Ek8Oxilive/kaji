@@ -67,6 +67,7 @@ class Report:
     tokens: tuple[int, int] = (0, 0)            # (déchiffrés, total)
     webhooks: tuple[int, int] = (0, 0)
     user_tokens: tuple[int, int] = (0, 0)       # jetons Proxmox PERSONNELS (clé séparée)
+    service_tokens: tuple[int, int] = (0, 0)    # jetons de SERVICE (clé séparée)
 
     def line(self, text: str) -> None:
         self.lines.append(text)
@@ -155,6 +156,20 @@ def verify(db_path: Path, secret_key: str, token_keys: list[str] | None = None) 
                 rep.line(f"Jetons Proxmox personnels : {len(personal)} ; déchiffrés : {good}/{len(personal)} ; échéance dépassée : {expired}")
                 if good != len(personal):
                     rep.problem(f"{len(personal) - good} jeton(s) Proxmox personnel(s) illisible(s) avec la clé KAJI_TOKEN_KEY : ce n'est pas la clé de cette base (rotation oubliée ?).")
+        if "service_tokens" in tables:
+            service = [r[0] for r in db.execute("SELECT secret_enc FROM service_tokens")]
+            if not service:
+                rep.line("Jetons de service : 0")
+            elif not token_keys:
+                rep.service_tokens = (0, len(service))
+                rep.line(f"Jetons de service : {len(service)} ; clé KAJI_TOKEN_KEY non fournie : non vérifiés")
+                rep.problem(f"{len(service)} jeton(s) de service dans cette base, mais la clé KAJI_TOKEN_KEY (ou KAJI_TOKEN_KEY_FILE) n'est pas configurée : le planificateur et les alertes ne pourraient pas les utiliser.")
+            else:
+                good = sum(1 for c in service if tokenkey.readable(c, token_keys))
+                rep.service_tokens = (good, len(service))
+                rep.line(f"Jetons de service : {len(service)} ; déchiffrés : {good}/{len(service)}")
+                if good != len(service):
+                    rep.problem(f"{len(service) - good} jeton(s) de service illisible(s) avec la clé KAJI_TOKEN_KEY (rotation oubliée ?).")
         if "alert_rules" in tables:
             rules = db.execute("SELECT count(*) FROM alert_rules").fetchone()[0]
             hooks = list(db.execute("SELECT webhook_enc FROM alert_rules WHERE webhook_enc IS NOT NULL AND webhook_enc != ''"))

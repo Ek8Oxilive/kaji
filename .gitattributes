@@ -1,3 +1,4 @@
 # Fusions sans conflit pour les fichiers que PC A et PC B éditent tous les deux (lignes ajoutées de chaque côté : on garde les deux).
 docs/REPRISE.md merge=union
 backend/tests/routes_manifest.txt merge=union
+CHANGELOG.md merge=union
