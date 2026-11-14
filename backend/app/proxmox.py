@@ -107,5 +107,9 @@ class ProxmoxClient:
         r.raise_for_status()
         return r.json()["data"]
 
+    def add_response_hook(self, hook) -> None:
+        """Appelle `await hook(response)` à chaque réponse de Proxmox, avant tout traitement (sert à signaler un jeton personnel refusé). Une exception levée par le crochet remonte à l'appelant."""
+        self._client.event_hooks["response"].append(hook)
+
     async def aclose(self):
         await self._client.aclose()

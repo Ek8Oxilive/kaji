@@ -551,5 +551,19 @@
  "Test d'envoi : renvoie la requête avec confirm=true (un vrai message part)": "Send test: resend the request with confirm=true (a real message is sent)",
  "Cette règle n'a pas de webhook": "This rule has no webhook",
  "Un test par minute et par règle : attends un peu": "One test per minute and per rule: wait a moment",
- "Adresse du webhook illisible : saisis-la à nouveau": "Webhook address unreadable: enter it again"
+ "Adresse du webhook illisible : saisis-la à nouveau": "Webhook address unreadable: enter it again",
+ "Aucun jeton Proxmox personnel enregistré : ajoute le tien dans « Compte » → « Mon jeton Proxmox ».": "No personal Proxmox token registered: add yours in \"Account\" → \"My Proxmox token\".",
+ "Ton jeton Proxmox personnel a expiré : crée-en un nouveau dans Proxmox et enregistre-le dans « Compte » → « Mon jeton Proxmox ».": "Your personal Proxmox token has expired: create a new one in Proxmox and register it in \"Account\" → \"My Proxmox token\".",
+ "Proxmox refuse ton jeton personnel (révoqué, expiré ou supprimé chez lui) : enregistre-en un nouveau dans « Compte » → « Mon jeton Proxmox ».": "Proxmox rejects your personal token (revoked, expired or deleted on its side): register a new one in \"Account\" → \"My Proxmox token\".",
+ "Les jetons personnels sont illisibles : la clé KAJI_TOKEN_KEY est absente ou a changé. Préviens l'administrateur de Kaji.": "Personal tokens are unreadable: the KAJI_TOKEN_KEY key is missing or has changed. Tell the Kaji administrator.",
+ "Les jetons personnels sont désactivés : l'administrateur de Kaji doit définir KAJI_TOKEN_KEY (ou KAJI_TOKEN_KEY_FILE), distincte de KAJI_SECRET_KEY.": "Personal tokens are disabled: the Kaji administrator must set KAJI_TOKEN_KEY (or KAJI_TOKEN_KEY_FILE), different from KAJI_SECRET_KEY.",
+ "Le jeton de root@pam n'est jamais accepté : crée un compte dédié avec les seuls droits nécessaires.": "The root@pam token is never accepted: create a dedicated account with only the rights needed.",
+ "C'est le jeton PARTAGÉ de Kaji : enregistre TON jeton personnel (un autre jeton, créé pour toi).": "This is Kaji's SHARED token: register YOUR personal token (a different token, created for you).",
+ "Le jeton doit avoir les privilèges séparés : sans cela il a TOUS les droits de ton compte. Recrée-le avec « Privilege Separation » coché.": "The token must have separated privileges: without it, it has ALL your account's rights. Recreate it with \"Privilege Separation\" ticked.",
+ "Proxmox indique que ce jeton n'a PAS les privilèges séparés : il aurait tous les droits de ton compte. Recrée-le avec « Privilege Separation » coché.": "Proxmox says this token does NOT have separated privileges: it would have all your account's rights. Recreate it with \"Privilege Separation\" ticked.",
+ "Ce jeton n'a pas de date d'expiration chez Proxmox : recrée-le avec une expiration.": "This token has no expiry date in Proxmox: recreate it with an expiry.",
+ "Ce jeton est déjà expiré.": "This token has already expired.",
+ "Proxmox ne dit pas quand ce jeton expire : indique sa date d'expiration (expires_at).": "Proxmox does not say when this token expires: give its expiry date (expires_at).",
+ "Proxmox refuse ce jeton (identifiant ou secret incorrect, jeton expiré ou supprimé).": "Proxmox rejects this token (wrong id or secret, expired or deleted token).",
+ "Aucun jeton personnel pour cette connexion": "No personal token for this connection"
 }
