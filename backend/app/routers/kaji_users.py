@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from .. import audit, roles
 from ..adminsession import sessions as admin_sessions
 from ..db import get_db
-from ..models import AdminUser, UserSession
+from ..models import AdminUser, UserSession, UserToken
 from ..security import hash_password
 from .auth import current_user
 
@@ -110,7 +110,8 @@ def delete_user(user_id: int = Path(ge=1), confirm: StrictBool = Query(default=F
         _refuse(db, actor, "kaji-user-delete", u.username, "Suppression : renvoie la requête avec confirm=true et le nom d'utilisateur retapé", status.HTTP_400_BAD_REQUEST)
     username = u.username
     _revoke(db, u)
+    db.execute(delete(UserToken).where(UserToken.user_id == u.id))             # ses jetons Proxmox personnels disparaissent avec lui
     db.delete(u)
     db.commit()
-    _log(db, actor, "kaji-user-delete", username, "started", "compte et sessions supprimés")
+    _log(db, actor, "kaji-user-delete", username, "started", "compte, sessions et jetons Proxmox personnels supprimés")
     return {"deleted": username}

@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     kaji_admin_use_kaji_token: bool = False
     # Planificateur d'actions (lot #411) : une seule instance de Kaji doit le faire tourner (un seul worker). `false` le coupe (tests, maintenance).
     kaji_scheduler: bool = True
+    # Jetons Proxmox PERSONNELS (lot #440, option A du cadrage) : chaque utilisateur de Kaji enregistre son propre jeton, Proxmox applique ses droits et son journal le nomme.
+    # La clé qui les chiffre est SÉPARÉE de `KAJI_SECRET_KEY` : `KAJI_TOKEN_KEY` (ou `KAJI_TOKEN_KEY_FILE`, un fichier hors de `.env` et hors de la sauvegarde de la base).
+    # `KAJI_TOKEN_KEY_PREVIOUS` : l'ancienne clé, le temps d'une rotation (`python -m app.admin_cli rotate-token-key`).
+    kaji_token_key: str = ""
+    kaji_token_key_file: str = ""
+    kaji_token_key_previous: str = ""
+    # `true` : un utilisateur sans jeton personnel n'a PAS accès à Proxmox (au lieu de se rabattre sur le jeton partagé de la connexion).
+    kaji_require_user_token: bool = False
+    # Durée de vie maximale (jours) acceptée pour un jeton personnel : au-delà, l'enregistrement est refusé.
+    kaji_user_token_max_days: int = 90
 
     @property
     def protected_vmids(self) -> set[int]:

@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import tokenkey
 from .crypto import decrypt
 
 SQLITE_HEADER = b"SQLite format 3\x00"
@@ -65,6 +66,7 @@ class Report:
     schema: int = 0
     tokens: tuple[int, int] = (0, 0)            # (déchiffrés, total)
     webhooks: tuple[int, int] = (0, 0)
+    user_tokens: tuple[int, int] = (0, 0)       # jetons Proxmox PERSONNELS (clé séparée)
 
     def line(self, text: str) -> None:
         self.lines.append(text)
@@ -87,8 +89,9 @@ def _columns(db: sqlite3.Connection, table: str) -> set[str]:
     return {r[1] for r in db.execute(f"PRAGMA table_info({table})")}      # `table` est une constante de ce module
 
 
-def verify(db_path: Path, secret_key: str) -> Report:
-    """Relit la base en lecture seule avec `secret_key`. Ne modifie rien, n'affiche aucune valeur secrète."""
+def verify(db_path: Path, secret_key: str, token_keys: list[str] | None = None) -> Report:
+    """Relit la base en lecture seule avec `secret_key` (jeton partagé, webhooks) et `token_keys` (clé SÉPARÉE des jetons personnels : [courante, précédente]).
+    Ne modifie rien, n'affiche aucune valeur secrète."""
     rep = Report()
     db_path = Path(db_path)
     if not db_path.is_file():
@@ -137,6 +140,21 @@ def verify(db_path: Path, secret_key: str) -> Report:
         if good != len(encrypted):
             rep.problem(f"{len(encrypted) - good} jeton(s) Proxmox illisible(s) avec cette clé : ce n'est pas la clé de cette base.")
 
+        if "user_tokens" in tables:
+            personal = [r[0] for r in db.execute("SELECT secret_enc FROM user_tokens")]
+            expired = db.execute("SELECT count(*) FROM user_tokens WHERE expires_at < datetime('now')").fetchone()[0]
+            if not personal:
+                rep.line("Jetons Proxmox personnels : 0")
+            elif not token_keys:
+                rep.user_tokens = (0, len(personal))
+                rep.line(f"Jetons Proxmox personnels : {len(personal)} ; clé KAJI_TOKEN_KEY non fournie : non vérifiés")
+                rep.problem(f"{len(personal)} jeton(s) Proxmox personnel(s) dans cette base, mais la clé KAJI_TOKEN_KEY (ou KAJI_TOKEN_KEY_FILE) n'est pas configurée : ils seraient inutilisables.")
+            else:
+                good = sum(1 for c in personal if tokenkey.readable(c, token_keys))
+                rep.user_tokens = (good, len(personal))
+                rep.line(f"Jetons Proxmox personnels : {len(personal)} ; déchiffrés : {good}/{len(personal)} ; échéance dépassée : {expired}")
+                if good != len(personal):
+                    rep.problem(f"{len(personal) - good} jeton(s) Proxmox personnel(s) illisible(s) avec la clé KAJI_TOKEN_KEY : ce n'est pas la clé de cette base (rotation oubliée ?).")
         if "alert_rules" in tables:
             rules = db.execute("SELECT count(*) FROM alert_rules").fetchone()[0]
             hooks = list(db.execute("SELECT webhook_enc FROM alert_rules WHERE webhook_enc IS NOT NULL AND webhook_enc != ''"))
@@ -169,7 +187,7 @@ def _readable(secret_key: str, ciphertext: str | None) -> bool:
         return False
 
 
-def restore(source: bytes | Path, db_path: Path, secret_key: str, latest_schema: int) -> tuple[Report, Path | None]:
+def restore(source: bytes | Path, db_path: Path, secret_key: str, latest_schema: int, token_keys: list[str] | None = None) -> tuple[Report, Path | None]:
     """Remplace `db_path` par la sauvegarde `source` (octets ou fichier). Refuse (rien n'est modifié) si le fichier n'est pas une base saine de Kaji, si son schéma est
     plus récent que ce code, ou si un jeton ou un webhook n'est pas lisible avec `secret_key`. L'ancienne base est conservée à côté (`….avant-restauration-<date>`) ;
     les fichiers `-journal`, `-wal` et `-shm` de l'ancienne base sont retirés (un journal d'une autre base corromprait la nouvelle). Le service doit être ARRÊTÉ.
@@ -185,7 +203,7 @@ def restore(source: bytes | Path, db_path: Path, secret_key: str, latest_schema:
         with os.fdopen(fd, "wb") as f:
             f.write(data)
         os.chmod(tmp, 0o600)
-        rep = verify(tmp, secret_key)
+        rep = verify(tmp, secret_key, token_keys)
         if not rep.ok:
             raise BackupError("La sauvegarde est refusée, rien n'a été modifié :\n" + rep.render())
         if rep.schema > latest_schema:

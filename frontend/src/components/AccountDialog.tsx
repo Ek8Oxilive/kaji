@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
 import { KajiUsersDialog } from "./KajiUsersDialog";
+import { UserTokenDialog } from "./UserTokenDialog";
 import { Modal } from "./Modal";
 import { useSubmit } from "./HardwareDialogs";
 import { useToast } from "./Toast";
@@ -21,6 +22,7 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
   const { busy, error, run } = useSubmit(onClose);
   const who = useQuery({ queryKey: ["me"], staleTime: 60_000, queryFn: () => api<{ username: string; role: "admin" | "operator" | "viewer" }>("/api/auth/me") });
   const [users, setUsers] = useState(false);
+  const [token, setToken] = useState(false);
 
   const tooShort = next.length > 0 && next.length < 12;
   const mismatch = confirm.length > 0 && next !== confirm;
@@ -49,6 +51,12 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
       {same && <p className="text-sm text-danger">{tr("Le nouveau mot de passe doit différer de l'actuel.")}</p>}
       {mismatch && <p className="text-sm text-danger">{tr("Les deux mots de passe ne correspondent pas.")}</p>}
 
+      <div className="space-y-2 border-t border-line pt-4">
+        <h3 className="text-sm font-semibold">{tr("Mon jeton Proxmox")}</h3>
+        <p className="text-sm text-muted">{tr("Enregistre TON jeton Proxmox pour que tes actions soient faites avec tes droits et portent ton nom dans le journal de Proxmox.")}</p>
+        <Button type="button" variant="ghost" onClick={() => setToken(true)}>{tr("Mon jeton Proxmox…")}</Button>
+      </div>
+
       {who.data?.role === "admin" && (
         <div className="space-y-2 border-t border-line pt-4">
           <h3 className="text-sm font-semibold">{tr("Utilisateurs de Kaji")}</h3>
@@ -67,6 +75,7 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
       </div>
     </Modal>
     {users && who.data && <KajiUsersDialog me={who.data.username} onClose={() => setUsers(false)} />}
+    {token && <UserTokenDialog onClose={() => setToken(false)} />}
     </>
   );
 }

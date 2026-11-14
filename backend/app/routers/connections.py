@@ -4,7 +4,7 @@ from collections.abc import Callable
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,7 @@ from ..config import get_settings
 from ..crypto import decrypt, encrypt
 from ..db import get_db
 from ..deps import get_client_factory
-from ..models import Connection
+from ..models import Connection, UserToken
 from ..proxmox import ProxmoxClient
 from .auth import current_user
 
@@ -161,6 +161,7 @@ def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depend
 @router.delete("/{conn_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_connection(conn_id: int, db: Session = Depends(get_db)):
     db.delete(_get_or_404(db, conn_id))
+    db.execute(delete(UserToken).where(UserToken.conn_id == conn_id))          # les jetons personnels de cette connexion n'ont plus d'objet
     db.commit()
 
 

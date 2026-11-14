@@ -110,6 +110,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_COOKIE_SECURE` | `true` (défaut) | Le cookie de session n'est accepté qu'en **HTTPS** ou sur `localhost`. |
 | `KAJI_PROTECTED_VMIDS` | par exemple `100,101` | Machines que Kaji refuse de supprimer et sur lesquelles il refuse toute action planifiée. Mets celles qui comptent. |
 | `KAJI_ADMIN_USE_KAJI_TOKEN` | **laisse commenté** (donc `false`) | Voir l'étape 2.2. |
+| `KAJI_TOKEN_KEY` / `KAJI_TOKEN_KEY_FILE` | facultatif : une **seconde** clé, différente de `KAJI_SECRET_KEY` | Active les **jetons Proxmox personnels** (chacun enregistre le sien : ses droits, son nom dans le journal de Proxmox). Mieux vaut un fichier (`KAJI_TOKEN_KEY_FILE`) hors de `.env` et hors de la sauvegarde. Voir `docs/api/jetons-utilisateur.md`. |
+| `KAJI_TOKEN_KEY_PREVIOUS` | seulement pendant une rotation | Voir `docs/deploiement.md`. |
+| `KAJI_REQUIRE_USER_TOKEN` | `false` (défaut) | `true` : sans jeton personnel, pas d'accès à Proxmox. |
+| `KAJI_USER_TOKEN_MAX_DAYS` | `90` (défaut) | Durée maximale acceptée pour un jeton personnel. |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
 | `KAJI_TRUST_PROXY` | laisse `false` | Le `docker-compose.yml` le règle déjà pour le conteneur. |
 | `KAJI_AUDIT_RETENTION_DAYS` | `365` (défaut) | Conservation du journal d'audit de Kaji, en jours (`0` = indéfiniment). |

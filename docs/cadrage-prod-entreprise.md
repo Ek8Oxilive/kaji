@@ -45,7 +45,7 @@ Public : un collègue, un lab d'entreprise.
 - **Critères de sortie** : installation réussie par un tiers en suivant le guide seul ; restauration validée ; aucun secret dans les journaux (test existant) ; CI verte.
 
 ### J2. Pilote en entreprise (équipe réduite, réseau interne) : taille L
-- **Identité par utilisateur (option A retenue)** : jeton Proxmox par utilisateur de Kaji (chiffré, clé séparée, expiration, privilèges séparés), **jeton de service limité** pour le planificateur et les alertes, **session par mot de passe** pour les opérations interdites aux jetons ; création assistée des jetons par l'administrateur.
+- **Identité par utilisateur (option A retenue ; jeton par utilisateur codé le 2026-11-14, #440, essai réel à faire)** : jeton Proxmox par utilisateur de Kaji (chiffré, clé séparée, expiration, privilèges séparés), **jeton de service limité** pour le planificateur et les alertes, **session par mot de passe** pour les opérations interdites aux jetons ; création assistée des jetons par l'administrateur.
 - **Connexion à Kaji d'entreprise** : OIDC (SSO) et/ou LDAP / AD ; **double authentification (TOTP) pour se connecter à Kaji** (aujourd'hui seulement pour les comptes Proxmox).
 - **Audit exportable** : syslog / fichier JSON horodaté, conservation configurable, jamais de secret.
 - **Limiteur de connexions persistant** (il est en mémoire : remis à zéro au redémarrage).

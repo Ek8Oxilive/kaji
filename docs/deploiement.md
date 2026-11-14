@@ -106,6 +106,29 @@ cp .env /chemin/sûr/kaji.env                                       # la clé, s
 ```
 Restauration : recrée le volume, extrais l'archive dedans, remets le même `.env`, puis `docker compose up -d`. Cette méthode copie aussi les anciennes sauvegardes de migration (`kaji.db.bak-vN-…`).
 
+## Jetons Proxmox personnels : clé séparée et rotation
+Chaque utilisateur peut enregistrer **son** jeton Proxmox (fenêtre « Compte » → « Mon jeton Proxmox ») : Proxmox applique alors **ses** droits et son journal le **nomme** (`docs/api/jetons-utilisateur.md`). Ces jetons sont chiffrés avec **`KAJI_TOKEN_KEY`**, une clé **différente** de `KAJI_SECRET_KEY` : compromettre l'une n'ouvre pas l'autre.
+
+**Mise en place**
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"      # une NOUVELLE valeur, différente de KAJI_SECRET_KEY
+```
+- Soit `KAJI_TOKEN_KEY=…` dans `.env` (simple, mais la clé suit alors la sauvegarde de `.env`).
+- Soit **un fichier** hors de `.env` : `KAJI_TOKEN_KEY_FILE=/run/secrets/kaji_token_key`, monté en lecture seule dans le conteneur backend (par exemple `volumes: ["./secrets/token.key:/run/secrets/kaji_token_key:ro"]` dans un fichier Compose à toi, fichier en `600`). Avec la clé dans un fichier à part, **la base et `.env` réunis ne permettent pas de lire un jeton** (test automatisé). **Non essayé avec Docker** (montage, droits du fichier pour l'utilisateur 10001 du conteneur).
+- Redémarre : `docker compose up -d --force-recreate backend`. Sans clé, la fonction est simplement désactivée (la fenêtre l'explique).
+- `KAJI_REQUIRE_USER_TOKEN=true` : un utilisateur sans jeton personnel n'a plus accès à Proxmox. À n'activer qu'une fois que chacun a enregistré le sien ; les tâches de fond (planificateur, alertes) gardent le jeton partagé.
+
+**Sauvegarde** : `tools/backup.sh` sauvegarde la base (qui contient les jetons chiffrés) ; **la clé `KAJI_TOKEN_KEY` se sauvegarde à part, séparément de la base ET de `.env`** (gestionnaire de mots de passe). `verify` et `restore` relisent les jetons personnels avec cette clé et **refusent** une sauvegarde qu'elle ne lit pas.
+
+**Rotation de `KAJI_TOKEN_KEY`** (par exemple tous les 12 mois, ou si la clé a pu fuiter)
+1. `tools/backup.sh` (et note l'ancienne clé : les anciennes sauvegardes restent chiffrées avec elle).
+2. Génère la nouvelle clé ; mets **`KAJI_TOKEN_KEY` = la nouvelle** et **`KAJI_TOKEN_KEY_PREVIOUS` = l'ancienne** ; redémarre le backend (les deux clés lisent, la nouvelle écrit).
+3. `docker compose exec backend python -m app.admin_cli rotate-token-key --yes` : ré-chiffre **tous** les jetons en une transaction (tout ou rien), relit chacun avec la seule nouvelle clé, n'affiche que des nombres. `--drop-unreadable` supprime les jetons qu'aucune des deux clés ne lit (leurs propriétaires les enregistrent de nouveau).
+4. Retire `KAJI_TOKEN_KEY_PREVIOUS`, redémarre, `docker compose exec backend python -m app.admin_cli verify` : « jetons personnels déchiffrés : n/n ».
+**Essayée sur de vraies bases SQLite et des commandes réelles, pas avec Docker.** Perdre la clé = les jetons personnels sont à ré-enregistrer (les comptes, les rôles et le reste restent).
+
+**Un jeton personnel expire** : Kaji cesse de l'utiliser à la date retenue (au plus `KAJI_USER_TOKEN_MAX_DAYS` jours après l'enregistrement) et le dit clairement ; l'utilisateur en crée un nouveau dans Proxmox et l'enregistre.
+
 ## Mot de passe perdu
 La création du **premier** compte par l'écran de première configuration n'est possible qu'une fois ; les autres comptes se créent ensuite par un administrateur (bouton « Compte » → « Gérer les utilisateurs »). Pour un mot de passe oublié, **sur le serveur** :
 ```bash
