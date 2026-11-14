@@ -1,6 +1,5 @@
 """Hachage des mots de passe, jetons de session et limitation des tentatives."""
 import ipaddress
-import time
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -63,29 +62,50 @@ def client_ip(request, trust_proxy: bool = False) -> str:
 
 
 class LoginThrottle:
-    """Limite les échecs de connexion par IP (en mémoire)."""
+    """Limite les échecs de connexion par clé (adresse IP, `setup:IP`…), **de façon persistante** (table `login_failures`, lot #446) : un redémarrage de Kaji ne remet pas le compteur à zéro.
 
-    def __init__(self, max_failures: int = 5, window: int = 300):
+    `max_failures` échecs dans la fenêtre `window` (secondes) bloquent la clé ; les échecs plus vieux sont ignorés puis supprimés (la table ne grossit pas : une clé bloquée n'ajoute plus de ligne,
+    car les routes refusent avant de vérifier). Ne garde que la clé et l'heure, jamais un identifiant ni un mot de passe. `session_factory` : tests (une autre base)."""
+
+    def __init__(self, max_failures: int = 5, window: int = 300, session_factory=None):
         self.max_failures, self.window = max_failures, window
-        self._failures: dict[str, list[float]] = {}
+        self._session_factory = session_factory
 
-    def _recent(self, key: str) -> list[float]:
-        now = time.monotonic()
-        recent = [t for t in self._failures.get(key, []) if now - t < self.window]
-        self._failures[key] = recent
-        return recent
+    def _session(self):
+        if self._session_factory is not None:
+            return self._session_factory()
+        from sqlalchemy.orm import Session
+
+        from .db import get_engine
+        return Session(get_engine())
+
+    def _cutoff(self) -> datetime:
+        return datetime.now(timezone.utc) - timedelta(seconds=self.window)
 
     def blocked(self, key: str) -> bool:
-        return len(self._recent(key)) >= self.max_failures
+        from sqlalchemy import func, select
+
+        from .models import LoginFailure
+        with self._session() as db:
+            n = db.scalar(select(func.count()).select_from(LoginFailure).where(LoginFailure.key == key[:80], LoginFailure.ts > self._cutoff()))
+        return (n or 0) >= self.max_failures
 
     def fail(self, key: str) -> None:
-        self._recent(key).append(time.monotonic())
+        from sqlalchemy import delete
+
+        from .models import LoginFailure
+        with self._session() as db:
+            db.execute(delete(LoginFailure).where(LoginFailure.ts <= self._cutoff()))          # purge de tout ce qui est hors fenêtre
+            db.add(LoginFailure(key=key[:80], ts=datetime.now(timezone.utc)))
+            db.commit()
 
     def reset(self, key: str | None = None) -> None:
-        if key is None:
-            self._failures.clear()
-        else:
-            self._failures.pop(key, None)
+        from sqlalchemy import delete
+
+        from .models import LoginFailure
+        with self._session() as db:
+            db.execute(delete(LoginFailure) if key is None else delete(LoginFailure).where(LoginFailure.key == key[:80]))
+            db.commit()
 
 
 throttle = LoginThrottle()
