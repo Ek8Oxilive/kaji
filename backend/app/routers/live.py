@@ -34,7 +34,7 @@ def make_fetch(conn_id: int, factory: Factory):
     return fetch
 
 
-async def stream(h: Hub, conn_id: int, fetch, heartbeat: float = HEARTBEAT) -> AsyncIterator[str]:
+async def stream(h: Hub, conn_id: int | tuple[int, int], fetch, heartbeat: float = HEARTBEAT) -> AsyncIterator[str]:
     agen = h.subscribe(conn_id, fetch)
     nxt: asyncio.Future | None = None
     try:
@@ -64,5 +64,9 @@ async def events(conn_id: int, db: Session = Depends(get_db), factory: Factory =
     """Instantané de l'état du cluster à chaque changement (nœuds, machines, quorum)."""
     _get_or_404(db, conn_id)
     db.close()                                   # libère la base avant de streamer
-    return StreamingResponse(stream(hub, conn_id, make_fetch(conn_id, factory)), media_type="text/event-stream",
+    # Flux COMMUN à tous les utilisateurs de la connexion (un seul interrogateur) tant qu'ils utilisent le jeton partagé ; un utilisateur qui a SON jeton a son propre flux,
+    # sinon l'état vu avec ses droits serait diffusé aux autres (et inversement).
+    scope = getattr(factory, "scope_for", lambda _c: 0)(conn_id)
+    key = conn_id if scope == 0 else (conn_id, scope)
+    return StreamingResponse(stream(hub, key, make_fetch(conn_id, factory)), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

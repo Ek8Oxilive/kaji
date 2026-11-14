@@ -9,6 +9,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 ### Ajouté
 - Guide « Installer Kaji en lab » (`docs/installation-lab.md`) et test qui le garde aligné sur les droits Proxmox, `.env.example` et les fichiers Docker Compose (#430).
 - `SECURITY.md` (signalement d'une vulnérabilité, versions suivies) et ce `CHANGELOG.md` (#426).
+- **Jetons Proxmox personnels** (option A du cadrage, #440) : chaque utilisateur de Kaji enregistre son propre jeton par connexion (« Compte » → « Mon jeton Proxmox ») ; Proxmox applique ses droits et nomme la personne dans son journal. Privilèges séparés et expiration exigés (relus chez Proxmox quand c'est possible), jamais `root@pam` ni le jeton partagé, chiffrés par une **clé séparée** `KAJI_TOKEN_KEY` (ou fichier), rotation `rotate-token-key`, contrôle par `verify` et `restore`, option `KAJI_REQUIRE_USER_TOKEN`, flux temps réel cloisonné par utilisateur. **Pas encore essayé en réel.**
 
 ### Modifié
 - **Limiteur de connexions persistant** (#446) : les échecs de connexion (et de jeton de première configuration) sont gardés en base (`login_failures`, clé et heure seulement) ; un redémarrage ne remet plus le compteur à zéro. Même comportement : 5 échecs par 5 minutes et par adresse.

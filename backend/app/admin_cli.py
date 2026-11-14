@@ -4,6 +4,7 @@
     docker compose exec -T backend python -m app.admin_cli backup --stdout > kaji.db      (voir tools/backup.sh)
     docker compose exec backend python -m app.admin_cli verify
     docker compose run --rm -T --no-deps backend python -m app.admin_cli restore - --yes < kaji.db      (voir tools/restore.sh)
+    docker compose exec backend python -m app.admin_cli rotate-token-key --yes      (rotation de KAJI_TOKEN_KEY : docs/deploiement.md)
 
 `backup` copie la base de façon cohérente (sans arrêter Kaji), `verify` relit les jetons et webhooks chiffrés avec la clé actuelle (sans rien afficher de secret),
 `restore` remplace la base par une sauvegarde après l'avoir vérifiée (Kaji doit être arrêté ; la clé `KAJI_SECRET_KEY` n'est PAS dans la base : `docs/deploiement.md`).
@@ -98,6 +99,39 @@ def backup_cmd(argv: list[str]) -> int:
     return 0
 
 
+def _token_keys() -> list[str]:
+    """[clé courante des jetons personnels, précédente] ; vide si non configurée ; une clé inutilisable (trop courte, identique à KAJI_SECRET_KEY) lève `AdminError`."""
+    from . import tokenkey
+    try:
+        return tokenkey.keys()
+    except tokenkey.TokenKeyError as e:
+        raise AdminError(str(e))
+
+
+def rotate_cmd(argv: list[str]) -> int:
+    """`rotate-token-key --yes [--drop-unreadable]` : ré-chiffre les jetons Proxmox personnels avec KAJI_TOKEN_KEY (la nouvelle) ; KAJI_TOKEN_KEY_PREVIOUS = l'ancienne."""
+    from sqlalchemy.orm import Session
+
+    from . import audit
+    from .db import get_engine
+    from .tokenrotate import RotationError, rotate_all
+    if "--yes" not in argv:
+        print("usage : rotate-token-key --yes [--drop-unreadable]   (fais d'abord une sauvegarde : tools/backup.sh)")
+        return 2
+    try:
+        keys = _token_keys()
+        with Session(get_engine()) as db:
+            res = rotate_all(db, keys, drop_unreadable="--drop-unreadable" in argv)
+            audit.record(db, username="cli-local", connection_id=None, action="token-key-rotated", target="user_tokens", status="started",
+                         detail=f"{res.rotated} jeton(s) ré-chiffré(s), {res.dropped} supprimé(s)")
+    except (AdminError, RotationError) as e:
+        print(f"Échec : {e}")
+        return 1
+    print(f"Rotation faite : {res.rotated} jeton(s) ré-chiffré(s) sur {res.total}, {res.dropped} supprimé(s). "
+          "Retire maintenant KAJI_TOKEN_KEY_PREVIOUS de la configuration et redémarre Kaji. Les anciennes sauvegardes restent chiffrées avec l'ANCIENNE clé : garde-la tant que tu en as besoin.")
+    return 0
+
+
 def verify_cmd(argv: list[str]) -> int:
     from pathlib import Path
 
@@ -107,6 +141,7 @@ def verify_cmd(argv: list[str]) -> int:
     try:
         wanted = _opt(argv, "--file")
         db = Path(wanted) if wanted and wanted != "-" else None if wanted == "-" else _db_file()
+        keys = _token_keys()
     except AdminError as e:
         print(f"Échec : {e}")
         return 1
@@ -114,9 +149,9 @@ def verify_cmd(argv: list[str]) -> int:
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "copie.db"
             copy.write_bytes(sys.stdin.buffer.read())
-            rep = verify(copy, get_settings().kaji_secret_key)
+            rep = verify(copy, get_settings().kaji_secret_key, keys)
     else:
-        rep = verify(db, get_settings().kaji_secret_key)
+        rep = verify(db, get_settings().kaji_secret_key, keys)
     print(rep.render())
     return 0 if rep.ok else 1
 
@@ -135,7 +170,7 @@ def restore_cmd(argv: list[str]) -> int:
     try:
         db = _db_file()
         data = sys.stdin.buffer.read() if args[0] == "-" else Path(args[0]).read_bytes()
-        rep, kept = restore(data, db, get_settings().kaji_secret_key, max(m.version for m in MIGRATIONS))
+        rep, kept = restore(data, db, get_settings().kaji_secret_key, max(m.version for m in MIGRATIONS), _token_keys())
     except (AdminError, BackupError, OSError) as e:
         print(f"Échec : {e}")
         return 1
@@ -153,6 +188,8 @@ def main(argv: list[str]) -> int:
         return verify_cmd(argv[1:])
     if argv and argv[0] == "restore":
         return restore_cmd(argv[1:])
+    if argv and argv[0] == "rotate-token-key":
+        return rotate_cmd(argv[1:])
     if not argv or argv[0] != "reset-password":
         print(__doc__)
         return 2

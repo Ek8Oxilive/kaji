@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -135,6 +135,26 @@ class ScheduledAction(Base):
     last_detail: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 
+class UserToken(Base):
+    """Jeton Proxmox PERSONNEL d'un utilisateur de Kaji pour une connexion (lot #440, option A du cadrage). Le secret est chiffré avec la clé SÉPARÉE
+    `KAJI_TOKEN_KEY` (`app/tokenkey.py`), jamais avec `KAJI_SECRET_KEY` ; il n'est jamais renvoyé par l'API ni journalisé."""
+
+    __tablename__ = "user_tokens"
+    __table_args__ = (UniqueConstraint("user_id", "conn_id", name="uq_user_tokens_user_conn"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)            # AdminUser.id
+    conn_id: Mapped[int] = mapped_column(Integer, index=True)            # Connection.id
+    pve_user: Mapped[str] = mapped_column(String(100))                   # « alice@pve »
+    token_id: Mapped[str] = mapped_column(String(100))
+    secret_enc: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))        # plus tôt de : date donnée, expiration lue chez Proxmox, durée maximale
+    privsep: Mapped[bool] = mapped_column(Boolean, default=True)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)       # vrai si Proxmox a confirmé les privilèges séparés ET l'expiration (relus avec le jeton lui-même)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    refused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)      # Proxmox a répondu 401 : jeton expiré ou révoqué chez lui
+
+
 class LoginFailure(Base):
     """Un échec de connexion (ou de jeton de première configuration, de mot de passe…) par clé, pour le limiteur PERSISTANT (lot #446) : un redémarrage ne remet plus le compteur à zéro.
     Ne contient JAMAIS de mot de passe ni d'identifiant saisi : seulement la clé (adresse IP, éventuellement préfixée) et l'heure."""
@@ -144,4 +164,3 @@ class LoginFailure(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     key: Mapped[str] = mapped_column(String(80), index=True)
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
-
