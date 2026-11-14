@@ -1,0 +1,98 @@
+# Liste des composants (SBOM CycloneDX) et audit des vulnérabilités (jalon J4, ticket #459). docs/sbom.md.
+#   - À chaque étiquette `v*` : SBOM des dépendances Python (environnement installé : transitives comprises), JavaScript (production) et des images de base épinglées ;
+#     contrôlés par tools/check_sbom.py (ils doivent refléter le verrou) ; joints à la release si elle existe, sinon gardés comme artefacts du workflow.
+#   - Sur une PR qui touche une dépendance ou une image : même génération, pour qu'un SBOM impossible à produire ne se découvre pas le jour de la version.
+#   - Chaque lundi (et à la demande) : pip-audit et npm audit. Une exception se déclare dans tools/audit-exceptions.txt avec sa justification.
+name: SBOM et audit
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - backend/requirements.txt
+      - frontend/package.json
+      - frontend/package-lock.json
+      - backend/Dockerfile
+      - frontend/Dockerfile
+      - docker-compose.tls.yml
+      - tools/check_sbom.py
+      - tools/audit-exceptions.txt
+      - .github/workflows/sbom.yml
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"
+permissions:
+  contents: read
+jobs:
+  sbom:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                      # seulement pour joindre les SBOM à une release EXISTANTE quand une étiquette est poussée
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: SBOM Python (environnement installé, dépendances transitives comprises)
+        run: |
+          python -m venv /tmp/sbom-env
+          /tmp/sbom-env/bin/pip install -q -r backend/requirements.txt
+          python -m pip install -q cyclonedx-bom==7.2.1
+          mkdir -p sbom
+          cyclonedx-py environment /tmp/sbom-env/bin/python --of JSON -o sbom/sbom-python.cdx.json
+          python tools/check_sbom.py python sbom/sbom-python.cdx.json backend/requirements.txt
+      - name: SBOM JavaScript (production)
+        run: |
+          cd frontend
+          npm ci --ignore-scripts
+          npm sbom --sbom-format cyclonedx --omit dev > ../sbom/sbom-node.cdx.json
+          cd ..
+          python tools/check_sbom.py node sbom/sbom-node.cdx.json frontend/package-lock.json
+      - name: SBOM des images de base épinglées
+        run: |
+          grep -hoE '[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}' backend/Dockerfile frontend/Dockerfile docker-compose.tls.yml | sort -u > sbom/images.txt
+          test -s sbom/images.txt
+          while read -r image; do
+            safe=$(echo "${image%@*}" | tr ':/' '__')
+            docker run --rm anchore/syft:v1.19.0 "$image" -o cyclonedx-json > "sbom/sbom-image-$safe.cdx.json"
+            python tools/check_sbom.py image "sbom/sbom-image-$safe.cdx.json" "$image"
+          done < sbom/images.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/
+      - name: Joindre les SBOM à la release (si elle existe)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" sbom/*.cdx.json --clobber
+          else
+            echo "Pas de release pour $GITHUB_REF_NAME : les SBOM restent dans les artefacts de ce workflow."
+          fi
+  audit:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - name: "pip-audit (exceptions dans tools/audit-exceptions.txt)"
+        run: |
+          python -m pip install -q pip-audit==2.9.0
+          ignores=$(grep -vE '^[[:space:]]*(#|$)' tools/audit-exceptions.txt | awk '{print "--ignore-vuln " $1}' | xargs)
+          pip-audit -r backend/requirements.txt --progress-spinner off $ignores
+      - name: npm audit (dépendances de production)
+        run: |
+          cd frontend
+          npm ci --ignore-scripts
+          npm audit --omit=dev

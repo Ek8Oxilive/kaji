@@ -1,0 +1,5 @@
+# Vulnérabilités connues ACCEPTÉES pour pip-audit (workflow « SBOM et audit », docs/sbom.md).
+# Une ligne par exception : l'identifiant (GHSA-…, PYSEC-…, CVE-…), puis la justification et la date de réexamen.
+# Exemple (à ne pas décommenter sans raison) :
+#   GHSA-xxxx-xxxx-xxxx  non exploitable dans Kaji car …  (à réexaminer le 2027-01-15)
+# Aucune exception à ce jour (2026-11-14) : pip-audit et npm audit ne signalent rien.

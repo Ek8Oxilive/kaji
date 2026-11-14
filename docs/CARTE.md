@@ -365,6 +365,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/m7-reseau-firewall.md` — M7 : réseau et pare-feu, cadrage de l'écriture
 - `docs/parite-proxmox.md` — Parité avec l'interface de Proxmox
 - `docs/passation-lot-i.md` — Passation : lot I (étapes V1 manuelles) et restes de la journ…
+- `docs/sbom.md` — Liste des composants (SBOM) et suivi des vulnérabilités
 - `docs/securite.md` — Revue de sécurité de Kaji (2026-11-12, complétée le 2026-11-1…
 - `docs/statut-fonctions.md` — Statut des fonctions de Kaji (pour la V1)
 - `docs/themes.md` — Thèmes de l'interface
