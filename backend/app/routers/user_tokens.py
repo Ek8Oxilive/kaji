@@ -104,8 +104,8 @@ def _deadline(day: date) -> datetime:
     return datetime.combine(day, time(23, 59, 59), tzinfo=timezone.utc)
 
 
-def _refuse(db: Session, user: AdminUser, conn_id: int, target: str, detail: str, code: int = 422):
-    audit.record(db, username=user.username, connection_id=conn_id, action="user-token-set", target=target[:200], status="error", detail=detail)
+def _refuse(db: Session, user: AdminUser, conn_id: int, target: str, detail: str, code: int = 422, action: str = "user-token-set"):
+    audit.record(db, username=user.username, connection_id=conn_id, action=action, target=target[:200], status="error", detail=detail)
     raise HTTPException(code, detail)
 
 
@@ -137,6 +137,43 @@ async def _inspect(base: Factory, conn: Connection, body: TokenIn):
         await client.aclose()
 
 
+async def validate_token(db: Session, user: AdminUser, conn: Connection, body: TokenIn, base: Factory, max_days: int, *, action: str = "user-token-set",
+                         limit_name: str = "KAJI_USER_TOKEN_MAX_DAYS") -> tuple[datetime, bool]:
+    """Contrôles COMMUNS à un jeton personnel et à un jeton de service (refus 422 audités, jamais une valeur saisie recopiée). Renvoie `(échéance retenue, contrôlé par Proxmox)`.
+    Jamais `root@pam` ni le jeton partagé ; privilèges séparés ; Proxmox appelé AVEC le jeton ; expiration obligatoire, future, au plus `max_days` jours."""
+    target = f"{body.pve_user}!{body.token_id}"
+
+    def refuse(detail: str):
+        _refuse(db, user, conn.id, target, detail, action=action)
+    if body.pve_user.lower() in FORBIDDEN_USERS:
+        refuse("Le jeton de root@pam n'est jamais accepté : crée un compte dédié avec les seuls droits nécessaires.")
+    if (body.pve_user, body.token_id) == (conn.user, conn.token_id):
+        refuse("C'est le jeton PARTAGÉ de Kaji : enregistre TON jeton personnel (un autre jeton, créé pour toi).")
+    if not body.privsep:
+        refuse("Le jeton doit avoir les privilèges séparés : sans cela il a TOUS les droits de ton compte. Recrée-le avec « Privilege Separation » coché.")
+    now = datetime.now(timezone.utc)
+    limit = now + timedelta(days=max_days)
+    info = await _inspect(base, conn, body)
+    verified = info is not None
+    if info is not None:
+        if not info["privsep"]:
+            refuse("Proxmox indique que ce jeton n'a PAS les privilèges séparés : il aurait tous les droits de ton compte. Recrée-le avec « Privilege Separation » coché.")
+        if info["expire"] == 0:
+            refuse("Ce jeton n'a pas de date d'expiration chez Proxmox : recrée-le avec une expiration.")
+        expires = datetime.fromtimestamp(info["expire"], tz=timezone.utc)
+        if body.expires_at is not None:
+            expires = min(expires, _deadline(body.expires_at))
+    elif body.expires_at is not None:
+        expires = _deadline(body.expires_at)
+    else:
+        refuse("Proxmox ne dit pas quand ce jeton expire : indique sa date d'expiration (expires_at).")
+    if expires <= now:
+        refuse("Ce jeton est déjà expiré.")
+    if expires > limit:
+        refuse(f"Expiration trop lointaine : au plus {max_days} jours (réglage {limit_name}).")
+    return expires, verified
+
+
 @router.put("/{conn_id}")
 async def set_token(body: TokenIn, conn_id: int = Path(ge=1), db: Session = Depends(get_db), user: AdminUser = Depends(current_user),
                     base: Factory = Depends(get_base_client_factory)):
@@ -145,32 +182,8 @@ async def set_token(body: TokenIn, conn_id: int = Path(ge=1), db: Session = Depe
     problem = _key_problem()
     if problem:
         _refuse(db, user, conn_id, target, problem, status.HTTP_409_CONFLICT)
-    if body.pve_user.lower() in FORBIDDEN_USERS:
-        _refuse(db, user, conn_id, target, "Le jeton de root@pam n'est jamais accepté : crée un compte dédié avec les seuls droits nécessaires.")
-    if (body.pve_user, body.token_id) == (conn.user, conn.token_id):
-        _refuse(db, user, conn_id, target, "C'est le jeton PARTAGÉ de Kaji : enregistre TON jeton personnel (un autre jeton, créé pour toi).")
-    if not body.privsep:
-        _refuse(db, user, conn_id, target, "Le jeton doit avoir les privilèges séparés : sans cela il a TOUS les droits de ton compte. Recrée-le avec « Privilege Separation » coché.")
     s, now = get_settings(), datetime.now(timezone.utc)
-    limit = now + timedelta(days=s.kaji_user_token_max_days)
-    info = await _inspect(base, conn, body)
-    verified = info is not None
-    if info is not None:
-        if not info["privsep"]:
-            _refuse(db, user, conn_id, target, "Proxmox indique que ce jeton n'a PAS les privilèges séparés : il aurait tous les droits de ton compte. Recrée-le avec « Privilege Separation » coché.")
-        if info["expire"] == 0:
-            _refuse(db, user, conn_id, target, "Ce jeton n'a pas de date d'expiration chez Proxmox : recrée-le avec une expiration.")
-        expires = datetime.fromtimestamp(info["expire"], tz=timezone.utc)
-        if body.expires_at is not None:
-            expires = min(expires, _deadline(body.expires_at))
-    elif body.expires_at is not None:
-        expires = _deadline(body.expires_at)
-    else:
-        _refuse(db, user, conn_id, target, "Proxmox ne dit pas quand ce jeton expire : indique sa date d'expiration (expires_at).")
-    if expires <= now:
-        _refuse(db, user, conn_id, target, "Ce jeton est déjà expiré.")
-    if expires > limit:
-        _refuse(db, user, conn_id, target, f"Expiration trop lointaine : au plus {s.kaji_user_token_max_days} jours (réglage KAJI_USER_TOKEN_MAX_DAYS).")
+    expires, verified = await validate_token(db, user, conn, body, base, s.kaji_user_token_max_days)
     enc = tokenkey.encrypt(body.secret.get_secret_value())
     row = db.scalars(select(UserToken).where(UserToken.user_id == user.id, UserToken.conn_id == conn_id)).first()
     if row is None:

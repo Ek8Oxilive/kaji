@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import REFUSED_DETAIL, PersonalTokenRefused, get_client_factory
+from ..deps import REFUSED_DETAIL, SERVICE_REFUSED_DETAIL, PersonalTokenRefused, ServiceTokenRefused, get_client_factory
 from ..proxmox import ProxmoxClient
 from ..storagespec import shape_storages
 from .auth import current_user
@@ -28,6 +28,8 @@ CERT_MISMATCH_DETAIL = "Le certificat de Proxmox ne correspond pas à celui épi
 
 def http_error(e: Exception) -> HTTPException:
     """Traduit une erreur d'appel Proxmox en erreur HTTP lisible (sans jamais exposer de secret)."""
+    if isinstance(e, ServiceTokenRefused):
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, SERVICE_REFUSED_DETAIL)
     if isinstance(e, PersonalTokenRefused):                      # jeton PERSONNEL refusé (révoqué ou expiré chez Proxmox) : message dédié, jamais « token refusé » tout court
         return HTTPException(status.HTTP_502_BAD_GATEWAY, REFUSED_DETAIL)
     if isinstance(e, httpx.HTTPStatusError):

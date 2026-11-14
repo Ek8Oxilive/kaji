@@ -155,6 +155,24 @@ class UserToken(Base):
     refused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)      # Proxmox a répondu 401 : jeton expiré ou révoqué chez lui
 
 
+class ServiceToken(Base):
+    """Jeton de SERVICE d'une connexion (lot #441) : utilisé par le planificateur et les alertes, jamais par un utilisateur. LIMITÉ aux droits dont ces fonctions ont besoin
+    (vérifié à l'enregistrement), chiffré avec la clé séparée `KAJI_TOKEN_KEY`, jamais renvoyé par l'API."""
+
+    __tablename__ = "service_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conn_id: Mapped[int] = mapped_column(Integer, unique=True)           # un seul jeton de service par connexion
+    pve_user: Mapped[str] = mapped_column(String(100))
+    token_id: Mapped[str] = mapped_column(String(100))
+    secret_enc: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    refused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class LoginFailure(Base):
     """Un échec de connexion (ou de jeton de première configuration, de mot de passe…) par clé, pour le limiteur PERSISTANT (lot #446) : un redémarrage ne remet plus le compteur à zéro.
     Ne contient JAMAIS de mot de passe ni d'identifiant saisi : seulement la clé (adresse IP, éventuellement préfixée) et l'heure."""

@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { ServiceTokenDialog } from "../components/ServiceTokenDialog";
 import { TlsPinDialog } from "../components/TlsPinDialog";
 import { Button, Field, Notice } from "../components/ui";
 import { api, type Connection, type ProbeResult } from "../lib/api";
@@ -20,6 +22,8 @@ export function Connections() {
   const [probes, setProbes] = useState<Record<number, ProbeResult>>({});
   const [confirmDel, setConfirmDel] = useState<number | null>(null);
   const [pinFor, setPinFor] = useState<Connection | null>(null);
+  const [svcFor, setSvcFor] = useState<Connection | null>(null);
+  const who = useQuery({ queryKey: ["me"], staleTime: 60_000, queryFn: () => api<{ username: string; role: string }>("/api/auth/me") });
 
   const load = useCallback(() => api<Connection[]>("/api/connections").then(setItems).catch((e) => setFormError(e.message)), []);
   useEffect(() => { load(); }, [load]);
@@ -69,6 +73,7 @@ export function Connections() {
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => probe(c.id)}>{tr("Tester")}</Button>
               <Button variant="ghost" onClick={() => setPinFor(c)}>{c.tls_pinned ? tr("Certificat…") : tr("Épingler le certificat…")}</Button>
+              {who.data?.role === "admin" && <Button variant="ghost" onClick={() => setSvcFor(c)}>{tr("Jeton de service…")}</Button>}
               {confirmDel === c.id
                 ? <><Button variant="danger" onClick={() => remove(c.id)}>{tr("Confirmer la suppression")}</Button><Button variant="ghost" onClick={() => setConfirmDel(null)}>{tr("Annuler")}</Button></>
                 : <Button variant="danger" onClick={() => setConfirmDel(c.id)}>{tr("Supprimer")}</Button>}
@@ -98,6 +103,7 @@ export function Connections() {
         </div>
       </form>
       {pinFor && <TlsPinDialog connId={pinFor.id} name={pinFor.name} onClose={() => { setPinFor(null); load(); }} />}
+      {svcFor && <ServiceTokenDialog conn={svcFor} onClose={() => setSvcFor(null)} />}
     </div>
   );
 }

@@ -12,7 +12,7 @@ from ..config import get_settings
 from ..crypto import decrypt, encrypt
 from ..db import get_db
 from ..deps import get_client_factory
-from ..models import Connection, UserToken
+from ..models import Connection, ServiceToken, UserToken
 from ..proxmox import ProxmoxClient
 from .auth import current_user
 
@@ -162,6 +162,7 @@ def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depend
 def delete_connection(conn_id: int, db: Session = Depends(get_db)):
     db.delete(_get_or_404(db, conn_id))
     db.execute(delete(UserToken).where(UserToken.conn_id == conn_id))          # les jetons personnels de cette connexion n'ont plus d'objet
+    db.execute(delete(ServiceToken).where(ServiceToken.conn_id == conn_id))    # ni son jeton de service
     db.commit()
 
 
