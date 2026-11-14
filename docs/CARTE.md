@@ -349,6 +349,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/cadrage-prod-entreprise.md` — Cadrage : de « lab » à « production en entreprise » (jalons J…
 - `docs/deploiement.md` — Déploiement avec Docker
 - `docs/essais-reels-pc-b.md` — Essais réels des lots PC B (#164, #146, #147)
+- `docs/installation-lab.md` — Installer Kaji en lab
 - `docs/interface-langue.md` — Langue de l'interface (français / anglais)
 - `docs/interface-mobile.md` — Interface sur petit écran (téléphone, petit PC)
 - `docs/m10-cluster.md` — M10 : gestion du cluster, cadrage de l'écriture (option B ret…
