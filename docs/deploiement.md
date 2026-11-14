@@ -60,6 +60,7 @@ Les **migrations de schéma** s'exécutent au démarrage. Avant toute migration,
 (`kaji.db.bak-vN-AAAAMMJJ-HHMMSS`, les 5 dernières sont gardées). Si Kaji refuse de démarrer sur une base « plus récente que le
 code », c'est que tu as redescendu de version : restaure une sauvegarde d'avant la mise à niveau.
 État : `docker compose exec backend python -m app.migrations status`.
+**Testé à chaque modification** : des bases d'exemple produites par le vrai code de chaque version étiquetée (et de deux anciens états du schéma) sont migrées vers le code courant par la CI, sans perte de valeur, avec relecture des jetons, webhooks, comptes et rôles (`backend/tests/test_upgrade_from_versions.py`, `backend/tests/fixtures/db/`). **Retour arrière** : restaure la sauvegarde faite avant la mise à jour (`tools/restore.sh`, section suivante) puis remets le code de l'ancienne étiquette ; **essayé avec de vraies bases, pas encore avec le vrai Docker** (ticket #456).
 
 ## Sauvegarde et restauration
 **Il faut sauvegarder DEUX choses ensemble : la base ET `KAJI_SECRET_KEY`.** La base contient les tokens Proxmox et les adresses de webhook des alertes **chiffrés** avec cette
