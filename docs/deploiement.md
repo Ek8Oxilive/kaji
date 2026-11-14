@@ -129,6 +129,8 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"      # une NOUVELL
 4. Retire `KAJI_TOKEN_KEY_PREVIOUS`, redémarre, `docker compose exec backend python -m app.admin_cli verify` : « jetons personnels déchiffrés : n/n ».
 **Essayée sur de vraies bases SQLite et des commandes réelles, pas avec Docker.** Perdre la clé = les jetons personnels sont à ré-enregistrer (les comptes, les rôles et le reste restent).
 
+**Jeton de service** : le planificateur d'actions et les alertes n'ont personne de connecté ; un administrateur leur enregistre, par connexion, un jeton **limité à six privilèges** (`Sys.Audit`, `VM.Audit`, `VM.PowerMgmt`, `VM.Snapshot`, `Datastore.Audit`, `Pool.Audit`) : page « Connexions » → « Jeton de service… ». Kaji **refuse** un jeton qui en détient un de plus (jamais Administrator) ou dont les droits ne peuvent pas être lus ; `KAJI_REQUIRE_SERVICE_TOKEN=true` interdit de retomber sur le jeton partagé (`docs/api/jeton-service.md`). Il est chiffré avec la même clé séparée `KAJI_TOKEN_KEY` : même sauvegarde à part, même rotation.
+
 **Un jeton personnel expire** : Kaji cesse de l'utiliser à la date retenue (au plus `KAJI_USER_TOKEN_MAX_DAYS` jours après l'enregistrement) et le dit clairement ; l'utilisateur en crée un nouveau dans Proxmox et l'enregistre.
 
 ## Mot de passe perdu

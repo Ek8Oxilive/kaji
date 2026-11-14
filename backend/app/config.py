@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     kaji_require_user_token: bool = False
     # Durée de vie maximale (jours) acceptée pour un jeton personnel : au-delà, l'enregistrement est refusé.
     kaji_user_token_max_days: int = 90
+    # JETON DE SERVICE (lot #441) : le planificateur d'actions et les alertes tournent sans personne de connecté ; ils utilisent, par connexion, un jeton LIMITÉ aux droits dont ils ont besoin
+    # (jamais Administrator) au lieu du jeton partagé. `true` : sans jeton de service, ils ne font RIEN pour cette connexion (au lieu de se rabattre sur le jeton partagé).
+    kaji_require_service_token: bool = False
+    kaji_service_token_max_days: int = 365
 
     @property
     def protected_vmids(self) -> set[int]:

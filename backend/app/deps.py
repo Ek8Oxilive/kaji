@@ -20,7 +20,7 @@ from . import tokenkey
 from .config import get_settings
 from .crypto import decrypt
 from .db import get_db, get_engine
-from .models import Connection, UserToken
+from .models import Connection, ServiceToken, UserToken
 from .proxmox import ProxmoxClient
 
 Factory = Callable[..., ProxmoxClient]
@@ -33,6 +33,10 @@ KEY_DETAIL = "Les jetons personnels sont illisibles : la clé KAJI_TOKEN_KEY est
 
 class PersonalTokenRefused(httpx.HTTPStatusError):
     """Proxmox a répondu 401 à un jeton PERSONNEL. Sous-classe de `HTTPStatusError` : les routes qui interceptent `httpx.HTTPError` la traduisent comme avant (`http_error`)."""
+
+
+class ServiceTokenRefused(PersonalTokenRefused):
+    """Proxmox a répondu 401 au jeton de SERVICE d'une connexion (message distinct de celui d'un jeton personnel)."""
 
 
 def get_base_client_factory() -> Factory:
@@ -111,6 +115,60 @@ def personal_factory(base: Factory, user_id: int) -> Factory:
         return user_id if has or settings.kaji_require_user_token else 0
 
     factory.scope_for = scope_for                    # type: ignore[attr-defined]
+    return factory
+
+
+SERVICE_MISSING_DETAIL = "Aucun jeton de service pour cette connexion (KAJI_REQUIRE_SERVICE_TOKEN) : l'administrateur doit en enregistrer un."
+SERVICE_EXPIRED_DETAIL = "Le jeton de service de cette connexion a expiré : l'administrateur doit en enregistrer un nouveau."
+SERVICE_REFUSED_DETAIL = "Proxmox refuse le jeton de service de cette connexion (révoqué, expiré ou supprimé chez lui) : l'administrateur doit en enregistrer un nouveau."
+
+
+def _mark_service_refused(token_id: int) -> None:
+    with Session(get_engine()) as s:
+        row = s.get(ServiceToken, token_id)
+        if row is not None and row.refused_at is None:
+            row.refused_at = datetime.now(timezone.utc)
+            s.commit()
+
+
+def service_factory(base: Factory) -> Factory:
+    """Fabrique des TÂCHES DE FOND (planificateur, alertes) : le jeton de SERVICE de la connexion s'il existe (limité aux droits de ces fonctions), sinon le jeton partagé comme avant,
+    sauf `KAJI_REQUIRE_SERVICE_TOKEN=true` (refus). Expiré, refusé par Proxmox ou clé changée : erreur claire, jamais de repli silencieux sur le jeton partagé."""
+    def factory(**kw) -> ProxmoxClient:
+        settings = get_settings()
+        if kw.get("ticket") is not None or kw.get("anonymous"):
+            return base(**kw)
+        with Session(get_engine()) as s:
+            conn = s.scalars(select(Connection).where(
+                Connection.host == kw.get("host"), Connection.port == kw.get("port", 8006),
+                Connection.user == kw.get("user"), Connection.token_id == kw.get("token_id"))).first()
+            if conn is not None and not _is_stored_secret(conn, kw.get("token_secret")):
+                conn = None
+            token = s.scalars(select(ServiceToken).where(ServiceToken.conn_id == conn.id)).first() if conn else None
+            if token:
+                s.expunge(token)
+        if conn is None:
+            return base(**kw)
+        if token is None:
+            if settings.kaji_require_service_token:
+                raise HTTPException(status.HTTP_403_FORBIDDEN, SERVICE_MISSING_DETAIL)
+            return base(**kw)
+        if _aware(token.expires_at) <= datetime.now(timezone.utc):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, SERVICE_EXPIRED_DETAIL)
+        if token.refused_at is not None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, SERVICE_REFUSED_DETAIL)
+        try:
+            secret = tokenkey.decrypt(token.secret_enc)
+        except tokenkey.TokenKeyError:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, KEY_DETAIL)
+        client = base(**{**kw, "user": token.pve_user, "token_id": token.token_id, "token_secret": secret})
+        if hasattr(client, "add_response_hook"):
+            async def refused(response: httpx.Response) -> None:
+                if response.status_code == 401:
+                    _mark_service_refused(token.id)
+                    raise ServiceTokenRefused("jeton de service refusé", request=response.request, response=response)
+            client.add_response_hook(refused)
+        return client
     return factory
 
 
