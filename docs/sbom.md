@@ -14,7 +14,7 @@ Au moment de l'étiquette `vX.Y.Z`, le workflow **« SBOM et audit »** (`.githu
 Ils sont **joints à la release** de l'étiquette si elle existe (la créer est le geste du propriétaire), sinon gardés comme **artefacts du workflow**.
 
 ## Ils sont contrôlés, pas seulement produits
-`tools/check_sbom.py` refuse un SBOM invalide ou **périmé** : JSON CycloneDX valide, composants non vides, nom et version présents, et surtout **chaque dépendance épinglée (`==`) de `requirements.txt`, chaque paquet de production de `package-lock.json` y figure avec la même version** ; pour une image, l'**empreinte épinglée figure dans le SBOM** (c'est bien cette image qui a été analysée). Le même workflow tourne sur les PR qui touchent une dépendance ou une image : un SBOM impossible à produire ne se découvre pas le jour de la version.
+`tools/check_sbom.py` refuse un SBOM invalide ou **périmé** : JSON CycloneDX valide, composants non vides, nom et version présents, et surtout **chaque dépendance épinglée (`==`) de `requirements.txt`, chaque paquet de production de `package-lock.json` y figure avec la même version** ; pour une image, la référence est **épinglée par empreinte** et le SBOM parle bien de **cette** image (son nom y figure ; l'empreinte exacte n'y est pas contrôlée : une image multi-architecture est épinglée par l'empreinte de son index alors que `syft` enregistre celle du manifeste de la plateforme, constaté lors du premier essai réel ; l'intégrité vient du tirage par contenu). Le même workflow tourne sur les PR qui touchent une dépendance ou une image : un SBOM impossible à produire ne se découvre pas le jour de la version.
 
 ## Suivi des vulnérabilités
 Le workflow tourne aussi **chaque lundi** et à la demande :

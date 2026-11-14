@@ -6,8 +6,9 @@
     tools/check_sbom.py image  sbom-image-….cdx.json python:3.12-slim@sha256:…
 
 Vérifie : JSON CycloneDX valide, composants non vides, chaque composant a un nom et une version ; et surtout que le SBOM **reflète le verrou** : chaque dépendance épinglée (`==` de
-`requirements.txt`, entrées non-développement de `package-lock.json`) y figure **avec la même version** ; pour une image, que l'empreinte épinglée figure dans le SBOM (c'est bien CETTE image
-qui a été analysée). Code de sortie 0 si tout va bien, 1 sinon (problèmes listés), 2 si l'usage est faux.
+`requirements.txt`, entrées non-développement de `package-lock.json`) y figure **avec la même version** ; pour une image, que la référence est épinglée par empreinte et que le SBOM parle bien de cette image (son nom y figure). **Pas** de contrôle de l'empreinte
+dans le SBOM : une image multi-architecture est épinglée par l'empreinte de son INDEX, alors que `syft` enregistre celle du manifeste de la plateforme (constaté en réel le 2026-11-14) ;
+l'intégrité vient du tirage par contenu (l'empreinte est vérifiée au téléchargement). Code de sortie 0 si tout va bien, 1 sinon (problèmes listés), 2 si l'usage est faux.
 """
 import json
 import re
@@ -89,8 +90,10 @@ def check(kind: str, sbom_path: str, reference: str) -> list[str]:
         digest = reference.split("@", 1)[1] if "@" in reference else ""
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
             problems.append(f"{reference} : pas d'empreinte épinglée")
-        elif digest not in Path(sbom_path).read_text(encoding="utf-8"):
-            problems.append(f"l'empreinte {digest[:19]}… n'apparaît pas dans le SBOM : ce n'est peut-être pas cette image qui a été analysée")
+        else:
+            name = reference.split("@", 1)[0].split(":", 1)[0].rsplit("/", 1)[-1].lower()
+            if name not in Path(sbom_path).read_text(encoding="utf-8").lower():
+                problems.append(f"le nom de l'image « {name} » n'apparaît pas dans le SBOM : ce n'est peut-être pas cette image qui a été analysée")
     return problems
 
 

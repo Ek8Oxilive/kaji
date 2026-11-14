@@ -59,12 +59,14 @@ def test_node_sbom_covers_production_packages_only(tmp_path):
     assert any("react@19.2.0" in p for p in check_sbom.check("node", stale, lock))
 
 
-def test_image_sbom_must_mention_the_pinned_digest(tmp_path):
+def test_image_sbom_needs_a_pinned_reference_and_to_talk_about_that_image(tmp_path):
     ref = f"python:3.12-slim@{DIGEST}"
-    assert check_sbom.check("image", write(tmp_path, "ok.json", bom([{"name": "libc6", "version": "2.36"}], metadata={"component": {"name": ref}})), ref) == []
-    other = write(tmp_path, "other.json", bom([{"name": "libc6", "version": "2.36"}], metadata={"component": {"name": "python:3.12-slim@sha256:" + "cd" * 32}}))
-    assert any("n'apparaît pas" in p for p in check_sbom.check("image", other, ref))
-    assert any("pas d'empreinte" in p for p in check_sbom.check("image", other, "python:3.12-slim"))
+    ok = write(tmp_path, "ok.json", bom([{"name": "libc6", "version": "2.36"}], metadata={"component": {"name": "docker.io/library/python"}}))
+    assert check_sbom.check("image", ok, ref) == []                                                  # l'empreinte de l'INDEX n'a pas à figurer dans le SBOM (cas réel de syft)
+    other = write(tmp_path, "other.json", bom([{"name": "libc6", "version": "2.36"}], metadata={"component": {"name": "docker.io/library/nginx"}}))
+    assert any("« python »" in p for p in check_sbom.check("image", other, ref))                      # le SBOM d'une autre image est refusé
+    assert any("pas d'empreinte" in p for p in check_sbom.check("image", ok, "python:3.12-slim"))
+    assert check_sbom.check("image", ok, f"caddy:2.8-alpine@{DIGEST}") != [] and check_sbom.check("image", ok, f"registry.example.org/team/python:3@{DIGEST}") == []
 
 
 @pytest.mark.parametrize("data,needle", [
