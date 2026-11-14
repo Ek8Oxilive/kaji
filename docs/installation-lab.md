@@ -114,6 +114,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_TOKEN_KEY_PREVIOUS` | seulement pendant une rotation | Voir `docs/deploiement.md`. |
 | `KAJI_REQUIRE_USER_TOKEN` | `false` (défaut) | `true` : sans jeton personnel, pas d'accès à Proxmox. |
 | `KAJI_USER_TOKEN_MAX_DAYS` | `90` (défaut) | Durée maximale acceptée pour un jeton personnel. |
+| `KAJI_SECRET_KEY_PREVIOUS` | seulement pendant une rotation | L'ancienne clé, pour `rotate-secret-key` : `docs/runbook.md`. |
 | `KAJI_REQUIRE_SERVICE_TOKEN` | `false` (défaut) | `true` : le planificateur et les alertes ne font rien pour une connexion sans **jeton de service** limité (`docs/api/jeton-service.md`) au lieu d'utiliser le jeton partagé. |
 | `KAJI_SERVICE_TOKEN_MAX_DAYS` | `365` (défaut) | Échéance maximale acceptée pour un jeton de service. |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
@@ -215,6 +216,7 @@ Les migrations de schéma s'exécutent au démarrage, **après une copie de la b
 ## 10. Pour aller plus loin
 - `docs/deploiement.md` : détails Docker, limiteur de connexions derrière un proxy, ce que fait (et ne fait pas) la configuration.
 - `docs/images-et-versions.md` : images de base épinglées, mise à jour des empreintes, nommage et publication des versions.
+- `docs/runbook.md` : exploitation au quotidien (supervision, rotation des secrets, restauration, mise à jour, incidents).
 - `docs/securite.md` : revue de sécurité, ce qui est vérifié, ce qui reste à décider.
 - `docs/statut-fonctions.md` : quelles fonctions sont « validées en réel » et lesquelles sont « expérimentales ».
 - `docs/cadrage-prod-entreprise.md` : ce qui sépare ce lab d'une production en entreprise.

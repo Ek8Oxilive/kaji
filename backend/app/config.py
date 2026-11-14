@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
     kaji_secret_key: str
+    # Seulement pendant une rotation de KAJI_SECRET_KEY : l'ANCIENNE clé (`python -m app.admin_cli rotate-secret-key --yes`, docs/runbook.md). Ne sert à rien le reste du temps.
+    kaji_secret_key_previous: str = ""
     database_url: str = "sqlite:///./kaji.db"
     # Cookie de session « Secure » : mettre false uniquement en HTTP non-localhost
     kaji_cookie_secure: bool = True
