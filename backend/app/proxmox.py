@@ -7,6 +7,28 @@ import httpx
 from .tlspin import context_for
 
 
+class ProxmoxProtocolError(httpx.HTTPError):
+    """Proxmox a répondu (200), mais pas avec la forme attendue (`{"data": …}` en JSON) : mauvaise adresse, proxy, portail captif, version incompatible…
+    Sous-classe de `httpx.HTTPError` : les routes qui interceptent déjà les erreurs d'appel la traduisent en 502 clair (`http_error`) au lieu d'une erreur 500 brute."""
+
+
+def _body(r: httpx.Response) -> dict:
+    try:
+        body = r.json()
+    except ValueError as e:
+        raise ProxmoxProtocolError("la réponse n'est pas du JSON") from e
+    if not isinstance(body, dict):
+        raise ProxmoxProtocolError("la réponse JSON n'est pas un objet")
+    return body
+
+
+def _data(r: httpx.Response):
+    body = _body(r)
+    if "data" not in body:
+        raise ProxmoxProtocolError("la réponse n'a pas de champ « data »")
+    return body["data"]
+
+
 class ProxmoxClient:
     """Client async pour l'API REST Proxmox (auth par API token).
 
@@ -53,37 +75,42 @@ class ProxmoxClient:
     async def get(self, path: str, /, **params):
         r = await self._client.get(path, params=params)
         r.raise_for_status()
-        return r.json()["data"]
+        return _data(r)
 
     async def get_envelope(self, path: str, /, **params):
         """Réponse complète de Proxmox (`data` plus les attributs de l'enveloppe, comme `changes` pour le réseau). Lecture seule."""
         r = await self._client.get(path, params=params)
         r.raise_for_status()
-        body = r.json()
+        try:
+            body = r.json()
+        except ValueError as e:
+            raise ProxmoxProtocolError("la réponse n'est pas du JSON") from e
         return body if isinstance(body, dict) else {"data": body}
 
     async def get_with_total(self, path: str, /, **params):
         """Comme `get`, mais renvoie aussi le `total` de l'enveloppe (listes paginées comme le journal système) : `(data, total|None)`."""
         r = await self._client.get(path, params=params)
         r.raise_for_status()
-        body = r.json()
+        body = _body(r)
+        if "data" not in body:
+            raise ProxmoxProtocolError("la réponse n'a pas de champ « data »")
         total = body.get("total")
         return body["data"], (total if isinstance(total, int) and not isinstance(total, bool) and total >= 0 else None)
 
     async def post(self, path: str, /, **data):
         r = await self._client.post(path, data=data)
         r.raise_for_status()
-        return r.json()["data"]
+        return _data(r)
 
     async def put(self, path: str, /, **data):
         r = await self._client.put(path, data=data)
         r.raise_for_status()
-        return r.json()["data"]
+        return _data(r)
 
     async def delete(self, path: str, /, **params):
         r = await self._client.delete(path, params=params)
         r.raise_for_status()
-        return r.json()["data"]
+        return _data(r)
 
     async def upload(self, path: str, /, *, fields: dict[str, str], filename: str, body, length: int):
         """Envoie un fichier en multipart, **en flux** (jamais chargé en mémoire ni écrit sur le disque de Kaji).
@@ -105,7 +132,7 @@ class ProxmoxClient:
                                     headers={"Content-Type": f"multipart/form-data; boundary={boundary}",
                                              "Content-Length": str(len(head) + length + len(tail))})
         r.raise_for_status()
-        return r.json()["data"]
+        return _data(r)
 
     def add_response_hook(self, hook) -> None:
         """Appelle `await hook(response)` à chaque réponse de Proxmox, avant tout traitement (sert à signaler un jeton personnel refusé). Une exception levée par le crochet remonte à l'appelant."""

@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     kaji_require_user_token: bool = False
     # Durée de vie maximale (jours) acceptée pour un jeton personnel : au-delà, l'enregistrement est refusé.
     kaji_user_token_max_days: int = 90
+    # Requêtes HTTP simultanées au plus (hors santé et flux temps réel) ; au-delà : 503 tout de suite (`app/limits.py`). 0 = pas de limite. Doit rester sous la taille du pool de connexions à la base
+    # (`app/db.py`, 150) : le défaut laisse de la marge.
+    kaji_max_concurrent_requests: int = 100
     # JETON DE SERVICE (lot #441) : le planificateur d'actions et les alertes tournent sans personne de connecté ; ils utilisent, par connexion, un jeton LIMITÉ aux droits dont ils ont besoin
     # (jamais Administrator) au lieu du jeton partagé. `true` : sans jeton de service, ils ne font RIEN pour cette connexion (au lieu de se rabattre sur le jeton partagé).
     kaji_require_service_token: bool = False

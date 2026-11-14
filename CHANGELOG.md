@@ -20,6 +20,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 - Test de mise à jour entre versions : bases d'exemple produites par le code réel de `v1.0.0-rc1` et de deux anciens états du schéma, migrées vers le code courant en CI sans perte de valeur ; une base d'exemple par étiquette Git exigée, produite par `tools/snapshot_db.py` (#456).
 
 ### Corrigé
+- **Robustesse** (#457) : une réponse de Proxmox qui n'est pas du JSON Proxmox (proxy, portail captif, mauvaise adresse) donne un **502 clair** au lieu d'une erreur 500 brute ; le **pool de connexions à la base** (15, saturé par une quinzaine de requêtes lentes vers Proxmox, avec blocage de 30 s) passe à 150 ; une **limite de requêtes simultanées** (`KAJI_MAX_CONCURRENT_REQUESTS`, 100) refuse proprement par un 503 au lieu de tout bloquer. Chiffres mesurés et limites : `docs/robustesse.md` (`tools/fake_proxmox.py`, `tools/load_test.py`).
 - `docs/deploiement.md` : le HTTPS fourni par Caddy écoute sur le port 443, pas 8443 (#430).
 
 ## [1.0.0-rc1] - 2026-11-14
