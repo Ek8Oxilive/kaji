@@ -173,17 +173,18 @@ Garde l'ancien accès local tant que le HTTPS n'est pas vérifié. Sauvegarde au
 - Journal d'audit de Kaji : pas de page dédiée ; connecté, ouvre `https://<adresse>/api/audit` dans le navigateur. L'action y figure, **sans aucun secret**.
 
 ## 7. Sauvegarde : la base ET la clé, ensemble
-La base (volume Docker `kaji-data`) contient les **jetons Proxmox et les adresses de webhook chiffrés** avec `KAJI_SECRET_KEY`, les comptes de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit. **L'une sans l'autre est inutilisable.** Sauvegarde les deux, **séparément et en lieu sûr** (la clé ne va pas dans la même archive que la base).
+La base (volume Docker `kaji-data`) contient les **jetons Proxmox et les adresses de webhook chiffrés** avec `KAJI_SECRET_KEY`, les comptes de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit. **L'une sans l'autre est inutilisable.** La clé est dans `.env`, pas dans la base : sauvegarde les deux, **séparément et en lieu sûr** (gestionnaire de mots de passe pour `.env`).
 ```bash
-docker compose stop backend                      # fichier SQLite cohérent : on ne copie pas une base en cours d'écriture
-docker volume ls | grep kaji-data                # le nom exact dépend du dossier : par exemple kaji_kaji-data
-docker run --rm -v kaji_kaji-data:/data -v "$PWD":/backup alpine tar czf /backup/kaji-data.tgz -C /data .
-docker compose start backend
-cp .env /chemin/sûr/kaji.env                     # contient la clé
+tools/backup.sh /chemin/sûr/sauvegardes      # base cohérente, Kaji reste en marche ; la copie est relue avec la clé (jetons et webhooks déchiffrés)
+cp .env /chemin/sûr/kaji.env                 # la clé, à part ; note aussi l'empreinte de la clé affichée par le script
 ```
-**Restauration** : sur une machine installée comme à l'étape 3 (mais **sans** avoir créé de compte), remets le **même** `.env`, recrée le volume, extrais l'archive dedans, puis `docker compose up -d`. Vérifie ensuite que les connexions Proxmox fonctionnent (page « Connexions » → « Tester ») et que les webhooks d'alerte sont présents.
+**Restauration**, sur une machine installée comme à l'étape 3 : remets le **même** `.env`, puis :
+```bash
+tools/restore.sh /chemin/sûr/sauvegardes/kaji-AAAAMMJJ-HHMMSS.db      # demande de taper RESTAURER, refuse une sauvegarde illisible avec cette clé
+```
+Le script contrôle ensuite la base (`verify`) ; termine par un essai à la main : connexion à Kaji, page « Connexions » → « Tester », webhooks d'alerte présents. Détails, contrôle d'une sauvegarde et méthode de secours (copie du volume) : `docs/deploiement.md`.
 
-> **Pas encore éprouvé de bout en bout.** Ces commandes viennent de `docs/deploiement.md`. Le test complet (sauvegarde, effacement, restauration, relecture des jetons et des webhooks) est le ticket #429 ; ce paragraphe sera corrigé avec son résultat.
+> **Pas encore éprouvé avec Docker de bout en bout.** La logique (sauvegarde cohérente, refus avec la mauvaise clé, aller-retour complet, enchaînement des scripts) est testée automatiquement sur de vraies bases SQLite et avec un faux `docker` ; **le volume Docker réel n'a jamais servi à une restauration** : c'est la fin du ticket #429, à faire sur une machine avec Docker. Si une étape échoue chez toi, ouvre un ticket avec le message obtenu.
 
 ## 8. Mettre à jour
 ```bash
