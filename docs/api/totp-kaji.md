@@ -34,7 +34,7 @@ Les routes de `/api/auth/` sont en libre-service : **tous les rôles** (administ
 - **Pas de QR code** : le secret se saisit à la main (« saisie manuelle » de toutes les applications) ; un QR demanderait une dépendance de plus. À ajouter si besoin.
 - **Pas d'obligation** : aucun réglage ne force le TOTP pour tous les comptes ou pour les administrateurs (suite possible, avec le SSO du ticket #443).
 - **Pas de WebAuthn / clé matérielle** pour la connexion à Kaji.
-- **`rotate-secret-key`** (PR #471, autre session) ré-chiffre les jetons des connexions et les webhooks avec la nouvelle `KAJI_SECRET_KEY` ; il **ne contient pas encore** les secrets TOTP : tant qu'il ne les gère pas, **une rotation de `KAJI_SECRET_KEY` rend les secrets TOTP illisibles** (les codes de secours, eux, restent valables). Un administrateur peut alors retirer le TOTP des comptes concernés. Suivi dans les tickets #461 et #444.
+- **Rotation de `KAJI_SECRET_KEY`** : `python -m app.admin_cli rotate-secret-key --yes` (`docs/runbook.md`) ré-chiffre aussi les secrets TOTP (confirmés ou en attente) ; `verify` les relit et signale ceux qu'une clé ne lit pas. Les codes de secours sont des empreintes SHA-256 : la rotation ne les concerne pas. Rotation **sans** la commande : les secrets TOTP deviennent illisibles, un administrateur retire alors le TOTP des comptes concernés (les codes de secours restent valables).
 - Une seule instance de Kaji (comme le planificateur) ; l'horloge du serveur doit être à l'heure (sinon les codes sont refusés).
 
 ## Tests
