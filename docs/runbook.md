@@ -70,7 +70,7 @@ Essayé sur de vraies bases SQLite (`backend/tests/test_secret_rotation.py`, 11 
 ## 5. Mise à jour et retour arrière
 1. `tools/backup.sh` (et noter les clés).
 2. `git fetch --tags && git checkout <étiquette>` ; relire `CHANGELOG.md` (rubriques « Sécurité » et « Modifié »).
-3. Reconstruire avec les **deux** fichiers Compose si le HTTPS est actif : `docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build`.
+3. Reconstruire avec les **deux** fichiers Compose si le HTTPS est actif : `docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d --build`. **Si `deploy/Caddyfile` a changé dans cette version, redémarre aussi Caddy** : `docker compose -f docker-compose.yml -f docker-compose.tls.yml restart tls` (Docker ne recrée pas un conteneur quand seul un fichier monté change : Caddy garderait l'ancienne configuration ; constaté le 2026-11-15, il tournait depuis 26 heures avec l'ancien amont).
 4. `docker compose exec backend python -m app.migrations status` : `pending: []`, puis `verify`.
 5. **Retour arrière** : `git checkout <ancienne étiquette>` + `tools/restore.sh` avec la sauvegarde de l'étape 1 (une base plus récente que le code est refusée au démarrage).
 La CI migre chaque base d'exemple de version vers le code courant (`backend/tests/test_upgrade_from_versions.py`) ; **la procédure complète n'a pas été essayée avec le vrai Docker** (#456).
