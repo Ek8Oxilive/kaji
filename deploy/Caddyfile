@@ -12,7 +12,10 @@
 
 {$KAJI_TLS_SITE}, {$KAJI_TLS_NAME} {
 	tls internal
-	reverse_proxy web:80 {
+	# En amont : l'ADRESSE FIXE de nginx (docker-compose.tls.yml), JAMAIS un nom. Avec `web:80`, quand le conteneur `web` est absent (reconstruction, redémarrage), Docker ne répond plus au nom et
+	# le DNS du réseau le résout en `web.lan` : Caddy relayait alors, EN HTTP CLAIR, les mots de passe et les cookies de session vers un autre serveur du réseau (constaté le 2026-11-15, deux fois).
+	# Avec l'adresse fixe, un `web` absent donne une erreur 502, jamais un autre site.
+	reverse_proxy 172.29.77.10:80 {
 		flush_interval -1        # flux temps réel (SSE) et consoles : aucune mise en tampon
 	}
 }

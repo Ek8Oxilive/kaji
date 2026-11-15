@@ -105,6 +105,9 @@ Kaji détient des jetons : **les considérer tous comme compromis**.
 ### 6.6 Proxmox ne répond pas ou son certificat a changé
 Kaji affiche « Proxmox injoignable » / « certificat différent » sans rien casser. Certificat renouvelé : page « Connexions » → « Épingler le certificat… » après **comparaison de l'empreinte** avec celle du nœud.
 
+### 6.6bis `https://kaji.home` affiche un autre site (ton portfolio, par exemple)
+Pendant une reconstruction, si l'amont de Caddy est un **nom** (`web:80`), il peut être résolu par le DNS du réseau en un AUTRE serveur (`web.lan`). **Ne te connecte pas** tant que c'est le cas : mot de passe et cookie partiraient vers cet autre serveur, en HTTP clair. Depuis le correctif de 2026-11-15, l'amont est l'adresse fixe `172.29.77.10` : `web` absent donne une erreur 502 (« Bad Gateway »), jamais un autre site. Si tu vois quand même un autre site : `grep reverse_proxy deploy/Caddyfile` doit afficher `172.29.77.10:80` (sinon : `git pull` puis redéploiement avec les deux fichiers Compose).
+
 ### 6.7 Une faille est annoncée dans une image de base ou une dépendance
 `tools/image_digests.sh` ; Dependabot ; reconstruire (`docker compose build --no-cache`) ; consulter `CHANGELOG.md`.
 
