@@ -18,7 +18,7 @@ from .models import AuthSetting
 PROVIDERS = ("ldap", "oidc")
 # nom du réglage → type ; les secrets sont listés à part
 PLAIN = {
-    "ldap": {"url": str, "start_tls": bool, "ca_file": str, "base_dn": str, "bind_dn": str, "user_filter": str, "username_attr": str, "timeout": int,
+    "ldap": {"url": str, "start_tls": bool, "ca_file": str, "tls_server_name": str, "base_dn": str, "bind_dn": str, "user_filter": str, "username_attr": str, "timeout": int,
              "auto_create": bool, "default_role": str, "allow_admin": bool, "groups_attr": str, "admin_group": str, "operator_group": str, "label": str},
     "oidc": {"issuer": str, "client_id": str, "redirect_uri": str, "scopes": str, "username_claim": str, "auto_create": bool, "default_role": str, "allow_admin": bool, "groups_claim": str, "admin_group": str, "operator_group": str, "label": str},
 }
@@ -60,6 +60,8 @@ def clean_value(provider: str, name: str, value):
         raise SettingError("ca_file : chemin absolu sans « .. » attendu")
     if name in ("default_role",) and value not in ("operator", "viewer"):
         raise SettingError("default_role : operator ou viewer (jamais admin)")
+    if name == "tls_server_name" and value and not ldaplogin.TLS_NAME.fullmatch(value):
+        raise SettingError("tls_server_name : nom DNS attendu (lettres, chiffres, points et tirets ; pas de joker)")
     if name == "url" and value and urlsplit(value).scheme not in ("ldap", "ldaps"):
         raise SettingError("url : ldaps:// (ou ldap:// avec STARTTLS) attendu")
     return value
@@ -106,6 +108,15 @@ def effective(db: Session, provider: str) -> Settings:
     """Les réglages à appliquer : le `.env`, surchargé par la base."""
     values, secrets = stored(db, provider)
     return overlay(provider, values, secrets)
+
+
+def preview(db: Session, provider: str, values: dict, secrets: dict) -> Settings:
+    """La configuration qu'on obtiendrait en enregistrant `values` / `secrets` par-dessus l'existant, SANS rien écrire (test de connexion avant enregistrement). Lève `SettingError` si un champ est invalide."""
+    check_provider(provider)
+    new_values = {k: clean_value(provider, k, v) for k, v in values.items()}
+    new_secrets = {k: clean_secret(provider, k, v) for k, v in secrets.items()}
+    old_values, old_secrets = stored(db, provider)
+    return overlay(provider, {**old_values, **new_values}, {**old_secrets, **new_secrets})
 
 
 def problems(provider: str, s: Settings) -> list[str]:

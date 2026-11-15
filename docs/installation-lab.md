@@ -133,6 +133,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_LDAP_URL` | vide (défaut) | Adresse de l'annuaire LDAP / Active Directory (`ldaps://hôte:636`) : active la connexion par annuaire. Vide : pas d'annuaire. Voir `docs/api/ldap.md`. |
 | `KAJI_LDAP_START_TLS` | `false` | `true` avec une adresse `ldap://` : STARTTLS est négocié avant toute liaison. Sans `ldaps://` ni STARTTLS, la connexion est refusée (pas de mot de passe en clair). |
 | `KAJI_LDAP_CA_FILE` | vide | Chemin d'une autorité privée de l'annuaire ; le certificat est toujours vérifié. |
+| `KAJI_LDAP_TLS_SERVER_NAME` | vide | Nom que le certificat de l'annuaire doit porter quand l'adresse est une IP (sans DNS joignable) ; un nom DNS, jamais de joker. Vide : le nom de l'adresse. |
 | `KAJI_LDAP_BASE_DN` | vide | Où chercher les personnes (obligatoire si l'annuaire est actif). |
 | `KAJI_LDAP_BIND_DN` | vide | Compte de **lecture seule** qui retrouve l'entrée de la personne (obligatoire si l'annuaire est actif). |
 | `KAJI_LDAP_BIND_PASSWORD` | vide | Mot de passe de ce compte de lecture ; reste dans `.env`, jamais renvoyé ni journalisé. |

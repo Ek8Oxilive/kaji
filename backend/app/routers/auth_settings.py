@@ -65,11 +65,22 @@ def reset(provider: str, confirm: bool = False, user: AdminUser = Depends(curren
     return authconfig.view(db, provider)
 
 
+class TestBody(BaseModel):
+    values: dict = Field(default_factory=dict, description="Réglages à essayer par-dessus l'existant, sans les enregistrer")
+    secrets: dict = Field(default_factory=dict, description="Secrets à essayer, sans les enregistrer")
+
+
 @router.post("/{provider}/test")
-async def test_connection(provider: str, user: AdminUser = Depends(current_user), db: Session = Depends(get_db)):
-    """Essaie la configuration EFFECTIVE sans le mot de passe de personne. Réponse : `{ok, detail}` (texte court et fixe, jamais une valeur reçue de l'annuaire ou du fournisseur)."""
+async def test_connection(provider: str, body: TestBody | None = None, user: AdminUser = Depends(current_user), db: Session = Depends(get_db)):
+    """Essaie la configuration sans le mot de passe de personne : celle que contient `body` (valeurs de la fenêtre, NON enregistrées) par-dessus l'existant, ou l'effective sans corps.
+    Réponse : `{ok, detail}` (texte court et fixe, jamais une valeur reçue de l'annuaire ou du fournisseur)."""
     provider = _provider(provider)
-    s = authconfig.effective(db, provider)
+    if body is not None and (len(body.values) > 20 or len(body.secrets) > 4):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Trop de réglages")
+    try:
+        s = authconfig.preview(db, provider, body.values, body.secrets) if body is not None else authconfig.effective(db, provider)
+    except authconfig.SettingError as e:
+        return {"ok": False, "detail": str(e)[:150]}
     if errs := authconfig.problems(provider, s):
         return {"ok": False, "detail": errs[0][:150]}
     if provider == "oidc":

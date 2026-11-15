@@ -18,6 +18,7 @@ from .config import get_settings
 from .models import AdminUser, UserIdentity
 
 USERNAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{2,63}")
+TLS_NAME = re.compile(r"[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?")          # un nom DNS : jamais `*` (ldap3 le prendrait pour « tout nom valide »), ni espace, ni caractère de contrôle
 ATTR = re.compile(r"[A-Za-z][A-Za-z0-9-]{0,63}")
 
 
@@ -40,6 +41,8 @@ def configuration_problem(s=None) -> str | None:
         return "chiffrement obligatoire (ldaps:// ou KAJI_LDAP_START_TLS)"
     if not s.kaji_ldap_base_dn or not s.kaji_ldap_bind_dn or not s.kaji_ldap_bind_password:
         return "base, compte de lecture ou mot de passe du compte de lecture manquant"
+    if s.kaji_ldap_tls_server_name and not TLS_NAME.fullmatch(s.kaji_ldap_tls_server_name):
+        return "nom attendu dans le certificat invalide"
     if "{username}" not in s.kaji_ldap_user_filter or not ATTR.fullmatch(s.kaji_ldap_username_attr) or not ATTR.fullmatch(s.kaji_ldap_groups_attr):
         return "filtre ou attribut d'identifiant invalide"
     return None
@@ -54,7 +57,8 @@ def escape_filter_value(value: str) -> str:
 def _server(s):
     from ldap3 import Server, Tls
     url = urlsplit(s.kaji_ldap_url)
-    tls = Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=s.kaji_ldap_ca_file or None)          # certificat TOUJOURS vérifié
+    # certificat TOUJOURS vérifié. `tls_server_name` : nom que le certificat doit porter quand l'adresse de l'annuaire est une IP (ou un nom que le certificat ne contient pas) ; jamais de joker.
+    tls = Tls(validate=ssl.CERT_REQUIRED, ca_certs_file=s.kaji_ldap_ca_file or None, valid_names=[s.kaji_ldap_tls_server_name] if s.kaji_ldap_tls_server_name else None)
     return Server(s.kaji_ldap_url, use_ssl=url.scheme == "ldaps", tls=tls, connect_timeout=s.kaji_ldap_timeout)
 
 

@@ -7,7 +7,7 @@ Le menu **Compte → Authentification…** (administrateurs) règle la connexion
 | `GET /api/auth-settings` | l'état des deux fournisseurs : `enabled`, `source` (`database`, `env`, `none`), valeurs effectives non secrètes, `secrets` (défini ou non), `problems` |
 | `PUT /api/auth-settings/{ldap\|oidc}` | `{values, secrets, clear_secrets, confirm, dry_run}` : fusionne avec l'existant ; `dry_run` valide sans rien écrire ; l'écriture exige `confirm` |
 | `DELETE /api/auth-settings/{provider}?confirm=true` | retire les réglages de la base : le `.env` s'applique de nouveau |
-| `POST /api/auth-settings/{provider}/test` | `{ok, detail}` : lie le compte de lecture (annuaire) ou lit la découverte (SSO) |
+| `POST /api/auth-settings/{provider}/test` | `{ok, detail}` : lie le compte de lecture (annuaire) ou lit la découverte (SSO). **Corps facultatif `{values, secrets}`** : essaie les valeurs saisies dans la fenêtre par-dessus l'existant, **sans rien enregistrer ni auditer** ; un secret non retapé est remplacé par celui qui est enregistré. Sans corps : la configuration effective |
 
 ## Règles
 - **La base prime sur le `.env`** ; sans ligne en base, le `.env` s'applique tel quel (une installation existante ne change pas).
