@@ -19,8 +19,8 @@ PROVIDERS = ("ldap", "oidc")
 # nom du réglage → type ; les secrets sont listés à part
 PLAIN = {
     "ldap": {"url": str, "start_tls": bool, "ca_file": str, "base_dn": str, "bind_dn": str, "user_filter": str, "username_attr": str, "timeout": int,
-             "auto_create": bool, "default_role": str, "label": str},
-    "oidc": {"issuer": str, "client_id": str, "redirect_uri": str, "scopes": str, "username_claim": str, "auto_create": bool, "default_role": str, "label": str},
+             "auto_create": bool, "default_role": str, "allow_admin": bool, "groups_attr": str, "admin_group": str, "operator_group": str, "label": str},
+    "oidc": {"issuer": str, "client_id": str, "redirect_uri": str, "scopes": str, "username_claim": str, "auto_create": bool, "default_role": str, "allow_admin": bool, "groups_claim": str, "admin_group": str, "operator_group": str, "label": str},
 }
 SECRETS = {"ldap": ("bind_password",), "oidc": ("client_secret",)}
 MAX_LEN = 512

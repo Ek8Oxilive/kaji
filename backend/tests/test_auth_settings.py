@@ -26,9 +26,9 @@ SECRET_FIELD = "ce-secret-ne-doit-apparaitre-nulle-part"
 
 @pytest.fixture
 def adm(client, monkeypatch):
-    for k in ("URL", "START_TLS", "CA_FILE", "BASE_DN", "BIND_DN", "BIND_PASSWORD", "USER_FILTER", "USERNAME_ATTR", "AUTO_CREATE", "DEFAULT_ROLE", "LABEL"):
+    for k in ("URL", "START_TLS", "CA_FILE", "BASE_DN", "BIND_DN", "BIND_PASSWORD", "USER_FILTER", "USERNAME_ATTR", "AUTO_CREATE", "DEFAULT_ROLE", "ALLOW_ADMIN", "LABEL"):
         monkeypatch.delenv(f"KAJI_LDAP_{k}", raising=False)
-    for k in ("ISSUER", "CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI", "SCOPES", "USERNAME_CLAIM", "AUTO_CREATE", "DEFAULT_ROLE", "LABEL"):
+    for k in ("ISSUER", "CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI", "SCOPES", "USERNAME_CLAIM", "AUTO_CREATE", "DEFAULT_ROLE", "ALLOW_ADMIN", "LABEL"):
         monkeypatch.delenv(f"KAJI_OIDC_{k}", raising=False)
     get_settings.cache_clear()
     directory = FakeDirectory()

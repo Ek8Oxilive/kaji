@@ -15,7 +15,8 @@ Le menu **Compte → Authentification…** (administrateurs) règle la connexion
 - **Secrets en écriture seule** (mot de passe du compte de lecture, secret du client SSO) : chiffrés avec `KAJI_SECRET_KEY` dans `auth_settings.secret_enc`, jamais renvoyés, jamais journalisés ; l'API dit seulement « défini ». Ils suivent la rotation de la clé (`rotate-secret-key`) et la vérification des sauvegardes (`verify`).
 - **Chaque champ est validé** : type, bornes, texte sans caractère de contrôle, `default_role` limité à `operator` / `viewer` (jamais administrateur), `ca_file` chemin absolu sans `..`, `url` en `ldap(s)://`. Une configuration que le fournisseur concerné refuse (SSO : mêmes contrôles qu'au démarrage ; annuaire : chiffrement obligatoire, base, compte de lecture, filtre avec `{username}`) n'est **jamais enregistrée**. Les messages disent quel réglage, jamais la valeur.
 - **Audit** (`auth-settings`) : les NOMS des réglages changés (« bind_password (secret défini) »), jamais une valeur.
-- **Aucun verrouillage possible** : le mot de passe local reste toujours là ; un administrateur ne se connecte de toute façon pas par l'annuaire ni par le SSO.
+- **Aucun verrouillage possible** : le mot de passe local reste toujours là (secours si le fournisseur est indisponible).
+- **Administrateurs et groupes** : « Autoriser les administrateurs » (`allow_admin`, vrai par défaut) ; « Groupe administrateur » et « Groupe opérateur » font suivre le rôle aux groupes à chaque connexion (`docs/api/ldap.md`, `docs/api/sso.md`) ; vides, aucun rôle n'est modifié.
 - Le test de connexion n'envoie **jamais le mot de passe d'une personne** ; ses réponses sont des textes courts et fixes.
 
 ## Limites connues

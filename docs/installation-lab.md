@@ -125,6 +125,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_OIDC_USERNAME_CLAIM` | `preferred_username` | Champ du jeton qui désigne le compte de Kaji (lettres, chiffres, `.`, `_`, `-`, 3 à 64 caractères). |
 | `KAJI_OIDC_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion SSO ; sinon la personne doit déjà avoir un compte de Kaji. |
 | `KAJI_OIDC_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par le SSO : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_OIDC_ALLOW_ADMIN` | `true` | `false` : les administrateurs ne se connectent pas par le SSO (mot de passe local seulement). |
+| `KAJI_OIDC_GROUPS_CLAIM` | `groups` | Champ de l'ID token qui liste les groupes (ajouter le périmètre `groups` chez le fournisseur). |
+| `KAJI_OIDC_ADMIN_GROUP` | vide | Nom **exact** du groupe dont les membres sont administrateurs de Kaji (donc de Proxmox) ; vide : aucun rôle n'est modifié. |
+| `KAJI_OIDC_OPERATOR_GROUP` | vide | Nom exact du groupe dont les membres sont opérateurs. |
 | `KAJI_OIDC_LABEL` | `SSO` | Texte du bouton de l'écran de connexion. |
 | `KAJI_LDAP_URL` | vide (défaut) | Adresse de l'annuaire LDAP / Active Directory (`ldaps://hôte:636`) : active la connexion par annuaire. Vide : pas d'annuaire. Voir `docs/api/ldap.md`. |
 | `KAJI_LDAP_START_TLS` | `false` | `true` avec une adresse `ldap://` : STARTTLS est négocié avant toute liaison. Sans `ldaps://` ni STARTTLS, la connexion est refusée (pas de mot de passe en clair). |
@@ -136,6 +140,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_LDAP_USERNAME_ATTR` | `uid` | Attribut qui porte l'identifiant (`sAMAccountName` pour Active Directory). |
 | `KAJI_LDAP_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion par l'annuaire ; sinon la personne doit déjà avoir un compte de Kaji (jamais un administrateur). |
 | `KAJI_LDAP_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par l'annuaire : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_LDAP_ALLOW_ADMIN` | `true` | `false` : les administrateurs ne se connectent pas par l'annuaire (mot de passe local seulement). |
+| `KAJI_LDAP_GROUPS_ATTR` | `memberOf` | Attribut de l'entrée qui liste les groupes de la personne (groupes directs seulement). |
+| `KAJI_LDAP_ADMIN_GROUP` | vide | DN **exact** du groupe dont les membres sont administrateurs de Kaji (donc de Proxmox) ; vide : aucun rôle n'est modifié. |
+| `KAJI_LDAP_OPERATOR_GROUP` | vide | DN exact du groupe dont les membres sont opérateurs. |
 | `KAJI_LDAP_LABEL` | `Annuaire` | Texte de la case de l'écran de connexion. |
 | `KAJI_TOKEN_CREATE_MAX_DAYS` | `365` (défaut) | Jetons Proxmox créés par l'administrateur depuis Kaji (page « Accès ») : **l'expiration est obligatoire** et au plus ce nombre de jours (`0` = facultative, déconseillé). |
 | `KAJI_MAX_CONCURRENT_REQUESTS` | `100` (défaut) | Requêtes simultanées au plus ; au-delà, **503** immédiat au lieu d'un blocage (`docs/robustesse.md`). |

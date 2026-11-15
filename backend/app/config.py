@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     kaji_oidc_username_claim: str = "preferred_username"
     kaji_oidc_auto_create: bool = False
     kaji_oidc_default_role: str = "viewer"
+    kaji_oidc_groups_claim: str = "groups"          # champ de l'ID token qui liste les groupes (ajouter le périmètre `groups` chez le fournisseur)
+    kaji_oidc_admin_group: str = ""                 # groupe dont les membres sont administrateurs de Kaji (vide : aucune correspondance, rôles inchangés) ; correspondance exacte
+    kaji_oidc_operator_group: str = ""              # groupe dont les membres sont opérateurs
+    kaji_oidc_allow_admin: bool = True           # un compte administrateur peut se connecter par le SSO (il doit déjà exister : jamais créé automatiquement) ; `false` les réserve au mot de passe local
     kaji_oidc_label: str = "SSO"
     # Connexion par annuaire LDAP / Active Directory (lot #443) : désactivée tant que `KAJI_LDAP_URL` est vide. Chiffrement OBLIGATOIRE (`ldaps://` ou `KAJI_LDAP_START_TLS=true`), certificat vérifié
     # (`KAJI_LDAP_CA_FILE` pour une autorité privée). Kaji cherche la personne avec le compte de lecture (`BIND_DN`), puis vérifie son mot de passe par une liaison à SON nom : il ne le garde jamais.
@@ -52,6 +56,10 @@ class Settings(BaseSettings):
     kaji_ldap_timeout: int = 5
     kaji_ldap_auto_create: bool = False
     kaji_ldap_default_role: str = "viewer"
+    kaji_ldap_groups_attr: str = "memberOf"         # attribut de l'entrée qui liste les groupes (DN complets) ; Active Directory : memberOf (groupes DIRECTS seulement)
+    kaji_ldap_admin_group: str = ""                 # DN du groupe dont les membres sont administrateurs de Kaji (vide : aucune correspondance, rôles inchangés) ; correspondance exacte
+    kaji_ldap_operator_group: str = ""              # DN du groupe dont les membres sont opérateurs
+    kaji_ldap_allow_admin: bool = True           # idem SSO : un administrateur existant peut se connecter par l'annuaire ; `false` les réserve au mot de passe local
     kaji_ldap_label: str = "Annuaire"
     # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")
     kaji_protected_vmids: str = ""

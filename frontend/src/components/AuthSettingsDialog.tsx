@@ -18,6 +18,9 @@ const TEXT: Record<Prov, { key: string; label: () => string; hint?: () => string
     { key: "bind_dn", label: () => tr("Compte de lecture (DN)"), hint: () => tr("Un compte en lecture seule, jamais un administrateur de l'annuaire"), placeholder: "cn=kaji-lecture,dc=example,dc=com" },
     { key: "user_filter", label: () => tr("Filtre de recherche"), hint: () => tr("Contient {username}. Active Directory : (&(objectClass=user)(sAMAccountName={username}))") },
     { key: "username_attr", label: () => tr("Attribut de l'identifiant"), hint: () => tr("uid, ou sAMAccountName pour Active Directory") },
+    { key: "groups_attr", label: () => tr("Attribut des groupes"), hint: () => tr("memberOf pour Active Directory (groupes directs seulement)") },
+    { key: "admin_group", label: () => tr("Groupe administrateur de Kaji"), hint: () => tr("Nom ou DN complet EXACT du groupe. Ses membres sont administrateurs de Kaji, donc de Proxmox. Vide : aucun rôle n'est modifié"), placeholder: "cn=informatique,ou=groupes,dc=example,dc=com" },
+    { key: "operator_group", label: () => tr("Groupe opérateur de Kaji"), hint: () => tr("Même forme. Vide : pas de groupe opérateur") },
     { key: "label", label: () => tr("Texte de la case de connexion") },
   ],
   oidc: [
@@ -26,6 +29,9 @@ const TEXT: Record<Prov, { key: string; label: () => string; hint?: () => string
     { key: "redirect_uri", label: () => tr("Adresse de retour"), hint: () => tr("Elle se termine par /api/auth/oidc/callback et doit être déclarée à l'identique chez le fournisseur") },
     { key: "scopes", label: () => tr("Périmètres demandés") },
     { key: "username_claim", label: () => tr("Champ qui désigne le compte de Kaji") },
+    { key: "groups_claim", label: () => tr("Champ des groupes dans le jeton"), hint: () => tr("Souvent « groups » : ajoute aussi le périmètre « groups » chez le fournisseur") },
+    { key: "admin_group", label: () => tr("Groupe administrateur de Kaji"), hint: () => tr("Nom ou DN complet EXACT du groupe. Ses membres sont administrateurs de Kaji, donc de Proxmox. Vide : aucun rôle n'est modifié"), placeholder: "informatique" },
+    { key: "operator_group", label: () => tr("Groupe opérateur de Kaji"), hint: () => tr("Même forme. Vide : pas de groupe opérateur") },
     { key: "label", label: () => tr("Texte du bouton de connexion") },
   ],
 };
@@ -52,7 +58,7 @@ export function AuthSettingsDialog({ onClose }: { onClose: () => void }) {
     for (const t of TEXT[prov]) f[t.key] = String(view.values[t.key] ?? "");
     if (prov === "oidc" && !f.redirect_uri) f.redirect_uri = `${window.location.origin}/api/auth/oidc/callback`;
     setForm(f);
-    setFlags({ auto_create: Boolean(view.values.auto_create), start_tls: Boolean(view.values.start_tls) });
+    setFlags({ auto_create: Boolean(view.values.auto_create), start_tls: Boolean(view.values.start_tls), allow_admin: view.values.allow_admin !== false });
     setRole(String(view.values.default_role ?? "viewer"));
     setTimeoutS(String(view.values.timeout ?? 5));
     setSecret(""); setClear(false); setErr(null); setOk(null); setTest(null); setAskReset(false);
@@ -63,7 +69,7 @@ export function AuthSettingsDialog({ onClose }: { onClose: () => void }) {
     try { await what(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
   const save = () => act(async () => {
-    const values: Record<string, string | number | boolean> = { ...form, auto_create: flags.auto_create, default_role: role };
+    const values: Record<string, string | number | boolean> = { ...form, auto_create: flags.auto_create, allow_admin: flags.allow_admin, default_role: role };
     if (prov === "ldap") { values.start_tls = flags.start_tls; values.timeout = Number(timeout); }
     await api(`/api/auth-settings/${prov}`, { method: "PUT", body: { values, secrets: secret ? { [SECRET[prov]]: secret } : {}, clear_secrets: clear ? [SECRET[prov]] : [], confirm: true } });
     await qc.invalidateQueries({ queryKey: ["auth-settings"] });
@@ -100,11 +106,12 @@ export function AuthSettingsDialog({ onClose }: { onClose: () => void }) {
               <Field label={tr("Délai (secondes)")} type="number" min={1} max={30} value={timeout} onChange={(e) => setTimeoutS(e.target.value)} />
             </>
           )}
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(flags.auto_create)} onChange={(e) => setFlags({ ...flags, auto_create: e.target.checked })} />{tr("Créer le compte à la première connexion (jamais administrateur)")}</label>
-          <label className="block text-sm">{tr("Rôle d'un compte créé")}
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(flags.auto_create)} onChange={(e) => setFlags({ ...flags, auto_create: e.target.checked })} />{tr("Créer le compte à la première connexion (administrateur seulement si un groupe le donne)")}</label>
+          <label className="block text-sm">{tr("Rôle par défaut d'un compte (sans groupe)")}
             <select className="field mt-1" value={role} onChange={(e) => setRole(e.target.value)}><option value="viewer">{tr("Lecture seule")}</option><option value="operator">{tr("Opérateur")}</option></select>
           </label>
-          <p className="text-xs text-muted">{tr("Un administrateur garde son mot de passe local : il ne se connecte pas par l'annuaire ni par le SSO.")}</p>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={flags.allow_admin !== false} onChange={(e) => setFlags({ ...flags, allow_admin: e.target.checked })} />{tr("Autoriser les administrateurs à se connecter par ce fournisseur")}</label>
+          <p className="text-xs text-muted">{tr("Le mot de passe local reste possible comme secours si le fournisseur est indisponible. Le rôle suit les groupes à chaque connexion ; le dernier administrateur n'est jamais rétrogradé.")}</p>
           {test && <Notice kind={test.ok ? "ok" : "error"}>{test.detail}</Notice>}
           {ok && <Notice kind="ok">{ok}</Notice>}
           <div className="flex flex-wrap gap-2">

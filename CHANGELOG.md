@@ -7,6 +7,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 ## [Non publié]
 
 ### Ajouté (suite)
+- **Les administrateurs se connectent aussi par le SSO et l'annuaire, et les groupes donnent les rôles** (`docs/api/ldap.md`, `docs/api/sso.md`) : « le groupe `informatique` est administrateur de Kaji » (`ADMIN_GROUP`, `OPERATOR_GROUP`, correspondance exacte, rôle recalculé à chaque connexion, dernier administrateur jamais rétrogradé, changements audités `role-sync`) ; case « Autoriser les administrateurs » (`ALLOW_ADMIN`, vrai par défaut) ; un compte créé automatiquement n'est administrateur que par groupe. **Jamais essayé avec un vrai annuaire ni un vrai fournisseur.**
 - **Menu « Authentification » (Compte → Authentification…)** : régler le SSO et l'annuaire depuis l'interface, sans toucher au `.env` (`docs/api/auth-settings.md`). Secrets chiffrés en écriture seule (suivent `rotate-secret-key` et `verify`), base prioritaire sur le `.env`, lecture et écriture réservées aux administrateurs, test de connexion sans le mot de passe de personne. **Jamais essayé avec un vrai annuaire.**
 - **Connexion par annuaire LDAP / Active Directory** (#443, `docs/api/ldap.md`) : recherche puis liaison, chiffrement et certificat obligatoires, mot de passe jamais gardé, un administrateur garde son mot de passe local. Nouvelle dépendance `ldap3` 2.9.1. **Jamais essayée avec un vrai annuaire.**
 
