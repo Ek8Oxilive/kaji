@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Logo } from "../components/Logo";
 import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { Button, Field, Notice } from "../components/ui";
@@ -15,6 +15,10 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // SSO (OpenID Connect, `docs/api/sso.md`) : le bouton n'apparaît que si le serveur l'a configuré ; le mot de passe local reste le repli.
+  const [sso, setSso] = useState<{ enabled: boolean; label: string | null } | null>(null);
+  useEffect(() => { if (!setup) api<{ enabled: boolean; label: string | null }>("/api/auth/oidc/status").then(setSso).catch(() => setSso(null)); }, [setup]);
+  const ssoResult = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("sso") : null;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -67,8 +71,11 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
         {!challenge && setup && tokenRequired && <Field label={tr("Jeton de première configuration")} type="password" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} autoComplete="off" required
           hint={tr("Défini par KAJI_SETUP_TOKEN dans le fichier .env du serveur")} />}
         {!challenge && setup && <Field label={tr("Confirmer le mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
+        {ssoResult === "erreur" && !error && <Notice kind="error">{tr("Connexion par le SSO refusée. Utilise ton mot de passe ou demande à un administrateur de relier ton compte.")}</Notice>}
+        {ssoResult === "trop" && !error && <Notice kind="error">{tr("Trop de tentatives par le SSO, réessaie plus tard.")}</Notice>}
         {error && <Notice kind="error">{error}</Notice>}
         <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : setup ? tr("Créer le compte") : "Se connecter"}</Button>
+        {!setup && !challenge && sso?.enabled && <a href="/api/auth/oidc/login" className="btn-ghost block w-full rounded-xl border border-line px-3 py-2 text-center text-sm hover:bg-surface2">{tr("Se connecter avec {nom}", { nom: sso.label ?? "SSO" })}</a>}
         {challenge && <Button type="button" variant="ghost" className="w-full" onClick={() => { setChallenge(null); setCode(""); setError(null); }}>{tr("Retour")}</Button>}
       </form>
     </main>

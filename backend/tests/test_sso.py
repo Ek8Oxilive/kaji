@@ -314,6 +314,7 @@ def test_no_cookie_a_tampered_cookie_or_an_expired_state_is_refused(idp, monkeyp
 def test_a_callback_cannot_be_replayed(idp):
     back, b, q = go(idp)
     assert back.headers["location"] == "/"
+    idp.codes["le-code"] = {"nonce": q["nonce"], "challenge": q["code_challenge"], "make": lambda n: idp.id_token(n)}           # le fournisseur accepterait un second code valable
     again = b.get("/api/auth/oidc/callback", params={"code": "le-code", "state": q["state"]}, follow_redirects=False)
     assert again.headers["location"] == "/?sso=erreur"                                               # le cookie d'état a été effacé : il ne sert qu'une fois
 
@@ -443,10 +444,12 @@ def test_five_refusals_block_the_address_before_any_call_to_the_provider(idp):
 
 
 def test_a_success_clears_the_failure_counter(idp):
-    for _ in range(3):
+    for _ in range(4):
         go(idp, _state="mauvais")
-    back, _b, _q = go(idp)
-    assert back.headers["location"] == "/" and not throttle.blocked("sso:testclient")
+    assert go(idp)[0].headers["location"] == "/"                                                     # un succès efface les échecs de cette adresse
+    for _ in range(4):
+        go(idp, _state="mauvais")                                                                    # 8 échecs au total : sans remise à zéro l'adresse serait bloquée
+    assert go(idp)[0].headers["location"] == "/" and not throttle.blocked("sso:testclient")
 
 
 def test_no_secret_code_or_token_reaches_the_audit_or_any_response(idp):
@@ -455,3 +458,20 @@ def test_no_secret_code_or_token_reaches_the_audit_or_any_response(idp):
     text = " ".join(f"{x.username} {x.target} {x.detail}" for x in rows()) + back.text + str(dict(back.headers)) + b.get("/api/auth/me").text
     for needle in (CLIENT_SECRET, "le-code", "jeton-d-acces-a-ne-jamais-voir", q["nonce"], q["state"], "sub-alice"):
         assert needle not in text, needle
+
+
+def test_the_state_cookie_lives_ten_minutes_and_has_exactly_the_flow_purpose():
+    key = get_settings().kaji_secret_key
+    flow = oidc.new_flow()
+    claims = jwt.decode(oidc.seal_flow(key, flow), options={"verify_signature": False})
+    assert claims["exp"] - claims["iat"] == 600 and claims["purpose"] == "oidc" and oidc.open_flow(key, oidc.seal_flow(key, flow)) == flow
+
+
+def test_a_cookie_signed_with_the_right_key_but_for_another_purpose_is_not_a_flow():
+    key = get_settings().kaji_secret_key
+    now = int(time.time())
+    base = {**oidc.new_flow(), "iat": now, "exp": now + 600}
+    assert oidc.open_flow(key, jwt.encode({**base, "purpose": "totp"}, oidc._state_key(key), algorithm="HS256")) is None
+    assert oidc.open_flow(key, jwt.encode(base, oidc._state_key(key), algorithm="HS256")) is None                      # sans objet : refusé aussi
+    assert oidc.open_flow(key, jwt.encode({**base, "purpose": "oidc"}, oidc._state_key(key), algorithm="HS256")) is not None
+    assert oidc.open_flow(key, None) is None and oidc.open_flow(key, "n'importe quoi") is None
