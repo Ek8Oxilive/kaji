@@ -21,6 +21,10 @@ async def lifespan(app: FastAPI):
     errors = auditexport.check_config()                              # export de l'audit mal configuré : on ne démarre pas (perdre l'audit en silence serait pire)
     if errors:
         raise RuntimeError("Configuration de l'export de l'audit invalide : " + " ; ".join(errors))
+    from . import oidc
+    sso_errors = oidc.check_config()                                  # SSO mal configuré : on ne démarre pas (un SSO à moitié réglé ouvrirait une porte mal comprise)
+    if sso_errors:
+        raise RuntimeError("Configuration du SSO invalide : " + " ; ".join(sso_errors))
     init_db()
     from . import audit
     from .db import get_engine

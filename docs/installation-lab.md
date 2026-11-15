@@ -116,6 +116,15 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_USER_TOKEN_MAX_DAYS` | `90` (défaut) | Durée maximale acceptée pour un jeton personnel. |
 | `KAJI_REQUIRE_SERVICE_TOKEN` | `false` (défaut) | `true` : le planificateur et les alertes ne font rien pour une connexion sans **jeton de service** limité (`docs/api/jeton-service.md`) au lieu d'utiliser le jeton partagé. |
 | `KAJI_SERVICE_TOKEN_MAX_DAYS` | `365` (défaut) | Échéance maximale acceptée pour un jeton de service. |
+| `KAJI_OIDC_ISSUER` | vide (défaut) | Adresse https du fournisseur OpenID Connect (Keycloak, Entra ID, Authentik…) : active le SSO. Vide : pas de SSO. Voir `docs/api/sso.md`. |
+| `KAJI_OIDC_CLIENT_ID` | vide | Identifiant du client déclaré chez le fournisseur (obligatoire si le SSO est actif). |
+| `KAJI_OIDC_CLIENT_SECRET` | vide | Secret du client (clients « confidentiels ») ; reste dans `.env`, jamais renvoyé ni journalisé. |
+| `KAJI_OIDC_REDIRECT_URI` | vide | Adresse de retour EXACTE, en https, qui se termine par `/api/auth/oidc/callback` ; la même chez le fournisseur. |
+| `KAJI_OIDC_SCOPES` | `openid profile` | Périmètres demandés (`openid` est toujours ajouté). |
+| `KAJI_OIDC_USERNAME_CLAIM` | `preferred_username` | Champ du jeton qui désigne le compte de Kaji (lettres, chiffres, `.`, `_`, `-`, 3 à 64 caractères). |
+| `KAJI_OIDC_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion SSO ; sinon la personne doit déjà avoir un compte de Kaji. |
+| `KAJI_OIDC_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par le SSO : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_OIDC_LABEL` | `SSO` | Texte du bouton de l'écran de connexion. |
 | `KAJI_TOKEN_CREATE_MAX_DAYS` | `365` (défaut) | Jetons Proxmox créés par l'administrateur depuis Kaji (page « Accès ») : **l'expiration est obligatoire** et au plus ce nombre de jours (`0` = facultative, déconseillé). |
 | `KAJI_MAX_CONCURRENT_REQUESTS` | `100` (défaut) | Requêtes simultanées au plus ; au-delà, **503** immédiat au lieu d'un blocage (`docs/robustesse.md`). |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
