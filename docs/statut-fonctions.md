@@ -21,6 +21,7 @@ Trois niveaux, sans ambiguïté. **« Validé en réel »** = essayé sur le vra
 - **Console SPICE** : le fichier `.vv`, le tunnel du proxy, le TLS et l'authentification sont validés avec un client minimal ; **l'affichage dans un vrai virt-viewer n'a pas été vu**.
 
 ## 2. Expérimental (codé, jamais exécuté en réel : à utiliser avec prudence)
+- **SSO par OpenID Connect** (`docs/api/sso.md`) : codé et testé contre un **faux** fournisseur (vrais jetons RSA, PKCE vérifié par le faux fournisseur) ; **jamais essayé avec un vrai fournisseur ni dans le navigateur**. Désactivé par défaut ; le mot de passe local reste le repli ; pas de LDAP / AD direct.
 Le serveur le dit déjà dans l'interface (« non validé en réel ») et verrouille ce qui peut couper l'accès.
 - **Ceph** : tout (installation guidée, moniteurs, gestionnaires, MDS, OSD, pools, **destruction**) : le cluster n'a pas Ceph.
 - **Réplication ZFS** (jobs) et stockages autres que `dir` (LVM, LVM-thin, ZFS, NFS, CIFS…) : écriture non essayée, pas de ZFS.

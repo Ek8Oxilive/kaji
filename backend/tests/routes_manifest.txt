@@ -61,6 +61,9 @@ DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
 GET /api/auth/me
+GET /api/auth/oidc/callback
+GET /api/auth/oidc/login
+GET /api/auth/oidc/status
 GET /api/auth/status
 GET /api/auth/totp
 GET /api/connections
