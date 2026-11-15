@@ -133,7 +133,7 @@ def test_cli_needs_yes_then_rotates_audits_and_prints_only_numbers(cli, capsys):
     assert admin_cli.main(["rotate-secret-key"]) == 2
     assert admin_cli.main(["rotate-secret-key", "--yes"]) == 0
     out = capsys.readouterr().out
-    assert "1 jeton(s) de connexion, 1 webhook(s) et 0 secret(s) TOTP" in out and "KAJI_SECRET_KEY_PREVIOUS" in out and "sessions" in out
+    assert "1 jeton(s) de connexion, 1 webhook(s), 0 secret(s) TOTP et 0 secret(s) SSO / annuaire" in out and "KAJI_SECRET_KEY_PREVIOUS" in out and "sessions" in out
     for secret in (TOKEN, HOOK, OLD, NEW):
         assert secret not in out
     with session(cli) as db:
@@ -205,10 +205,10 @@ def test_cli_counts_and_audits_the_totp_secrets_without_printing_any(cli, capsys
     secret = _with_totp(cli, OLD)
     assert admin_cli.main(["rotate-secret-key", "--yes"]) == 0
     out = capsys.readouterr().out
-    assert "1 jeton(s) de connexion, 1 webhook(s) et 2 secret(s) TOTP" in out and secret not in out and "KRSXG5CTMVRXEZLU" not in out
+    assert "1 jeton(s) de connexion, 1 webhook(s), 2 secret(s) TOTP et 0 secret(s) SSO / annuaire" in out and secret not in out and "KRSXG5CTMVRXEZLU" not in out
     with session(cli) as db:
         entry = db.scalars(select(AuditLog).where(AuditLog.action == "secret-key-rotated")).one()
-        assert "2 secret(s) TOTP" in entry.detail and "user_totp" in entry.target and secret not in entry.detail
+        assert "2 secret(s) TOTP" in entry.detail and "user_totp" in entry.target and "auth_settings" in entry.target and secret not in entry.detail
         assert crypto.decrypt(NEW, db.get(UserTotp, 1).secret_enc) == secret
 
 

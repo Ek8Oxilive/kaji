@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from .. import audit, ldaplogin, totpstore
-from ..config import get_settings
+from .. import audit, authconfig, ldaplogin, totpstore
 from ..db import get_db
 from ..security import throttle
 from .auth import _ip, _start_session
@@ -23,15 +22,15 @@ class LdapCredentials(BaseModel):
 
 
 @router.get("/status")
-def ldap_status():
-    s = get_settings()
+def ldap_status(db: Session = Depends(get_db)):
+    s = authconfig.effective(db, "ldap")                                     # réglages de l'interface, puis `.env` (`app/authconfig.py`)
     on = ldaplogin.enabled(s)
     return {"enabled": on, "label": s.kaji_ldap_label[:40] if on else None}
 
 
 @router.post("/login")
 def ldap_login(body: LdapCredentials, request: Request, response: Response, db: Session = Depends(get_db)):
-    s = get_settings()
+    s = authconfig.effective(db, "ldap")
     if not ldaplogin.enabled(s):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Annuaire non configuré")
     key = f"ldap:{_ip(request)}"

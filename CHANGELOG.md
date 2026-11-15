@@ -7,6 +7,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 ## [Non publié]
 
 ### Ajouté (suite)
+- **Menu « Authentification » (Compte → Authentification…)** : régler le SSO et l'annuaire depuis l'interface, sans toucher au `.env` (`docs/api/auth-settings.md`). Secrets chiffrés en écriture seule (suivent `rotate-secret-key` et `verify`), base prioritaire sur le `.env`, lecture et écriture réservées aux administrateurs, test de connexion sans le mot de passe de personne. **Jamais essayé avec un vrai annuaire.**
 - **Connexion par annuaire LDAP / Active Directory** (#443, `docs/api/ldap.md`) : recherche puis liaison, chiffrement et certificat obligatoires, mot de passe jamais gardé, un administrateur garde son mot de passe local. Nouvelle dépendance `ldap3` 2.9.1. **Jamais essayée avec un vrai annuaire.**
 
 ### Sécurité

@@ -221,6 +221,20 @@ class UserScope(Base):
     vmid: Mapped[int] = mapped_column(Integer)
 
 
+class AuthSetting(Base):
+    """Réglages de connexion par le SSO (`oidc`) ou l'annuaire (`ldap`) saisis dans l'interface (lot #443) ; ils PRIMENT sur le `.env`. Une ligne par fournisseur.
+    `values_json` : réglages non secrets. `secret_enc` : secrets (mot de passe du compte de lecture, secret du client) en JSON CHIFFRÉ avec `KAJI_SECRET_KEY`, jamais renvoyés par l'API ni journalisés.
+    Nouvelle table : pas de migration numérotée."""
+
+    __tablename__ = "auth_settings"
+
+    provider: Mapped[str] = mapped_column(String(16), primary_key=True)
+    values_json: Mapped[str] = mapped_column(Text, default="{}")
+    secret_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_by: Mapped[str] = mapped_column(String(64), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class UserIdentity(Base):
     """Lien entre un compte de Kaji et SON identité chez un fournisseur SSO (lot #443) : `(issuer, sub)` identifie la personne de façon stable, même si son nom change chez le fournisseur.
     Une fois posé, le lien ne se déplace pas : un nom d'utilisateur repris par quelqu'un d'autre ne donne pas accès au compte."""

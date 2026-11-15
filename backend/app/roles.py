@@ -18,7 +18,8 @@ OPERATOR_POST = (
     re.compile(rf"^{_G}/qemu/\d+/(reset|suspend|resume|hibernate)$"),
     re.compile(rf"^{_G}/(qemu|lxc)/\d+/snapshots$"),
 )
-ADMIN_ONLY_PREFIX = "/api/kaji-users"
+ADMIN_ONLY_PREFIXES = ("/api/kaji-users", "/api/auth-settings")      # comptes de Kaji ; réglages du SSO et de l'annuaire (même la LECTURE : adresse de l'annuaire, DN du compte de lecture)
+ADMIN_ONLY_PREFIX = ADMIN_ONLY_PREFIXES[0]
 SELF_SERVICE_PREFIXES = ("/api/auth/", "/api/me/")        # déconnexion, changement de son propre mot de passe, SON jeton Proxmox personnel : tout rôle
 
 
@@ -28,7 +29,7 @@ def normalize(role) -> str:
 
 def allowed(role, method: str, path: str, *, websocket: bool = False) -> bool:
     role = normalize(role)
-    if path == ADMIN_ONLY_PREFIX or path.startswith(ADMIN_ONLY_PREFIX + "/"):
+    if any(path == p or path.startswith(p + "/") for p in ADMIN_ONLY_PREFIXES):
         return role == "admin"
     if path.startswith(SELF_SERVICE_PREFIXES):
         return True

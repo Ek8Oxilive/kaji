@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .crypto import decrypt, encrypt
-from .models import AlertRule, Connection, UserTotp
+from .models import AlertRule, AuthSetting, Connection, UserTotp
 
 
 class SecretRotationError(Exception):
@@ -23,6 +23,7 @@ class SecretRotationResult:
     connections: int = 0
     webhooks: int = 0
     totp: int = 0
+    auth: int = 0
     already_current: int = 0
 
 
@@ -44,6 +45,7 @@ def rotate_secret_key(db: Session, new_key: str, old_key: str) -> SecretRotation
     items = [(c, "token_secret_enc", "connections") for c in db.scalars(select(Connection).order_by(Connection.id))]
     items += [(r, "webhook_enc", "webhooks") for r in db.scalars(select(AlertRule).order_by(AlertRule.id)) if r.webhook_enc]
     items += [(t, "secret_enc", "totp") for t in db.scalars(select(UserTotp).order_by(UserTotp.user_id))]
+    items += [(a, "secret_enc", "auth") for a in db.scalars(select(AuthSetting).order_by(AuthSetting.provider)) if a.secret_enc]       # secrets SSO / annuaire du menu Authentification
     unreadable = [kind for obj, attr, kind in items if not (_readable(new_key, getattr(obj, attr)) or _readable(old_key, getattr(obj, attr)))]
     if unreadable:
         raise SecretRotationError(f"{len(unreadable)} secret(s) sur {len(items)} ne sont lisibles par aucune des deux clés : rien n'a été modifié. Vérifie les clés (ou ressaisis la connexion concernée).")
@@ -61,6 +63,8 @@ def rotate_secret_key(db: Session, new_key: str, old_key: str) -> SecretRotation
                 res.connections += 1
             elif kind == "totp":
                 res.totp += 1
+            elif kind == "auth":
+                res.auth += 1
             else:
                 res.webhooks += 1
         db.commit()

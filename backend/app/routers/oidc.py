@@ -11,8 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from .. import audit, oidc
-from ..config import get_settings
+from .. import audit, authconfig, oidc
 from ..db import get_db
 from ..security import throttle
 from .auth import _ip, _start_session
@@ -31,14 +30,14 @@ def _refuse(db: Session, request: Request, reason: str) -> RedirectResponse:
 
 
 @router.get("/status")
-def sso_status():
-    s = get_settings()
+def sso_status(db: Session = Depends(get_db)):
+    s = authconfig.effective(db, "oidc")                                     # réglages de l'interface, puis `.env` (`app/authconfig.py`)
     return {"enabled": oidc.enabled(s), "label": s.kaji_oidc_label[:40] if oidc.enabled(s) else None}
 
 
 @router.get("/login")
 async def sso_login(request: Request, db: Session = Depends(get_db)):
-    s = get_settings()
+    s = authconfig.effective(db, "oidc")
     if not oidc.enabled(s):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "SSO non configuré")
     if throttle.blocked(f"sso:{_ip(request)}"):
@@ -56,7 +55,7 @@ async def sso_login(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/callback")
 async def sso_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None, db: Session = Depends(get_db)):
-    s = get_settings()
+    s = authconfig.effective(db, "oidc")
     if not oidc.enabled(s):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "SSO non configuré")
     if throttle.blocked(f"sso:{_ip(request)}"):
