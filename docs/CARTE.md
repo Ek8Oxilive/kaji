@@ -367,6 +367,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
 - `docs/cadrage-prod-entreprise.md` — Cadrage : de « lab » à « production en entreprise » (jalons J…
 - `docs/deploiement.md` — Déploiement avec Docker
+- `docs/essais-j2-a-faire-par-enzo.md` — Essais du jalon J2 : ce qui est vu en réel, et ce qu'il reste…
 - `docs/essais-reels-pc-b.md` — Essais réels des lots PC B (#164, #146, #147)
 - `docs/images-et-versions.md` — Images de base épinglées et versions étiquetées
 - `docs/installation-lab.md` — Installer Kaji en lab
