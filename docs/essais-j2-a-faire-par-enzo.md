@@ -42,5 +42,16 @@ nohup sh -c 'cd ~/kaji && docker compose -f docker-compose.yml -f docker-compose
 ```
 Puis, après une minute : `docker compose -f docker-compose.yml -f docker-compose.tls.yml exec -T backend tail -n 3 /data/audit.jsonl` : trois lignes JSON (`{"ts":…,"service":"kaji",…}`). Colle-les-moi (elles ne contiennent pas de secret) et je vérifie le format. **Retour arrière** : retire la ligne du `.env` et recrée de la même façon.
 
+### 5. Journal de Proxmox nominatif : le jeton personnel (#440)
+C'est LE critère de l'option A du cadrage : une action d'une personne doit apparaître **sous son nom** chez Proxmox. Jamais vu en réel.
+1. Dans Proxmox, crée un utilisateur de test `kajitest-perso@pve` et, pour lui, un jeton `essai` **avec séparation de privilèges** et une expiration (30 jours). Donne au jeton le rôle `PVEAuditor` sur `/vms/115` (lecture seule) : il ne peut **rien modifier**.
+2. Dans Kaji, avec ton compte (ou un compte de test) : **Compte** → **Mon jeton Proxmox…** → `kajitest-perso@pve!essai`, colle le secret **toi-même** (aucun agent ne saisit un jeton), expiration. Kaji le vérifie auprès de Proxmox avant de le garder.
+3. Ouvre la VM 115, onglet **Matériel** ou **Options** (lecture) : l'action part avec ton jeton. Dans Proxmox → **Datacenter** → **Tâches** ou le journal d'accès du nœud, l'utilisateur de la requête doit être `kajitest-perso@pve!essai`, **pas** `kaji@pve!kaji`.
+4. Retire le jeton de Kaji (« Mon jeton Proxmox… » → retirer), puis supprime le jeton et l'utilisateur dans Proxmox.
+Dis-moi ce que tu vois dans le journal : c'est la preuve attendue.
+
+### 6. Jeton de service du planificateur (#441)
+Dans Proxmox, un jeton `kajitest-service@pve!svc` à privilèges séparés avec **seulement** les droits que `docs/api/jeton-service.md` liste pour le planificateur et les alertes. Dans Kaji, enregistre-le comme jeton de service de la connexion (la page indique les droits manquants). Crée une action planifiée **sur la VM 115** (un snapshot dans 2 minutes), vois-la s'exécuter, puis supprime l'action. Vérifie ensuite qu'une écriture hors de ces droits est **refusée**. Retire le jeton de service et supprime le jeton et l'utilisateur dans Proxmox.
+
 ## Ce que je fais ensuite
 Quand tu me dis « fait », je lis l'état en lecture seule (liste des comptes, audit, tickets) et je ferme les tickets #442, #444, #445 et #447 si leurs critères de sortie sont remplis.
