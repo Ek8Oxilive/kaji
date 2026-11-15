@@ -1,3 +1,4 @@
+DELETE /api/auth-settings/{provider}
 DELETE /api/connections/{conn_id}
 DELETE /api/connections/{conn_id}/access/groups/{groupid}
 DELETE /api/connections/{conn_id}/access/realms/{realm}
@@ -56,10 +57,18 @@ DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 DELETE /api/connections/{conn_id}/tls
 DELETE /api/kaji-users/{user_id}
+DELETE /api/kaji-users/{user_id}/scope
+DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
+GET /api/auth-settings
+GET /api/auth/ldap/status
 GET /api/auth/me
+GET /api/auth/oidc/callback
+GET /api/auth/oidc/login
+GET /api/auth/oidc/status
 GET /api/auth/status
+GET /api/auth/totp
 GET /api/connections
 GET /api/connections/{conn_id}
 GET /api/connections/{conn_id}/access/acl
@@ -173,6 +182,7 @@ GET /api/connections/{conn_id}/tasks/{node}/{upid}/log
 GET /api/connections/{conn_id}/tls
 GET /api/health
 GET /api/kaji-users
+GET /api/kaji-users/{user_id}/scope
 GET /api/me/proxmox-tokens
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
@@ -183,11 +193,18 @@ PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/disks/{key}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}/options
+POST /api/auth-settings/{provider}/test
+POST /api/auth/ldap/login
 POST /api/auth/login
+POST /api/auth/login/totp
 POST /api/auth/logout
 POST /api/auth/logout-all
 POST /api/auth/password
 POST /api/auth/setup
+POST /api/auth/totp/confirm
+POST /api/auth/totp/disable
+POST /api/auth/totp/recovery
+POST /api/auth/totp/setup
 POST /api/connections
 POST /api/connections/test
 POST /api/connections/{conn_id}/access/acl/preview
@@ -311,6 +328,7 @@ POST /api/connections/{conn_id}/sdn/zones
 POST /api/connections/{conn_id}/storage-config
 POST /api/connections/{conn_id}/test
 POST /api/kaji-users
+PUT /api/auth-settings/{provider}
 PUT /api/connections/{conn_id}/access/acl
 PUT /api/connections/{conn_id}/access/realms/{realm}
 PUT /api/connections/{conn_id}/access/tfa/{userid}/{entry}
@@ -367,4 +385,5 @@ PUT /api/connections/{conn_id}/service-token
 PUT /api/connections/{conn_id}/storage-config/{storage}
 PUT /api/connections/{conn_id}/tls
 PUT /api/kaji-users/{user_id}
+PUT /api/kaji-users/{user_id}/scope
 PUT /api/me/proxmox-tokens/{conn_id}

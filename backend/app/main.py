@@ -17,6 +17,14 @@ async def lifespan(app: FastAPI):
     warning = check_secret_key(get_settings().kaji_secret_key)          # refuse une clé d'exemple AVANT d'ouvrir la base ou d'accepter une requête
     if warning:
         logging.getLogger("uvicorn.error").warning(warning)
+    from . import auditexport
+    errors = auditexport.check_config()                              # export de l'audit mal configuré : on ne démarre pas (perdre l'audit en silence serait pire)
+    if errors:
+        raise RuntimeError("Configuration de l'export de l'audit invalide : " + " ; ".join(errors))
+    from . import oidc
+    sso_errors = oidc.check_config()                                  # SSO mal configuré : on ne démarre pas (un SSO à moitié réglé ouvrirait une porte mal comprise)
+    if sso_errors:
+        raise RuntimeError("Configuration du SSO invalide : " + " ; ".join(sso_errors))
     init_db()
     from . import audit
     from .db import get_engine
@@ -34,6 +42,7 @@ async def lifespan(app: FastAPI):
     yield
     if task is not None:
         task.cancel()
+    auditexport.flush()                                              # vide la file du syslog avant l'arrêt
 
 
 app = FastAPI(title="Kaji", lifespan=lifespan)

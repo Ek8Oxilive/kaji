@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import { Layout, NAV, NAV_BOTTOM, type Page } from "./components/Layout";
 import { api, type AuthStatus } from "./lib/api";
@@ -27,6 +28,9 @@ export default function App() {
 
   const refresh = useCallback(() => api<AuthStatus>("/api/auth/status").then(setStatus).catch(() => setFailed(true)), []);
   useEffect(() => { refresh(); }, [refresh]);
+  // Compte restreint à un groupe de machines (`docs/api/roles-perimetre.md`) : il n'a que le tableau de bord et les pages de SES machines ; le serveur refuse tout le reste.
+  const me = useQuery({ queryKey: ["me"], staleTime: 60_000, enabled: !!status?.authenticated, queryFn: () => api<{ restricted?: boolean }>("/api/auth/me") });
+  const restricted = me.data?.restricted === true;
 
   if (failed) return <div className="grid min-h-full place-items-center p-6 text-center text-muted">{tr("Impossible de joindre le serveur Kaji. Vérifie que le backend tourne.")}</div>;
   if (!status) return <div className="grid min-h-full place-items-center text-muted">{tr("Chargement…")}</div>;
@@ -34,12 +38,12 @@ export default function App() {
 
   const logout = () => api("/api/auth/logout", { method: "POST" }).finally(refresh);
   // Les pages Machine et Nœud ne sont pas dans la barre latérale : elles gardent « Dashboard » allumé. Adresse inconnue : tableau de bord.
-  const page = (PAGES.includes(route.page) ? route.page : "dashboard") as Page;
+  const page = (!restricted && PAGES.includes(route.page) ? route.page : "dashboard") as Page;
   const goConnections = () => go(pageHash("connections"));
   return (
-    <Layout page={page} onNavigate={(p) => go(pageHash(p))} onLogout={logout}>
+    <Layout page={page} onNavigate={(p) => go(pageHash(p))} onLogout={logout} restricted={restricted}>
       {route.page === "machine" ? <Machine params={route.params} go={go} onGoConnections={goConnections} />
-        : route.page === "node" ? <NodePage params={route.params} go={go} onGoConnections={goConnections} />
+        : route.page === "node" && !restricted ? <NodePage params={route.params} go={go} onGoConnections={goConnections} />
         : page === "connections" ? <Connections />
         : page === "storage" ? <Stockage onGoConnections={goConnections} />
         : page === "backups" ? <Sauvegardes onGoConnections={goConnections} />

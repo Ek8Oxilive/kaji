@@ -114,12 +114,47 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_TOKEN_KEY_PREVIOUS` | seulement pendant une rotation | Voir `docs/deploiement.md`. |
 | `KAJI_REQUIRE_USER_TOKEN` | `false` (défaut) | `true` : sans jeton personnel, pas d'accès à Proxmox. |
 | `KAJI_USER_TOKEN_MAX_DAYS` | `90` (défaut) | Durée maximale acceptée pour un jeton personnel. |
+| `KAJI_SECRET_KEY_PREVIOUS` | seulement pendant une rotation | L'ancienne clé, pour `rotate-secret-key` : `docs/runbook.md`. |
 | `KAJI_REQUIRE_SERVICE_TOKEN` | `false` (défaut) | `true` : le planificateur et les alertes ne font rien pour une connexion sans **jeton de service** limité (`docs/api/jeton-service.md`) au lieu d'utiliser le jeton partagé. |
 | `KAJI_SERVICE_TOKEN_MAX_DAYS` | `365` (défaut) | Échéance maximale acceptée pour un jeton de service. |
+| `KAJI_OIDC_ISSUER` | vide (défaut) | Adresse https du fournisseur OpenID Connect (Keycloak, Entra ID, Authentik…) : active le SSO. Vide : pas de SSO. Voir `docs/api/sso.md`. |
+| `KAJI_OIDC_CLIENT_ID` | vide | Identifiant du client déclaré chez le fournisseur (obligatoire si le SSO est actif). |
+| `KAJI_OIDC_CLIENT_SECRET` | vide | Secret du client (clients « confidentiels ») ; reste dans `.env`, jamais renvoyé ni journalisé. |
+| `KAJI_OIDC_REDIRECT_URI` | vide | Adresse de retour EXACTE, en https, qui se termine par `/api/auth/oidc/callback` ; la même chez le fournisseur. |
+| `KAJI_OIDC_SCOPES` | `openid profile` | Périmètres demandés (`openid` est toujours ajouté). |
+| `KAJI_OIDC_USERNAME_CLAIM` | `preferred_username` | Champ du jeton qui désigne le compte de Kaji (lettres, chiffres, `.`, `_`, `-`, 3 à 64 caractères). |
+| `KAJI_OIDC_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion SSO ; sinon la personne doit déjà avoir un compte de Kaji. |
+| `KAJI_OIDC_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par le SSO : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_OIDC_ALLOW_ADMIN` | `true` | `false` : les administrateurs ne se connectent pas par le SSO (mot de passe local seulement). |
+| `KAJI_OIDC_GROUPS_CLAIM` | `groups` | Champ de l'ID token qui liste les groupes (ajouter le périmètre `groups` chez le fournisseur). |
+| `KAJI_OIDC_ADMIN_GROUP` | vide | Nom **exact** du groupe dont les membres sont administrateurs de Kaji (donc de Proxmox) ; vide : aucun rôle n'est modifié. |
+| `KAJI_OIDC_OPERATOR_GROUP` | vide | Nom exact du groupe dont les membres sont opérateurs. |
+| `KAJI_OIDC_LABEL` | `SSO` | Texte du bouton de l'écran de connexion. |
+| `KAJI_LDAP_URL` | vide (défaut) | Adresse de l'annuaire LDAP / Active Directory (`ldaps://hôte:636`) : active la connexion par annuaire. Vide : pas d'annuaire. Voir `docs/api/ldap.md`. |
+| `KAJI_LDAP_START_TLS` | `false` | `true` avec une adresse `ldap://` : STARTTLS est négocié avant toute liaison. Sans `ldaps://` ni STARTTLS, la connexion est refusée (pas de mot de passe en clair). |
+| `KAJI_LDAP_CA_FILE` | vide | Chemin d'une autorité privée de l'annuaire ; le certificat est toujours vérifié. |
+| `KAJI_LDAP_TLS_SERVER_NAME` | vide | Nom que le certificat de l'annuaire doit porter quand l'adresse est une IP (sans DNS joignable) ; un nom DNS, jamais de joker. Vide : le nom de l'adresse. |
+| `KAJI_LDAP_BASE_DN` | vide | Où chercher les personnes (obligatoire si l'annuaire est actif). |
+| `KAJI_LDAP_BIND_DN` | vide | Compte de **lecture seule** qui retrouve l'entrée de la personne (obligatoire si l'annuaire est actif). |
+| `KAJI_LDAP_BIND_PASSWORD` | vide | Mot de passe de ce compte de lecture ; reste dans `.env`, jamais renvoyé ni journalisé. |
+| `KAJI_LDAP_USER_FILTER` | `(&(objectClass=person)(uid={username}))` | Filtre de recherche, qui contient `{username}` (Active Directory : `(&(objectClass=user)(sAMAccountName={username}))`). |
+| `KAJI_LDAP_USERNAME_ATTR` | `uid` | Attribut qui porte l'identifiant (`sAMAccountName` pour Active Directory). |
+| `KAJI_LDAP_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion par l'annuaire ; sinon la personne doit déjà avoir un compte de Kaji (jamais un administrateur). |
+| `KAJI_LDAP_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par l'annuaire : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_LDAP_ALLOW_ADMIN` | `true` | `false` : les administrateurs ne se connectent pas par l'annuaire (mot de passe local seulement). |
+| `KAJI_LDAP_GROUPS_ATTR` | `memberOf` | Attribut de l'entrée qui liste les groupes de la personne (groupes directs seulement). |
+| `KAJI_LDAP_ADMIN_GROUP` | vide | DN **exact** du groupe dont les membres sont administrateurs de Kaji (donc de Proxmox) ; vide : aucun rôle n'est modifié. |
+| `KAJI_LDAP_OPERATOR_GROUP` | vide | DN exact du groupe dont les membres sont opérateurs. |
+| `KAJI_LDAP_LABEL` | `Annuaire` | Texte de la case de l'écran de connexion. |
+| `KAJI_TOKEN_CREATE_MAX_DAYS` | `365` (défaut) | Jetons Proxmox créés par l'administrateur depuis Kaji (page « Accès ») : **l'expiration est obligatoire** et au plus ce nombre de jours (`0` = facultative, déconseillé). |
 | `KAJI_MAX_CONCURRENT_REQUESTS` | `100` (défaut) | Requêtes simultanées au plus ; au-delà, **503** immédiat au lieu d'un blocage (`docs/robustesse.md`). |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
 | `KAJI_TRUST_PROXY` | laisse `false` | Le `docker-compose.yml` le règle déjà pour le conteneur. |
 | `KAJI_AUDIT_RETENTION_DAYS` | `365` (défaut) | Conservation du journal d'audit de Kaji, en jours (`0` = indéfiniment). |
+| `KAJI_AUDIT_FILE` | vide (défaut) | Copie de l'audit dans un fichier JSON (une ligne par événement, droits `600`) : chemin **absolu**, dans le volume `/data` si tu es dans Docker (`/data/audit.jsonl`). Voir `docs/api/audit-export.md`. |
+| `KAJI_AUDIT_FILE_MAX_MB` | `10` (défaut) | Taille à partir de laquelle le fichier d'audit tourne (1 à 1024). |
+| `KAJI_AUDIT_FILE_BACKUPS` | `10` (défaut) | Nombre d'anciens fichiers d'audit gardés (`0` = pas de rotation : le fichier grossit sans limite). |
+| `KAJI_AUDIT_SYSLOG` | vide (défaut) | Envoi de l'audit à un serveur syslog : `udp://hôte:port` ou `tcp://hôte:port` (en clair : réseau de confiance seulement). Une valeur mal formée empêche Kaji de démarrer. |
 | `KAJI_BIND` | `127.0.0.1` (défaut) | Interface d'écoute de nginx. `0.0.0.0` ouvre tout le réseau : seulement derrière le HTTPS de l'étape 5. |
 | `KAJI_PORT` | `8080` (défaut) | Port de nginx. |
 
@@ -216,6 +251,7 @@ Les migrations de schéma s'exécutent au démarrage, **après une copie de la b
 ## 10. Pour aller plus loin
 - `docs/deploiement.md` : détails Docker, limiteur de connexions derrière un proxy, ce que fait (et ne fait pas) la configuration.
 - `docs/images-et-versions.md` : images de base épinglées, mise à jour des empreintes, nommage et publication des versions.
+- `docs/runbook.md` : exploitation au quotidien (supervision, rotation des secrets, restauration, mise à jour, incidents).
 - `docs/securite.md` : revue de sécurité, ce qui est vérifié, ce qui reste à décider.
 - `docs/statut-fonctions.md` : quelles fonctions sont « validées en réel » et lesquelles sont « expérimentales ».
 - `docs/cadrage-prod-entreprise.md` : ce qui sépare ce lab d'une production en entreprise.

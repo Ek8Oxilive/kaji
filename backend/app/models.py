@@ -182,3 +182,68 @@ class LoginFailure(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     key: Mapped[str] = mapped_column(String(80), index=True)
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+
+class UserTotp(Base):
+    """Double authentification (TOTP) pour se connecter à Kaji (lot #444). Une ligne par compte. Le secret est chiffré avec `KAJI_SECRET_KEY` (comme les jetons des connexions).
+    `confirmed` : faux tant que l'utilisateur n'a pas tapé un premier code valide (le TOTP n'est alors PAS exigé à la connexion). `last_step` : dernier pas accepté, pour refuser un rejeu."""
+
+    __tablename__ = "user_totp"
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    secret_enc: Mapped[str] = mapped_column(String)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_step: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class TotpRecoveryCode(Base):
+    """Code de secours (à usage unique) d'un compte qui a le TOTP. Seule l'EMPREINTE est stockée, jamais le code."""
+
+    __tablename__ = "totp_recovery_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class UserScope(Base):
+    """Périmètre d'un compte de Kaji (lot #447) : une ligne par machine autorisée (`vmid`) et par connexion. Un compte SANS ligne n'est pas restreint ; un compte AVEC au moins une ligne ne voit
+    et ne touche que ces machines (`app/scope.py`, décidé par le serveur à chaque requête). Un administrateur n'a jamais de périmètre."""
+
+    __tablename__ = "user_scopes"
+    __table_args__ = (UniqueConstraint("user_id", "conn_id", "vmid", name="uq_user_scope"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    conn_id: Mapped[int] = mapped_column(Integer)
+    vmid: Mapped[int] = mapped_column(Integer)
+
+
+class AuthSetting(Base):
+    """Réglages de connexion par le SSO (`oidc`) ou l'annuaire (`ldap`) saisis dans l'interface (lot #443) ; ils PRIMENT sur le `.env`. Une ligne par fournisseur.
+    `values_json` : réglages non secrets. `secret_enc` : secrets (mot de passe du compte de lecture, secret du client) en JSON CHIFFRÉ avec `KAJI_SECRET_KEY`, jamais renvoyés par l'API ni journalisés.
+    Nouvelle table : pas de migration numérotée."""
+
+    __tablename__ = "auth_settings"
+
+    provider: Mapped[str] = mapped_column(String(16), primary_key=True)
+    values_json: Mapped[str] = mapped_column(Text, default="{}")
+    secret_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_by: Mapped[str] = mapped_column(String(64), default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class UserIdentity(Base):
+    """Lien entre un compte de Kaji et SON identité chez un fournisseur SSO (lot #443) : `(issuer, sub)` identifie la personne de façon stable, même si son nom change chez le fournisseur.
+    Une fois posé, le lien ne se déplace pas : un nom d'utilisateur repris par quelqu'un d'autre ne donne pas accès au compte."""
+
+    __tablename__ = "user_identities"
+    __table_args__ = (UniqueConstraint("issuer", "sub", name="uq_identity_issuer_sub"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    issuer: Mapped[str] = mapped_column(String(255))
+    sub: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

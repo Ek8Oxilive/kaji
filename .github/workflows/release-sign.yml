@@ -1,0 +1,52 @@
+# Signature des versions (jalon J4, ticket #458). docs/signature.md.
+# Signature SANS CLÉ (Sigstore) de l'archive des sources : l'identité qui signe est CE workflow, dans CE dépôt, sur une étiquette. Rien à garder ni à voler.
+#   - Étiquette `v*` : archive + somme SHA-256 + signature (paquet « bundle ») ; vérifiées tout de suite ; jointes à la release SI elle existe (jamais créée ici : geste du propriétaire).
+#   - Déclenchement manuel : même chaîne sur la branche choisie, **sans** étiquette ni release (artefact du workflow seulement) : c'est l'essai sans publier.
+# Kaji n'est pas publié en images : chaque installation les construit depuis ces sources (bases épinglées par empreinte, docs/images-et-versions.md).
+name: Signature des versions
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                      # seulement pour joindre les fichiers à une release EXISTANTE quand une étiquette est poussée
+      id-token: write                      # jeton d'identité du workflow : c'est lui qui prouve QUI signe (Sigstore)
+    steps:
+      - uses: actions/checkout@v7
+      - uses: sigstore/cosign-installer@v3.7.0
+        with:
+          cosign-release: "v2.4.1"
+      - name: Archive des sources et somme SHA-256
+        run: |
+          name="kaji-${GITHUB_REF_NAME//\//-}"
+          echo "NAME=$name" >> "$GITHUB_ENV"
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="$name/" -o "dist/$name.tar.gz" HEAD
+          (cd dist && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256")
+      - name: Signature sans clé (Sigstore) puis vérification immédiate
+        run: |
+          cosign sign-blob --yes --bundle "dist/$NAME.tar.gz.sigstore.json" "dist/$NAME.tar.gz"
+          cosign verify-blob --bundle "dist/$NAME.tar.gz.sigstore.json" \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/\.github/workflows/release-sign\.yml@" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "dist/$NAME.tar.gz"
+          (cd dist && sha256sum -c "$NAME.tar.gz.sha256")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: version-signee
+          path: dist/
+      - name: Joindre à la release (étiquette, si la release existe)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            echo "Pas de release pour $GITHUB_REF_NAME : les fichiers signés restent dans les artefacts de ce workflow."
+          fi

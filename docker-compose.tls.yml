@@ -21,6 +21,9 @@ services:
       - "${KAJI_TLS_BIND:-0.0.0.0}:${KAJI_HTTP_PORT:-80}:80"      # le port 80 ne sert qu'à renvoyer vers HTTPS (Caddy)
 
   web:
+    networks:
+      default:
+        ipv4_address: 172.29.77.10      # ADRESSE FIXE : `deploy/Caddyfile` s'y adresse sans passer par un nom (voir le commentaire du Caddyfile)
     volumes:
       # nginx reprend l'adresse du client donnée par Caddy (sinon tous les clients auraient celle de Caddy et partageraient le même limiteur de connexions).
       - ./deploy/realip.conf:/etc/nginx/conf.d/realip.conf:ro

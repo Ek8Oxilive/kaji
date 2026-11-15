@@ -32,7 +32,7 @@ def test_the_proxy_image_is_pinned_to_a_version():
 
 
 def test_caddy_terminates_tls_with_the_internal_authority_and_does_not_buffer():
-    assert "tls internal" in CADDY and "reverse_proxy web:80" in CADDY and "flush_interval -1" in CADDY and "admin off" in CADDY
+    assert "tls internal" in CADDY and "reverse_proxy 172.29.77.10:80" in CADDY and "flush_interval -1" in CADDY and "admin off" in CADDY
     assert "{$KAJI_TLS_SITE}" in CADDY
 
 
@@ -76,3 +76,18 @@ def test_env_example_documents_the_new_settings_and_keeps_the_safe_defaults():
         assert name in ENV
     assert re.search(r"^KAJI_COOKIE_SECURE=true$", ENV, re.M) and re.search(r"^KAJI_BIND=127\.0\.0\.1$", ENV, re.M)
     assert re.search(r"^KAJI_SETUP_TOKEN=$", ENV, re.M)                                        # vide par défaut : comportement inchangé
+
+
+def test_caddy_reaches_nginx_by_a_fixed_ip_and_never_by_a_name_the_network_dns_could_answer():
+    """Constaté le 2026-11-15 (deux fois) : pendant une reconstruction, `web:80` était résolu par le DNS du réseau en `web.lan`, un AUTRE serveur, et Caddy lui relayait en HTTP clair les mots de passe
+    et les cookies de session. L'amont est maintenant une adresse IP fixe du sous-réseau de Kaji, portée par le conteneur `web`."""
+    import ipaddress
+    directives = "\n".join(line for line in CADDY.splitlines() if not line.strip().startswith("#"))              # les commentaires peuvent citer `web:80` pour expliquer le problème
+    upstreams = re.findall(r"reverse_proxy\s+(\S+)", directives)
+    assert len(upstreams) == 1 and "web:80" not in directives
+    host, port = upstreams[0].rsplit(":", 1)
+    ip = ipaddress.ip_address(host)                                                                     # une ADRESSE, pas un nom : lève une erreur si c'est un nom
+    subnet = ipaddress.ip_network(re.search(r"subnet:\s*([0-9./]+)", TLS).group(1))
+    assert port == "80" and ip in subnet and ip != subnet.network_address and ip != subnet.network_address + 1 and ip != subnet.broadcast_address       # ni réseau, ni passerelle, ni diffusion
+    web_block = TLS.split("\n  web:")[1].split("\n# ")[0]
+    assert re.search(rf"networks:\s*\n\s*default:\s*\n\s*ipv4_address:\s*{re.escape(str(ip))}\b", web_block)             # le conteneur `web` porte bien cette adresse

@@ -180,6 +180,18 @@ def verify(db_path: Path, secret_key: str, token_keys: list[str] | None = None) 
                 rep.problem(f"{len(hooks) - ok_hooks} webhook(s) d'alerte illisible(s) avec cette clé.")
         else:
             rep.line("Règles d'alerte : table absente (base d'une version plus ancienne)")
+        if "user_totp" in tables:                                               # double authentification de connexion (lot #444) : secrets chiffrés avec la même clé
+            totp = list(db.execute("SELECT secret_enc FROM user_totp"))
+            ok_totp = sum(1 for (c,) in totp if _readable(secret_key, c))
+            rep.line(f"Secrets TOTP de connexion : {len(totp)} ; déchiffrés : {ok_totp}/{len(totp)}")
+            if ok_totp != len(totp):
+                rep.problem(f"{len(totp) - ok_totp} secret(s) TOTP illisible(s) avec cette clé (rotation oubliée ? un administrateur peut retirer le TOTP du compte concerné).")
+        if "auth_settings" in tables:                                           # réglages SSO / annuaire saisis dans l'interface (lot #443) : secrets chiffrés avec la même clé
+            auth = list(db.execute("SELECT secret_enc FROM auth_settings WHERE secret_enc IS NOT NULL AND secret_enc != ''"))
+            ok_auth = sum(1 for (c,) in auth if _readable(secret_key, c))
+            rep.line(f"Secrets SSO / annuaire : {len(auth)} ; déchiffrés : {ok_auth}/{len(auth)}")
+            if ok_auth != len(auth):
+                rep.problem(f"{len(auth) - ok_auth} secret(s) SSO / annuaire illisible(s) avec cette clé (rotation oubliée ? à ressaisir dans le menu Authentification).")
         if "scheduled_actions" in tables:
             n, active = db.execute("SELECT count(*), coalesce(sum(enabled), 0) FROM scheduled_actions").fetchone()
             rep.line(f"Actions planifiées : {n} ({active} active(s))")

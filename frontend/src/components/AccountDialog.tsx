@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
+import { AuthSettingsDialog } from "./AuthSettingsDialog";
 import { KajiUsersDialog } from "./KajiUsersDialog";
 import { UserTokenDialog } from "./UserTokenDialog";
+import { TotpDialog } from "./TotpDialog";
 import { Modal } from "./Modal";
 import { useSubmit } from "./HardwareDialogs";
 import { useToast } from "./Toast";
@@ -23,6 +25,8 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
   const who = useQuery({ queryKey: ["me"], staleTime: 60_000, queryFn: () => api<{ username: string; role: "admin" | "operator" | "viewer" }>("/api/auth/me") });
   const [users, setUsers] = useState(false);
   const [token, setToken] = useState(false);
+  const [totpOpen, setTotpOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const tooShort = next.length > 0 && next.length < 12;
   const mismatch = confirm.length > 0 && next !== confirm;
@@ -57,11 +61,23 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
         <Button type="button" variant="ghost" onClick={() => setToken(true)}>{tr("Mon jeton Proxmox…")}</Button>
       </div>
 
+      <div className="space-y-2 border-t border-line pt-4">
+        <h3 className="text-sm font-semibold">{tr("Double authentification")}</h3>
+        <p className="text-sm text-muted">{tr("Ajoute un code à usage unique (application d'authentification) à ton mot de passe pour te connecter à Kaji.")}</p>
+        <Button type="button" variant="ghost" onClick={() => setTotpOpen(true)}>{tr("Double authentification…")}</Button>
+      </div>
+
       {who.data?.role === "admin" && (
         <div className="space-y-2 border-t border-line pt-4">
           <h3 className="text-sm font-semibold">{tr("Utilisateurs de Kaji")}</h3>
           <p className="text-sm text-muted">{tr("Créer des comptes avec un rôle (administrateur, opérateur, lecture seule), les modifier ou les supprimer.")}</p>
           <Button type="button" variant="ghost" onClick={() => setUsers(true)}>{tr("Gérer les utilisateurs…")}</Button>
+        </div>)}
+      {who.data?.role === "admin" && (
+        <div className="space-y-2 border-t border-line pt-4">
+          <h3 className="text-sm font-semibold">{tr("Authentification")}</h3>
+          <p className="text-sm text-muted">{tr("Régler la connexion à Kaji par le SSO (OpenID Connect) ou par un annuaire LDAP / Active Directory.")}</p>
+          <Button type="button" variant="ghost" onClick={() => setAuthOpen(true)}>{tr("Authentification…")}</Button>
         </div>)}
       {who.data && <p className="text-xs text-muted">{tr("Connecté en tant que {username}, rôle : {role}.", { username: who.data.username, role: ROLE_LABEL[who.data.role]() })}</p>}
 
@@ -76,6 +92,8 @@ export function AccountDialog({ onClose, onLoggedOut }: { onClose: () => void; o
     </Modal>
     {users && who.data && <KajiUsersDialog me={who.data.username} onClose={() => setUsers(false)} />}
     {token && <UserTokenDialog onClose={() => setToken(false)} />}
+    {totpOpen && <TotpDialog onClose={() => setTotpOpen(false)} />}
+    {authOpen && <AuthSettingsDialog onClose={() => setAuthOpen(false)} />}
     </>
   );
 }

@@ -62,6 +62,8 @@ code », c'est que tu as redescendu de version : restaure une sauvegarde d'avant
 État : `docker compose exec backend python -m app.migrations status`.
 **Testé à chaque modification** : des bases d'exemple produites par le vrai code de chaque version étiquetée (et de deux anciens états du schéma) sont migrées vers le code courant par la CI, sans perte de valeur, avec relecture des jetons, webhooks, comptes et rôles (`backend/tests/test_upgrade_from_versions.py`, `backend/tests/fixtures/db/`). **Retour arrière** : restaure la sauvegarde faite avant la mise à jour (`tools/restore.sh`, section suivante) puis remets le code de l'ancienne étiquette ; **essayé avec de vraies bases, pas encore avec le vrai Docker** (ticket #456).
 
+> **Exploitation courante (supervision, rotation des secrets, incidents) : `docs/runbook.md`.**
+
 ## Sauvegarde et restauration
 **Il faut sauvegarder DEUX choses ensemble : la base ET `KAJI_SECRET_KEY`.** La base contient les tokens Proxmox et les adresses de webhook des alertes **chiffrés** avec cette
 clé : l'une sans l'autre est inutilisable. Elle contient aussi les utilisateurs de Kaji et leurs rôles, les actions planifiées, les règles d'alerte et l'audit. La clé est dans `.env`, **jamais dans la base** : sauvegarde `.env` à part, en lieu sûr (gestionnaire de mots de passe).
