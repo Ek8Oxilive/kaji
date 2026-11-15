@@ -38,7 +38,7 @@ Quel secret, quel effet, quelle procédure.
 
 | Secret | Où | Effet d'un changement | Procédure |
 |---|---|---|---|
-| `KAJI_SECRET_KEY` | `.env` | **invalide toutes les sessions** ; les jetons des connexions et les webhooks sont ré-chiffrés par `rotate-secret-key` | § 3.1 |
+| `KAJI_SECRET_KEY` | `.env` | **invalide toutes les sessions** ; les jetons des connexions, les webhooks et les secrets TOTP de connexion sont ré-chiffrés par `rotate-secret-key` | § 3.1 |
 | `KAJI_TOKEN_KEY` | fichier ou `.env` | rien si la rotation est faite dans les règles | `docs/deploiement.md`, « Rotation de `KAJI_TOKEN_KEY` » |
 | Jeton partagé d'une connexion | Proxmox + page Connexions | les tâches de fond sans jeton de service et les utilisateurs sans jeton personnel s'arrêtent le temps du changement | § 3.2 |
 | Jeton personnel d'un utilisateur | Proxmox + « Mon jeton Proxmox » | seul cet utilisateur est concerné | il en crée un nouveau, l'enregistre ; Kaji refuse l'expiré |
@@ -47,7 +47,7 @@ Quel secret, quel effet, quelle procédure.
 | Mot de passe d'un compte de Kaji | « Compte » ou `admin_cli reset-password` | les sessions du compte sont révoquées | `docs/deploiement.md`, « Mot de passe perdu » |
 
 ### 3.1 Rotation de `KAJI_SECRET_KEY`
-`KAJI_SECRET_KEY` signe les sessions et chiffre le jeton partagé de chaque connexion et les webhooks d'alerte. La changer **sans** la commande ci-dessous oblige à ressaisir chaque connexion et chaque webhook.
+`KAJI_SECRET_KEY` signe les sessions et chiffre le jeton partagé de chaque connexion, les webhooks d'alerte et les secrets TOTP de connexion. La changer **sans** la commande ci-dessous oblige à ressaisir chaque connexion et chaque webhook, et rend illisible le TOTP de chaque compte qui l'a activé (un administrateur peut alors le retirer ; les codes de secours, eux, restent valables).
 1. `tools/backup.sh` ; note l'**ancienne** clé (les anciennes sauvegardes sont chiffrées avec elle).
 2. Génère la nouvelle : `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`. Dans `.env` : **`KAJI_SECRET_KEY` = la nouvelle**, **`KAJI_SECRET_KEY_PREVIOUS` = l'ancienne**.
 3. Applique : `docker compose up -d --force-recreate backend` (un simple `restart` ne relit pas `.env`).
@@ -93,7 +93,7 @@ Kaji détient des jetons : **les considérer tous comme compromis**.
 6. Signaler la faille : `SECURITY.md`.
 
 ### 6.3 La clé est perdue
-- `KAJI_SECRET_KEY` perdue (donc pas d'ancienne clé à fournir à `rotate-secret-key`) : sessions invalides, **connexions et webhooks à ressaisir** ; comptes, rôles, audit lisibles. Restauration refusée par `tools/restore.sh` (par prudence) : utiliser la méthode « copie du volume » de `docs/deploiement.md`.
+- `KAJI_SECRET_KEY` perdue (donc pas d'ancienne clé à fournir à `rotate-secret-key`) : sessions invalides, **connexions et webhooks à ressaisir, TOTP des comptes à retirer par un administrateur puis à réactiver** (les codes de secours restent valables) ; comptes, rôles, audit lisibles. Restauration refusée par `tools/restore.sh` (par prudence) : utiliser la méthode « copie du volume » de `docs/deploiement.md`.
 - `KAJI_TOKEN_KEY` perdue : jetons personnels et de service à ré-enregistrer ; le reste fonctionne.
 
 ### 6.4 Base corrompue ou ne démarre plus

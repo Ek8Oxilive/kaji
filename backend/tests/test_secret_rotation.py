@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app import admin_cli, crypto
 from app.config import get_settings
-from app.models import AlertRule, AuditLog, Connection
+from app.models import AlertRule, AuditLog, Connection, UserTotp
 from app.secretrotate import SecretRotationError, rotate_secret_key
 from app.security import create_session_token, decode_session
 from tests.test_backup_restore import HOOK, TOKEN, make_db
@@ -133,7 +133,7 @@ def test_cli_needs_yes_then_rotates_audits_and_prints_only_numbers(cli, capsys):
     assert admin_cli.main(["rotate-secret-key"]) == 2
     assert admin_cli.main(["rotate-secret-key", "--yes"]) == 0
     out = capsys.readouterr().out
-    assert "1 jeton(s) de connexion et 1 webhook(s)" in out and "KAJI_SECRET_KEY_PREVIOUS" in out and "sessions" in out
+    assert "1 jeton(s) de connexion, 1 webhook(s) et 0 secret(s) TOTP" in out and "KAJI_SECRET_KEY_PREVIOUS" in out and "sessions" in out
     for secret in (TOKEN, HOOK, OLD, NEW):
         assert secret not in out
     with session(cli) as db:
@@ -150,3 +150,76 @@ def test_cli_refuses_a_weak_new_key_and_a_missing_previous_one_without_touching_
     monkeypatch.setattr(get_settings(), "kaji_secret_key_previous", "")
     assert admin_cli.main(["rotate-secret-key", "--yes"]) == 1 and "DEUX clés" in capsys.readouterr().out
     assert blobs(cli) == before
+
+
+def _with_totp(path, key, secret="JBSWY3DPEHPK3PXP"):
+    with session(path) as db:
+        db.add(UserTotp(user_id=1, secret_enc=crypto.encrypt(key, secret), confirmed=True, last_step=7))
+        db.add(UserTotp(user_id=2, secret_enc=crypto.encrypt(key, "KRSXG5CTMVRXEZLU"), confirmed=False, last_step=0))        # un enrôlement en attente : réchiffré aussi
+        db.commit()
+    return secret
+
+
+def test_totp_secrets_are_reencrypted_confirmed_or_pending_and_the_rest_of_the_row_is_untouched(tmp_path):
+    p = old_db(tmp_path)
+    secret = _with_totp(p, OLD)
+    with session(p) as db:
+        res = rotate_secret_key(db, NEW, OLD)
+    assert (res.connections, res.webhooks, res.totp, res.already_current) == (1, 1, 2, 0)
+    with session(p) as db:
+        rows = {r.user_id: r for r in db.scalars(select(UserTotp))}
+        assert crypto.decrypt(NEW, rows[1].secret_enc) == secret and crypto.decrypt(NEW, rows[2].secret_enc) == "KRSXG5CTMVRXEZLU"
+        with pytest.raises(ValueError):
+            crypto.decrypt(OLD, rows[1].secret_enc)
+        assert (rows[1].confirmed, rows[1].last_step, rows[2].confirmed, rows[2].last_step) == (True, 7, False, 0)           # état et anti-rejeu conservés
+
+
+def test_a_replayed_rotation_leaves_totp_secrets_alone_and_counts_them_as_current(tmp_path):
+    p = old_db(tmp_path)
+    _with_totp(p, OLD)
+    with session(p) as db:
+        rotate_secret_key(db, NEW, OLD)
+    c = sqlite3.connect(p); first = c.execute("SELECT secret_enc FROM user_totp ORDER BY user_id").fetchall(); c.close()
+    with session(p) as db:
+        res = rotate_secret_key(db, NEW, OLD)
+    c = sqlite3.connect(p); second = c.execute("SELECT secret_enc FROM user_totp ORDER BY user_id").fetchall(); c.close()
+    assert (res.connections, res.webhooks, res.totp, res.already_current) == (0, 0, 0, 4) and first == second
+
+
+def test_one_totp_secret_that_neither_key_reads_aborts_everything_and_the_totp_login_still_works_with_the_new_key(tmp_path):
+    p = old_db(tmp_path)
+    _with_totp(p, OLD)
+    with session(p) as db:
+        db.get(UserTotp, 2).secret_enc = crypto.encrypt(OTHER, "KRSXG5CTMVRXEZLU")
+        db.commit()
+    before = blobs(p)
+    c = sqlite3.connect(p); totp_before = c.execute("SELECT secret_enc FROM user_totp ORDER BY user_id").fetchall(); c.close()
+    with session(p) as db:
+        with pytest.raises(SecretRotationError, match="aucune des deux clés"):
+            rotate_secret_key(db, NEW, OLD)
+    c = sqlite3.connect(p); totp_after = c.execute("SELECT secret_enc FROM user_totp ORDER BY user_id").fetchall(); c.close()
+    assert blobs(p) == before and totp_after == totp_before                                                                  # rien n'a bougé, même pas les connexions
+
+
+def test_cli_counts_and_audits_the_totp_secrets_without_printing_any(cli, capsys):
+    secret = _with_totp(cli, OLD)
+    assert admin_cli.main(["rotate-secret-key", "--yes"]) == 0
+    out = capsys.readouterr().out
+    assert "1 jeton(s) de connexion, 1 webhook(s) et 2 secret(s) TOTP" in out and secret not in out and "KRSXG5CTMVRXEZLU" not in out
+    with session(cli) as db:
+        entry = db.scalars(select(AuditLog).where(AuditLog.action == "secret-key-rotated")).one()
+        assert "2 secret(s) TOTP" in entry.detail and "user_totp" in entry.target and secret not in entry.detail
+        assert crypto.decrypt(NEW, db.get(UserTotp, 1).secret_enc) == secret
+
+
+def test_verify_reads_the_totp_secrets_and_flags_the_unreadable_ones_without_printing_any(tmp_path):
+    from pathlib import Path
+
+    from app import backup
+    p = old_db(tmp_path)
+    secret = _with_totp(p, OLD)
+    good = backup.verify(Path(p), OLD)
+    text = "\n".join(good.lines)
+    assert "Secrets TOTP de connexion : 2 ; déchiffrés : 2/2" in text and secret not in text and not any("TOTP" in x for x in good.problems)
+    bad = backup.verify(Path(p), NEW)
+    assert "Secrets TOTP de connexion : 2 ; déchiffrés : 0/2" in "\n".join(bad.lines) and any("TOTP illisible" in x for x in bad.problems)

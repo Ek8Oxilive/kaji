@@ -134,7 +134,7 @@ def rotate_cmd(argv: list[str]) -> int:
 
 
 def rotate_secret_cmd(argv: list[str]) -> int:
-    """`rotate-secret-key --yes` : ré-chiffre les jetons des connexions et les webhooks d'alerte avec KAJI_SECRET_KEY (la nouvelle) ; KAJI_SECRET_KEY_PREVIOUS = l'ancienne."""
+    """`rotate-secret-key --yes` : ré-chiffre les jetons des connexions, les webhooks d'alerte et les secrets TOTP avec KAJI_SECRET_KEY (la nouvelle) ; KAJI_SECRET_KEY_PREVIOUS = l'ancienne."""
     from sqlalchemy.orm import Session
 
     from . import audit
@@ -152,12 +152,12 @@ def rotate_secret_cmd(argv: list[str]) -> int:
             raise AdminError(str(e))
         with Session(get_engine()) as db:
             res = rotate_secret_key(db, s.kaji_secret_key, s.kaji_secret_key_previous.strip())
-            audit.record(db, username="cli-local", connection_id=None, action="secret-key-rotated", target="connections, alert_rules", status="started",
-                         detail=f"{res.connections} connexion(s) et {res.webhooks} webhook(s) ré-chiffré(s), {res.already_current} déjà à jour")
+            audit.record(db, username="cli-local", connection_id=None, action="secret-key-rotated", target="connections, alert_rules, user_totp", status="started",
+                         detail=f"{res.connections} connexion(s), {res.webhooks} webhook(s) et {res.totp} secret(s) TOTP ré-chiffré(s), {res.already_current} déjà à jour")
     except (AdminError, SecretRotationError) as e:
         print(f"Échec : {e}")
         return 1
-    print(f"Rotation faite : {res.connections} jeton(s) de connexion et {res.webhooks} webhook(s) ré-chiffré(s), {res.already_current} déjà à jour. "
+    print(f"Rotation faite : {res.connections} jeton(s) de connexion, {res.webhooks} webhook(s) et {res.totp} secret(s) TOTP ré-chiffré(s), {res.already_current} déjà à jour. "
           "Retire maintenant KAJI_SECRET_KEY_PREVIOUS de la configuration et redémarre Kaji : toutes les sessions sont invalides (reconnexion). "
           "Les anciennes sauvegardes restent chiffrées avec l'ANCIENNE clé : garde-la tant que tu en as besoin.")
     return 0
