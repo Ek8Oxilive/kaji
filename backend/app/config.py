@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     kaji_require_user_token: bool = False
     # Durée de vie maximale (jours) acceptée pour un jeton personnel : au-delà, l'enregistrement est refusé.
     kaji_user_token_max_days: int = 90
+    # Création de jetons Proxmox par l'administrateur (lot #442) : l'expiration est OBLIGATOIRE, dans le futur, et au plus N jours (0 = facultative, comme avant le jalon J2).
+    kaji_token_create_max_days: int = 365
     # Requêtes HTTP simultanées au plus (hors santé et flux temps réel) ; au-delà : 503 tout de suite (`app/limits.py`). 0 = pas de limite. Doit rester sous la taille du pool de connexions à la base
     # (`app/db.py`, 150) : le défaut laisse de la marge.
     kaji_max_concurrent_requests: int = 100

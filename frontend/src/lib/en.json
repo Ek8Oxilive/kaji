@@ -981,7 +981,6 @@
  "Exécuter": "Run",
  "existing : étiquettes déjà utilisées": "existing: tags already in use",
  "Expire": "Expires",
- "Expire dans (jours, facultatif)": "Expires in (days, optional)",
  "Expire le {p} · clé {key} · {chain_length} certificat(s) · SAN : {p2}": "Expires on {p} · key {key} · {chain_length} certificate(s) · SAN: {p2}",
  "Expire le {p}{p2}": "Expires on {p}{p2}",
  "Export": "Export",
@@ -2727,5 +2726,6 @@
  "Sans jeton de service, le planificateur et les alertes ne font rien pour cette connexion.": "Without a service token, the scheduler and alerts do nothing for this connection.",
  "Sans jeton de service, le planificateur et les alertes utilisent le jeton partagé de la connexion.": "Without a service token, the scheduler and alerts use the connection's shared token.",
  "enregistré par {name}": "saved by {name}",
- "{name} : utilisé par le planificateur d'actions et les alertes, quand personne n'est connecté.": "{name}: used by the action scheduler and alerts when nobody is logged in."
+ "{name} : utilisé par le planificateur d'actions et les alertes, quand personne n'est connecté.": "{name}: used by the action scheduler and alerts when nobody is logged in.",
+ "Expire dans (jours, obligatoire)": "Expires in (days, required)"
 }

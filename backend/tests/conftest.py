@@ -7,6 +7,7 @@ os.environ.setdefault("KAJI_COOKIE_SECURE", "false")
 # toute variable de configuration utilisée par un test est fixée ici explicitement.
 os.environ["KAJI_PROTECTED_VMIDS"] = ""
 os.environ["KAJI_SESSION_HOURS"] = "12"
+os.environ["KAJI_TOKEN_CREATE_MAX_DAYS"] = "365"          # expiration des jetons créés par l'administrateur : imposée (lot #442)
 os.environ["KAJI_SCHEDULER"] = "false"          # la boucle du planificateur ne tourne jamais pendant les tests (`run_due` est testé directement)
 
 import pytest  # noqa: E402

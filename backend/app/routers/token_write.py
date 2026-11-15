@@ -1,9 +1,12 @@
 """Créer, lister et révoquer des tokens d'API (utilisateurs du realm pve), avec l'identité de la session administrateur."""
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
 from .. import audit
 from ..adminsession import AdminSession, TOKEN_ID
+from ..config import get_settings
 from ..db import get_db
 from ..deps import get_client_factory
 from ..models import AdminUser
@@ -63,6 +66,15 @@ async def create_token(body: TokenCreate, conn_id: int, userid: str = UID, db: S
     if body.userid != userid:
         c.refuse("L'utilisateur du corps ne correspond pas à celui de l'adresse", 422)
     c.confirmed(body.confirm, body.type_name, full)
+    max_days = get_settings().kaji_token_create_max_days
+    if max_days > 0:                                          # expiration imposée (lot #442) : refusée AVANT tout appel à Proxmox
+        now = int(time.time())
+        if not body.expire:
+            c.refuse("Expiration obligatoire : indique une date d'expiration", status.HTTP_422_UNPROCESSABLE_CONTENT)
+        if body.expire <= now:
+            c.refuse("L'expiration doit être dans le futur", status.HTTP_422_UNPROCESSABLE_CONTENT)
+        if body.expire > now + max_days * 86400:
+            c.refuse("Expiration trop lointaine : au-delà de la durée maximale autorisée (KAJI_TOKEN_CREATE_MAX_DAYS)", status.HTTP_422_UNPROCESSABLE_CONTENT)
     if reason := protected_reason(body.userid, _get_or_404(db, conn_id).user, s.user):
         c.refuse(reason, 403)
     if not await _known_user(db, factory, conn_id, s, body.userid):
