@@ -6,6 +6,9 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 
 ## [Non publié]
 
+### Sécurité
+- **HTTPS (Caddy) : l'amont est une adresse IP fixe, plus un nom.** Constaté le 2026-11-15, deux fois, pendant une reconstruction : le conteneur `web` étant absent, Docker ne résolvait plus `web`, le DNS du réseau le résolvait en `web.lan` (un AUTRE serveur) et Caddy lui relayait, **en HTTP clair, les mots de passe et les cookies de session** de toute connexion faite pendant ces quelques minutes (`https://kaji.home` affichait un autre site). Corrigé : `web` porte l'adresse fixe `172.29.77.10` (`docker-compose.tls.yml`) et `deploy/Caddyfile` s'y adresse directement ; un `web` absent donne désormais une erreur 502. **À appliquer en redéployant avec les deux fichiers Compose** ; pendant CE redéploiement-là, évite de te connecter.
+
 ### Ajouté
 - **Politique de support PROPOSÉE** (`docs/support.md`, #460) : versions suivies, délais de correction par gravité (valeurs à confirmer par le propriétaire : **ce ne sont pas des engagements**), mise à jour et retour arrière (les migrations ne se défont pas : restaurer la sauvegarde d'avant la mise à jour).
 - Guide « Installer Kaji en lab » (`docs/installation-lab.md`) et test qui le garde aligné sur les droits Proxmox, `.env.example` et les fichiers Docker Compose (#430).
