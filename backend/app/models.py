@@ -219,3 +219,17 @@ class UserScope(Base):
     user_id: Mapped[int] = mapped_column(Integer, index=True)
     conn_id: Mapped[int] = mapped_column(Integer)
     vmid: Mapped[int] = mapped_column(Integer)
+
+
+class UserIdentity(Base):
+    """Lien entre un compte de Kaji et SON identité chez un fournisseur SSO (lot #443) : `(issuer, sub)` identifie la personne de façon stable, même si son nom change chez le fournisseur.
+    Une fois posé, le lien ne se déplace pas : un nom d'utilisateur repris par quelqu'un d'autre ne donne pas accès au compte."""
+
+    __tablename__ = "user_identities"
+    __table_args__ = (UniqueConstraint("issuer", "sub", name="uq_identity_issuer_sub"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    issuer: Mapped[str] = mapped_column(String(255))
+    sub: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

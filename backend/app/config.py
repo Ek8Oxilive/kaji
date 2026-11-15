@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     kaji_audit_file_max_mb: int = 10
     kaji_audit_file_backups: int = 10
     kaji_audit_syslog: str = ""
+    # SSO (OIDC, lot #443) : désactivé tant que `KAJI_OIDC_ISSUER` est vide. Authorization Code + PKCE ; le mot de passe local reste le repli. `KAJI_OIDC_REDIRECT_URI` : l'adresse EXACTE de retour
+    # (`https://<kaji>/api/auth/oidc/callback`), déclarée à l'identique chez le fournisseur. Un compte Kaji existant est relié à l'identité du fournisseur (par `KAJI_OIDC_USERNAME_CLAIM`) ;
+    # `KAJI_OIDC_AUTO_CREATE=true` crée à la première connexion un compte de rôle `KAJI_OIDC_DEFAULT_ROLE` (jamais administrateur).
+    kaji_oidc_issuer: str = ""
+    kaji_oidc_client_id: str = ""
+    kaji_oidc_client_secret: str = ""
+    kaji_oidc_redirect_uri: str = ""
+    kaji_oidc_scopes: str = "openid profile"
+    kaji_oidc_username_claim: str = "preferred_username"
+    kaji_oidc_auto_create: bool = False
+    kaji_oidc_default_role: str = "viewer"
+    kaji_oidc_label: str = "SSO"
     # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")
     kaji_protected_vmids: str = ""
     # Option (décision d'Enzo, 2026-11-13) : le token permanent de Kaji, à qui le propriétaire a donné les droits d'administration,

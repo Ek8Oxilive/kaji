@@ -64,6 +64,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/notifwrite.py` — Notifications Proxmox en ÉCRITURE (cibles de 4 types, règles)…
 - `backend/app/ntpspec.py` — Serveurs NTP d'un nœud : génère le fichier de sources `chrony…
 - `backend/app/ocispec.py` — Images OCI (Proxmox 9) : valider la référence d'une image et…
+- `backend/app/oidc.py` — SSO par OpenID Connect (lot #443, jalon J2) : Authorization C…
 - `backend/app/optionspec.py` — Options d'une VM (onglet « Options » de Proxmox) : validation…
 - `backend/app/passthroughspec.py` — Passthrough PCI, USB et répertoires d'une VM PAR CORRESPONDAN…
 - `backend/app/poolspec.py` — Pools de ressources (Datacenter → Permissions → Pools) : vali…
@@ -166,6 +167,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `backend/app/routers/notifications.py` — Notifications (Datacenter → Notifications) en LECTURE SEULE :… — GET /notifications; GET /notifications/field-values; GET /notifications/targets/{typ}/{name}; GET /notifications/matchers/{name}
 - `backend/app/routers/notifications_write.py` — Notifications en ÉCRITURE : cibles (sendmail, SMTP, Gotify, w… — POST /notifications/targets/{typ}; PUT /notifications/targets/{typ}/{name}; DELETE /notifications/targets/{typ}/{name}; POST /notifications/targets/{name}/test (+3)
 - `backend/app/routers/oci.py` — Images OCI (Proxmox 9) : lister les étiquettes d'un dépôt et… — GET /nodes/{node}/oci/tags; POST /nodes/{node}/storage/{storage}/oci-pull
+- `backend/app/routers/oidc.py` — SSO par OpenID Connect (lot #443, jalon J2) : départ vers le… — GET /status; GET /login; GET /callback
 - `backend/app/routers/options.py` — Options d'une VM ou d'un conteneur : démarrage automatique, p… — GET //guests/{node}/qemu/{vmid}/options; PATCH //guests/{node}/qemu/{vmid}/options; GET //guests/{node}/lxc/{vmid}/options; PATCH //guests/{node}/lxc/{vmid}/options
 - `backend/app/routers/passthrough.py` — Passthrough PCI, USB et répertoires d'une VM par CORRESPONDAN… — GET /guests/{node}/qemu/{vmid}/passthrough; POST /guests/{node}/qemu/{vmid}/passthrough/{ptype}; PUT /guests/{node}/qemu/{vmid}/passthrough/{ptype}/{key}; DELETE /guests/{node}/qemu/{vmid}/passthrough/{ptype}/{key}
 - `backend/app/routers/pools.py` — Pools de ressources en écriture (Datacenter → Permissions → P… — GET //pools/overview; GET //pools/{poolid}; POST //pools; PUT //pools/{poolid} (+1)
@@ -448,6 +450,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/api/sauvegardes-planifiees.md` — Sauvegardes planifiées (jobs)
 - `docs/api/sauvegardes.md` — Sauvegardes (lister, lancer, supprimer)
 - `docs/api/sdn.md` — SDN : zones, VNets, sous-réseaux (M7-5)
+- `docs/api/sso.md` — SSO par OpenID Connect (jalon J2, ticket #443)
 - `docs/api/stockage-config.md` — Configuration des stockages (ajouter, modifier, retirer)
 - `docs/api/stockage.md` — Stockage (lecture seule)
 - `docs/api/systeme-noeud.md` — Système d'un nœud (M11, lecture seule)

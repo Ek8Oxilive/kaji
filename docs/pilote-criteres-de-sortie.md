@@ -16,8 +16,8 @@
 | **#442** création assistée des jetons | Un utilisateur sans jeton en reçoit un par l'interface | 🟡 **expiration obligatoire vue en réel par l'API** (2026-11-15) ; ⬜ le **formulaire** dans le navigateur |
 | | Le secret n'apparaît ni dans l'audit, ni dans les journaux, ni dans une réponse ultérieure | ✅ **réel** (liste, audit, session administrateur) + 🧪 |
 | | Les opérations interdites aux jetons passent par la session par mot de passe, essai réel | ⬜ (mot de passe à taper par le propriétaire) |
-| **#443** SSO (OIDC, LDAP) | Une personne se connecte par le SSO (fournisseur de test) | ⬜ (code en cours, testé contre un faux fournisseur : voir `docs/api/sso.md` quand il existe) |
-| | Compte désactivé ou retiré : plus de session ; aucun secret ; repli par un compte local | ⬜ |
+| **#443** SSO (OIDC) | Une personne se connecte par le SSO (fournisseur de test) | 🧪 code livré et testé contre un **faux** fournisseur (`docs/api/sso.md`, 64 tests) ; ⬜ **avec un vrai fournisseur** (à fournir) |
+| | Compte désactivé ou retiré : plus de nouvelle session ; aucun secret ; repli par un compte local | 🧪 (le fournisseur refuse une nouvelle connexion ; **une session déjà ouverte survit** jusqu'à son expiration : documenté) ; repli local testé ; LDAP / AD direct non fait (passer par un fournisseur OIDC) |
 | **#444** TOTP de connexion | Un compte avec TOTP ne s'ouvre pas avec le seul mot de passe | 🧪 (68 tests) |
 | | Enrôlement et réinitialisation essayés dans le navigateur | 🟡 vus sur un serveur **local** de test ; ⬜ sur le déploiement réel |
 | | Secret chiffré au repos, jamais dans une réponse ni un journal | 🧪 (+ rotation de la clé couverte depuis #471) |
