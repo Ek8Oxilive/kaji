@@ -385,6 +385,7 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 - `docs/runbook.md` — Runbook d'exploitation de Kaji
 - `docs/sbom.md` — Liste des composants (SBOM) et suivi des vulnérabilités
 - `docs/securite.md` — Revue de sécurité de Kaji (2026-11-12, complétée le 2026-11-1…
+- `docs/signature.md` — Versions signées
 - `docs/statut-fonctions.md` — Statut des fonctions de Kaji (pour la V1)
 - `docs/themes.md` — Thèmes de l'interface
 - `docs/v1-actions-enzo.md` — V1 : les actions à faire à la main, pas à pas (Enzo, avec PC…
