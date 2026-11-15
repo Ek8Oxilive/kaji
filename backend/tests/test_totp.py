@@ -59,12 +59,13 @@ def test_otpauth_uri_is_escaped():
     assert uri.startswith("otpauth://totp/Kaji:al%20ice%26x%3D1?secret=ABCDEFGHIJKLMNOP&issuer=Kaji") and "&x=1" not in uri.split("?")[0]
 
 
-def test_recovery_codes_are_80_bits_distinct_and_hashed_with_a_key():
+def test_recovery_codes_are_80_bits_distinct_and_hashed():
     codes = totp.new_recovery_codes()
     assert len(codes) == 10 and len(set(codes)) == 10 and all(re.fullmatch(r"[A-Z2-7]{4}(-[A-Z2-7]{4}){3}", c) for c in codes)
     c = codes[0]
-    assert totp.recovery_hash("k1", c) == totp.recovery_hash("k1", c.lower().replace("-", ""))      # casse et tirets ignorés
-    assert totp.recovery_hash("k1", c) != totp.recovery_hash("k2", c) and c not in totp.recovery_hash("k1", c)
+    h = totp.recovery_hash(c)
+    assert h == totp.recovery_hash(c.lower().replace("-", ""))                                  # casse et tirets ignorés
+    assert re.fullmatch(r"[0-9a-f]{64}", h) and c.replace("-", "") not in h and totp.recovery_hash(codes[1]) != h
 
 
 # ---------------------------------------------------------------- l'API

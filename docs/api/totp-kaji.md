@@ -25,7 +25,7 @@ Les routes de `/api/auth/` sont en libre-service : **tous les rôles** (administ
 - **Un code déjà accepté ne l'est jamais deux fois** (anti-rejeu : dernier pas accepté enregistré par un `UPDATE` conditionnel, donc deux requêtes simultanées avec le même code ne passent pas toutes les deux). Fenêtre de tolérance : un pas de 30 s avant et après.
 - **Limiteur** : 5 échecs en 5 minutes bloquent l'adresse **et** le compte (clé distincte) ; compteurs persistants (`login_failures`). Un attaquant qui connaît le mot de passe peut donc **bloquer 5 minutes** un compte en devinant ; il ne peut pas se connecter.
 - **Le défi n'ouvre rien tout seul** : signé avec une clé **distincte** de celle des sessions, lié à l'empreinte du mot de passe (changer le mot de passe l'invalide), 5 minutes ; un cookie de session n'est pas un défi et inversement.
-- **Secret chiffré au repos** (comme les jetons des connexions, avec `KAJI_SECRET_KEY`) ; **codes de secours stockés sous forme d'empreinte à clé** (HMAC-SHA256), jamais en clair ; 80 bits chacun.
+- **Secret chiffré au repos** (comme les jetons des connexions, avec `KAJI_SECRET_KEY`) ; **codes de secours stockés sous forme d'empreinte** (SHA-256), jamais en clair ; 80 bits chacun (une force brute sur l'empreinte est hors de portée, donc pas de clé : une rotation de `KAJI_SECRET_KEY` ne les invalide pas).
 - **Rien n'est journalisé** : ni secret, ni code, ni code de secours, ni défi (audit : `totp-setup`, `totp-enabled`, `login-totp` en erreur, `totp-recovery-used` avec le nombre restant, `totp-disabled`, `kaji-user-totp-remove`).
 - **Pas de contournement par un administrateur pour lui-même** : une session volée ne peut pas désactiver le second facteur de son propre compte sans le mot de passe ET un code.
 - Calcul TOTP (RFC 6238, SHA-1, 6 chiffres, 30 s) en bibliothèque standard : **aucune dépendance de plus** ; vérifié avec les vecteurs de la RFC.
@@ -34,7 +34,7 @@ Les routes de `/api/auth/` sont en libre-service : **tous les rôles** (administ
 - **Pas de QR code** : le secret se saisit à la main (« saisie manuelle » de toutes les applications) ; un QR demanderait une dépendance de plus. À ajouter si besoin.
 - **Pas d'obligation** : aucun réglage ne force le TOTP pour tous les comptes ou pour les administrateurs (suite possible, avec le SSO du ticket #443).
 - **Pas de WebAuthn / clé matérielle** pour la connexion à Kaji.
-- **`rotate-secret-key`** (PR #471, autre session) ré-chiffre les jetons des connexions et les webhooks avec la nouvelle `KAJI_SECRET_KEY` ; il **ne contient pas encore** les secrets TOTP : tant qu'il ne les gère pas, **une rotation de `KAJI_SECRET_KEY` rend les secrets TOTP illisibles** (les codes de secours, eux, sont des empreintes à clé dérivée de `KAJI_SECRET_KEY` et ne valent plus non plus). Un administrateur peut alors retirer le TOTP des comptes concernés. Suivi dans les tickets #461 et #444.
+- **`rotate-secret-key`** (PR #471, autre session) ré-chiffre les jetons des connexions et les webhooks avec la nouvelle `KAJI_SECRET_KEY` ; il **ne contient pas encore** les secrets TOTP : tant qu'il ne les gère pas, **une rotation de `KAJI_SECRET_KEY` rend les secrets TOTP illisibles** (les codes de secours, eux, restent valables). Un administrateur peut alors retirer le TOTP des comptes concernés. Suivi dans les tickets #461 et #444.
 - Une seule instance de Kaji (comme le planificateur) ; l'horloge du serveur doit être à l'heure (sinon les codes sont refusés).
 
 ## Tests

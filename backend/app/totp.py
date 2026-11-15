@@ -2,7 +2,7 @@
 
 Choix : HMAC-SHA1, 6 chiffres, pas de 30 s (le profil que lisent TOUTES les applications d'authentification) ; fenêtre de tolérance d'un pas avant et après (dérive d'horloge) ;
 **un code déjà accepté ne l'est jamais deux fois** (anti-rejeu, `last_step`) ; comparaisons en temps constant.
-Les codes de secours ont 80 bits (16 caractères) : stockés sous forme d'EMPREINTE à clé (HMAC-SHA256 avec une clé dérivée de `KAJI_SECRET_KEY`), jamais en clair.
+Les codes de secours ont 80 bits (16 caractères) : stockés sous forme d'EMPREINTE (SHA-256), jamais en clair.
 """
 import base64
 import hashlib
@@ -83,7 +83,7 @@ def looks_like_recovery(text: str) -> bool:
     return bool(_RECOVERY.fullmatch(normalize(text)))
 
 
-def recovery_hash(secret_key: str, code: str) -> str:
-    """Empreinte d'un code de secours (HMAC-SHA256, clé dérivée de KAJI_SECRET_KEY : une base volée seule ne permet pas de deviner un code)."""
-    key = hmac.new(secret_key.encode(), b"kaji-totp-recovery-v1", hashlib.sha256).digest()
-    return hmac.new(key, normalize(code).encode(), hashlib.sha256).hexdigest()
+def recovery_hash(code: str) -> str:
+    """Empreinte d'un code de secours : SHA-256 avec séparation de domaine. Un code a 80 bits d'aléa : une force brute sur l'empreinte est hors de portée, donc pas de clé (et une rotation
+    de `KAJI_SECRET_KEY` n'invalide pas les codes de secours : seul le secret TOTP chiffré est concerné)."""
+    return hashlib.sha256(b"kaji-totp-recovery-v1:" + normalize(code).encode()).hexdigest()

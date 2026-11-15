@@ -55,7 +55,7 @@ def _replace_recovery(db: Session, secret_key: str, user_id: int) -> list[str]:
     codes = totp.new_recovery_codes()
     db.execute(delete(TotpRecoveryCode).where(TotpRecoveryCode.user_id == user_id))
     for c in codes:
-        db.add(TotpRecoveryCode(user_id=user_id, code_hash=totp.recovery_hash(secret_key, c)))
+        db.add(TotpRecoveryCode(user_id=user_id, code_hash=totp.recovery_hash(c)))
     db.commit()
     return codes
 
@@ -77,7 +77,7 @@ def check(db: Session, secret_key: str, user_id: int, text: str, *, allow_recove
         db.commit()
         return "totp" if res.rowcount == 1 else None                  # une autre requête a pris ce pas entre-temps : rejeu
     if allow_recovery and totp.looks_like_recovery(text):
-        res = db.execute(update(TotpRecoveryCode).where(TotpRecoveryCode.user_id == user_id, TotpRecoveryCode.code_hash == totp.recovery_hash(secret_key, text),
+        res = db.execute(update(TotpRecoveryCode).where(TotpRecoveryCode.user_id == user_id, TotpRecoveryCode.code_hash == totp.recovery_hash(text),
                                                        TotpRecoveryCode.used_at.is_(None)).values(used_at=_now() if now is None else datetime.fromtimestamp(now, timezone.utc)))
         db.commit()
         return "recovery" if res.rowcount == 1 else None
