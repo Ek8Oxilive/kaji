@@ -9,7 +9,7 @@ import { GuestCard } from "../components/GuestCard";
 import { NewMachineChooser } from "../components/NewMachineChooser";
 import { NodeCard } from "../components/NodeCard";
 import { Helm } from "../components/Logo";
-import { Button, Notice } from "../components/ui";
+import { Button, Notice, ProxmoxProblem } from "../components/ui";
 import { api, type Connection, type Guest, type GuestAction } from "../lib/api";
 import { bytes } from "../lib/format";
 import { THEMES, useTheme } from "../lib/theme";
@@ -157,7 +157,7 @@ export function Dashboard({ onGoConnections, onOpenGuest, onOpenNode }: { onGoCo
         </div>
       </header>
 
-      {problem && <Notice kind="error">{tr("Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées ; la reprise est automatique.", { problem })}</Notice>}
+      {problem && <ProxmoxProblem problem={problem} resume />}
       {err && !problem && <Notice kind="error">{(err as Error).message} — <button className="underline" onClick={() => { status.refetch(); nodes.refetch(); guests.refetch(); }}>{tr("réessayer")}</button></Notice>}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={tr("Résumé")}>

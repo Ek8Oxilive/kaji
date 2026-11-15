@@ -10,7 +10,7 @@ import { NodeReplication } from "../components/NodeReplication";
 import { NodeBulk } from "../components/NodeBulk";
 import { NodeSystem } from "../components/NodeSystem";
 import { Gauge } from "../components/Gauge";
-import { Button, Notice } from "../components/ui";
+import { Button, Notice, ProxmoxProblem } from "../components/ui";
 import { api, type Bridge } from "../lib/api";
 import { useActiveConnection } from "../lib/connection";
 import { bytes, pct, uptime } from "../lib/format";
@@ -64,7 +64,7 @@ export function NodePage({ params, go, onGoConnections }: { params: string[]; go
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       {back}
-      {problem && <Notice kind="error">{tr("Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées.", { problem })}</Notice>}
+      {problem && <ProxmoxProblem problem={problem} />}
 
       <header className="panel space-y-5 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
