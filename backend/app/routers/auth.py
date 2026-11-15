@@ -136,6 +136,10 @@ def login(body: Credentials, request: Request, response: Response, db: Session =
     if not verify_password(body.password, user.password_hash if user else None) or user is None:
         throttle.fail(ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Identifiants invalides")
+    from .. import totpstore
+    if totpstore.is_enabled(db, user.id):                    # double authentification (lot #444) : mot de passe correct, mais PAS de session avant le code
+        from .totp import begin_totp_login
+        return begin_totp_login(user)
     throttle.reset(ip)
     _start_session(db, response, user.id)
     return {"username": user.username}

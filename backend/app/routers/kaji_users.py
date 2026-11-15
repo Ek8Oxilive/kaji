@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, StrictBool
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from .. import audit, roles
+from .. import audit, roles, totpstore
 from ..adminsession import sessions as admin_sessions
 from ..db import get_db
 from ..models import AdminUser, UserSession, UserToken
@@ -34,8 +34,8 @@ class UserUpdate(BaseModel):
     password: str | None = Field(default=None, min_length=12, max_length=256)
 
 
-def _out(u: AdminUser) -> dict:
-    return {"id": u.id, "username": u.username, "role": roles.normalize(u.role), "created_at": u.created_at.isoformat() if u.created_at else None}
+def _out(u: AdminUser, totp_on: bool = False) -> dict:
+    return {"id": u.id, "username": u.username, "role": roles.normalize(u.role), "created_at": u.created_at.isoformat() if u.created_at else None, "totp": totp_on}
 
 
 def _admins(db: Session) -> int:
@@ -58,7 +58,8 @@ def _revoke(db: Session, user: AdminUser) -> None:
 
 @router.get("")
 def list_users(db: Session = Depends(get_db), _a: AdminUser = Depends(current_user)):
-    return [_out(u) for u in db.scalars(select(AdminUser).order_by(AdminUser.username))]
+    on = totpstore.enabled_ids(db)
+    return [_out(u, u.id in on) for u in db.scalars(select(AdminUser).order_by(AdminUser.username))]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -93,7 +94,7 @@ def update_user(body: UserUpdate, user_id: int = Path(ge=1), db: Session = Depen
         changes.append("mot de passe réinitialisé, sessions révoquées")
     db.commit()
     _log(db, actor, "kaji-user-update", u.username, "started", ", ".join(changes) or "inchangé")
-    return _out(u)
+    return _out(u, totpstore.is_enabled(db, u.id))
 
 
 @router.delete("/{user_id}")
@@ -111,7 +112,29 @@ def delete_user(user_id: int = Path(ge=1), confirm: StrictBool = Query(default=F
     username = u.username
     _revoke(db, u)
     db.execute(delete(UserToken).where(UserToken.user_id == u.id))             # ses jetons Proxmox personnels disparaissent avec lui
+    totpstore.remove(db, u.id)                                                  # et sa double authentification (secret chiffré, codes de secours)
     db.delete(u)
     db.commit()
     _log(db, actor, "kaji-user-delete", username, "started", "compte, sessions et jetons Proxmox personnels supprimés")
     return {"deleted": username}
+
+
+@router.delete("/{user_id}/totp")
+def remove_totp(user_id: int = Path(ge=1), confirm: StrictBool = Query(default=False), name: str = Query(default="", max_length=80),
+                db: Session = Depends(get_db), actor: AdminUser = Depends(current_user)):
+    """Retire la double authentification d'UN AUTRE compte (téléphone perdu, plus de codes de secours). Pas pour soi-même : une session volée ne doit pas pouvoir désactiver
+    le second facteur de son propre compte (utiliser `POST /api/auth/totp/disable`, qui exige le mot de passe ET un code). `confirm=true` + nom retapé ; les sessions du compte sont révoquées."""
+    u = db.get(AdminUser, user_id)
+    if u is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Utilisateur inconnu")
+    if u.id == actor.id:
+        _refuse(db, actor, "kaji-user-totp-remove", u.username, "Pour retirer ta propre double authentification, utilise la désactivation (mot de passe et code)", status.HTTP_409_CONFLICT)
+    if not confirm or name != u.username:
+        _refuse(db, actor, "kaji-user-totp-remove", u.username, "Retrait : renvoie la requête avec confirm=true et le nom d'utilisateur retapé", status.HTTP_400_BAD_REQUEST)
+    if not totpstore.is_enabled(db, u.id):
+        _refuse(db, actor, "kaji-user-totp-remove", u.username, "Ce compte n'a pas la double authentification", status.HTTP_409_CONFLICT)
+    totpstore.remove(db, u.id)
+    _revoke(db, u)
+    db.commit()
+    _log(db, actor, "kaji-user-totp-remove", u.username, "started", "double authentification retirée, sessions du compte révoquées")
+    return {"removed": u.username}
