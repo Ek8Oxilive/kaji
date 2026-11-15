@@ -11,7 +11,7 @@ Indique si possible : la version (étiquette ou commit), la configuration utile 
 
 ## Ce que tu peux attendre
 
-Le dépôt est tenu par une seule personne, sans équipe de sécurité dédiée. **Objectifs, non garantis** : accusé de réception sous 7 jours, première évaluation (gravité, versions touchées) sous 14 jours, correctif ou contournement documenté ensuite selon la gravité. Une politique de délais ferme est prévue pour le jalon J4 (`docs/cadrage-prod-entreprise.md`). Une fois le correctif publié, la faille est mentionnée dans `CHANGELOG.md` (rubrique « Sécurité »), avec le nom du signalant s'il le souhaite.
+Le dépôt est tenu par une seule personne, sans équipe de sécurité dédiée. **Objectifs, non garantis** : accusé de réception sous 7 jours, première évaluation (gravité, versions touchées) sous 14 jours, correctif ou contournement documenté ensuite selon la gravité. Une politique de délais ferme est prévue pour le jalon J4 (`docs/cadrage-prod-entreprise.md`) : **une proposition, à confirmer par le propriétaire, est dans `docs/support.md`** (ce ne sont pas encore des engagements). Une fois le correctif publié, la faille est mentionnée dans `CHANGELOG.md` (rubrique « Sécurité »), avec le nom du signalant s'il le souhaite.
 
 ## Versions suivies
 

@@ -7,6 +7,7 @@ Tous les changements notables de Kaji. Format inspiré de [Keep a Changelog](htt
 ## [Non publié]
 
 ### Ajouté
+- **Politique de support PROPOSÉE** (`docs/support.md`, #460) : versions suivies, délais de correction par gravité (valeurs à confirmer par le propriétaire : **ce ne sont pas des engagements**), mise à jour et retour arrière (les migrations ne se défont pas : restaurer la sauvegarde d'avant la mise à jour).
 - Guide « Installer Kaji en lab » (`docs/installation-lab.md`) et test qui le garde aligné sur les droits Proxmox, `.env.example` et les fichiers Docker Compose (#430).
 - `SECURITY.md` (signalement d'une vulnérabilité, versions suivies) et ce `CHANGELOG.md` (#426).
 - **Jetons Proxmox personnels** (option A du cadrage, #440) : chaque utilisateur de Kaji enregistre son propre jeton par connexion (« Compte » → « Mon jeton Proxmox ») ; Proxmox applique ses droits et nomme la personne dans son journal. Privilèges séparés et expiration exigés (relus chez Proxmox quand c'est possible), jamais `root@pam` ni le jeton partagé, chiffrés par une **clé séparée** `KAJI_TOKEN_KEY` (ou fichier), rotation `rotate-token-key`, contrôle par `verify` et `restore`, option `KAJI_REQUIRE_USER_TOKEN`, flux temps réel cloisonné par utilisateur. **Pas encore essayé en réel.**
