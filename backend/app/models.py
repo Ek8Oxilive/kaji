@@ -206,3 +206,16 @@ class TotpRecoveryCode(Base):
     user_id: Mapped[int] = mapped_column(Integer, index=True)
     code_hash: Mapped[str] = mapped_column(String(64))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class UserScope(Base):
+    """Périmètre d'un compte de Kaji (lot #447) : une ligne par machine autorisée (`vmid`) et par connexion. Un compte SANS ligne n'est pas restreint ; un compte AVEC au moins une ligne ne voit
+    et ne touche que ces machines (`app/scope.py`, décidé par le serveur à chaque requête). Un administrateur n'a jamais de périmètre."""
+
+    __tablename__ = "user_scopes"
+    __table_args__ = (UniqueConstraint("user_id", "conn_id", "vmid", name="uq_user_scope"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    conn_id: Mapped[int] = mapped_column(Integer)
+    vmid: Mapped[int] = mapped_column(Integer)
