@@ -56,10 +56,13 @@ DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 DELETE /api/connections/{conn_id}/tls
 DELETE /api/kaji-users/{user_id}
+DELETE /api/kaji-users/{user_id}/scope
+DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
 GET /api/auth/me
 GET /api/auth/status
+GET /api/auth/totp
 GET /api/connections
 GET /api/connections/{conn_id}
 GET /api/connections/{conn_id}/access/acl
@@ -173,6 +176,7 @@ GET /api/connections/{conn_id}/tasks/{node}/{upid}/log
 GET /api/connections/{conn_id}/tls
 GET /api/health
 GET /api/kaji-users
+GET /api/kaji-users/{user_id}/scope
 GET /api/me/proxmox-tokens
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
@@ -184,10 +188,15 @@ PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}/options
 POST /api/auth/login
+POST /api/auth/login/totp
 POST /api/auth/logout
 POST /api/auth/logout-all
 POST /api/auth/password
 POST /api/auth/setup
+POST /api/auth/totp/confirm
+POST /api/auth/totp/disable
+POST /api/auth/totp/recovery
+POST /api/auth/totp/setup
 POST /api/connections
 POST /api/connections/test
 POST /api/connections/{conn_id}/access/acl/preview
@@ -367,4 +376,5 @@ PUT /api/connections/{conn_id}/service-token
 PUT /api/connections/{conn_id}/storage-config/{storage}
 PUT /api/connections/{conn_id}/tls
 PUT /api/kaji-users/{user_id}
+PUT /api/kaji-users/{user_id}/scope
 PUT /api/me/proxmox-tokens/{conn_id}

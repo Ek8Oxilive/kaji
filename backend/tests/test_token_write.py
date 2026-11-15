@@ -1,4 +1,5 @@
 import re
+import time
 from urllib.parse import parse_qs
 
 import httpx
@@ -88,8 +89,12 @@ def u(cid, user="eve@pve", tail=""):
     return f"/api/connections/{cid}/access/users/{user}/tokens{tail}"
 
 
+def soon(days=90, margin=0):
+    return int(time.time()) + days * 86400 - margin
+
+
 def create(c, cid, user="eve@pve", **over):
-    b = {"userid": user, "tokenid": "ci", **over}
+    b = {"userid": user, "tokenid": "ci", "expire": soon(), **over}              # l'expiration est obligatoire (lot #442) : `expire=None` pour ne pas en envoyer
     return c.post(u(cid, user), json={"confirm": True, "type_name": f"{b['userid']}!{b['tokenid']}", **b})
 
 
@@ -99,19 +104,21 @@ def audit_text(c):
 
 def test_create_returns_the_secret_once_and_never_logs_it(api):
     c, cid = api
-    r = create(c, cid, comment="déploiement", expire=1900000000)
+    exp = soon(300)
+    r = create(c, cid, comment="déploiement", expire=exp)
     j = r.json()
     assert r.status_code == 201 and j["created"] == "eve@pve!ci" and j["secret"] == NEW_SECRET and j["privsep"] is True and "plus jamais" in j["warning"]
-    assert WRITES == [("POST", "/access/users/eve@pve/token/ci", {"privsep": "1", "comment": "déploiement", "expire": "1900000000"})]
+    assert WRITES == [("POST", "/access/users/eve@pve/token/ci", {"privsep": "1", "comment": "déploiement", "expire": str(exp)})]
     assert NEW_SECRET not in audit_text(c) and UUID not in audit_text(c) and "affiché une seule fois" in audit_text(c)
     assert all(q.headers["authorization"] == ADMIN_AUTH for q in SEEN)
     listed = c.get(u(cid, "eve@pve")).text
     assert NEW_SECRET not in listed and "ci" in listed                          # aucune autre route ne redonne le secret
 
 
-def test_minimal_create_always_sends_privsep(api):
+def test_minimal_create_always_sends_privsep_and_an_expiration(api):
     c, cid = api
-    assert create(c, cid).status_code == 201 and WRITES[-1][2] == {"privsep": "1"}
+    exp = soon(90)
+    assert create(c, cid, expire=exp).status_code == 201 and WRITES[-1][2] == {"privsep": "1", "expire": str(exp)}
 
 
 @pytest.mark.parametrize("privsep", [False, 0, "0", "false", None, 1, "1", "true"])      # « vrai » doit être un vrai booléen JSON (StrictBool)
@@ -270,3 +277,72 @@ def test_shape_helpers_are_defensive():
         {"tokenid": "ok", "privsep": False, "expire": None, "comment": None}, {"tokenid": "ok2", "privsep": False, "expire": None, "comment": None}]
     assert secret_of({"value": NEW_SECRET}) == NEW_SECRET
     assert secret_of({"value": "x"}) is None and secret_of(None) is None and secret_of({"value": NEW_SECRET + "x"}) is None and secret_of({"value": 5}) is None
+
+
+# ---------------------------------------------------------------- expiration imposée (lot #442)
+def _refused(c, cid, **over):
+    r = create(c, cid, **over)
+    assert r.status_code == 422 and not WRITES and not SEEN and NEW_SECRET not in r.text, r.text
+    return r.json()["detail"]
+
+
+@pytest.mark.parametrize("expire", [None, 0])
+def test_an_expiration_is_required(api, expire):
+    c, cid = api
+    SEEN.clear()
+    assert "Expiration obligatoire" in _refused(c, cid, expire=expire)                 # refusé AVANT tout appel à Proxmox
+
+
+def test_an_expiration_in_the_past_or_now_is_refused(api):
+    c, cid = api
+    SEEN.clear()
+    assert "dans le futur" in _refused(c, cid, expire=int(time.time()) - 10)
+    assert "dans le futur" in _refused(c, cid, expire=1)
+
+
+def test_an_expiration_beyond_the_maximum_is_refused_and_the_edge_is_accepted(api):
+    c, cid = api
+    SEEN.clear()
+    assert "trop lointaine" in _refused(c, cid, expire=soon(366))
+    assert "trop lointaine" in _refused(c, cid, expire=soon(365, margin=-60))
+    assert create(c, cid, expire=soon(365, margin=30)).status_code == 201             # un peu en deçà de 365 jours : accepté
+
+
+def test_the_maximum_follows_the_setting_and_zero_restores_the_optional_expiration(api, monkeypatch):
+    from app.config import get_settings
+    c, cid = api
+    monkeypatch.setenv("KAJI_TOKEN_CREATE_MAX_DAYS", "30")
+    get_settings.cache_clear()
+    try:
+        SEEN.clear()
+        assert "trop lointaine" in _refused(c, cid, expire=soon(31))
+        assert create(c, cid, expire=soon(29)).status_code == 201
+        monkeypatch.setenv("KAJI_TOKEN_CREATE_MAX_DAYS", "0")
+        get_settings.cache_clear()
+        assert create(c, cid, tokenid="libre", expire=None).status_code == 201         # 0 : comme avant, expiration facultative
+        assert create(c, cid, tokenid="libre2", expire=soon(2000)).status_code == 201
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
+
+
+def test_the_refusals_are_audited_without_any_secret_and_the_token_is_not_created(api):
+    c, cid = api
+    SEEN.clear()
+    _refused(c, cid, expire=None)
+    text = audit_text(c)
+    assert "token-create" in text and "Expiration obligatoire" in text and NEW_SECRET not in text and UUID not in text
+    assert not any("/token/" in q.url.path and q.method == "POST" for q in SEEN)
+
+
+def test_the_secret_of_a_created_token_is_in_no_later_response_and_never_in_the_audit(api):
+    c, cid = api
+    r = create(c, cid, expire=soon(90))
+    assert r.status_code == 201 and r.json()["secret"] == NEW_SECRET
+    for later in (c.get(u(cid, "eve@pve")), c.get("/api/audit"), c.get(f"/api/connections/{cid}/admin-session")):
+        assert NEW_SECRET not in later.text, later.request.url
+
+
+def test_the_expiration_is_enforced_by_default_for_a_year_at_most():
+    from app.config import Settings
+    assert Settings.model_fields["kaji_token_create_max_days"].default == 365           # sans réglage, l'expiration est imposée (conftest épingle la même valeur)
