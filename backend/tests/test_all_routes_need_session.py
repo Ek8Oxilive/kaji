@@ -6,7 +6,7 @@ import pytest
 from app.main import app
 
 # Routes publiques voulues : état de l'authentification, première configuration, connexion, déconnexion, santé (sonde du conteneur).
-PUBLIC = {("GET", "/api/auth/status"), ("POST", "/api/auth/setup"), ("POST", "/api/auth/login"), ("POST", "/api/auth/login/totp"), ("GET", "/api/auth/oidc/status"), ("GET", "/api/auth/oidc/login"), ("GET", "/api/auth/oidc/callback"), ("POST", "/api/auth/logout"), ("GET", "/api/health")}
+PUBLIC = {("GET", "/api/auth/status"), ("POST", "/api/auth/setup"), ("POST", "/api/auth/login"), ("POST", "/api/auth/login/totp"), ("GET", "/api/auth/oidc/status"), ("GET", "/api/auth/ldap/status"), ("POST", "/api/auth/ldap/login"), ("GET", "/api/auth/oidc/login"), ("GET", "/api/auth/oidc/callback"), ("POST", "/api/auth/logout"), ("GET", "/api/health")}
 
 
 def _routes():

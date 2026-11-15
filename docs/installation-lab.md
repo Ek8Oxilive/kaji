@@ -126,6 +126,17 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_OIDC_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion SSO ; sinon la personne doit déjà avoir un compte de Kaji. |
 | `KAJI_OIDC_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par le SSO : `viewer` ou `operator`, **jamais** administrateur. |
 | `KAJI_OIDC_LABEL` | `SSO` | Texte du bouton de l'écran de connexion. |
+| `KAJI_LDAP_URL` | vide (défaut) | Adresse de l'annuaire LDAP / Active Directory (`ldaps://hôte:636`) : active la connexion par annuaire. Vide : pas d'annuaire. Voir `docs/api/ldap.md`. |
+| `KAJI_LDAP_START_TLS` | `false` | `true` avec une adresse `ldap://` : STARTTLS est négocié avant toute liaison. Sans `ldaps://` ni STARTTLS, la connexion est refusée (pas de mot de passe en clair). |
+| `KAJI_LDAP_CA_FILE` | vide | Chemin d'une autorité privée de l'annuaire ; le certificat est toujours vérifié. |
+| `KAJI_LDAP_BASE_DN` | vide | Où chercher les personnes (obligatoire si l'annuaire est actif). |
+| `KAJI_LDAP_BIND_DN` | vide | Compte de **lecture seule** qui retrouve l'entrée de la personne (obligatoire si l'annuaire est actif). |
+| `KAJI_LDAP_BIND_PASSWORD` | vide | Mot de passe de ce compte de lecture ; reste dans `.env`, jamais renvoyé ni journalisé. |
+| `KAJI_LDAP_USER_FILTER` | `(&(objectClass=person)(uid={username}))` | Filtre de recherche, qui contient `{username}` (Active Directory : `(&(objectClass=user)(sAMAccountName={username}))`). |
+| `KAJI_LDAP_USERNAME_ATTR` | `uid` | Attribut qui porte l'identifiant (`sAMAccountName` pour Active Directory). |
+| `KAJI_LDAP_AUTO_CREATE` | `false` | `true` : crée un compte neuf à la première connexion par l'annuaire ; sinon la personne doit déjà avoir un compte de Kaji (jamais un administrateur). |
+| `KAJI_LDAP_DEFAULT_ROLE` | `viewer` | Rôle d'un compte créé par l'annuaire : `viewer` ou `operator`, **jamais** administrateur. |
+| `KAJI_LDAP_LABEL` | `Annuaire` | Texte de la case de l'écran de connexion. |
 | `KAJI_TOKEN_CREATE_MAX_DAYS` | `365` (défaut) | Jetons Proxmox créés par l'administrateur depuis Kaji (page « Accès ») : **l'expiration est obligatoire** et au plus ce nombre de jours (`0` = facultative, déconseillé). |
 | `KAJI_MAX_CONCURRENT_REQUESTS` | `100` (défaut) | Requêtes simultanées au plus ; au-delà, **503** immédiat au lieu d'un blocage (`docs/robustesse.md`). |
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |

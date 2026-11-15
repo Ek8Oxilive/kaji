@@ -18,6 +18,10 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
   // SSO (OpenID Connect, `docs/api/sso.md`) : le bouton n'apparaît que si le serveur l'a configuré ; le mot de passe local reste le repli.
   const [sso, setSso] = useState<{ enabled: boolean; label: string | null } | null>(null);
   useEffect(() => { if (!setup) api<{ enabled: boolean; label: string | null }>("/api/auth/oidc/status").then(setSso).catch(() => setSso(null)); }, [setup]);
+  // Annuaire LDAP / AD (`docs/api/ldap.md`) : la case n'apparaît que si le serveur l'a configuré ; le mot de passe est vérifié par l'annuaire, jamais gardé par Kaji.
+  const [ldap, setLdap] = useState<{ enabled: boolean; label: string | null } | null>(null);
+  const [useLdap, setUseLdap] = useState(false);
+  useEffect(() => { if (!setup) api<{ enabled: boolean; label: string | null }>("/api/auth/ldap/status").then(setLdap).catch(() => setLdap(null)); }, [setup]);
   const ssoResult = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("sso") : null;
 
   async function submit(e: FormEvent) {
@@ -31,7 +35,7 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
         onDone();
         return;
       }
-      const r = await api<LoginStep>(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: setup && tokenRequired ? { username, password, setup_token: setupToken } : { username, password } });
+      const r = await api<LoginStep>(setup ? "/api/auth/setup" : useLdap && ldap?.enabled ? "/api/auth/ldap/login" : "/api/auth/login", { method: "POST", body: setup && tokenRequired ? { username, password, setup_token: setupToken } : { username, password } });
       if (r?.totp_required && r.challenge) {
         setChallenge(r.challenge); setPassword(""); setCode("");
         return;
@@ -67,6 +71,12 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
               autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 12 : 1}
               hint={setup ? tr("12 caractères minimum") : undefined} />
           </>
+        )}
+        {!challenge && !setup && ldap?.enabled && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={useLdap} onChange={(e) => setUseLdap(e.target.checked)} />
+            {tr("Compte d'annuaire ({nom})", { nom: ldap.label ?? "LDAP" })}
+          </label>
         )}
         {!challenge && setup && tokenRequired && <Field label={tr("Jeton de première configuration")} type="password" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} autoComplete="off" required
           hint={tr("Défini par KAJI_SETUP_TOKEN dans le fichier .env du serveur")} />}

@@ -38,6 +38,21 @@ class Settings(BaseSettings):
     kaji_oidc_auto_create: bool = False
     kaji_oidc_default_role: str = "viewer"
     kaji_oidc_label: str = "SSO"
+    # Connexion par annuaire LDAP / Active Directory (lot #443) : désactivée tant que `KAJI_LDAP_URL` est vide. Chiffrement OBLIGATOIRE (`ldaps://` ou `KAJI_LDAP_START_TLS=true`), certificat vérifié
+    # (`KAJI_LDAP_CA_FILE` pour une autorité privée). Kaji cherche la personne avec le compte de lecture (`BIND_DN`), puis vérifie son mot de passe par une liaison à SON nom : il ne le garde jamais.
+    # `USER_FILTER` contient `{username}` (ex. AD : `(sAMAccountName={username})`). Seuls les comptes opérateur et lecture seule se relient ; un administrateur garde son mot de passe local.
+    kaji_ldap_url: str = ""
+    kaji_ldap_start_tls: bool = False
+    kaji_ldap_ca_file: str = ""
+    kaji_ldap_base_dn: str = ""
+    kaji_ldap_bind_dn: str = ""
+    kaji_ldap_bind_password: str = ""
+    kaji_ldap_user_filter: str = "(&(objectClass=person)(uid={username}))"
+    kaji_ldap_username_attr: str = "uid"
+    kaji_ldap_timeout: int = 5
+    kaji_ldap_auto_create: bool = False
+    kaji_ldap_default_role: str = "viewer"
+    kaji_ldap_label: str = "Annuaire"
     # Identifiants de machines que Kaji refuse de supprimer, quoi qu'il arrive (ex. "105,108")
     kaji_protected_vmids: str = ""
     # Option (décision d'Enzo, 2026-11-13) : le token permanent de Kaji, à qui le propriétaire a donné les droits d'administration,

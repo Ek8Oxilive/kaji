@@ -60,6 +60,7 @@ DELETE /api/kaji-users/{user_id}/scope
 DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
+GET /api/auth/ldap/status
 GET /api/auth/me
 GET /api/auth/oidc/callback
 GET /api/auth/oidc/login
@@ -190,6 +191,7 @@ PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/disks/{key}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}/options
+POST /api/auth/ldap/login
 POST /api/auth/login
 POST /api/auth/login/totp
 POST /api/auth/logout
