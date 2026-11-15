@@ -24,9 +24,12 @@ def purge_old(db: Session, days: int) -> int:
 def record(db: Session, *, username: str, connection_id: int | None, action: str, target: str,
            status: str, upid: str | None = None, detail: str | None = None) -> None:
     global _last_purge
-    db.add(AuditLog(username=username, connection_id=connection_id, action=action, target=target,
-                    status=status, upid=upid, detail=(detail or None) and detail[:500]))
+    row = AuditLog(username=username, connection_id=connection_id, action=action, target=target,
+                   status=status, upid=upid, detail=(detail or None) and detail[:500])
+    db.add(row)
     db.commit()
+    from . import auditexport
+    auditexport.emit(row)                                  # fichier JSON et/ou syslog (lot #445) : n'élève jamais d'exception
     if time.monotonic() - _last_purge > _PURGE_EVERY:      # purge paresseuse, au plus toutes les 6 h
         _last_purge = time.monotonic()
         purge_old(db, get_settings().kaji_audit_retention_days)
