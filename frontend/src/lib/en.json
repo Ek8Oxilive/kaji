@@ -2781,5 +2781,6 @@
  "Périmètre…": "Scope…",
  "Connexion par le SSO refusée. Utilise ton mot de passe ou demande à un administrateur de relier ton compte.": "SSO sign-in refused. Use your password or ask an administrator to link your account.",
  "Trop de tentatives par le SSO, réessaie plus tard.": "Too many SSO attempts, try again later.",
- "Se connecter avec {nom}": "Sign in with {nom}"
+ "Se connecter avec {nom}": "Sign in with {nom}",
+ "Compte d'annuaire ({nom})": "Directory account ({nom})"
 }
