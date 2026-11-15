@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from .. import audit, authconfig, ldaplogin, totpstore
+from .. import audit, authconfig, ldaplogin, rolemap, totpstore
 from ..db import get_db
 from ..security import throttle
 from .auth import _ip, _start_session
@@ -43,12 +43,14 @@ def ldap_login(body: LdapCredentials, request: Request, response: Response, db: 
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Identifiants invalides")
 
     try:
-        name, dn = ldaplogin.authenticate(body.username, body.password, s)
+        name, dn, groups = ldaplogin.authenticate(body.username, body.password, s)
     except ldaplogin.LdapError as e:
         refuse(str(e))
-    user = ldaplogin.resolve_user(db, name, dn, s)
+    user = ldaplogin.resolve_user(db, name, dn, s, groups)
     if user is None:
         refuse("aucun compte de Kaji pour cette personne", who=name)
+    if change := rolemap.apply(db, user, rolemap.target_role(s, "ldap", groups)):                  # groupes → rôle, à chaque connexion (sans groupe configuré : rien)
+        audit.record(db, username=user.username, connection_id=None, action="role-sync", target="ldap", status="started", detail=f"rôle {change[0]} → {change[1]} (groupes de l'annuaire)")
     if totpstore.is_enabled(db, user.id):
         from .totp import begin_totp_login
         return begin_totp_login(user)

@@ -10,7 +10,12 @@ Se connecter à Kaji par le fournisseur d'identité de l'entreprise (Keycloak, E
 | `KAJI_OIDC_REDIRECT_URI` | adresse de retour **exacte**, en https, terminée par `/api/auth/oidc/callback` ; la même chez le fournisseur |
 | `KAJI_OIDC_SCOPES` | `openid profile` par défaut (`openid` est toujours ajouté) |
 | `KAJI_OIDC_USERNAME_CLAIM` | champ du jeton qui désigne le compte de Kaji (`preferred_username` par défaut) |
-| `KAJI_OIDC_AUTO_CREATE`, `KAJI_OIDC_DEFAULT_ROLE` | créer un compte à la première connexion, avec ce rôle (`viewer` ou `operator`, **jamais administrateur**) ; `false` par défaut |
+| `KAJI_OIDC_AUTO_CREATE`, `KAJI_OIDC_DEFAULT_ROLE` | créer un compte à la première connexion, avec le rôle des groupes (voir ci-dessous), sinon ce rôle par défaut (`viewer` ou `operator`) ; **administrateur seulement par groupe** ; `false` par défaut |
+| `KAJI_OIDC_ALLOW_ADMIN` | `true` (défaut) : un administrateur existant peut se connecter par le SSO ; `false` : administrateurs réservés au mot de passe local (même s'ils étaient déjà reliés) |
+| `KAJI_OIDC_GROUPS_CLAIM` | champ de l'ID token qui liste les groupes (défaut `groups` ; ajouter le périmètre `groups` chez le fournisseur) |
+| `KAJI_OIDC_ADMIN_GROUP`, `KAJI_OIDC_OPERATOR_GROUP` | nom **exact** du groupe dont les membres sont administrateurs (ou opérateurs) de Kaji ; vides (défaut) : aucun rôle n'est modifié |
+
+**Groupes → rôle** (`app/rolemap.py`, identique à l'annuaire, `docs/api/ldap.md`) : seulement si un groupe est renseigné ; à **chaque connexion** le rôle est recalculé (administrateur si `ALLOW_ADMIN`, sinon opérateur, sinon rôle par défaut) ; correspondance exacte, jamais « contient » ; le **dernier administrateur n'est jamais rétrogradé** ; chaque changement est audité (`role-sync`). **Un membre du groupe administrateur est administrateur de Kaji, donc de Proxmox.**
 | `KAJI_OIDC_LABEL` | texte du bouton |
 
 **Une configuration invalide empêche Kaji de démarrer** (adresse non https, identifiant du client absent, adresse de retour mal formée, rôle `admin`…) : un SSO à moitié réglé ouvrirait une porte mal comprise. Seule la boucle locale (`http://localhost`, `127.0.0.1`) est tolérée en http, pour les essais.

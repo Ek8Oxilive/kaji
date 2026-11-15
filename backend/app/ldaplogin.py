@@ -40,7 +40,7 @@ def configuration_problem(s=None) -> str | None:
         return "chiffrement obligatoire (ldaps:// ou KAJI_LDAP_START_TLS)"
     if not s.kaji_ldap_base_dn or not s.kaji_ldap_bind_dn or not s.kaji_ldap_bind_password:
         return "base, compte de lecture ou mot de passe du compte de lecture manquant"
-    if "{username}" not in s.kaji_ldap_user_filter or not ATTR.fullmatch(s.kaji_ldap_username_attr):
+    if "{username}" not in s.kaji_ldap_user_filter or not ATTR.fullmatch(s.kaji_ldap_username_attr) or not ATTR.fullmatch(s.kaji_ldap_groups_attr):
         return "filtre ou attribut d'identifiant invalide"
     return None
 
@@ -70,8 +70,8 @@ def _connection(s, user: str, password: str):
     return conn
 
 
-def authenticate(username: str, password: str, s=None) -> tuple[str, str]:
-    """`(nom de l'attribut d'identifiant, DN)` de la personne si son mot de passe est bon ; sinon `LdapError`."""
+def authenticate(username: str, password: str, s=None) -> tuple[str, str, list[str]]:
+    """`(identifiant, DN, groupes)` de la personne si son mot de passe est bon ; sinon `LdapError`. Les groupes sont les valeurs de `KAJI_LDAP_GROUPS_ATTR` de SON entrée (liste vide si l'attribut est absent)."""
     s = s or get_settings()
     if (problem := configuration_problem(s)) is not None:
         raise LdapError(problem)
@@ -86,11 +86,12 @@ def authenticate(username: str, password: str, s=None) -> tuple[str, str]:
     try:
         flt = s.kaji_ldap_user_filter.replace("{username}", escape_filter_value(username))
         directory_query = getattr(reader, "search")           # la recherche LDAP (pas une regex) : `getattr` évite le garde-fou du dépôt qui interdit `.search(` (voir `tests/test_fullmatch.py`)
-        if not directory_query(s.kaji_ldap_base_dn, flt, attributes=[s.kaji_ldap_username_attr], size_limit=2) or len(reader.entries) != 1:
+        if not directory_query(s.kaji_ldap_base_dn, flt, attributes=[s.kaji_ldap_username_attr, s.kaji_ldap_groups_attr], size_limit=2) or len(reader.entries) != 1:
             raise LdapError("identifiants refusés")                    # aucune entrée, ou plusieurs : jamais « la première »
         entry = reader.entries[0]
         dn = str(entry.entry_dn)
         values = entry[s.kaji_ldap_username_attr].values if s.kaji_ldap_username_attr in entry else []
+        groups = [str(g) for g in entry[s.kaji_ldap_groups_attr].values][:500] if s.kaji_ldap_groups_attr in entry else []
     except LdapError:
         raise
     except Exception:
@@ -108,7 +109,7 @@ def authenticate(username: str, password: str, s=None) -> tuple[str, str]:
         raise LdapError("identifiants refusés")
     except Exception:
         raise LdapError("annuaire injoignable")
-    return values[0], dn
+    return values[0], dn, groups
 
 
 def issuer(s=None) -> str:
@@ -116,28 +117,33 @@ def issuer(s=None) -> str:
     return f"ldap:{s.kaji_ldap_url}"[:255]
 
 
-def resolve_user(db: Session, username: str, dn: str, s=None) -> AdminUser | None:
+def resolve_user(db: Session, username: str, dn: str, s=None, groups=()) -> AdminUser | None:
     """Le compte de Kaji de cette personne, ou `None` (refus).
     1. déjà reliée : `(annuaire, DN)` → son compte ;
-    2. sinon un compte EXISTANT du même nom, jamais administrateur et relié à personne : on le relie (un administrateur garde son mot de passe local : un homonyme de l'annuaire ne le devient pas) ;
-    3. sinon, avec `KAJI_LDAP_AUTO_CREATE`, un compte neuf (rôle par défaut, jamais administrateur, mot de passe inconnu de tous)."""
+    2. sinon un compte EXISTANT du même nom, relié à personne : on le relie. Un administrateur peut se connecter ainsi (`KAJI_LDAP_ALLOW_ADMIN`, vrai par défaut : l'annuaire est alors la source de confiance
+       pour son identité) ; avec `false`, les administrateurs sont réservés au mot de passe local ;
+    3. sinon, avec `KAJI_LDAP_AUTO_CREATE`, un compte neuf (rôle des groupes si la correspondance est configurée, sinon rôle par défaut ; administrateur SEULEMENT par groupe ; mot de passe inconnu de tous).
+    Le rôle d'un compte existant est ensuite recalculé d'après les groupes par l'appelant (`app/rolemap.py`)."""
     import secrets
 
-    from . import roles
+    from . import roles, rolemap
     from .security import hash_password
     s = s or get_settings()
     iss, sub = issuer(s), dn.lower()[:255]
     ident = db.scalar(select(UserIdentity).where(UserIdentity.issuer == iss, UserIdentity.sub == sub))
     if ident is not None:
-        return db.get(AdminUser, ident.user_id)
+        linked = db.get(AdminUser, ident.user_id)
+        if linked is not None and roles.normalize(linked.role) == "admin" and not s.kaji_ldap_allow_admin:
+            return None                                                # administrateurs réservés au mot de passe local, même s'ils étaient déjà reliés
+        return linked
     user = db.scalar(select(AdminUser).where(AdminUser.username == username))
     if user is not None:
-        if roles.normalize(user.role) == "admin":
-            return None
+        if roles.normalize(user.role) == "admin" and not s.kaji_ldap_allow_admin:
+            return None                                                # administrateurs réservés au mot de passe local (`KAJI_LDAP_ALLOW_ADMIN=false`)
         if db.scalar(select(UserIdentity).where(UserIdentity.issuer == iss, UserIdentity.user_id == user.id)) is not None:
             return None                                                # déjà relié à UNE AUTRE entrée : un nom repris ne donne pas accès
-    elif s.kaji_ldap_auto_create and s.kaji_ldap_default_role in ("operator", "viewer"):
-        user = AdminUser(username=username, password_hash=hash_password(secrets.token_urlsafe(48)), role=s.kaji_ldap_default_role)
+    elif s.kaji_ldap_auto_create and (new_role := rolemap.new_account_role(s, "ldap", groups)) is not None:
+        user = AdminUser(username=username, password_hash=hash_password(secrets.token_urlsafe(48)), role=new_role)          # administrateur SEULEMENT si un groupe le donne
         db.add(user)
         db.flush()
     else:

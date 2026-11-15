@@ -48,7 +48,7 @@ def d(client, monkeypatch):
     directory = FakeDirectory()
     for k, v in {"KAJI_LDAP_URL": "ldaps://annuaire.test:636", "KAJI_LDAP_BASE_DN": BASE, "KAJI_LDAP_BIND_DN": READER_DN, "KAJI_LDAP_BIND_PASSWORD": READER_PWD}.items():
         monkeypatch.setenv(k, v)
-    for k in ("KAJI_LDAP_START_TLS", "KAJI_LDAP_CA_FILE", "KAJI_LDAP_USER_FILTER", "KAJI_LDAP_USERNAME_ATTR", "KAJI_LDAP_AUTO_CREATE", "KAJI_LDAP_DEFAULT_ROLE", "KAJI_LDAP_LABEL"):
+    for k in ("KAJI_LDAP_START_TLS", "KAJI_LDAP_CA_FILE", "KAJI_LDAP_USER_FILTER", "KAJI_LDAP_USERNAME_ATTR", "KAJI_LDAP_AUTO_CREATE", "KAJI_LDAP_DEFAULT_ROLE", "KAJI_LDAP_ALLOW_ADMIN", "KAJI_LDAP_LABEL"):
         monkeypatch.delenv(k, raising=False)
     get_settings.cache_clear()
     monkeypatch.setattr(ldaplogin, "_connection", directory.connect)
@@ -297,13 +297,40 @@ def test_auto_create_never_creates_an_administrator(d, role, ok):
     assert (r.status_code == 200) is ok
 
 
-def test_a_directory_namesake_never_becomes_the_local_administrator(d):
-    """Un « admin » de l'annuaire ne prend pas le compte administrateur local : les administrateurs gardent leur mot de passe local."""
+def test_an_existing_administrator_can_sign_in_through_the_directory_by_default(d):
+    """Comme dans beaucoup d'applications d'entreprise : l'annuaire est la source de confiance pour l'identité, un administrateur existant s'y connecte (compte déjà créé dans Kaji, jamais créé par l'annuaire)."""
+    d.person("admin", "pw-annuaire-de-l-admin")
+    r, b = login(username="admin", password="pw-annuaire-de-l-admin")
+    assert r.status_code == 200 and b.get("/api/auth/me").json()["role"] == "admin"
+    assert rows()[0].status == "started" and PWD != "pw-annuaire-de-l-admin"
+    assert TestClient(app).post("/api/auth/login", json={"username": "admin", "password": PWD}).status_code == 200         # le mot de passe local reste le secours
+
+
+def test_administrators_can_be_reserved_to_the_local_password(d):
+    d.setenv("KAJI_LDAP_ALLOW_ADMIN", "false")
+    get_settings.cache_clear()
     d.person("admin", "pw-annuaire-de-l-homonyme")
     r, _b = login(username="admin", password="pw-annuaire-de-l-homonyme")
     assert r.status_code == 401 and rows()[0].detail == "aucun compte de Kaji pour cette personne"
     with Session(get_engine()) as db:
         assert db.scalars(select(UserIdentity)).all() == []
+
+
+def test_turning_the_option_off_also_refuses_an_administrator_who_was_already_linked(d):
+    d.person("admin", "pw-annuaire-de-l-admin")
+    assert login(username="admin", password="pw-annuaire-de-l-admin")[0].status_code == 200                              # relié
+    d.setenv("KAJI_LDAP_ALLOW_ADMIN", "false")
+    get_settings.cache_clear()
+    r, _b = login(username="admin", password="pw-annuaire-de-l-admin")
+    assert r.status_code == 401 and rows()[-1].detail == "aucun compte de Kaji pour cette personne"
+
+
+def test_auto_create_still_never_makes_an_administrator_even_when_administrators_may_sign_in(d):
+    d.setenv("KAJI_LDAP_AUTO_CREATE", "true")
+    d.setenv("KAJI_LDAP_DEFAULT_ROLE", "admin")
+    get_settings.cache_clear()
+    d.person("carole", "pw-de-carole-assez-long")
+    assert login(username="carole", password="pw-de-carole-assez-long")[0].status_code == 401
 
 
 def test_a_name_taken_over_in_the_directory_does_not_reach_an_already_linked_account(d):

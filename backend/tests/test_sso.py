@@ -95,7 +95,7 @@ def idp(client, monkeypatch):
     f = FakeIdp()
     for k, v in {"KAJI_OIDC_ISSUER": ISSUER, "KAJI_OIDC_CLIENT_ID": CLIENT_ID, "KAJI_OIDC_CLIENT_SECRET": CLIENT_SECRET, "KAJI_OIDC_REDIRECT_URI": REDIRECT}.items():
         monkeypatch.setenv(k, v)
-    for k in ("KAJI_OIDC_AUTO_CREATE", "KAJI_OIDC_DEFAULT_ROLE", "KAJI_OIDC_USERNAME_CLAIM", "KAJI_OIDC_SCOPES", "KAJI_OIDC_LABEL"):
+    for k in ("KAJI_OIDC_AUTO_CREATE", "KAJI_OIDC_DEFAULT_ROLE", "KAJI_OIDC_ALLOW_ADMIN", "KAJI_OIDC_ADMIN_GROUP", "KAJI_OIDC_OPERATOR_GROUP", "KAJI_OIDC_GROUPS_CLAIM", "KAJI_OIDC_USERNAME_CLAIM", "KAJI_OIDC_SCOPES", "KAJI_OIDC_LABEL"):
         monkeypatch.delenv(k, raising=False)
     get_settings.cache_clear()
     oidc.reset_cache()
@@ -190,6 +190,85 @@ def test_openid_is_always_in_the_scopes_and_unsafe_scopes_are_dropped(idp):
 
 
 # ---------------------------------------------------------------- le retour : le cas qui marche
+def _groups(idp, admin="informatique", operator="exploitation", auto=True):
+    idp.setenv("KAJI_OIDC_ADMIN_GROUP", admin)
+    idp.setenv("KAJI_OIDC_OPERATOR_GROUP", operator)
+    idp.setenv("KAJI_OIDC_AUTO_CREATE", "true" if auto else "false")
+    get_settings.cache_clear()
+
+
+def _role(name):
+    with Session(get_engine()) as db:
+        u = db.scalar(select(AdminUser).where(AdminUser.username == name))
+        return u.role if u else None
+
+
+def test_a_member_of_the_it_group_is_created_as_an_administrator_by_sso(idp):
+    _groups(idp)
+    idp.claims = {"sub": "sub-ines", "preferred_username": "ines", "groups": ["compta", "informatique"]}
+    back, b, _q = go(idp)
+    assert back.headers["location"] == "/" and _role("ines") == "admin" and b.get("/api/kaji-users").status_code == 200
+
+
+def test_other_groups_give_operator_or_viewer_and_no_group_the_default(idp):
+    _groups(idp)
+    for sub, name, groups, expected in (("s1", "omar", ["exploitation"], "operator"), ("s2", "vera", ["compta"], "viewer"), ("s3", "nina", None, "viewer")):
+        idp.claims = {"sub": sub, "preferred_username": name, **({"groups": groups} if groups is not None else {})}
+        assert go(idp)[0].headers["location"] == "/" and _role(name) == expected
+
+
+def test_an_existing_account_follows_its_groups_and_the_change_is_audited(idp):
+    _groups(idp)
+    idp.claims = {"sub": "sub-alice", "preferred_username": "alice", "groups": "informatique"}              # une seule valeur sous forme de chaîne
+    assert go(idp)[0].headers["location"] == "/" and _role("alice") == "admin"
+    idp.claims = {"sub": "sub-alice", "preferred_username": "alice", "groups": []}
+    assert go(idp)[0].headers["location"] == "/" and _role("alice") == "viewer"
+    got = [(e.username, e.target, e.detail) for e in rows("role-sync")]
+    assert got == [("alice", "oidc", "rôle operator → admin (groupes du fournisseur)"), ("alice", "oidc", "rôle admin → viewer (groupes du fournisseur)")]
+
+
+def test_the_groups_claim_name_is_configurable_and_other_claims_are_ignored(idp):
+    _groups(idp)
+    idp.setenv("KAJI_OIDC_GROUPS_CLAIM", "roles")
+    get_settings.cache_clear()
+    idp.claims = {"sub": "sub-ines", "preferred_username": "ines", "groups": ["informatique"], "roles": ["compta"]}
+    assert go(idp)[0].headers["location"] == "/" and _role("ines") == "viewer"
+
+
+def test_without_a_configured_group_sso_never_changes_a_role(idp):
+    idp.claims = {"sub": "sub-alice", "preferred_username": "alice", "groups": ["informatique"]}
+    assert go(idp)[0].headers["location"] == "/" and _role("alice") == "operator" and rows("role-sync") == []
+
+
+def test_the_last_administrator_is_not_demoted_by_sso(idp):
+    _groups(idp)
+    idp.claims = {"sub": "sub-admin", "preferred_username": "admin", "groups": []}
+    assert go(idp)[0].headers["location"] == "/" and _role("admin") == "admin" and rows("role-sync") == []
+
+
+def test_an_existing_administrator_can_sign_in_through_sso_by_default(idp):
+    idp.claims = {"sub": "sub-admin", "preferred_username": "admin"}
+    back, b, _q = go(idp)
+    assert back.status_code == 303 and back.headers["location"] == "/" and "kaji_session" in back.headers["set-cookie"]
+    assert b.get("/api/auth/me").json()["role"] == "admin"
+
+
+def test_administrators_can_be_reserved_to_the_local_password_for_new_and_already_linked_accounts(idp):
+    idp.claims = {"sub": "sub-admin", "preferred_username": "admin"}
+    idp.setenv("KAJI_OIDC_ALLOW_ADMIN", "false")
+    get_settings.cache_clear()
+    back, _b, _q = go(idp)                                                                          # jamais relié : refusé par le nom
+    assert back.headers["location"] == "/?sso=erreur"
+    with Session(get_engine()) as db:
+        assert db.scalars(select(UserIdentity)).all() == []
+    idp.setenv("KAJI_OIDC_ALLOW_ADMIN", "true")
+    get_settings.cache_clear()
+    assert go(idp)[0].headers["location"] == "/"                                                    # relié
+    idp.setenv("KAJI_OIDC_ALLOW_ADMIN", "false")
+    get_settings.cache_clear()
+    assert go(idp)[0].headers["location"] == "/?sso=erreur"                                         # déjà relié, mais le réglage le refuse maintenant
+
+
 def test_a_known_person_gets_a_session_and_is_linked(idp):
     back, b, _q = go(idp)
     assert back.status_code == 303 and back.headers["location"] == "/" and "kaji_session" in back.headers["set-cookie"]

@@ -24,6 +24,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from . import rolemap, roles
 from .config import get_settings
 from .models import AdminUser, UserIdentity
 from .security import hash_password
@@ -66,6 +67,8 @@ def check_config(s=None) -> list[str]:
         errors.append("KAJI_OIDC_DEFAULT_ROLE doit être operator ou viewer (jamais admin)")
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", s.kaji_oidc_username_claim):
         errors.append("KAJI_OIDC_USERNAME_CLAIM : nom de champ invalide")
+    if not re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", s.kaji_oidc_groups_claim):
+        errors.append("KAJI_OIDC_GROUPS_CLAIM : nom de champ invalide")
     return errors
 
 
@@ -217,25 +220,31 @@ async def verify_id_token(doc: dict, id_token: str, nonce: str, s=None) -> dict:
 
 
 # ---------------------------------------------------------------- de l'identité du fournisseur au compte de Kaji
-def resolve_user(db: Session, issuer: str, claims: dict, s=None) -> AdminUser | None:
+def resolve_user(db: Session, issuer: str, claims: dict, s=None, groups=()) -> AdminUser | None:
     """Le compte de Kaji de cette personne, ou `None` (refus).
     1. déjà reliée : `(émetteur, sub)` → son compte (le nom a pu changer chez le fournisseur : le lien fait foi) ;
     2. sinon, le champ `KAJI_OIDC_USERNAME_CLAIM` désigne un compte EXISTANT qui n'est relié à personne d'autre : on le relie ;
-    3. sinon, avec `KAJI_OIDC_AUTO_CREATE`, un compte neuf (rôle par défaut, jamais administrateur, mot de passe inconnu de tous)."""
+    3. sinon, avec `KAJI_OIDC_AUTO_CREATE`, un compte neuf (rôle des groupes si la correspondance est configurée, sinon rôle par défaut ; administrateur SEULEMENT par groupe ; mot de passe inconnu de tous).
+    Le rôle d'un compte existant est ensuite recalculé d'après les groupes par l'appelant (`app/rolemap.py`)."""
     s = s or get_settings()
     sub = claims["sub"]
     ident = db.scalar(select(UserIdentity).where(UserIdentity.issuer == issuer, UserIdentity.sub == sub))
     if ident is not None:
-        return db.get(AdminUser, ident.user_id)
+        linked = db.get(AdminUser, ident.user_id)
+        if linked is not None and roles.normalize(linked.role) == "admin" and not s.kaji_oidc_allow_admin:
+            return None                                                  # administrateurs réservés au mot de passe local (`KAJI_OIDC_ALLOW_ADMIN=false`), même s'ils étaient déjà reliés
+        return linked
     name = claims.get(s.kaji_oidc_username_claim)
     if not isinstance(name, str) or not USERNAME.fullmatch(name):
         return None
     user = db.scalar(select(AdminUser).where(AdminUser.username == name))
     if user is not None:
+        if roles.normalize(user.role) == "admin" and not s.kaji_oidc_allow_admin:
+            return None
         if db.scalar(select(UserIdentity).where(UserIdentity.issuer == issuer, UserIdentity.user_id == user.id)) is not None:
             return None                                                  # ce compte est déjà relié à UNE AUTRE personne : un nom repris ne donne pas accès
-    elif s.kaji_oidc_auto_create and s.kaji_oidc_default_role in ("operator", "viewer"):
-        user = AdminUser(username=name, password_hash=hash_password(secrets.token_urlsafe(48)), role=s.kaji_oidc_default_role)
+    elif s.kaji_oidc_auto_create and (new_role := rolemap.new_account_role(s, "oidc", groups)) is not None:
+        user = AdminUser(username=name, password_hash=hash_password(secrets.token_urlsafe(48)), role=new_role)          # administrateur SEULEMENT si un groupe le donne
         db.add(user)
         db.flush()
     else:

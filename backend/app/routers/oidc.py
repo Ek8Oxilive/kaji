@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from .. import audit, authconfig, oidc
+from .. import audit, authconfig, oidc, rolemap
 from ..db import get_db
 from ..security import throttle
 from .auth import _ip, _start_session
@@ -73,9 +73,12 @@ async def sso_callback(request: Request, code: str | None = None, state: str | N
         claims = await oidc.verify_id_token(doc, id_token, flow["nonce"], s)
     except oidc.OidcError as e:
         return _refuse(db, request, str(e))
-    user = oidc.resolve_user(db, doc["issuer"], claims, s)
+    groups = rolemap.as_list(claims.get(s.kaji_oidc_groups_claim))[:500]
+    user = oidc.resolve_user(db, doc["issuer"], claims, s, groups)
     if user is None:
         return _refuse(db, request, "aucun compte de Kaji pour cette personne")
+    if change := rolemap.apply(db, user, rolemap.target_role(s, "oidc", groups)):                  # groupes → rôle, à chaque connexion (sans groupe configuré : rien)
+        audit.record(db, username=user.username, connection_id=None, action="role-sync", target="oidc", status="started", detail=f"rôle {change[0]} → {change[1]} (groupes du fournisseur)")
     throttle.reset(f"sso:{_ip(request)}")
     resp = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     _start_session(db, resp, user.id)
