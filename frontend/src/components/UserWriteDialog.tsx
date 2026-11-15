@@ -35,10 +35,10 @@ export function UserWriteDialog({ connId, preset, onClose }: { connId: number; p
   const full = `${id}!${group}`;                                   // pour un token, « group » porte le nom du token
   const need = isToken ? full : id;
   const valid = idOk && (act !== "member" || GROUP.test(group)) && (!isToken || TOKEN.test(group)) && (act !== "create-user" || password === "" || password.length >= 12)
-    && (act !== "create-token" || days === "" || (/^[0-9]{1,4}$/.test(days) && Number(days) >= 1));
+    && (act !== "create-token" || (/^[0-9]{1,4}$/.test(days) && Number(days) >= 1));
 
   useEffect(() => { setImpact(null); setTokens(null); setTyped(""); setErr(null); }, [act, id, group]);
-  const reset = (a: Act) => { setAct(a); setId(""); setGroup(""); setPassword(""); setComment(""); setDays(""); };
+  const reset = (a: Act) => { setAct(a); setId(""); setGroup(""); setPassword(""); setComment(""); setDays(a === "create-token" ? "90" : ""); };          // expiration obligatoire : 90 jours proposés
 
   const look = async () => {
     setErr(null);
@@ -55,7 +55,7 @@ export function UserWriteDialog({ connId, preset, onClose }: { connId: number; p
     try {
       if (act === "create-token") {
         const r = await api<{ secret: string }>(`${base}/users/${encodeURIComponent(id)}/tokens`, { method: "POST", body: { userid: id, tokenid: group, privsep: true,
-          ...(comment ? { comment } : {}), ...(days ? { expire: Math.floor(Date.now() / 1000) + Number(days) * 86400 } : {}), ...ok } });
+          ...(comment ? { comment } : {}), expire: Math.floor(Date.now() / 1000) + Number(days) * 86400, ...ok } });
         setSecret(r.secret); await qc.invalidateQueries({ queryKey: ["access", connId] }); setBusy(false); return;
       }
       if (act === "revoke-token") await api(`${base}/users/${encodeURIComponent(id)}/tokens/${encodeURIComponent(group)}?confirm=true&name=${encodeURIComponent(typed)}`, { method: "DELETE" });
@@ -95,7 +95,7 @@ export function UserWriteDialog({ connId, preset, onClose }: { connId: number; p
         {tokens && <p className="text-sm text-muted">{tokens.length === 0 ? tr("Aucun token.") : tokens.map((t) => `${t.tokenid}${t.privsep ? "" : tr(" (sans séparation de privilèges)")}`).join(", ")}</p>}
       </>}
       {act === "create-token" && <>
-        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Expire dans (jours, facultatif)")}</span>
+        <label className="block space-y-1 text-sm"><span className="text-muted">{tr("Expire dans (jours, obligatoire)")}</span>
           <input className="field" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value.trim())} placeholder="90" autoComplete="off" /></label>
         <p className="text-xs text-muted">{tr("Token à privilèges séparés : il n'a aucun droit tant qu'une ACL ne lui en donne pas. Son secret ne s'affiche qu'une fois.")}</p>
       </>}

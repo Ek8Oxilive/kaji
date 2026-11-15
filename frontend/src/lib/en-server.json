@@ -579,5 +579,8 @@
  "La double authentification n'est pas activée": "Two-factor authentication is not enabled",
  "Pour retirer ta propre double authentification, utilise la désactivation (mot de passe et code)": "To remove your own two-factor authentication, use the disable action (password and code)",
  "Retrait : renvoie la requête avec confirm=true et le nom d'utilisateur retapé": "Removal: resend the request with confirm=true and the username retyped",
- "Ce compte n'a pas la double authentification": "This account has no two-factor authentication"
+ "Ce compte n'a pas la double authentification": "This account has no two-factor authentication",
+ "Expiration obligatoire : indique une date d'expiration": "Expiration required: give an expiration date",
+ "L'expiration doit être dans le futur": "The expiration must be in the future",
+ "Expiration trop lointaine : au-delà de la durée maximale autorisée (KAJI_TOKEN_CREATE_MAX_DAYS)": "Expiration too far away: beyond the maximum allowed duration (KAJI_TOKEN_CREATE_MAX_DAYS)"
 }
