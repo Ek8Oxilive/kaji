@@ -120,6 +120,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_SCHEDULER` | `true` (défaut) | Planificateur d'actions et alertes. **Une seule instance de Kaji** doit tourner, sinon actions et alertes sont doublées. |
 | `KAJI_TRUST_PROXY` | laisse `false` | Le `docker-compose.yml` le règle déjà pour le conteneur. |
 | `KAJI_AUDIT_RETENTION_DAYS` | `365` (défaut) | Conservation du journal d'audit de Kaji, en jours (`0` = indéfiniment). |
+| `KAJI_AUDIT_FILE` | vide (défaut) | Copie de l'audit dans un fichier JSON (une ligne par événement, droits `600`) : chemin **absolu**, dans le volume `/data` si tu es dans Docker (`/data/audit.jsonl`). Voir `docs/api/audit-export.md`. |
+| `KAJI_AUDIT_FILE_MAX_MB` | `10` (défaut) | Taille à partir de laquelle le fichier d'audit tourne (1 à 1024). |
+| `KAJI_AUDIT_FILE_BACKUPS` | `10` (défaut) | Nombre d'anciens fichiers d'audit gardés (`0` = pas de rotation : le fichier grossit sans limite). |
+| `KAJI_AUDIT_SYSLOG` | vide (défaut) | Envoi de l'audit à un serveur syslog : `udp://hôte:port` ou `tcp://hôte:port` (en clair : réseau de confiance seulement). Une valeur mal formée empêche Kaji de démarrer. |
 | `KAJI_BIND` | `127.0.0.1` (défaut) | Interface d'écoute de nginx. `0.0.0.0` ouvre tout le réseau : seulement derrière le HTTPS de l'étape 5. |
 | `KAJI_PORT` | `8080` (défaut) | Port de nginx. |
 
