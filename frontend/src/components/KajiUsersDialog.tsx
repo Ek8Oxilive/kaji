@@ -6,7 +6,7 @@ import { Modal } from "./Modal";
 import { Button, Notice } from "./ui";
 
 type Role = "admin" | "operator" | "viewer";
-type KUser = { id: number; username: string; role: Role; created_at: string | null };
+type KUser = { id: number; username: string; role: Role; created_at: string | null; totp: boolean };
 const ROLE_LABEL: Record<Role, () => string> = { admin: () => tr("Administrateur"), operator: () => tr("Opérateur"), viewer: () => tr("Lecture seule") };
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/;
 
@@ -16,6 +16,7 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
   const q = useQuery({ queryKey: ["kaji-users"], queryFn: () => api<KUser[]>("/api/kaji-users") });
   const [name, setName] = useState(""), [pw, setPw] = useState(""), [role, setRole] = useState<Role>("viewer");
   const [reset, setReset] = useState<{ id: number; pw: string } | null>(null), [del, setDel] = useState<{ id: number; typed: string } | null>(null);
+  const [rm2fa, setRm2fa] = useState<{ id: number; typed: string } | null>(null);
   const [busy, setBusy] = useState(false), [err, setErr] = useState<string | null>(null), [ok, setOk] = useState<string | null>(null);
 
   const act = async (what: () => Promise<unknown>, done: string) => {
@@ -38,20 +39,27 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
           {(q.data ?? []).map((u) => (
             <li key={u.id} className="space-y-2 p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium">{u.username}{u.username === me && <span className="ml-2 rounded-md border border-line px-1.5 py-0.5 text-[0.7rem] font-normal text-muted">{tr("toi")}</span>}</span>
+                <span className="font-medium">{u.username}{u.username === me && <span className="ml-2 rounded-md border border-line px-1.5 py-0.5 text-[0.7rem] font-normal text-muted">{tr("toi")}</span>}{u.totp && <span className="ml-2 rounded-md border border-ok/40 px-1.5 py-0.5 text-[0.7rem] font-normal text-ok">{tr("2FA")}</span>}</span>
                 <div className="flex flex-wrap items-center gap-2">
                   <select className="field !w-auto" aria-label={tr("Rôle de {name}", { name: u.username })} value={u.role} disabled={busy || u.username === me}
                     onChange={(e) => act(() => api(`/api/kaji-users/${u.id}`, { method: "PUT", body: { role: e.target.value } }), tr("Rôle de {name} changé", { name: u.username }))}>
                     {(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]()}</option>)}
                   </select>
-                  <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => { setReset({ id: u.id, pw: "" }); setDel(null); }}>{tr("Mot de passe…")}</Button>
-                  <Button type="button" variant="danger" className="!px-3 !py-1" disabled={busy || u.username === me} onClick={() => { setDel({ id: u.id, typed: "" }); setReset(null); }}>{tr("Supprimer…")}</Button>
+                  <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => { setReset({ id: u.id, pw: "" }); setDel(null); setRm2fa(null); }}>{tr("Mot de passe…")}</Button>
+                  {u.totp && u.username !== me && <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => { setRm2fa({ id: u.id, typed: "" }); setReset(null); setDel(null); }}>{tr("Retirer la 2FA…")}</Button>}
+                  <Button type="button" variant="danger" className="!px-3 !py-1" disabled={busy || u.username === me} onClick={() => { setDel({ id: u.id, typed: "" }); setReset(null); setRm2fa(null); }}>{tr("Supprimer…")}</Button>
                 </div>
               </div>
               {reset?.id === u.id && (
                 <div className="flex flex-wrap items-center gap-2">
                   <input className="field !w-64" type="password" autoComplete="new-password" placeholder={tr("Nouveau mot de passe (12 caractères au moins)")} value={reset.pw} onChange={(e) => setReset({ id: u.id, pw: e.target.value })} />
                   <Button type="button" disabled={busy || reset.pw.length < 12} onClick={async () => { if (await act(() => api(`/api/kaji-users/${u.id}`, { method: "PUT", body: { password: reset.pw } }), tr("Mot de passe de {name} réinitialisé, ses sessions sont fermées", { name: u.username }))) setReset(null); }}>{tr("Réinitialiser")}</Button>
+                </div>)}
+              {rm2fa?.id === u.id && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted">{tr("Retire la double authentification de ce compte (ses sessions sont fermées). Retape")} <code>{u.username}</code> {tr("pour confirmer")}</span>
+                  <input className="field !w-48" autoComplete="off" value={rm2fa.typed} onChange={(e) => setRm2fa({ id: u.id, typed: e.target.value })} aria-label={tr("Retape le nom pour confirmer")} />
+                  <Button type="button" variant="danger" disabled={busy || rm2fa.typed !== u.username} onClick={async () => { if (await act(() => api(`/api/kaji-users/${u.id}/totp?confirm=true&name=${encodeURIComponent(rm2fa.typed)}`, { method: "DELETE" }), tr("Double authentification retirée : {name}", { name: u.username }))) setRm2fa(null); }}>{tr("Retirer")}</Button>
                 </div>)}
               {del?.id === u.id && (
                 <div className="flex flex-wrap items-center gap-2">
