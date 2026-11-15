@@ -1,3 +1,4 @@
+DELETE /api/auth-settings/{provider}
 DELETE /api/connections/{conn_id}
 DELETE /api/connections/{conn_id}/access/groups/{groupid}
 DELETE /api/connections/{conn_id}/access/realms/{realm}
@@ -60,6 +61,7 @@ DELETE /api/kaji-users/{user_id}/scope
 DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
+GET /api/auth-settings
 GET /api/auth/ldap/status
 GET /api/auth/me
 GET /api/auth/oidc/callback
@@ -191,6 +193,7 @@ PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/disks/{key}/options
 PATCH /api/connections/{conn_id}/guests/{node}/qemu/{vmid}/options
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/config
 PATCH /api/connections/{conn_id}/guests/{node}/{gtype}/{vmid}/nets/{key}/options
+POST /api/auth-settings/{provider}/test
 POST /api/auth/ldap/login
 POST /api/auth/login
 POST /api/auth/login/totp
@@ -325,6 +328,7 @@ POST /api/connections/{conn_id}/sdn/zones
 POST /api/connections/{conn_id}/storage-config
 POST /api/connections/{conn_id}/test
 POST /api/kaji-users
+PUT /api/auth-settings/{provider}
 PUT /api/connections/{conn_id}/access/acl
 PUT /api/connections/{conn_id}/access/realms/{realm}
 PUT /api/connections/{conn_id}/access/tfa/{userid}/{entry}
