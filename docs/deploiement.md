@@ -133,6 +133,11 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"      # une NOUVELL
 
 **Un jeton personnel expire** : Kaji cesse de l'utiliser à la date retenue (au plus `KAJI_USER_TOKEN_MAX_DAYS` jours après l'enregistrement) et le dit clairement ; l'utilisateur en crée un nouveau dans Proxmox et l'enregistre.
 
+## Proxmox lent ou injoignable, utilisateurs simultanés
+- Un Proxmox injoignable ou lent ne bloque ni la connexion à Kaji ni les pages qui n'en dépendent pas : le délai vers Proxmox est de 15 s, les erreurs sont lisibles (502 si la réponse n'est pas du JSON Proxmox).
+- `KAJI_MAX_CONCURRENT_REQUESTS` (défaut **100**, `0` = sans limite) : au-delà, Kaji répond **503 tout de suite** avec `Retry-After` au lieu de tout bloquer. Le pool de connexions à la base (50 + 100 de débordement) est fixe.
+- L'ordre de grandeur d'utilisateurs simultanés est **mesuré, pas promis** (une machine, un worker, faux Proxmox) : méthode, chiffres et limites dans [robustesse.md](robustesse.md).
+
 ## Mot de passe perdu
 La création du **premier** compte par l'écran de première configuration n'est possible qu'une fois ; les autres comptes se créent ensuite par un administrateur (bouton « Compte » → « Gérer les utilisateurs »). Pour un mot de passe oublié, **sur le serveur** :
 ```bash
