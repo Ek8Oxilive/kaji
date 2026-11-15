@@ -269,6 +269,48 @@ def test_the_test_refuses_a_broken_env_configuration_with_the_reason(adm):
     assert r["ok"] is False and "chiffrement" in r["detail"]
 
 
+# ---------------------------------------------------------------- test avec les valeurs de la fenêtre, NON enregistrées
+def test_the_test_can_use_the_unsaved_values_of_the_form_and_saves_nothing(adm):
+    r = adm.post("/api/auth-settings/ldap/test", json={"values": LDAP, "secrets": {"bind_password": READER_PWD}}).json()
+    assert r["ok"] is True and adm.dir.binds == [(READER_DN, READER_PWD)]
+    assert adm.get("/api/auth-settings").json()["ldap"]["source"] == "none" and audit_rows() == []                   # rien n'est enregistré ni audité
+    with Session(get_engine()) as db:
+        assert db.get(AuthSetting, "ldap") is None
+
+
+def test_the_unsaved_test_falls_back_on_the_stored_secret_when_none_is_typed(adm):
+    save_ldap(adm)
+    adm.dir.binds.clear()
+    r = adm.post("/api/auth-settings/ldap/test", json={"values": {"label": "x"}}).json()
+    assert r["ok"] is True and adm.dir.binds == [(READER_DN, READER_PWD)]                                             # le secret enregistré sert, aucun besoin de le retaper
+
+
+def test_the_unsaved_test_reports_invalid_input_without_echoing_it(adm):
+    r = adm.post("/api/auth-settings/ldap/test", json={"values": {**LDAP, "ca_file": "relatif/ca.pem"}, "secrets": {"bind_password": READER_PWD}}).json()
+    assert r["ok"] is False and "chemin absolu" in r["detail"] and "relatif/ca.pem" not in r["detail"] and not adm.dir.binds
+    r2 = adm.post("/api/auth-settings/ldap/test", json={"values": {**LDAP, "tls_server_name": "*"}, "secrets": {"bind_password": READER_PWD}}).json()
+    assert r2["ok"] is False and "joker" in r2["detail"] and not adm.dir.binds
+
+
+def test_the_unsaved_test_never_leaks_the_typed_secret(adm):
+    blob = adm.post("/api/auth-settings/ldap/test", json={"values": LDAP, "secrets": {"bind_password": "mauvais-mot-de-passe-du-lecteur"}}).text
+    assert "mauvais-mot-de-passe" not in blob and "mauvais-mot-de-passe" not in repr([(a.target, a.detail) for a in audit_rows()])
+
+
+def test_the_tls_server_name_is_validated_and_saved_like_the_other_settings(adm):
+    assert put(adm, "ldap", {**LDAP, "tls_server_name": "*"}, {"bind_password": READER_PWD}, confirm=True).status_code == 422
+    assert put(adm, "ldap", {**LDAP, "tls_server_name": "ad test"}, {"bind_password": READER_PWD}, confirm=True).status_code == 422
+    r = save_ldap(adm, tls_server_name="WIN-8FOU54ASDHT.homelab.local").json()
+    assert r["values"]["tls_server_name"] == "WIN-8FOU54ASDHT.homelab.local"
+
+
+def test_a_non_admin_cannot_use_the_unsaved_test_either(adm):
+    adm.post("/api/kaji-users", json={"username": "paul", "password": PWD, "role": "operator"})
+    b = TestClient(app)
+    assert b.post("/api/auth/login", json={"username": "paul", "password": PWD}).status_code == 200
+    assert b.post("/api/auth-settings/ldap/test", json={"values": LDAP}).status_code == 403
+
+
 # ---------------------------------------------------------------- rotation de clé et sauvegarde
 def test_the_rotation_reencrypts_the_stored_secrets_and_the_backup_check_reads_them(tmp_path):
     p = old_db(tmp_path)

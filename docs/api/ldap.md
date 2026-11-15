@@ -12,6 +12,7 @@ Les personnes d'un annuaire d'entreprise se connectent à Kaji avec **le mot de 
 |---|---|
 | `KAJI_LDAP_URL` | `ldaps://annuaire:636`, ou `ldap://annuaire` avec `KAJI_LDAP_START_TLS=true` |
 | `KAJI_LDAP_CA_FILE` | autorité privée de l'annuaire (le certificat est **toujours** vérifié) |
+| `KAJI_LDAP_TLS_SERVER_NAME` | nom que le certificat de l'annuaire doit porter quand l'adresse est une **IP** (ou un nom absent du certificat) : on se connecte à `ldaps://192.168.1.37:636` et on exige le certificat de `dc01.exemple.fr`. Un nom DNS seulement : le joker `*` est refusé (la bibliothèque le prendrait pour « tout nom valide »). Vide : le nom de l'adresse |
 | `KAJI_LDAP_BASE_DN` | où chercher les personnes |
 | `KAJI_LDAP_BIND_DN` / `KAJI_LDAP_BIND_PASSWORD` | compte de **lecture seule** qui retrouve l'entrée (jamais un administrateur de l'annuaire) |
 | `KAJI_LDAP_USER_FILTER` | contient `{username}` ; défaut `(&(objectClass=person)(uid={username}))` ; Active Directory : `(&(objectClass=user)(sAMAccountName={username}))` |

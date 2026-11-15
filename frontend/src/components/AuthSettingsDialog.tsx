@@ -14,6 +14,7 @@ const TEXT: Record<Prov, { key: string; label: () => string; hint?: () => string
   ldap: [
     { key: "url", label: () => tr("Adresse de l'annuaire"), hint: () => tr("ldaps://hôte:636 (ou ldap:// avec STARTTLS) : le chiffrement est obligatoire"), placeholder: "ldaps://annuaire.example.com:636" },
     { key: "ca_file", label: () => tr("Autorité de certification (chemin dans le conteneur)"), hint: () => tr("Seulement si l'annuaire a une autorité privée ; le certificat est toujours vérifié") },
+    { key: "tls_server_name", label: () => tr("Nom attendu dans le certificat"), hint: () => tr("Si l'adresse ci-dessus est une IP : le nom que porte le certificat de l'annuaire (jamais de joker)"), placeholder: "dc01.example.com" },
     { key: "base_dn", label: () => tr("Où chercher les personnes (base DN)"), placeholder: "dc=example,dc=com" },
     { key: "bind_dn", label: () => tr("Compte de lecture (DN)"), hint: () => tr("Un compte en lecture seule, jamais un administrateur de l'annuaire"), placeholder: "cn=kaji-lecture,dc=example,dc=com" },
     { key: "user_filter", label: () => tr("Filtre de recherche"), hint: () => tr("Contient {username}. Active Directory : (&(objectClass=user)(sAMAccountName={username}))") },
@@ -68,14 +69,18 @@ export function AuthSettingsDialog({ onClose }: { onClose: () => void }) {
     setBusy(true); setErr(null); setOk(null);
     try { await what(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
-  const save = () => act(async () => {
+  const formValues = () => {
     const values: Record<string, string | number | boolean> = { ...form, auto_create: flags.auto_create, allow_admin: flags.allow_admin, default_role: role };
     if (prov === "ldap") { values.start_tls = flags.start_tls; values.timeout = Number(timeout); }
-    await api(`/api/auth-settings/${prov}`, { method: "PUT", body: { values, secrets: secret ? { [SECRET[prov]]: secret } : {}, clear_secrets: clear ? [SECRET[prov]] : [], confirm: true } });
+    return values;
+  };
+  const save = () => act(async () => {
+    await api(`/api/auth-settings/${prov}`, { method: "PUT", body: { values: formValues(), secrets: secret ? { [SECRET[prov]]: secret } : {}, clear_secrets: clear ? [SECRET[prov]] : [], confirm: true } });
     await qc.invalidateQueries({ queryKey: ["auth-settings"] });
     setOk(tr("Réglages enregistrés. Le mot de passe local reste toujours possible."));
   });
-  const runTest = () => act(async () => { setTest(await api<Test>(`/api/auth-settings/${prov}/test`, { method: "POST" })); });
+  // Le test utilise ce qui est SAISI dans la fenêtre (rien n'est enregistré) ; sans mot de passe tapé, le secret déjà enregistré sert.
+  const runTest = () => act(async () => { setTest(await api<Test>(`/api/auth-settings/${prov}/test`, { method: "POST", body: { values: formValues(), secrets: secret ? { [SECRET[prov]]: secret } : {} } })); });
   const reset = () => act(async () => {
     await api(`/api/auth-settings/${prov}?confirm=true`, { method: "DELETE" });
     await qc.invalidateQueries({ queryKey: ["auth-settings"] });

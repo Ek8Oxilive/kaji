@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     kaji_ldap_url: str = ""
     kaji_ldap_start_tls: bool = False
     kaji_ldap_ca_file: str = ""
+    kaji_ldap_tls_server_name: str = ""             # nom que le certificat de l'annuaire doit porter quand l'adresse est une IP (ex. AD sans DNS joignable) ; vide : le nom de l'adresse
     kaji_ldap_base_dn: str = ""
     kaji_ldap_bind_dn: str = ""
     kaji_ldap_bind_password: str = ""

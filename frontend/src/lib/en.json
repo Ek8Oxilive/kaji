@@ -2835,5 +2835,7 @@
  "Nom ou DN complet EXACT du groupe. Ses membres sont administrateurs de Kaji, donc de Proxmox. Vide : aucun rôle n'est modifié": "EXACT group name or full DN. Its members are administrators of Kaji, hence of Proxmox. Empty: no role is changed",
  "Rôle par défaut d'un compte (sans groupe)": "Default role of an account (without a group)",
  "Souvent « groups » : ajoute aussi le périmètre « groups » chez le fournisseur": "Often “groups”: also add the “groups” scope at the provider",
- "memberOf pour Active Directory (groupes directs seulement)": "memberOf for Active Directory (direct groups only)"
+ "memberOf pour Active Directory (groupes directs seulement)": "memberOf for Active Directory (direct groups only)",
+ "Nom attendu dans le certificat": "Name expected in the certificate",
+ "Si l'adresse ci-dessus est une IP : le nom que porte le certificat de l'annuaire (jamais de joker)": "If the address above is an IP: the name carried by the directory's certificate (never a wildcard)"
 }
