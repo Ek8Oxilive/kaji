@@ -83,7 +83,7 @@ def test_admin_creates_users_with_roles(admin):
     _create(admin, "olivier", "operator")
     users = {u["username"]: u["role"] for u in admin.get("/api/kaji-users").json()}
     assert users == {"admin": "admin", "alice": "viewer", "olivier": "operator"}
-    assert _login("alice").get("/api/auth/me").json() == {"username": "alice", "role": "viewer"}
+    assert _login("alice").get("/api/auth/me").json() == {"username": "alice", "role": "viewer", "restricted": False}
 
 
 @pytest.mark.parametrize("body", [

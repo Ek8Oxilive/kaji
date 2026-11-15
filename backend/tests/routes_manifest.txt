@@ -56,6 +56,7 @@ DELETE /api/connections/{conn_id}/storage-config/{storage}
 DELETE /api/connections/{conn_id}/tasks/{node}/{upid}
 DELETE /api/connections/{conn_id}/tls
 DELETE /api/kaji-users/{user_id}
+DELETE /api/kaji-users/{user_id}/scope
 DELETE /api/kaji-users/{user_id}/totp
 DELETE /api/me/proxmox-tokens/{conn_id}
 GET /api/audit
@@ -175,6 +176,7 @@ GET /api/connections/{conn_id}/tasks/{node}/{upid}/log
 GET /api/connections/{conn_id}/tls
 GET /api/health
 GET /api/kaji-users
+GET /api/kaji-users/{user_id}/scope
 GET /api/me/proxmox-tokens
 PATCH /api/connections/{conn_id}
 PATCH /api/connections/{conn_id}/guests/{node}/lxc/{vmid}/options
@@ -374,4 +376,5 @@ PUT /api/connections/{conn_id}/service-token
 PUT /api/connections/{conn_id}/storage-config/{storage}
 PUT /api/connections/{conn_id}/tls
 PUT /api/kaji-users/{user_id}
+PUT /api/kaji-users/{user_id}/scope
 PUT /api/me/proxmox-tokens/{conn_id}

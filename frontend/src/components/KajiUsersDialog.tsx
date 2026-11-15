@@ -3,10 +3,11 @@ import { useState } from "react";
 import { api } from "../lib/api";
 import { tr } from "../lib/i18n";
 import { Modal } from "./Modal";
+import { ScopeDialog } from "./ScopeDialog";
 import { Button, Notice } from "./ui";
 
 type Role = "admin" | "operator" | "viewer";
-type KUser = { id: number; username: string; role: Role; created_at: string | null; totp: boolean };
+type KUser = { id: number; username: string; role: Role; created_at: string | null; totp: boolean; scoped: boolean };
 const ROLE_LABEL: Record<Role, () => string> = { admin: () => tr("Administrateur"), operator: () => tr("Opérateur"), viewer: () => tr("Lecture seule") };
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/;
 
@@ -17,6 +18,7 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
   const [name, setName] = useState(""), [pw, setPw] = useState(""), [role, setRole] = useState<Role>("viewer");
   const [reset, setReset] = useState<{ id: number; pw: string } | null>(null), [del, setDel] = useState<{ id: number; typed: string } | null>(null);
   const [rm2fa, setRm2fa] = useState<{ id: number; typed: string } | null>(null);
+  const [scopeOf, setScopeOf] = useState<{ id: number; username: string } | null>(null);
   const [busy, setBusy] = useState(false), [err, setErr] = useState<string | null>(null), [ok, setOk] = useState<string | null>(null);
 
   const act = async (what: () => Promise<unknown>, done: string) => {
@@ -31,6 +33,7 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
   const valid = NAME.test(name) && pw.length >= 12;
 
   return (
+    <>
     <Modal title={tr("Utilisateurs de Kaji")} subtitle={tr("Qui peut se connecter à Kaji et ce qu'il a le droit de faire. Le serveur applique le rôle à chaque requête.")}
       onClose={busy ? () => {} : onClose} onSubmit={create} submitLabel={tr("Créer l'utilisateur")} busy={busy} error={err} canSubmit={valid} wide>
       <Notice kind="ok">{tr("Administrateur : tout. Opérateur : lire, démarrer / arrêter / redémarrer une machine, créer un snapshot. Lecture seule : lire seulement.")}</Notice>
@@ -39,13 +42,14 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
           {(q.data ?? []).map((u) => (
             <li key={u.id} className="space-y-2 p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium">{u.username}{u.username === me && <span className="ml-2 rounded-md border border-line px-1.5 py-0.5 text-[0.7rem] font-normal text-muted">{tr("toi")}</span>}{u.totp && <span className="ml-2 rounded-md border border-ok/40 px-1.5 py-0.5 text-[0.7rem] font-normal text-ok">{tr("2FA")}</span>}</span>
+                <span className="font-medium">{u.username}{u.username === me && <span className="ml-2 rounded-md border border-line px-1.5 py-0.5 text-[0.7rem] font-normal text-muted">{tr("toi")}</span>}{u.totp && <span className="ml-2 rounded-md border border-ok/40 px-1.5 py-0.5 text-[0.7rem] font-normal text-ok">{tr("2FA")}</span>}{u.scoped && <span className="ml-2 rounded-md border border-warn/40 px-1.5 py-0.5 text-[0.7rem] font-normal text-warn">{tr("périmètre")}</span>}</span>
                 <div className="flex flex-wrap items-center gap-2">
                   <select className="field !w-auto" aria-label={tr("Rôle de {name}", { name: u.username })} value={u.role} disabled={busy || u.username === me}
                     onChange={(e) => act(() => api(`/api/kaji-users/${u.id}`, { method: "PUT", body: { role: e.target.value } }), tr("Rôle de {name} changé", { name: u.username }))}>
                     {(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]()}</option>)}
                   </select>
                   <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => { setReset({ id: u.id, pw: "" }); setDel(null); setRm2fa(null); }}>{tr("Mot de passe…")}</Button>
+                  {u.role !== "admin" && <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => setScopeOf({ id: u.id, username: u.username })}>{tr("Périmètre…")}</Button>}
                   {u.totp && u.username !== me && <Button type="button" variant="ghost" className="!px-3 !py-1" disabled={busy} onClick={() => { setRm2fa({ id: u.id, typed: "" }); setReset(null); setDel(null); }}>{tr("Retirer la 2FA…")}</Button>}
                   <Button type="button" variant="danger" className="!px-3 !py-1" disabled={busy || u.username === me} onClick={() => { setDel({ id: u.id, typed: "" }); setReset(null); setRm2fa(null); }}>{tr("Supprimer…")}</Button>
                 </div>
@@ -80,5 +84,7 @@ export function KajiUsersDialog({ me, onClose }: { me: string; onClose: () => vo
         </div>
       </div>
     </Modal>
+    {scopeOf && <ScopeDialog user={scopeOf} onClose={() => setScopeOf(null)} />}
+    </>
   );
 }
