@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { tr } from "../lib/i18n";
 
 export function Button({ variant = "primary", className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" }) {
   const styles = {
@@ -19,10 +20,23 @@ export function Field({ label, hint, ...p }: InputHTMLAttributes<HTMLInputElemen
   );
 }
 
-export function Notice({ kind, children }: { kind: "ok" | "error"; children: ReactNode }) {
+export function Notice({ kind, children }: { kind: "ok" | "error" | "warn"; children: ReactNode }) {
+  const tone = kind === "ok" ? "border-ok/40 bg-ok/10 text-ok" : kind === "warn" ? "border-warn/40 bg-warn/10 text-warn" : "border-danger/40 bg-danger/10 text-danger";
   return (
-    <div role={kind === "error" ? "alert" : "status"} className={`rounded-xl border px-3 py-2 text-sm ${kind === "ok" ? "border-ok/40 bg-ok/10 text-ok" : "border-danger/40 bg-danger/10 text-danger"}`}>
+    <div role={kind === "error" ? "alert" : "status"} className={`rounded-xl border px-3 py-2 text-sm ${tone}`}>
       {children}
     </div>
   );
+}
+
+/** Refus de droits (403 traduit par le backend) : Proxmox répond, c'est le jeton qui est limité. À ne pas présenter comme une panne. */
+export const FORBIDDEN_PROBLEM = "Droits insuffisants";
+
+export function ProxmoxProblem({ problem, resume }: { problem: string; resume?: boolean }) {
+  if (problem.startsWith(FORBIDDEN_PROBLEM)) {
+    return <Notice kind="warn">{tr("Droits limités : Proxmox répond, mais ton jeton ne donne pas accès à toutes les données (nœuds, RAM, disques…). Ce que tu peux voir reste affiché.")}</Notice>;
+  }
+  return <Notice kind="error">{resume
+    ? tr("Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées ; la reprise est automatique.", { problem })
+    : tr("Proxmox ne répond pas ({problem}). Les dernières données connues restent affichées.", { problem })}</Notice>;
 }
