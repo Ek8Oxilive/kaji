@@ -8,11 +8,12 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from .. import roles, scope
 from ..config import get_settings
 from ..crypto import decrypt, encrypt
 from ..db import get_db
 from ..deps import get_client_factory
-from ..models import Connection, ServiceToken, UserToken
+from ..models import AdminUser, Connection, ServiceToken, UserToken
 from ..proxmox import ProxmoxClient
 from .auth import current_user
 
@@ -111,8 +112,9 @@ def _get_or_404(db: Session, conn_id: int) -> Connection:
 
 
 @router.get("", response_model=list[ConnectionOut])
-def list_connections(db: Session = Depends(get_db)):
-    return db.scalars(select(Connection).order_by(Connection.name)).all()
+def list_connections(db: Session = Depends(get_db), user: AdminUser = Depends(current_user)):
+    limits = scope.scope_of(db, user.id) if roles.normalize(user.role) != "admin" else None
+    return scope.filter_connections(limits, list(db.scalars(select(Connection).order_by(Connection.name)).all()))
 
 
 @router.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)

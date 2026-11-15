@@ -27,7 +27,7 @@ export const NAV_BOTTOM: NavItem[] = [
   { id: "connections", get label() { return tr("Connexions"); } },
 ];
 
-export function Layout({ page, onNavigate, onLogout, children }: { page: Page; onNavigate: (p: Page) => void; onLogout: () => void; children: ReactNode }) {
+export function Layout({ page, onNavigate, onLogout, restricted = false, children }: { page: Page; onNavigate: (p: Page) => void; onLogout: () => void; restricted?: boolean; children: ReactNode }) {
   const [account, setAccount] = useState(false);
   const [menu, setMenu] = useState(false);                       // tiroir de navigation (petits écrans seulement)
   const go = (p: Page) => { setMenu(false); onNavigate(p); };
@@ -45,9 +45,9 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
   );
   const nav = (
     <>
-      <nav className="flex flex-1 flex-col gap-1" aria-label={tr("Navigation principale")}>{NAV.map(item)}</nav>
+      <nav className="flex flex-1 flex-col gap-1" aria-label={tr("Navigation principale")}>{(restricted ? NAV.filter((n) => n.id === "dashboard") : NAV).map(item)}</nav>
       <div className="flex flex-col gap-2">
-        {NAV_BOTTOM.map(item)}
+        {!restricted && NAV_BOTTOM.map(item)}
         <Button variant="ghost" onClick={() => { setMenu(false); setAccount(true); }}>{tr("Compte")}</Button>
         <Button variant="ghost" onClick={() => { setMenu(false); onLogout(); }}>{tr("Déconnexion")}</Button>
       </div>
@@ -83,7 +83,7 @@ export function Layout({ page, onNavigate, onLogout, children }: { page: Page; o
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="hidden items-center justify-end gap-2 p-3 md:flex md:pr-6"><LanguageSwitcher /><ThemeSwitcher /></header>
         <main className="flex-1 p-3 pt-1 sm:p-4 sm:pt-2 md:px-6">{children}</main>
-        {page !== "tasks" && <TaskBar onOpenTasks={() => onNavigate("tasks")} />}
+        {page !== "tasks" && !restricted && <TaskBar onOpenTasks={() => onNavigate("tasks")} />}
       </div>
       {account && <AccountDialog onClose={() => setAccount(false)} onLoggedOut={onLogout} />}
     </div>

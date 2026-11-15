@@ -6,9 +6,11 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from .. import roles, scope
 from ..db import get_db
 from ..deps import REFUSED_DETAIL, SERVICE_REFUSED_DETAIL, PersonalTokenRefused, ServiceTokenRefused, get_client_factory
-from ..proxmox import ProxmoxClient
+from ..models import AdminUser
+from ..proxmox import ProxmoxClient, ProxmoxProtocolError
 from ..storagespec import shape_storages
 from .auth import current_user
 from ..tagspec import parse_tags
@@ -37,6 +39,8 @@ def http_error(e: Exception) -> HTTPException:
         detail = {401: "Token refusé par Proxmox", 403: FORBIDDEN_DETAIL}.get(
             code, f"Proxmox a répondu {code} ({e.response.reason_phrase})")
         return HTTPException(status.HTTP_502_BAD_GATEWAY, detail)
+    if isinstance(e, ProxmoxProtocolError):
+        return HTTPException(status.HTTP_502_BAD_GATEWAY, "Réponse inattendue : ce n'est pas l'API de Proxmox (mauvaise adresse, proxy ou portail captif ?)")
     if isinstance(e, httpx.TimeoutException):
         return HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "Proxmox ne répond pas")
     if isinstance(e, httpx.ConnectError) and "CERTIFICATE" in str(e).upper():
@@ -118,10 +122,11 @@ async def nodes(conn_id: int, db: Session = Depends(get_db),
 
 
 @router.get("/guests")
-async def guests(conn_id: int, node: str | None = Query(default=None),
+async def guests(conn_id: int, node: str | None = Query(default=None), user: AdminUser = Depends(current_user),
                  db: Session = Depends(get_db), factory: Factory = Depends(get_client_factory)):
-    """Liste unifiée des VM (qemu) et conteneurs (lxc) du cluster."""
-    return shape_guests(await _px_get(db, factory, conn_id, "/cluster/resources", type="vm"), node)
+    """Liste unifiée des VM (qemu) et conteneurs (lxc) du cluster. Un compte restreint n'y voit que les machines de son périmètre (`app/scope.py`)."""
+    limits = scope.scope_of(db, user.id) if roles.normalize(user.role) != "admin" else None
+    return scope.filter_guests(limits, conn_id, shape_guests(await _px_get(db, factory, conn_id, "/cluster/resources", type="vm"), node))
 
 
 @router.get("/storages")

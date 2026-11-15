@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from .. import audit, roles
+from .. import audit, roles, scope
 from ..adminsession import sessions as admin_sessions
 from ..config import get_settings
 from ..db import get_db
@@ -86,6 +86,10 @@ def _session_of(request: Request, db: Session, *, enforce: bool = True) -> tuple
         audit.record(db, username=user.username, connection_id=None, action="role-refused", target=f"{request.method} {request.url.path}"[:200],
                      status="error", detail=f"rôle {roles.normalize(user.role)}")
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Ton rôle ne permet pas cette action")
+    if enforce and roles.normalize(user.role) != "admin" and (limits := scope.scope_of(db, user.id)) is not None and not scope.allowed(limits, request.method, request.url.path):
+        audit.record(db, username=user.username, connection_id=None, action="scope-refused", target=f"{request.method} {request.url.path}"[:200], status="error",
+                     detail="hors du périmètre du compte")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Cette action sort du périmètre de ton compte")
     return user, sess
 
 
@@ -136,6 +140,10 @@ def login(body: Credentials, request: Request, response: Response, db: Session =
     if not verify_password(body.password, user.password_hash if user else None) or user is None:
         throttle.fail(ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Identifiants invalides")
+    from .. import totpstore
+    if totpstore.is_enabled(db, user.id):                    # double authentification (lot #444) : mot de passe correct, mais PAS de session avant le code
+        from .totp import begin_totp_login
+        return begin_totp_login(user)
     throttle.reset(ip)
     _start_session(db, response, user.id)
     return {"username": user.username}
@@ -188,5 +196,6 @@ def change_password(body: PasswordChange, request: Request, response: Response,
 
 
 @router.get("/me")
-def me(user: AdminUser = Depends(current_user)):
-    return {"username": user.username, "role": roles.normalize(user.role)}
+def me(user: AdminUser = Depends(current_user), db: Session = Depends(get_db)):
+    limits = scope.scope_of(db, user.id) if roles.normalize(user.role) != "admin" else None
+    return {"username": user.username, "role": roles.normalize(user.role), "restricted": limits is not None}
