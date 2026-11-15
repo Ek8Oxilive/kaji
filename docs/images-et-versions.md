@@ -47,7 +47,7 @@ Une version = **une étiquette Git** qui désigne un commit de `main` dont la CI
 3. `CHANGELOG.md` : le contenu de « Non publié » devient la rubrique `[X.Y.Z-rcN] - AAAA-MM-JJ`, une nouvelle rubrique « Non publié » vide reste en tête, et les liens de bas de page sont mis à jour. **Le test `test_release_docs.py` échoue si une étiquette Git n'a pas sa rubrique.**
 4. **Base d'exemple de la version** (test de mise à jour, ticket #456) : `backend/.venv/bin/python tools/snapshot_db.py HEAD backend/tests/fixtures/db/kaji-vX.Y.Z-rcN.db`, à commiter **dans la PR de release** (le code de `HEAD` est celui qui sera étiqueté). La CI migre chaque base de ce dossier vers le code courant et **échoue si une étiquette n'a pas la sienne**.
 5. PR `chore(release): vX.Y.Z-rcN`, CI verte, fusion.
-6. Étiqueter le commit de fusion, avec une étiquette **annotée** (la signature viendra au jalon J4) :
+6. Étiqueter le commit de fusion (le push de l'étiquette déclenche le workflow « SBOM et audit » : `docs/sbom.md`, SBOM joints à la release si elle existe), avec une étiquette **annotée** (la signature viendra au jalon J4) :
    ```bash
    git fetch && git checkout main && git pull
    git tag -a vX.Y.Z-rcN -m "Kaji X.Y.Z-rcN"
