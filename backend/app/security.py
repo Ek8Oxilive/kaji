@@ -49,6 +49,42 @@ def decode_session(secret_key: str, token: str) -> tuple[int, str] | None:
         return None
 
 
+CHALLENGE_SECONDS = 300
+
+
+def _challenge_key(secret_key: str) -> bytes:
+    return HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b"kaji-totp-challenge-v1").derive(secret_key.encode())      # clé DISTINCTE de celle des sessions
+
+
+def _fingerprint(password_hash: str) -> str:
+    import hashlib
+    return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
+
+
+def create_totp_challenge(secret_key: str, user_id: int, password_hash: str) -> str:
+    """Jeton de 5 minutes remis APRÈS un mot de passe correct, pour la seconde étape (le code TOTP). Ce n'est pas une session : il n'ouvre rien tout seul.
+    Lié à l'empreinte du mot de passe : changer le mot de passe l'invalide."""
+    now = datetime.now(timezone.utc)
+    payload = {"sub": str(user_id), "purpose": "totp", "pwf": _fingerprint(password_hash), "iat": now, "exp": now + timedelta(seconds=CHALLENGE_SECONDS)}
+    return jwt.encode(payload, _challenge_key(secret_key), algorithm="HS256")
+
+
+def decode_totp_challenge(secret_key: str, token: str) -> tuple[int, str] | None:
+    """(identifiant utilisateur, empreinte du mot de passe) ou None (expiré, falsifié, d'un autre usage, d'une session)."""
+    try:
+        data = jwt.decode(token, _challenge_key(secret_key), algorithms=["HS256"])
+        if data.get("purpose") != "totp" or not isinstance(data.get("pwf"), str):
+            return None
+        return int(data["sub"]), data["pwf"]
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None
+
+
+def challenge_matches(password_hash: str, fingerprint: str) -> bool:
+    import hmac
+    return hmac.compare_digest(_fingerprint(password_hash), fingerprint)
+
+
 def client_ip(request, trust_proxy: bool = False) -> str:
     """IP du client. Derrière un proxy de confiance : la dernière valeur de X-Forwarded-For (celle qu'il a ajoutée)."""
     if trust_proxy:

@@ -182,3 +182,27 @@ class LoginFailure(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     key: Mapped[str] = mapped_column(String(80), index=True)
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+
+class UserTotp(Base):
+    """Double authentification (TOTP) pour se connecter à Kaji (lot #444). Une ligne par compte. Le secret est chiffré avec `KAJI_SECRET_KEY` (comme les jetons des connexions).
+    `confirmed` : faux tant que l'utilisateur n'a pas tapé un premier code valide (le TOTP n'est alors PAS exigé à la connexion). `last_step` : dernier pas accepté, pour refuser un rejeu."""
+
+    __tablename__ = "user_totp"
+
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    secret_enc: Mapped[str] = mapped_column(String)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_step: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class TotpRecoveryCode(Base):
+    """Code de secours (à usage unique) d'un compte qui a le TOTP. Seule l'EMPREINTE est stockée, jamais le code."""
+
+    __tablename__ = "totp_recovery_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

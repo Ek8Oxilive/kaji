@@ -3,6 +3,7 @@ import { Logo } from "../components/Logo";
 import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
+import type { LoginStep } from "../lib/types/totp";
 
 import { tr } from "../lib/i18n";
 export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: boolean; tokenRequired?: boolean; onDone: () => void }) {
@@ -10,6 +11,8 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [setupToken, setSetupToken] = useState("");
+  const [challenge, setChallenge] = useState<string | null>(null);      // double authentification : mot de passe accepté, il manque le code
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +22,16 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
     if (setup && password !== confirm) return setError(tr("Les deux mots de passe ne correspondent pas"));
     setBusy(true);
     try {
-      await api(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: setup && tokenRequired ? { username, password, setup_token: setupToken } : { username, password } });
+      if (challenge) {
+        await api("/api/auth/login/totp", { method: "POST", body: { challenge, code } });
+        onDone();
+        return;
+      }
+      const r = await api<LoginStep>(setup ? "/api/auth/setup" : "/api/auth/login", { method: "POST", body: setup && tokenRequired ? { username, password, setup_token: setupToken } : { username, password } });
+      if (r?.totp_required && r.challenge) {
+        setChallenge(r.challenge); setPassword(""); setCode("");
+        return;
+      }
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -39,15 +51,25 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
             {setup ? tr("Crée le compte administrateur de ton dashboard.") : tr("Accède à ton dashboard Proxmox.")}
           </p>
         </div>
-        <Field label={tr("Identifiant")} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required minLength={3} autoFocus />
-        <Field label={tr("Mot de passe")} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-          autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 12 : 1}
-          hint={setup ? tr("12 caractères minimum") : undefined} />
-        {setup && tokenRequired && <Field label={tr("Jeton de première configuration")} type="password" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} autoComplete="off" required
+        {challenge ? (
+          <>
+            <p className="text-sm">{tr("Double authentification : tape le code à 6 chiffres de ton application, ou un code de secours.")}</p>
+            <Field label={tr("Code")} inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} required minLength={6} maxLength={40} autoFocus />
+          </>
+        ) : (
+          <>
+            <Field label={tr("Identifiant")} value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required minLength={3} autoFocus />
+            <Field label={tr("Mot de passe")} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              autoComplete={setup ? "new-password" : "current-password"} required minLength={setup ? 12 : 1}
+              hint={setup ? tr("12 caractères minimum") : undefined} />
+          </>
+        )}
+        {!challenge && setup && tokenRequired && <Field label={tr("Jeton de première configuration")} type="password" value={setupToken} onChange={(e) => setSetupToken(e.target.value)} autoComplete="off" required
           hint={tr("Défini par KAJI_SETUP_TOKEN dans le fichier .env du serveur")} />}
-        {setup && <Field label={tr("Confirmer le mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
+        {!challenge && setup && <Field label={tr("Confirmer le mot de passe")} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />}
         {error && <Notice kind="error">{error}</Notice>}
         <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : setup ? tr("Créer le compte") : "Se connecter"}</Button>
+        {challenge && <Button type="button" variant="ghost" className="w-full" onClick={() => { setChallenge(null); setCode(""); setError(null); }}>{tr("Retour")}</Button>}
       </form>
     </main>
   );
