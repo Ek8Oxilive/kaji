@@ -9,6 +9,7 @@ Certificat auto-signé généré au démarrage (module `cryptography`, déjà un
 import argparse
 import datetime
 import json
+import os
 import ssl
 import tempfile
 import threading
@@ -106,7 +107,7 @@ class Server(ThreadingHTTPServer):
 def serve(port: int, directory: Path | None = None) -> ThreadingHTTPServer:
     directory = directory or Path(tempfile.mkdtemp(prefix="fake-proxmox-"))
     cert, key = make_cert(directory)
-    server = Server(("127.0.0.1", port), Handler)
+    server = Server((os.environ.get("KAJI_FAKE_BIND", "127.0.0.1"), port), Handler)   # 0.0.0.0 seulement dans un conteneur jetable (tools/essai_docker.sh)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(cert, key)
     server.socket = ctx.wrap_socket(server.socket, server_side=True)
