@@ -44,6 +44,7 @@ jobs:
       - run: sh tools/essai_docker.sh sauvegarde
       - run: sh tools/essai_docker.sh mise-a-jour
       - run: sh tools/essai_docker.sh chiffre-https
+      - run: sh tools/essai_docker.sh sonde
   docker:
     # Test de fumée complet : construit les images, démarre la pile et l'interroge à travers nginx.
     runs-on: ubuntu-latest
