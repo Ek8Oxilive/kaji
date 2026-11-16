@@ -43,6 +43,7 @@ jobs:
           fetch-depth: 0              # il faut les étiquettes (v1.0.0-rc1)
       - run: sh tools/essai_docker.sh sauvegarde
       - run: sh tools/essai_docker.sh mise-a-jour
+      - run: sh tools/essai_docker.sh chiffre-https
   docker:
     # Test de fumée complet : construit les images, démarre la pile et l'interroge à travers nginx.
     runs-on: ubuntu-latest
