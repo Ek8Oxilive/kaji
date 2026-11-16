@@ -4,6 +4,7 @@
 #
 #   tools/essai_docker.sh sauvegarde    sauvegarde puis restauration (tools/backup.sh, tools/restore.sh) : un compte créé APRÈS la sauvegarde disparaît
 #   tools/essai_docker.sh chiffre-https connexion Proxmox (jeton chiffré) vers un faux Proxmox en conteneur, HTTPS Caddy, sauvegarde / restauration / mauvaise clé
+#   tools/essai_docker.sh sonde         sonde de sécurité (tools/sonde_securite.py) contre une installation neuve
 #   tools/essai_docker.sh mise-a-jour   installe la version ÉTIQUETÉE donnée (KAJI_ANCIENNE, défaut v1.0.0-rc1), crée des données, passe au code courant
 #
 # Ce que ça prouve : le conteneur, le volume, l'utilisateur non root et `--wait` marchent avec nos scripts ; ce que ça ne prouve pas : l'interface dans un navigateur.
@@ -117,6 +118,13 @@ mise-a-jour)
   ok "retour arrière par restauration"
   ;;
 
+sonde)
+  write_env "$ROOT"
+  compose up -d --build --wait --wait-timeout 240
+  setup_admin
+  python3 -I tools/sonde_securite.py "$B" admin "$PASS"
+  ;;
+
 chiffre-https)
   SECRET="secret-de-essai-$(openssl rand -hex 8)"
   export KAJI_TLS_PORT=18443 KAJI_HTTP_PORT=18081 KAJI_TLS_BIND=127.0.0.1 KAJI_TLS_SITE=localhost KAJI_TLS_NAME=kaji.localhost
@@ -185,7 +193,7 @@ chiffre-https)
   ;;
 
 *)
-  echo "usage : tools/essai_docker.sh sauvegarde | mise-a-jour | chiffre-https" >&2
+  echo "usage : tools/essai_docker.sh sauvegarde | mise-a-jour | chiffre-https | sonde" >&2
   exit 2
   ;;
 esac

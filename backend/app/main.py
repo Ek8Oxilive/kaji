@@ -71,6 +71,12 @@ async def validation_error(_: Request, exc: RequestValidationError):
         {"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]})
 
 
+@app.exception_handler(OverflowError)
+async def number_out_of_range(_: Request, exc: OverflowError):
+    """Un entier trop grand pour SQLite (ex. `/api/connections/99999999999999999999`) donnait un 500 brut (sonde de sécurité, J3) : c'est une valeur invalide, pas une panne."""
+    return JSONResponse(status_code=422, content={"detail": "Valeur numérique hors limites"})
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
