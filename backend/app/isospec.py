@@ -6,6 +6,7 @@ un nom DNS qui pointe vers une adresse locale n'est pas détecté (limite docume
 """
 import ipaddress
 import re
+import socket
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -30,6 +31,21 @@ def check_filename(name: str, content: str) -> str:
     return name
 
 
+def _literal_ip(h: str):
+    """Adresse littérale, y compris les écritures abrégées que le système accepte (`127.1`, `2130706433`, `0x7f.0.0.1`,
+    `0177.0.0.1`) : `ipaddress` seul les prend pour des noms et les laisserait passer. `None` si c'est un vrai nom."""
+    try:
+        return ipaddress.ip_address(h)
+    except ValueError:
+        pass
+    if re.fullmatch(r"(0[xX][0-9a-fA-F]+|[0-9]+)(\.(0[xX][0-9a-fA-F]+|[0-9]+)){0,3}", h):
+        try:
+            return ipaddress.ip_address(socket.inet_ntoa(socket.inet_aton(h)))
+        except (OSError, ValueError):
+            raise ValueError("Adresse locale refusée") from None     # écriture numérique que le système lirait : refusée par prudence
+    return None
+
+
 def check_url(url: str) -> str:
     if not isinstance(url, str) or not URL_CHARS.fullmatch(url):
         raise ValueError("URL invalide")
@@ -45,9 +61,8 @@ def check_url(url: str) -> str:
     h = host.lower().rstrip(".")
     if h == "localhost" or h.endswith(".localhost"):
         raise ValueError("Adresse locale refusée")
-    try:
-        ip = ipaddress.ip_address(h)
-    except ValueError:
+    ip = _literal_ip(h)
+    if ip is None:
         return url
     if ip.is_loopback or ip.is_link_local or ip.is_unspecified or ip.is_multicast or ip.is_reserved:
         raise ValueError("Adresse locale refusée")
