@@ -93,7 +93,7 @@ def main():
             s, _, _ = call(m, p, b, cookie=ck)
             check(f"{role} refusé : {m} {p}", s in (401, 403, 404), s)
         s, _, _ = call("GET", "/api/audit", cookie=ck)
-        print(f"INFO  {role} lit le journal d'audit : {'OUI (décision du propriétaire à prendre, docs/revue-tiers.md)' if s == 200 else 'non'}")
+        check(f"{role} refusé : lecture du journal d'audit (réservé aux administrateurs)", s in (401, 403), s)
         s, _, _ = call("PATCH", "/api/kaji-users/1", {"role": "admin"}, cookie=ck)
         check(f"{role} ne change pas un rôle", s in (401, 403, 404, 405), s)
 

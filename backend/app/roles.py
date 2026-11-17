@@ -18,7 +18,7 @@ OPERATOR_POST = (
     re.compile(rf"^{_G}/qemu/\d+/(reset|suspend|resume|hibernate)$"),
     re.compile(rf"^{_G}/(qemu|lxc)/\d+/snapshots$"),
 )
-ADMIN_ONLY_PREFIXES = ("/api/kaji-users", "/api/auth-settings")      # comptes de Kaji ; réglages du SSO et de l'annuaire (même la LECTURE : adresse de l'annuaire, DN du compte de lecture)
+ADMIN_ONLY_PREFIXES = ("/api/kaji-users", "/api/auth-settings", "/api/audit")      # comptes de Kaji ; réglages du SSO et de l'annuaire (même la LECTURE : adresse de l'annuaire, DN du compte de lecture) ; journal d'audit (revue J3, décision du propriétaire 2026-11-17 : qui a fait quoi, adresses, noms de machines)
 ADMIN_ONLY_PREFIX = ADMIN_ONLY_PREFIXES[0]
 SELF_SERVICE_PREFIXES = ("/api/auth/", "/api/me/")        # déconnexion, changement de son propre mot de passe, SON jeton Proxmox personnel : tout rôle
 

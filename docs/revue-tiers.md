@@ -39,7 +39,7 @@ curl -s -X POST http://127.0.0.1:8080/api/auth/setup -H 'content-type: applicati
 - **TOTP de connexion facultatif**, SSO et LDAP jamais essayés sur un vrai fournisseur OIDC ; LDAP essayé sur un AD de test.
 - **Adresse d'une connexion Proxmox et webhooks libres** pour un administrateur (SSRF vers le réseau local possible par un administrateur de Kaji).
 - **Un seul worker** (planificateur) : ne pas lancer deux instances.
-- **Lecture du journal d'audit ouverte à tout compte sans périmètre** (lecteur et opérateur compris) : la sonde l'affiche en `INFO`. **Décision du propriétaire à prendre** : réserver l'audit aux administrateurs ? (Les comptes à périmètre sont déjà refusés.)
+- **Lecture du journal d'audit réservée aux administrateurs** (décision du propriétaire du 2026-11-17, #451) : lecteur et opérateur reçoivent 403 sur `/api/audit` ; la sonde doit désormais le constater.
 - **Session déjà ouverte** après désactivation d'un compte SSO : elle vit jusqu'à son expiration (12 h).
 
 ## 5. Ce que la sonde automatique a déjà vérifié (2026-11-16, installation Docker neuve)
