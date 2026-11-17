@@ -25,3 +25,26 @@ def client():
         Base.metadata.create_all(get_engine())
         throttle.reset()
         yield c
+
+
+class _AuditSansConnexions:
+    """Pendant les tests, les lignes `connection-*` (la mise en place d'une connexion par l'API) ne sont pas écrites : tant de tests créent une
+    connexion puis comparent l'audit à une liste exacte de l'action testée. Un test qui veut les voir porte `@pytest.mark.connection_audit`."""
+    def __init__(self, real):
+        self._real = real
+
+    def record(self, db, **kw):
+        if str(kw.get("action", "")).startswith("connection-"):
+            return None
+        return self._real.record(db, **kw)
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+@pytest.fixture(autouse=True)
+def _connexions_hors_audit(request, monkeypatch):
+    if request.node.get_closest_marker("connection_audit"):
+        return
+    from app.routers import connections
+    monkeypatch.setattr(connections, "audit", _AuditSansConnexions(connections.audit))
