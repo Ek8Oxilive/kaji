@@ -88,7 +88,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Jobs de réplication (ZFS)
 
 ### M9 : Console et déploiement
-- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : validation en réel à faire une fois le droit accordé
+- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : **validé en réel le 2026-11-17 jusqu'à l'invite `login:` du nœud** (connexion WebSocket et terminal OK avec `Sys.Console`) ; la suite exige l'identifiant et le mot de passe d'un compte Linux du nœud, que Kaji ne gère pas
 - [ ] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement
 
 ### M10 : Gestion du cluster (banc d'essai imbriqué obligatoire)
