@@ -33,10 +33,18 @@ def test_operator_may_not_do_anything_else(method, path):
     assert not R.allowed("operator", method, path) and R.allowed("admin", method, path)
 
 
-@pytest.mark.parametrize("path", ["/api/connections/1/guests", "/api/audit", "/api/connections/1/cluster/log", "/api/connections/1/access/users"])
+@pytest.mark.parametrize("path", ["/api/connections/1/guests", "/api/connections/1/cluster/log", "/api/connections/1/access/users"])
 def test_everybody_may_read(path):
     for role in R.ROLES:
         assert R.allowed(role, "GET", path)
+
+
+@pytest.mark.parametrize("role", ["viewer", "operator", "inconnu", "", None, "ADMIN"])
+def test_audit_log_is_admin_only(role):
+    """#451 : le journal d'audit (qui, quoi, adresses) n'est lisible que par un administrateur."""
+    for p in ("/api/audit", "/api/audit/export", "/api/audit/"):
+        assert not R.allowed(role, "GET", p)
+    assert R.allowed("admin", "GET", "/api/audit")
 
 
 @pytest.mark.parametrize("role", ["viewer", "operator", "inconnu", "", None, "ADMIN", "Admin"])
@@ -112,6 +120,14 @@ def test_viewer_cannot_write_nor_manage_users(admin):
     assert v.get("/api/connections").status_code == 200                               # la lecture reste permise
     assert [u["username"] for u in admin.get("/api/kaji-users").json()] == ["admin", "alice"]
     assert ("role-refused", "error") in {(a["action"], a["status"]) for a in admin.get("/api/audit").json()}
+
+
+def test_audit_route_refuses_viewer_and_operator_end_to_end(admin):
+    _create(admin, "alice", "viewer")
+    _create(admin, "olivier", "operator")
+    for name in ("alice", "olivier"):
+        assert _login(name).get("/api/audit").status_code == 403
+    assert admin.get("/api/audit").status_code == 200
 
 
 def test_operator_reaches_power_routes_but_not_the_rest(admin):
