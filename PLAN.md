@@ -20,6 +20,8 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ## Jalons
 
+> **Lecture des cases (2026-11-17)** : `[x]` = livré **et** validé en réel. Les cases ouvertes sont du code livré et testé sur faux Proxmox mais **pas entièrement validé en réel** (banc d'essai, droit Proxmox ou décision manquants) : le détail ligne par ligne est dans `docs/parite-proxmox.md` (🟡).
+
 ### M0 : Cadrage et socle
 - [x] Repo git (`/backend`, `/frontend`), `.gitignore`, `.env.example`
 - [x] Environnement de test : cluster Proxmox perso réel, joint via Tailscale, avec des droits limités machine par machine (pas d'environnement jetable)
@@ -56,7 +58,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [x] Création LXC depuis un modèle déjà présent (non privilégié par défaut ; téléchargement de modèle non géré)
 - [x] Clonage (complet ou lié depuis un modèle, vers un autre nœud ou stockage)
 - [x] Cloud-init (VM) : utilisateur, mot de passe, clés SSH, IP, DNS, lecteur ; `cicustom` (snippets) volontairement non géré
-- [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire
+- [x] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire — **fini le 2026-11-17** : niveaux A et B validés en réel (ajout de carte le 2026-11-17, déplacement de disque le 2026-11-12) ; niveau C traité à part en M14
   - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
   - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 et B2 livrés** (cartes réseau, ordre de boot, ajout / détachement / rattachement / suppression / déplacement de disques) ; ajout de carte **validé en réel le 2026-11-17** ; déplacement de disque **validé en réel le 2026-11-12** (`local-lvm` ↔ `dir`, voir `docs/parite-proxmox.md`) ; non rejouable le 2026-11-17 (un seul stockage de disques)
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
@@ -70,7 +72,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 
 ### M5 : Stockage et sauvegardes
 - [ ] Stockage : usage, ajout NFS/LVM/ZFS/dir/CIFS/iSCSI/CephFS/RBD/PBS, contenu (ISO, templates), **téléverser et télécharger depuis une URL** (ISO, modèles)
-- [ ] Sauvegardes : jobs vzdump, planification, rétention, lancement manuel, restauration
+- [x] Sauvegardes : jobs vzdump, planification, rétention, lancement manuel, restauration — **livré, validé en réel** (`docs/parite-proxmox.md` : jobs, lancer, restaurer, supprimer ; protection : écriture non validée en réel)
 
 ### M6 : Utilisateurs et ACL
 - [x] **Accès en lecture seule** : « droits de Kaji » (chaque fonction a-t-elle son droit ?), utilisateurs, rôles, ACL visibles, realms — API et page « Accès » livrées ; statut « droit manquant » vu seulement sur faux Proxmox
@@ -84,12 +86,12 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Firewall : règles cluster / nœud / VM, security groups, IPSets, activation progressive
 
 ### M8 : HA et réplication
-- [ ] Ressources HA, groupes, règles
+- [x] Ressources HA, groupes, règles — **livré** (`docs/parite-proxmox.md` ✅)
 - [ ] Jobs de réplication (ZFS)
 
 ### M9 : Console et déploiement
 - [x] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : **validé en réel le 2026-11-17** (shell du nœud ouvert avec `Sys.Console`, connexion au compte du nœud par le propriétaire, commande de lecture exécutée)
-- [ ] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement
+- [x] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement — **livré** ; essais Docker de bout en bout rejoués le 2026-11-17 (sauvegarde, chiffre-https), voir #429
 
 ### M10 : Gestion du cluster (banc d'essai imbriqué obligatoire)
 - [ ] Création, jonction de nœuds, corosync. Nécessaire pour la parité avec Proxmox ; à tester uniquement sur le banc d'essai imbriqué (une erreur peut casser le quorum).
