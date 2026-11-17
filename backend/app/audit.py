@@ -16,7 +16,7 @@ def purge_old(db: Session, days: int) -> int:
     if days <= 0:
         return 0
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    n = db.execute(delete(AuditLog).where(AuditLog.ts < cutoff)).rowcount
+    n = db.execute(delete(AuditLog).where(AuditLog.ts < cutoff).execution_options(synchronize_session=False)).rowcount   # pas d'évaluation en Python : SQLite rend des dates sans fuseau
     db.commit()
     return n or 0
 

@@ -8,7 +8,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import roles, scope
+from .. import audit, roles, scope
 from ..config import get_settings
 from ..crypto import decrypt, encrypt
 from ..db import get_db
@@ -118,7 +118,7 @@ def list_connections(db: Session = Depends(get_db), user: AdminUser = Depends(cu
 
 
 @router.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
-def create_connection(body: ConnectionCreate, db: Session = Depends(get_db)):
+def create_connection(body: ConnectionCreate, db: Session = Depends(get_db), user: AdminUser = Depends(current_user)):
     data = body.model_dump(exclude={"token_secret"})
     c = Connection(**data, token_secret_enc=encrypt(get_settings().kaji_secret_key, body.token_secret))
     db.add(c)
@@ -127,6 +127,7 @@ def create_connection(body: ConnectionCreate, db: Session = Depends(get_db)):
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Ce nom de connexion existe déjà")
+    audit.record(db, username=user.username, connection_id=c.id, action="connection-create", target=c.name, status="started", detail="jeton défini")
     return c
 
 
@@ -142,9 +143,10 @@ def get_connection(conn_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{conn_id}", response_model=ConnectionOut)
-def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depends(get_db)):
+def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depends(get_db), user: AdminUser = Depends(current_user)):
     c = _get_or_404(db, conn_id)
     changes = body.model_dump(exclude_unset=True)
+    changed = sorted(k for k in changes if k != "token_secret") + (["token_secret (défini)"] if "token_secret" in changes else [])
     if "token_secret" in changes:
         c.token_secret_enc = encrypt(get_settings().kaji_secret_key, changes.pop("token_secret"))
     merged = ConnectionBase(**{**ConnectionOut.model_validate(c).model_dump(exclude={"id", "tls_pinned", "tls_fingerprint"}), **changes})
@@ -157,15 +159,19 @@ def update_connection(conn_id: int, body: ConnectionUpdate, db: Session = Depend
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Ce nom de connexion existe déjà")
+    audit.record(db, username=user.username, connection_id=c.id, action="connection-update", target=c.name, status="started", detail=", ".join(changed))
     return c
 
 
 @router.delete("/{conn_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_connection(conn_id: int, db: Session = Depends(get_db)):
-    db.delete(_get_or_404(db, conn_id))
+def delete_connection(conn_id: int, db: Session = Depends(get_db), user: AdminUser = Depends(current_user)):
+    c = _get_or_404(db, conn_id)
+    name = c.name
+    db.delete(c)
     db.execute(delete(UserToken).where(UserToken.conn_id == conn_id))          # les jetons personnels de cette connexion n'ont plus d'objet
     db.execute(delete(ServiceToken).where(ServiceToken.conn_id == conn_id))    # ni son jeton de service
     db.commit()
+    audit.record(db, username=user.username, connection_id=None, action="connection-delete", target=name, status="started", detail=f"#{conn_id}")
 
 
 @router.post("/{conn_id}/test")
