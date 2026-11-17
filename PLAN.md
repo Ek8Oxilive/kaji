@@ -52,13 +52,13 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - Fin : dashboard en direct sur l'environnement de test, sans rechargement de page, avec un retour visuel immédiat à chaque action
 
 ### M4 : Cycle de vie des VM/LXC
-- [ ] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO) — **API et assistant livrés** (4 étapes) ; création réelle à tester dans un pool dédié (bac à sable) pour ne jamais créer hors de celui-ci
+- [x] Wizard de création VM (nom/OS, hardware, réseau, stockage, ISO) — API et assistant livrés (4 étapes) ; **validé en réel le 2026-11-17** : VM 117 créée dans le pool `kaji-test` (1 vCPU, 512 Mo, 2 Go), carte réseau ajoutée, puis machine supprimée
 - [x] Création LXC depuis un modèle déjà présent (non privilégié par défaut ; téléchargement de modèle non géré)
 - [x] Clonage (complet ou lié depuis un modèle, vers un autre nœud ou stockage)
 - [x] Cloud-init (VM) : utilisateur, mot de passe, clés SSH, IP, DNS, lecteur ; `cicustom` (snippets) volontairement non géré
 - [ ] **Édition du matériel (VM et LXC)**, comme dans l'UI Proxmox : panneau « Matériel » par machine, changements en attente signalés (redémarrage requis) — **niveau A livré** (avec listes de bridges/VNets et d'ISO), niveau B à faire
   - Niveau A (faible risque) : CPU (cœurs, sockets, type), RAM, agrandir un disque (jamais réduire), réseau (bridge, VLAN, firewall, MAC conservée), monter/éjecter un ISO
-  - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 et B2 livrés** (cartes réseau, ordre de boot, ajout / détachement / rattachement / suppression / déplacement de disques) ; déplacement de disque et ajout de carte non validés en réel (un seul stockage de disques ; droit SDN.Use manquant)
+  - Niveau B (risque moyen à élevé) : ajouter / supprimer un disque ou une carte réseau, déplacer un disque vers un autre stockage, ordre de boot — **B1 et B2 livrés** (cartes réseau, ordre de boot, ajout / détachement / rattachement / suppression / déplacement de disques) ; ajout de carte **validé en réel le 2026-11-17** ; déplacement de disque non validé en réel (un seul stockage de disques sur le nœud)
   - Niveau C (reporté) : passthrough PCI/USB, TPM, arguments QEMU
   - Garde-fous : liste blanche de paramètres validés côté serveur (aucune clé libre transmise à Proxmox), suppression d'un disque confirmée en retapant le nom de la machine, agrandissement de disque confirmé (irréversible), audit de chaque changement
   - Tests réels limités à des modifications réversibles sur les machines désignées ; les opérations irréversibles (agrandir/supprimer un disque) ne sont testées qu'avec un faux Proxmox
@@ -88,7 +88,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - [ ] Jobs de réplication (ZFS)
 
 ### M9 : Console et déploiement
-- [ ] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : validation en réel à faire une fois le droit accordé
+- [x] Console web (noVNC, xterm.js, shell du nœud, via vncproxy / termproxy + proxy WebSocket) — **proxy WebSocket sécurisé et onglet « Console » (noVNC, xterm.js) livrés** pour les VM et conteneurs ; **shell du nœud codé** (droit `Sys.Console` requis, pas `root@pam`) : **validé en réel le 2026-11-17** (shell du nœud ouvert avec `Sys.Console`, connexion au compte du nœud par le propriétaire, commande de lecture exécutée)
 - [ ] Dockerfiles (backend, frontend/Nginx), `docker-compose.yml`, doc de déploiement
 
 ### M10 : Gestion du cluster (banc d'essai imbriqué obligatoire)
@@ -107,7 +107,7 @@ la lecture seule se développe avec le faux Proxmox ; l'écriture exige un Ceph 
 
 ### M13 : Supervision
 - [x] **Graphiques d'historique** (CPU, RAM, réseau, disque ; heure, jour, semaine, mois, année) pour nœuds et machines
-- [x] **Journal des tâches** (liste de tous les nœuds, filtres, journal d'une tâche suivi en direct) ; reste : barre de tâches permanente, onglet « Tâches » par machine
+- [x] **Journal des tâches** (liste de tous les nœuds, filtres, journal d'une tâche suivi en direct)  ; **barre de tâches permanente** (#280) et **onglet « Tâches » par machine** livrés
 - [ ] Étiquettes (tags), notes, vues par dossier / pool / stockage
 - [ ] Notifications (cibles, règles), serveurs de métriques (InfluxDB, Graphite)
 
