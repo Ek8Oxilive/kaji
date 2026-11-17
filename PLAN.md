@@ -16,7 +16,7 @@ Stack : FastAPI (backend, `httpx` async) + React/Vite/Tailwind (frontend) + Dock
 - **Pattern d'écriture** : toute action Proxmox asynchrone renvoie un UPID, suivi via un mécanisme de tâches commun (écrit une seule fois en M2, réutilisé partout).
 
 ## Évolution possible
-- Second mode de connexion : login Proxmox direct (ticket, sans stocker de token), pour des permissions par utilisateur. **Fait en partie (2026-11-13)** : la session administrateur peut s'ouvrir par ticket (mot de passe saisi par le propriétaire, jamais gardé), nécessaire pour écrire la double authentification ; la connexion permanente de Kaji reste, elle, par jeton.
+- Second mode de connexion : login Proxmox direct (ticket, sans stocker de token), pour des permissions par utilisateur. **Fait en partie (2026-11-13)** : la session administrateur peut s'ouvrir par ticket (mot de passe saisi par le propriétaire, jamais gardé), nécessaire pour écrire la double authentification ; la connexion permanente de Kaji reste, elle, par jeton. **Tranché le 2026-11-14 (décision d'Enzo, `docs/cadrage-prod-entreprise.md`)** : option A retenue (un jeton Proxmox par utilisateur, J2 #440) ; le ticket par mot de passe reste limité à la session administrateur. Le « login Proxmox direct » pour tous n'est donc pas prévu : point clos.
 
 ## Jalons
 
