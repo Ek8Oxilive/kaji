@@ -28,7 +28,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Stockage : liste, usage, contenu | ✅ (lecture) | M5 |
 | Stockage : ajouter, modifier, supprimer (dir, LVM, LVM-thin, ZFS, NFS, CIFS, iSCSI, CephFS, RBD, PBS) | ✅ (validé en réel pour `dir` ; les autres types : non validés en réel) | M5 |
 | Sauvegardes planifiées (jobs) | ✅ | M5 |
-| Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection : écriture non validée en réel) | M5 |
+| Sauvegardes : liste, lancer, restaurer, supprimer, protéger | ✅ (protection et suppression de sauvegarde protégée refusée en 409 validées en réel le 2026-11-18 sur VM 115 `local`) | M5 |
 | Intégration d'un serveur Proxmox Backup Server (stockage, chiffrement, vérification) | 🟡 (aucun PBS pour valider en réel ; vérification : lecture seule, planification côté PBS) | M5 |
 | Réplication (jobs ZFS) | ✅ code (lecture + écriture : créer, modifier, supprimer, lancer maintenant, `docs/api/replication-ecriture.md` ; **jamais écrit en réel : pas de ZFS**, bloqueurs annoncés par `dry_run`) | M8 |
 | Permissions : utilisateurs, groupes, rôles, ACL, pools, realms (lecture) | ✅ | M6 |
@@ -118,7 +118,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Contenu : voir ISO, modèles, disques, sauvegardes, snippets | ✅ | M5 |
 | **Téléverser** une ISO ou un modèle, **télécharger depuis une URL** (avec somme de contrôle) | ✅ (téléversement et téléchargement par URL validés en réel, avec sha256) | M5 |
 | Modèles LXC officiels (TurnKey, distributions) : télécharger | ✅ (validé en réel le 2026-11-09 : catalogue de 136 entrées, téléchargement d'Alpine en 2 s, 409 et 422 sans tâche, dialogue de l'assistant LXC ; l'architecture du nœud filtre le catalogue (#205 corrigé, revérifié : 134 modèles amd64, 136 avec la case) ; `docs/api/modeles-lxc.md`) | M14 |
-| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage : non validés en réel, aucune sauvegarde ; copie d'un volume vers un autre stockage ou nœud : **non retenue**, absente de l'interface de Proxmox et l'API expérimentale refuse le token de Kaji (403 constaté en réel), `docs/api/volumes.md`) | M5 |
+| Supprimer un volume, actions sur un volume, élagage (prune) manuel | ✅ (suppression de fichier validée en réel ; protection et élagage manuel `keep_last=1` : **validés en réel le 2026-11-18** sur VM 115 `local` — protection, refus 409 de suppression, aperçu, refus 409 sur `expected_remove` erroné, exécution réelle conservant protégée + récente, nettoyage complet ; copie d'un volume vers un autre stockage ou nœud : **non retenue**, absente de l'interface de Proxmox et l'API expérimentale refuse le token de Kaji (403 constaté en réel), `docs/api/volumes.md`) | M5 |
 
 ## Transverses
 
