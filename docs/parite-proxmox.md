@@ -63,11 +63,8 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Réplication du nœud | 🟡 (section de la page Nœud : jobs source ou cible, état, nouveau / modifier / lancer / supprimer avec aperçu et verrous, `docs/api/replication-noeud.md` ; jamais écrit en réel : pas de ZFS ; section et aperçu `dry_run` vus en réel le 2026-11-12) | M8 |
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | 🟡 (liste de machines explicite, aperçu `dry_run`, protégées refusées, nom du nœud retapé ; `docs/api/actions-groupees.md` ; **démarrer, arrêter et migrer validés en réel le 2026-11-10** sur la VM 115 seule ; migration à chaud, arrêt sans `force-stop` et Wake-on-LAN non essayés) | M15 |
-<<<<<<< HEAD
 | Images OCI (télécharger depuis un registre, lister les étiquettes) | 🟡 (`docs/api/images-oci.md` ; registres locaux refusés, images publiques seulement ; essai réel à faire ; créer un conteneur depuis l'image : non couvert) | M14 |
-=======
 | Options du nœud (réveil à distance, délai de démarrage, ballooning) | 🟡 (lecture et écriture avec digest, `confirm` et relecture, `docs/api/options-noeud.md` ; essai réel à faire) | M11 |
->>>>>>> feat/m11-options-noeud
 | Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
 
 ## Machine virtuelle (QEMU)
@@ -128,9 +125,9 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Utilisateurs de Kaji avec des rôles (administrateur, opérateur, lecture seule) | 🟡 (propre à Kaji, absent de Proxmox : politique appliquée par le serveur, gestion dans le dialogue Compte, migration n° 3, `docs/api/roles-kaji.md` ; pas essayé en réel) | M6 |
 | Actions planifiées (démarrer, éteindre, redémarrer, snapshot à heure fixe) | 🟡 (propre à Kaji, absent de Proxmox : planificateur côté Kaji, `docs/api/actions-planifiees.md` ; pas essayé en réel) | M13 |
 | Alertes (CPU, RAM, stockage, nœud hors ligne, tâche en échec) avec webhook | 🟡 (propre à Kaji, absent de Proxmox : règles, historique, webhook chiffré en écriture seule, `docs/api/alertes.md` ; pas essayé en réel ; pas d'e-mail) | M13 |
-| Barre de tâches en bas (tâches en cours, journal d'une tâche) | 🟡 (page « Tâches », tiroir de journal et **barre permanente** repliable en bas de chaque page, `docs/api/barre-de-taches.md` ; arrêter une tâche en cours : validé en réel le 2026-11-12 (liste blanche de types, `docs/api/taches.md`)) | M13 |
+| Barre de tâches en bas (tâches en cours, journal d'une tâche) | ✅ (page « Tâches », tiroir de journal et **barre permanente** repliable en bas de chaque page, `docs/api/barre-de-taches.md` ; arrêter une tâche en cours : validé en réel le 2026-11-12 (liste blanche de types, `docs/api/taches.md`)) | M13 |
 | Recherche globale | ✅ (palette Ctrl+K, validée en réel) | M3 |
-| Vues par dossier, par pool, par stockage | 🟡 (regroupement par nœud, pool, étiquette, type, **stockage** (lot #252, `docs/api/vue-par-stockage.md`)) | M13 |
+| Vues par dossier, par pool, par stockage | ✅ (regroupement par nœud, pool, étiquette, type, **stockage** (lot #252, `docs/api/vue-par-stockage.md`), vus en réel sur le tableau de bord) | M13 |
 | Thèmes clair / sombre | ✅ (Sombre, Glass, **Clair** et **Auto** (suit le système), mémorisés, `docs/themes.md`) | M3 |
 | Langues | ✅ (français et anglais, sélecteur FR \| EN, `docs/interface-langue.md` ; messages du serveur construits avec des valeurs : français) | M15 |
 | Interface adaptée aux petits écrans (téléphone) | 🟡 (menu tiroir, grilles en une colonne, `docs/interface-mobile.md` ; vue en réel à ~390 px seulement : pas de vrai téléphone, ni Safari / iOS, ni mode paysage) | M15 |
