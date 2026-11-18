@@ -121,7 +121,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 
 | Fonction de Proxmox | État | Jalon |
 |---|---|---|
-| Journal du cluster (Datacenter → Journal du cluster) | 🟡 (lecture seule, section en bas de la page « Tâches », filtres gravité / nœud / texte, `docs/api/journal-cluster.md` ; format réel à vérifier) | M13 |
+| Journal du cluster (Datacenter → Journal du cluster) | ✅ (lecture seule, section en bas de la page « Tâches », filtres gravité / nœud / texte, `docs/api/journal-cluster.md` ; format réel et filtres UI validés en réel le 2026-11-18 sur Proxmox 9.1.9) | M13 |
 | Utilisateurs de Kaji avec des rôles (administrateur, opérateur, lecture seule) | 🟡 (propre à Kaji, absent de Proxmox : politique appliquée par le serveur, gestion dans le dialogue Compte, migration n° 3, `docs/api/roles-kaji.md` ; pas essayé en réel) | M6 |
 | Actions planifiées (démarrer, éteindre, redémarrer, snapshot à heure fixe) | 🟡 (propre à Kaji, absent de Proxmox : planificateur côté Kaji, `docs/api/actions-planifiees.md` ; pas essayé en réel) | M13 |
 | Alertes (CPU, RAM, stockage, nœud hors ligne, tâche en échec) avec webhook | 🟡 (propre à Kaji, absent de Proxmox : règles, historique, webhook chiffré en écriture seule, `docs/api/alertes.md` ; pas essayé en réel ; pas d'e-mail) | M13 |
