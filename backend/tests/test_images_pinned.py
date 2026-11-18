@@ -31,8 +31,9 @@ def _external_images() -> list[tuple[str, str]]:
 
 
 def test_the_guard_sees_the_four_base_images():
-    refs = {r.split("@")[0] for _, r in _external_images()}
-    assert refs == {"python:3.12-slim", "node:22-alpine", "nginx:1.27-alpine", "caddy:2.8-alpine"}
+    # Les noms seulement : la version change quand on accepte une mise à jour Dependabot (le test d'empreinte ci-dessous garde l'étiquette).
+    names = {r.split("@")[0].split(":")[0] for _, r in _external_images()}
+    assert names == {"python", "node", "nginx", "caddy"}
 
 
 def test_every_external_image_is_pinned_by_digest_and_keeps_its_tag():
