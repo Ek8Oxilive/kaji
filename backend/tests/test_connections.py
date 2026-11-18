@@ -79,3 +79,30 @@ def test_saved_connection_test_ok_uses_decrypted_token(api):
 def test_unsaved_test_reports_refused_token(api):
     r = api.post("/api/connections/test", json={**BODY, "token_secret": "bad-token"})
     assert r.json() == {"ok": False, "error": "Utilisateur ou token refusé"}
+
+
+def _audit_rows(action):
+    with get_engine().connect() as c:
+        return c.execute(text("SELECT username, target, status, detail FROM audit_log WHERE action = :a"), {"a": action}).all()
+
+
+@pytest.mark.connection_audit
+def test_create_update_delete_are_audited_without_the_secret(api):
+    cid = api.post("/api/connections", json=BODY).json()["id"]
+    api.patch(f"/api/connections/{cid}", json={"token_secret": "un-autre-secret-tres-secret", "port": 8007})
+    api.delete(f"/api/connections/{cid}")
+    (create,) = _audit_rows("connection-create")
+    (update,) = _audit_rows("connection-update")
+    (delete,) = _audit_rows("connection-delete")
+    assert create.username == "admin" and create.target == "test" and create.detail == "jeton défini"
+    assert "port" in update.detail and "token_secret (défini)" in update.detail
+    assert delete.target == "test"
+    dump = str([create, update, delete])
+    assert "s3cr3t-token-value" not in dump and "un-autre-secret" not in dump
+
+
+@pytest.mark.connection_audit
+def test_refused_duplicate_is_not_audited_as_created(api):
+    api.post("/api/connections", json=BODY)
+    assert api.post("/api/connections", json=BODY).status_code == 409
+    assert len(_audit_rows("connection-create")) == 1
