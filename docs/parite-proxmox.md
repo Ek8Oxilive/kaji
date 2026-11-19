@@ -64,7 +64,7 @@ détruit et recréé à volonté. **Décision du propriétaire attendue** (resso
 | Historique des tâches du nœud (journal, état, suivi en direct) | ✅ | M13 |
 | Actions groupées (tout démarrer, tout arrêter, tout migrer) et Wake-on-LAN | 🟡 (liste de machines explicite, aperçu `dry_run`, protégées refusées, nom du nœud retapé ; `docs/api/actions-groupees.md` ; **démarrer, arrêter et migrer validés en réel le 2026-11-10** sur la VM 115 seule ; migration à chaud, arrêt sans `force-stop` et Wake-on-LAN non essayés) | M15 |
 | Images OCI (télécharger depuis un registre, lister les étiquettes) | 🟡 (`docs/api/images-oci.md` ; registres locaux refusés, images publiques seulement ; essai réel à faire ; créer un conteneur depuis l'image : non couvert) | M14 |
-| Options du nœud (réveil à distance, délai de démarrage, ballooning) | 🟡 (lecture et écriture avec digest, `confirm` et relecture, `docs/api/options-noeud.md` ; essai réel à faire) | M11 |
+| Options du nœud (réveil à distance, délai de démarrage, ballooning) | ✅ (lecture et écriture avec digest, `confirm` et relecture, `docs/api/options-noeud.md` ; **validé en réel le 2026-11-19** sur `enzo2` : lecture à vide, écriture de `startall-onboot-delay = 5` avec digest et relecture, audit `node-options` sans valeur, puis retrait et retour à `empty: true` ; `wakeonlan` et `ballooning_target` non modifiés en réel) | M11 |
 | Redémarrer / éteindre le nœud | 🟡 (codé, jamais exécuté en réel) | M11 |
 
 ## Machine virtuelle (QEMU)
