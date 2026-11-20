@@ -19,6 +19,7 @@ sh proxmox-create-ct.sh                   # demande confirmation, puis crée et 
 - Le conteneur est **non privilégié**, avec les options `nesting` et `keyctl` dont Docker a besoin. Il n'a **pas de mot de passe** : on y entre depuis le nœud avec `pct enter <identifiant>`.
 - Si la création ou le démarrage échoue, il **supprime le conteneur qu'il vient de créer** (et lui seul). Si c'est l'installation de Kaji qui échoue, il **garde** le conteneur pour que tu lises les journaux, et affiche la commande pour le supprimer.
 - **Limite connue** : Docker dans un conteneur non privilégié peut échouer selon le noyau ou AppArmor. *Essayé en réel le 2026-11-20 sur Proxmox VE 9.1 (noyau 7.0) : ça a marché, Docker installé par le script, Kaji en HTTPS.* Pas essayé sur Proxmox VE 8. Dans ce cas, utilise une VM Debian (§ 1.1) et l'option express ci-dessous.
+- **Certificat HTTPS** : le conteneur n'a pas de mot de passe, donc pas de `scp` direct. Sur le nœud : `pct pull <identifiant> /root/kaji/caddy-root.crt caddy-root.crt`, puis copie ce fichier sur ton poste et installe-le (§ 5).
 - Ensuite : crée l'utilisateur et le jeton avec `tools/proxmox-setup.sh` (§ 2), puis ajoute le cluster dans Kaji (§ 4).
 
 ## Option express : un script fait les étapes 3 à 5 pour toi

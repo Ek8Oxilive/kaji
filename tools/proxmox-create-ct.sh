@@ -185,5 +185,6 @@ fi
 
 say ""
 say "Conteneur Kaji prêt : identifiant $VMID, adresse ${ADDRESS:-locale}."
+[ -n "$LOCALONLY" ] || say "Certificat HTTPS à installer sur ton poste : pct pull $VMID /root/kaji/caddy-root.crt caddy-root.crt   (puis copie ce fichier sur ton poste ; le conteneur n'a pas de mot de passe, donc pas de scp direct)"
 say "Pour y entrer : pct enter $VMID    (Kaji est dans /root/kaji ; mise à jour : sh /root/install.sh --yes ${ADDRESS:+--address $ADDRESS})"
 say "Suite : crée l'utilisateur et le jeton dans Proxmox (lecture seule) avec tools/proxmox-setup.sh, puis ajoute le cluster dans Kaji."

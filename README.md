@@ -4,6 +4,32 @@ Le gouvernail de ton homelab (« kaji » signifie gouvernail en japonais). Inter
 
 **Statut : candidat V1.** Les fonctions sont classées en « validé en réel », « expérimental » et « limites connues » dans [docs/statut-fonctions.md](docs/statut-fonctions.md) ; la revue de sécurité est dans [docs/securite.md](docs/securite.md) ; la feuille de route complète est dans [PLAN.md](PLAN.md).
 
+## Installer Kaji en 15 minutes
+> Pour un lab : réseau local ou VPN, **jamais exposé sur Internet**. Guide complet pas à pas, avec le dépannage : [docs/installation-lab.md](docs/installation-lab.md).
+
+**1. Sur un nœud Proxmox, en root : créer Kaji** (conteneur Debian, Docker et Kaji installés pour toi). Télécharge, relis, lance :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ek8Oxilive/kaji/main/tools/proxmox-create-ct.sh -o proxmox-create-ct.sh
+less proxmox-create-ct.sh        # relis-le
+sh proxmox-create-ct.sh          # demande confirmation ; --dry-run pour voir sans rien faire
+```
+À la fin, il affiche **l'adresse de Kaji et un jeton de première configuration** : note-les. *(Tu as déjà une machine Linux avec Docker ? Même chose avec [`install.sh`](install.sh).)*
+
+**2. Sur un nœud Proxmox, en root : créer le compte et le jeton de Kaji** (lecture seule, privilèges séparés, expiration) :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ek8Oxilive/kaji/main/tools/proxmox-setup.sh -o proxmox-setup.sh
+less proxmox-setup.sh && sh proxmox-setup.sh
+```
+Le **secret du jeton s'affiche une seule fois** : copie-le tout de suite.
+
+**3. Sur ton poste : ouvrir Kaji.** Récupère le certificat avec `pct pull <identifiant> /root/kaji/caddy-root.crt caddy-root.crt` (sur le nœud) et copie-le sur ton poste, puis installe-le comme autorité de confiance ([comment faire](docs/installation-lab.md) § 5), ouvre `https://<adresse de Kaji>`, crée le compte administrateur avec le jeton de l'étape 1.
+
+**4. Page « Connexions » : brancher Proxmox.** Un guide en 3 étapes s'ouvre tout seul : « Pré-remplir », colle le secret de l'étape 2, « Tester », « Enregistrer », puis « Épingler le certificat » (compare l'empreinte avec celle du script).
+
+**Ensuite** : donne à Kaji les droits dont tu as besoin depuis la page « Accès » (elle affiche les commandes à copier, jamais `Administrator`) et **sauvegarde `/root/kaji/.env`** à part : sans sa clé, la base est inutilisable.
+
+**Sommaire** : [Fonctionnement](#fonctionnement) · [Interface web](#interface-web) · [Captures d'écran](#captures-décran) · [Déploiement](#déploiement) · [Configuration](#configuration-env) · [Durcissement](#durcissement) · [Tests](#tests) · [Contribuer](#contribuer)
+
 ## Fonctionnement
 - Au premier lancement, tu crées le compte admin du dashboard (mot de passe de 12 caractères minimum).
 - Les clusters Proxmox s'ajoutent depuis l'interface (hôte, utilisateur, token API) : rien à mettre dans un fichier de configuration.
@@ -29,6 +55,9 @@ npm run dev        # http://localhost:5173 (les appels /api sont relayés vers l
 Écrans disponibles : première configuration, connexion, gestion des connexions Proxmox, et **dashboard** : résumé du cluster, nœuds (CPU, RAM, disque), machines VM/LXC en cartes avec filtres (recherche, état, type, nœud) et actions démarrer / redémarrer / éteindre / forcer l'arrêt. Les actions destructrices demandent confirmation, l'état attendu s'affiche tout de suite et la tâche Proxmox est suivie jusqu'au bout. Les données arrivent **en temps réel** (flux SSE, indicateur « En direct ») ; si le flux est indisponible, l'interface se rabat seule sur un rafraîchissement toutes les 10 s (cadence des statistiques Proxmox). **Ctrl+K** ouvre une palette de commandes : retrouver une machine et lui appliquer une action (les actions destructrices demandent toujours confirmation), changer de thème, aller aux connexions.
 
 **Panneau Matériel** (bouton « Matériel » sur chaque machine) : mémoire, processeurs, swap (LXC), disques (agrandissement), lecteurs CD/DVD (monter/éjecter un ISO) et cartes réseau (bridge ou VNet SDN choisi dans une liste, VLAN, firewall, MAC conservée). L'ISO se choisit dans la liste des images du nœud ; si une liste est indisponible, la saisie manuelle reste possible. Le bouton **« + Nouvelle machine »** (ou la palette Ctrl+K) propose une **VM** ou un **conteneur LXC** ; l'**assistant de création de VM** compte 4 étapes : général (nœud, nom, identifiant proposé, pool, système), matériel (cœurs, mémoire, disque et stockage, ISO), réseau (bridge ou VNet, VLAN, firewall) et récapitulatif. Windows 11 reçoit automatiquement UEFI, TPM et disque EFI. L'assistant prévient quand aucun pool n'est choisi. Un onglet **Snapshots** permet de créer, supprimer et restaurer des points de restauration (la restauration exige de retaper le nom de la machine). Le bouton **« Cloner »** (sur chaque carte, y compris les modèles) copie une machine : clone complet ou lié, vers le même nœud ou un autre. Une ligne **« Emplacement »** permet de **migrer** la machine vers un autre nœud, après les vérifications préalables de Proxmox. Une **zone dangereuse** en bas du panneau Matériel permet de supprimer une machine arrêtée : la fenêtre liste les disques détruits et exige de retaper le nom. Pour une VM, un onglet **Cloud-init** règle l'utilisateur, le mot de passe, les clés SSH, l'IP et le DNS, choisit des snippets `cicustom` existants (user, network, meta, vendor), et ajoute ou retire le lecteur cloud-init. Les disques s'**ajoutent, se détachent (données conservées), se rattachent, se déplacent et se suppriment définitivement** (en retapant le nom de la machine). On peut aussi **ajouter ou retirer une carte réseau** et régler l'**ordre de démarrage** d'une VM. Les changements qui ne s'appliquent qu'au redémarrage sont signalés « en attente ». L'ajout/suppression de disques et de cartes réseau est prévu dans une étape suivante.
+
+<details>
+<summary><strong>Captures d'écran : un tour de toutes les pages (cliquer pour déplier)</strong></summary>
 
 ## Captures d'écran
 
@@ -892,10 +921,12 @@ Ce que le token de Kaji peut faire, et les droits Proxmox (lecture seule). Les p
 
 *Les rôles Proxmox se déplient pour montrer leurs privilèges (ici `PVEAuditor`, lecture seule).*
 
+</details>
+
 ## Déploiement
 `docker compose up -d --build` lance le backend et le frontend (nginx). Guide complet, HTTPS, sauvegarde, mise à jour et mot de passe perdu : [docs/deploiement.md](docs/deploiement.md).
 
-## Démarrage (backend)
+## Développer en local (backend)
 Prérequis : Python 3.12+.
 
 ```bash
@@ -956,7 +987,7 @@ Kaji expose environ **360 routes**. Ce tableau n'en montre qu'une partie (les pr
 
 > **Droits Proxmox (M2).** Les actions demandent plus que la lecture seule. Pour limiter les risques, donne le rôle `PVEVMAdmin` au token **uniquement sur les machines concernées** (`pveum aclmod /vms/<vmid> -user kaji@pve -role PVEVMAdmin`) et garde `PVEAuditor` sur `/`.
 
-Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add kaji@pve kaji --privsep 0`), puis saisis l'hôte, `kaji@pve`, l'ID `kaji` et le secret dans Kaji.
+Côté Proxmox, crée l'utilisateur et le jeton avec `tools/proxmox-setup.sh` (lecture seule, **privilèges séparés**, expiration ; [docs/installation-lab.md](docs/installation-lab.md) § 2), puis saisis l'hôte, `kaji@pve`, l'ID `kaji` et le secret dans Kaji. Donne ensuite les droits fonction par fonction depuis la page « Accès » : évite `--privsep 0`, qui donnerait au jeton tous les droits de son compte.
 
 ### Configuration (`.env`)
 | Variable | Rôle | Défaut |
@@ -971,6 +1002,22 @@ Côté Proxmox, crée un utilisateur et un token dédiés (`pveum user token add
 | `KAJI_SETUP_TOKEN` | Jeton de première configuration : tant qu'aucun compte n'existe, l'écran de création du compte administrateur l'exige (sinon le premier qui atteint le port le crée). **Recommandé.** | vide |
 | `KAJI_ADMIN_USE_KAJI_TOKEN` | Ouvre la session administrateur d'un clic avec le jeton de Kaji, à qui tu as donné les droits d'administration dans Proxmox. **Désactivé par défaut** : activé, compromettre Kaji revient à compromettre l'administration de Proxmox (voir [docs/securite.md](docs/securite.md)). | `false` |
 | `KAJI_SCHEDULER` | Lance le planificateur d'actions et l'évaluation des alertes dans le processus de Kaji. `false` les coupe. | `true` |
+
+## Compte et sécurité
+Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour **changer le mot de passe** (l'actuel est exigé, 12 caractères minimum), **déconnecter toutes les sessions** et, pour un administrateur, **gérer les utilisateurs de Kaji** et leurs rôles.
+
+## Durcissement
+- **Sessions révocables** : chaque jeton renvoie à une session enregistrée en base ; la déconnexion, le changement de mot de passe et `logout-all` les suppriment, un jeton copié devient donc inutilisable.
+- **Base SQLite en `600`** (hash du mot de passe, tokens chiffrés, audit) : créée ainsi, ou resserrée au démarrage.
+- **Audit purgé** au-delà de `KAJI_AUDIT_RETENTION_DAYS`.
+- **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
+- Dépendances **à version fixée**, mises à jour par Dependabot.
+- **Migrations de schéma** : versionnées, **sauvegardées** (copie `kaji.db.bak-vN-…` en `600` avant toute migration, les 5 dernières sont gardées), **atomiques** (une transaction par migration, schéma compris) ; Kaji refuse de démarrer sur une base plus récente que le code. `python -m app.migrations status` (ou `upgrade`) depuis `backend/`.
+- **Rôles** vérifiés par le serveur à chaque requête ; tout ce qui n'est pas explicitement permis à un rôle est refusé.
+- Non couvert : l'authentification à deux facteurs **pour se connecter à Kaji** (la gestion de celle des comptes Proxmox existe) ; mot de passe oublié : `python -m app.admin_cli reset-password --user <nom>` sur le serveur (voir [docs/deploiement.md](docs/deploiement.md)).
+
+## Sécurité des secrets
+Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.
 
 ## Tests
 ```bash
@@ -989,18 +1036,3 @@ cd backend
 
 ## Licence
 [MIT](LICENSE)
-
-Le bouton **« Compte »** (bas de la barre latérale) ouvre une fenêtre pour **changer le mot de passe** (l'actuel est exigé, 12 caractères minimum), **déconnecter toutes les sessions** et, pour un administrateur, **gérer les utilisateurs de Kaji** et leurs rôles.
-
-## Durcissement
-- **Sessions révocables** : chaque jeton renvoie à une session enregistrée en base ; la déconnexion, le changement de mot de passe et `logout-all` les suppriment, un jeton copié devient donc inutilisable.
-- **Base SQLite en `600`** (hash du mot de passe, tokens chiffrés, audit) : créée ainsi, ou resserrée au démarrage.
-- **Audit purgé** au-delà de `KAJI_AUDIT_RETENTION_DAYS`.
-- **En-têtes** `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, et `Cache-Control: no-store` sur toute l'API.
-- Dépendances **à version fixée**, mises à jour par Dependabot.
-- **Migrations de schéma** : versionnées, **sauvegardées** (copie `kaji.db.bak-vN-…` en `600` avant toute migration, les 5 dernières sont gardées), **atomiques** (une transaction par migration, schéma compris) ; Kaji refuse de démarrer sur une base plus récente que le code. `python -m app.migrations status` (ou `upgrade`) depuis `backend/`.
-- **Rôles** vérifiés par le serveur à chaque requête ; tout ce qui n'est pas explicitement permis à un rôle est refusé.
-- Non couvert : l'authentification à deux facteurs **pour se connecter à Kaji** (la gestion de celle des comptes Proxmox existe) ; mot de passe oublié : `python -m app.admin_cli reset-password --user <nom>` sur le serveur (voir [docs/deploiement.md](docs/deploiement.md)).
-
-## Sécurité des secrets
-Les erreurs de validation de l'API **ne renvoient jamais les valeurs saisies** (mots de passe, secrets de token) : par défaut FastAPI recopie le corps de la requête dans l'erreur, ce que Kaji désactive. Les mots de passe de conteneur ne sont ni journalisés ni écrits dans l'audit.

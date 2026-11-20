@@ -77,6 +77,7 @@ def test_full_run_creates_a_nesting_unprivileged_container_starts_it_and_runs_in
     assert c.index("pveam download local debian-12-standard_12.7-1_amd64.tar.zst") < c.index(create) < c.index("pct start 200")
     assert any("install.sh" in x and "--yes --address 192.168.1.77" in x for x in find(c, "pct exec 200"))
     assert "Conteneur Kaji prêt" in r.stdout and "pct enter 200" in r.stdout
+    assert "pct pull 200 /root/kaji/caddy-root.crt caddy-root.crt" in r.stdout                  # le conteneur n'a pas de mot de passe : pas de scp direct
 
 
 def test_rootfs_storage_skips_inactive_ones_and_template_is_not_downloaded_twice(px):
@@ -167,3 +168,8 @@ def test_the_script_never_pipes_the_network_into_a_shell_and_never_sets_a_passwo
     t = (ROOT / "tools" / "proxmox-create-ct.sh").read_text(encoding="utf-8")
     assert "| sh" not in t and "| bash" not in t and "eval " not in t
     assert "--password" not in t and "--ssh-public-keys" not in t
+
+
+def test_local_mode_does_not_mention_the_https_certificate(px):
+    r = px.run("--yes", "--local")
+    assert r.returncode == 0 and "pct pull" not in r.stdout
