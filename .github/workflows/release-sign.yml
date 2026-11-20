@@ -36,7 +36,7 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "dist/$NAME.tar.gz"
           (cd dist && sha256sum -c "$NAME.tar.gz.sha256")
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: version-signee
           path: dist/

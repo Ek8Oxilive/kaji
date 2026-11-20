@@ -61,7 +61,7 @@ jobs:
             docker run --rm anchore/syft:v1.19.0 "$image" -o cyclonedx-json > "sbom/sbom-image-$safe.cdx.json"
             python tools/check_sbom.py image "sbom/sbom-image-$safe.cdx.json" "$image"
           done < sbom/images.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom/
