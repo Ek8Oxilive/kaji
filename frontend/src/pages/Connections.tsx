@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { FirstConnectionGuide } from "../components/FirstConnectionGuide";
 import { ServiceTokenDialog } from "../components/ServiceTokenDialog";
 import { TlsPinDialog } from "../components/TlsPinDialog";
 import { Button, Field, Notice } from "../components/ui";
@@ -55,6 +56,9 @@ export function Connections() {
         <h1 className="text-2xl font-semibold tracking-tight">{tr("Connexions")}</h1>
         <p className="text-muted">{tr("Les clusters Proxmox pilotés par Kaji. Les tokens sont chiffrés et ne sont jamais ré-affichés.")}</p>
       </header>
+
+      <FirstConnectionGuide empty={items?.length === 0}
+        onPrefill={() => { setForm((f) => ({ ...f, user: "kaji@pve", token_id: "kaji", port: 8006 })); setFormProbe(null); }} />
 
       <section className="grid gap-4 md:grid-cols-2">
         {items === null && <div className="panel h-28 animate-pulse" />}
