@@ -209,6 +209,87 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 
 Les variables `KAJI_TLS_*` et `KAJI_HTTP_PORT` ne servent qu'à l'étape 5.
 
+### 3.1 bis Tout le `.env` d'un coup (un seul copier-coller)
+Si tu préfères ne pas éditer le tableau ligne par ligne : **dans le dossier `kaji`, colle ce bloc entier dans le terminal**. Il **crée `.env`** (en remplaçant celui de l'étape 3), **génère les deux secrets pour toi** et laisse en commentaire (`#`) toutes les options facultatives, avec leur valeur par défaut. Une option s'active en retirant le `#` au début de sa ligne (`nano .env`).
+```bash
+cat > .env <<EOF
+# ===== À RÉGLER (les seuls réglages utiles pour démarrer) =====
+KAJI_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+KAJI_SETUP_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
+KAJI_PROTECTED_VMIDS=
+KAJI_COOKIE_SECURE=true
+KAJI_BIND=127.0.0.1
+KAJI_PORT=8080
+KAJI_AUDIT_RETENTION_DAYS=365
+KAJI_TRUST_PROXY=false
+
+# ===== HTTPS (étape 5) : retire le # et mets TON adresse, SANS port =====
+# KAJI_TLS_SITE=192.168.1.10
+# KAJI_TLS_NAME=kaji.home
+# KAJI_TLS_PORT=443
+# KAJI_HTTP_PORT=80
+# KAJI_TLS_BIND=0.0.0.0
+
+# ===== Facultatif : jetons Proxmox personnels, de service, planificateur =====
+# KAJI_ADMIN_USE_KAJI_TOKEN=true
+# KAJI_SCHEDULER=true
+# KAJI_TOKEN_KEY=
+# KAJI_TOKEN_KEY_FILE=
+# KAJI_TOKEN_KEY_PREVIOUS=
+# KAJI_REQUIRE_USER_TOKEN=false
+# KAJI_USER_TOKEN_MAX_DAYS=90
+# KAJI_TOKEN_CREATE_MAX_DAYS=365
+# KAJI_REQUIRE_SERVICE_TOKEN=false
+# KAJI_SERVICE_TOKEN_MAX_DAYS=365
+# KAJI_MAX_CONCURRENT_REQUESTS=100
+# KAJI_SECRET_KEY_PREVIOUS=
+
+# ===== Facultatif : export de l'audit =====
+# KAJI_AUDIT_FILE=/data/audit.jsonl
+# KAJI_AUDIT_FILE_MAX_MB=10
+# KAJI_AUDIT_FILE_BACKUPS=10
+# KAJI_AUDIT_SYSLOG=udp://syslog.example.com:514
+
+# ===== Facultatif : SSO OpenID Connect =====
+# KAJI_OIDC_ISSUER=https://idp.example.com/realms/entreprise
+# KAJI_OIDC_CLIENT_ID=kaji
+# KAJI_OIDC_CLIENT_SECRET=
+# KAJI_OIDC_REDIRECT_URI=https://kaji.example.com/api/auth/oidc/callback
+# KAJI_OIDC_SCOPES=openid profile
+# KAJI_OIDC_USERNAME_CLAIM=preferred_username
+# KAJI_OIDC_AUTO_CREATE=false
+# KAJI_OIDC_DEFAULT_ROLE=viewer
+# KAJI_OIDC_LABEL=SSO
+# KAJI_OIDC_ALLOW_ADMIN=true
+# KAJI_OIDC_GROUPS_CLAIM=groups
+# KAJI_OIDC_ADMIN_GROUP=
+# KAJI_OIDC_OPERATOR_GROUP=
+
+# ===== Facultatif : annuaire LDAP / Active Directory =====
+# KAJI_LDAP_URL=ldaps://annuaire.example.com:636
+# KAJI_LDAP_START_TLS=false
+# KAJI_LDAP_CA_FILE=
+# KAJI_LDAP_TLS_SERVER_NAME=
+# KAJI_LDAP_BASE_DN=dc=example,dc=com
+# KAJI_LDAP_BIND_DN=cn=kaji-lecture,dc=example,dc=com
+# KAJI_LDAP_BIND_PASSWORD=
+# KAJI_LDAP_USER_FILTER=(&(objectClass=person)(uid={username}))
+# KAJI_LDAP_USERNAME_ATTR=uid
+# KAJI_LDAP_AUTO_CREATE=false
+# KAJI_LDAP_DEFAULT_ROLE=viewer
+# KAJI_LDAP_LABEL=Annuaire
+# KAJI_LDAP_ALLOW_ADMIN=true
+# KAJI_LDAP_GROUPS_ATTR=memberOf
+# KAJI_LDAP_ADMIN_GROUP=
+# KAJI_LDAP_OPERATOR_GROUP=
+EOF
+chmod 600 .env
+grep -E '^KAJI_(SECRET_KEY|SETUP_TOKEN)=' .env     # affiche tes deux secrets : copie-les dans ton gestionnaire de mots de passe
+```
+- **À retenir** : `KAJI_SETUP_TOKEN` sert **une seule fois**, à créer le compte administrateur (§ 3.3) ; `KAJI_SECRET_KEY` doit être **sauvegardée à part** (§ 7).
+- Pour **protéger tes machines importantes** : `nano .env`, puis `KAJI_PROTECTED_VMIDS=100,101` (les numéros de tes VM).
+- Les lignes `#` n'ont aucun effet tant que tu n'as pas retiré le `#`. Ne mets **jamais** ce fichier dans Git ni dans un ticket.
+
 ### 3.2 Démarrer
 ```bash
 docker compose up -d --build
