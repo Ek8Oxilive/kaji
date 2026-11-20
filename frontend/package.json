@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check:accent": "node --experimental-strip-types scripts/check-accent.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

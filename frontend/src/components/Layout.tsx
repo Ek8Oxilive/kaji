@@ -48,20 +48,20 @@ export function Layout({ page, onNavigate, onLogout, restricted = false, childre
       <div className="flex flex-col gap-2">
         {!restricted && NAV_BOTTOM.map(item)}
         <Button variant="ghost" onClick={() => { setMenu(false); setAccount(true); }}>{tr("Compte")}</Button>
+        <AppearanceMenu variant="sidebar" />
         <Button variant="ghost" onClick={() => { setMenu(false); onLogout(); }}>{tr("Déconnexion")}</Button>
       </div>
     </>
   );
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      {/* Petit écran : barre du haut (menu, logo, apparence) ; la navigation s'ouvre dans un tiroir. */}
+      {/* Petit écran : barre du haut (menu, logo) ; la navigation s'ouvre dans un tiroir. */}
       <header className="panel sticky top-2 z-40 m-2 flex items-center gap-2 p-2 md:hidden">
         <button onClick={() => setMenu(true)} aria-label={tr("Ouvrir le menu")} aria-expanded={menu} aria-controls="menu-tiroir"
           className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface2 text-fg hover:brightness-125">
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
         <Logo />
-        <div className="ml-auto"><AppearanceMenu /></div>
       </header>
       {menu && (
         <div className="fixed inset-0 z-50 bg-black/60 md:hidden" onClick={() => setMenu(false)}>
@@ -79,7 +79,6 @@ export function Layout({ page, onNavigate, onLogout, restricted = false, childre
         {nav}
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="hidden items-center justify-end gap-2 p-3 md:flex md:pr-6"><AppearanceMenu /></header>
         <main className="flex-1 p-3 pt-1 sm:p-4 sm:pt-2 md:px-6">{children}</main>
         {page !== "tasks" && !restricted && <TaskBar onOpenTasks={() => onNavigate("tasks")} />}
       </div>
