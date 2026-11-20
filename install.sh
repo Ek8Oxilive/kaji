@@ -204,7 +204,7 @@ dcf() { dc $COMPOSE_ARGS "$@"; }
 # --- 4. Démarrage -------------------------------------------------------------------------------------------------------
 step "4/5 Démarrage (la première fois, la construction prend quelques minutes)"
 if [ -n "$USE_IMAGE" ]; then
-  dcf pull
+  dcf pull || die "images introuvables ou inaccessibles (aucune image n'est peut-être publiée pour cette version : voir docs/images-et-versions.md § 3). Relance sans --image pour construire Kaji sur place."
   dcf up -d
 else
   dcf up -d --build

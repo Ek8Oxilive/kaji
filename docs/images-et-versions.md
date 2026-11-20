@@ -4,7 +4,7 @@ Deux sujets liés au jalon J1 (`docs/cadrage-prod-entreprise.md`, ticket #427) :
 
 ## 1. Images de base épinglées par empreinte
 
-Kaji n'est pas publié sur un registre d'images : chaque installation le **construit** (`docker compose up -d --build`). Les images de départ sont donc désignées par `nom:étiquette@sha256:<empreinte>` :
+Par défaut, chaque installation **construit** Kaji (`docker compose up -d --build`) ; des **images publiées** sont aussi proposées en option (§ 3). Les images de départ sont donc désignées par `nom:étiquette@sha256:<empreinte>` :
 
 | Image | Où | Rôle |
 |---|---|---|
@@ -59,3 +59,14 @@ Une version = **une étiquette Git** qui désigne un commit de `main` dont la CI
 Les agents **ne créent ni ne poussent d'étiquette** sans demande explicite du propriétaire : publier est son geste.
 
 **Limite connue** : `v1.0.0-rc1` est une étiquette **légère** (sans message ni signature) posée sur le commit de la PR #424 ; elle n'est pas modifiée, les suivantes seront annotées.
+
+## 3. Images publiées sur ghcr.io (option, ticket #539)
+À chaque étiquette `v*`, `.github/workflows/publish-images.yml` construit (amd64 et arm64) et publie `ghcr.io/ek8oxilive/kaji-backend` et `ghcr.io/ek8oxilive/kaji-web`, avec l'étiquette de la version et `latest`. `docker-compose.image.yml` les désigne ; `KAJI_VERSION` (`.env`) choisit la version.
+```bash
+docker compose -f docker-compose.yml -f docker-compose.image.yml pull
+docker compose -f docker-compose.yml -f docker-compose.image.yml up -d      # ajoute -f docker-compose.tls.yml avec HTTPS
+```
+- **Qui publie** : la poussée de l'étiquette, geste du propriétaire (§ 2) ; **aucun agent** ne la fait. Le déclenchement manuel du workflow **construit sans publier** (essai), sauf si « publier » est coché.
+- **Première publication** : le paquet est créé **privé** par GitHub ; pour que les installations puissent le tirer sans compte, le propriétaire le passe en **public** (GitHub → profil → Packages → kaji-backend / kaji-web → Package settings → Change visibility).
+- **Pas signées** : seules les sources le sont (`docs/signature.md`). Les images de base restent épinglées par empreinte (§ 1).
+- **Pas essayé** : le workflow n'a jamais tourné (il ne le peut que sur une étiquette ou à la main) ; le premier essai à faire est le déclenchement manuel sans publier.

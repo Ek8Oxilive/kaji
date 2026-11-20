@@ -217,6 +217,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # → KAJI_SETUP
 | `KAJI_AUDIT_FILE_MAX_MB` | `10` (défaut) | Taille à partir de laquelle le fichier d'audit tourne (1 à 1024). |
 | `KAJI_AUDIT_FILE_BACKUPS` | `10` (défaut) | Nombre d'anciens fichiers d'audit gardés (`0` = pas de rotation : le fichier grossit sans limite). |
 | `KAJI_AUDIT_SYSLOG` | vide (défaut) | Envoi de l'audit à un serveur syslog : `udp://hôte:port` ou `tcp://hôte:port` (en clair : réseau de confiance seulement). Une valeur mal formée empêche Kaji de démarrer. |
+| `KAJI_VERSION` | `latest` (défaut) | Version des **images publiées** (`install.sh --image`, § 3.2 bis) : `latest` ou une étiquette précise comme `v1.0.0-rc1` (recommandé). Sans effet si tu construis Kaji sur place. |
 | `KAJI_BIND` | `127.0.0.1` (défaut) | Interface d'écoute de nginx. `0.0.0.0` ouvre tout le réseau : seulement derrière le HTTPS de l'étape 5. |
 | `KAJI_PORT` | `8080` (défaut) | Port de nginx. |
 
@@ -242,6 +243,9 @@ KAJI_TRUST_PROXY=false
 # KAJI_TLS_PORT=443
 # KAJI_HTTP_PORT=80
 # KAJI_TLS_BIND=0.0.0.0
+
+# ===== Facultatif : version des images publiées (install.sh --image) =====
+# KAJI_VERSION=latest
 
 # ===== Facultatif : jetons Proxmox personnels, de service, planificateur =====
 # KAJI_ADMIN_USE_KAJI_TOKEN=true
@@ -318,6 +322,14 @@ Le premier démarrage construit les images (quelques minutes). Si `backend` red�
 - `docker compose stop` / `docker compose start` : arrête / relance Kaji **sans rien perdre**. `docker compose down` supprime les conteneurs **mais garde les données** (volume `kaji-data`) ; **`docker compose down -v` EFFACE la base** (comptes, connexions, audit) : ne le tape jamais sans sauvegarde (§ 7).
 - Si tu as activé le HTTPS (§ 5), **ajoute `-f docker-compose.yml -f docker-compose.tls.yml` à chaque commande `docker compose`** (sinon Caddy s'arrête).
 - Après un redémarrage de la machine, Kaji repart tout seul (Docker relance les conteneurs).
+
+### 3.2 bis Sans compiler : utiliser les images publiées
+Les versions étiquetées publient leurs images sur `ghcr.io` (`ghcr.io/ek8oxilive/kaji-backend` et `kaji-web`, amd64 et arm64). Au lieu de `docker compose up -d --build` (plusieurs minutes de compilation), tu peux faire :
+```bash
+docker compose -f docker-compose.yml -f docker-compose.image.yml pull
+docker compose -f docker-compose.yml -f docker-compose.image.yml up -d
+```
+Choisis la version avec `KAJI_VERSION=v1.0.0-rc1` dans `.env` (sinon `latest`). Avec le script d'installation express : `sh install.sh --image`. Si `pull` répond « not found » ou « denied », **aucune image n'est encore publiée pour cette version** : reviens à `--build`. Les images ne sont **pas signées** ; seules les sources le sont (`docs/signature.md`). Ajoute `-f docker-compose.tls.yml` à chaque commande si tu as activé le HTTPS.
 
 ### 3.3 Créer le compte administrateur
 Ouvre **http://127.0.0.1:8080** depuis la machine de Kaji (en HTTP, seul `localhost` est accepté tant que le HTTPS n'est pas en place ; depuis un autre poste, fais d'abord l'étape 5 ou un tunnel `ssh -L 8080:127.0.0.1:8080 <machine>`). L'écran de **première configuration** demande un nom, un mot de passe (**12 caractères au moins**) et le jeton `KAJI_SETUP_TOKEN`. Trop d'essais ratés (5 par 5 minutes) bloquent la page un moment.

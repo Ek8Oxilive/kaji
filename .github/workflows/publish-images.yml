@@ -1,0 +1,54 @@
+# Publication des images de Kaji sur ghcr.io (installation express, ticket #539). docs/images-et-versions.md § 3.
+#   - Étiquette `v*` : construit (amd64 + arm64) ET publie `ghcr.io/<propriétaire>/kaji-backend` et `kaji-web`, avec l'étiquette de la version et `latest`.
+#   - Déclenchement manuel : construit SEULEMENT (pas de publication) sauf si « publier » est coché : c'est l'essai sans rien publier.
+# Jamais lancé par un agent : l'étiquette est le geste du propriétaire. Les images ne sont PAS signées (la chaîne signée reste celle des sources : docs/signature.md).
+name: Publication des images
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      publier:
+        description: "Publier réellement les images sur ghcr.io (sinon : construction seulement)"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write                      # seulement pour pousser sur ghcr.io avec le jeton du workflow (GITHUB_TOKEN)
+    env:
+      PUBLISH: ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.publier) && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v3.6.0
+      - uses: docker/setup-buildx-action@v3.11.1
+      - name: Connexion à ghcr.io
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Noms et étiquettes
+        run: |
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          version="${GITHUB_REF_NAME//\//-}"
+          echo "BACKEND=ghcr.io/$owner/kaji-backend" >> "$GITHUB_ENV"
+          echo "WEB=ghcr.io/$owner/kaji-web" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Construction (et publication si demandée)
+        run: |
+          push=""; [ "$PUBLISH" = "true" ] && push="--push"
+          [ -n "$push" ] || echo "Construction seulement : rien n'est publié."
+          for pair in "backend:$BACKEND" "frontend:$WEB"; do
+            ctx=${pair%%:*}; img=${pair#*:}
+            if [ -n "$push" ]; then
+              docker buildx build --platform linux/amd64,linux/arm64 --push -t "$img:$VERSION" -t "$img:latest" "./$ctx"
+            else
+              docker buildx build --platform linux/amd64,linux/arm64 "./$ctx"
+            fi
+          done
