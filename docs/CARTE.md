@@ -375,10 +375,14 @@ Trouver où est quelque chose : `grep -i mot docs/CARTE.md`. Règles : un test p
 
 ## Documentation
 - `docs/REPRISE.md` — Reprise rapide (lis ceci, et rien d'autre, avant de coder)
+- `docs/api-extrait.md` — API de Kaji : extrait
 - `docs/cadrage-prod-entreprise.md` — Cadrage : de « lab » à « production en entreprise » (jalons J…
+- `docs/captures.md` — Captures d'écran
 - `docs/deploiement.md` — Déploiement avec Docker
+- `docs/durcissement.md` — Durcissement et sécurité des secrets
 - `docs/essais-j2-a-faire-par-enzo.md` — Essais du jalon J2 : ce qui est vu en réel, et ce qu'il reste…
 - `docs/essais-reels-pc-b.md` — Essais réels des lots PC B (#164, #146, #147)
+- `docs/fonctions-interface.md` — Les fonctions de l'interface
 - `docs/images-et-versions.md` — Images de base épinglées et versions étiquetées
 - `docs/installation-lab.md` — Installer Kaji en lab
 - `docs/interface-langue.md` — Langue de l'interface (français / anglais)
