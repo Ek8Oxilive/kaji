@@ -15,4 +15,4 @@ Schéma lu sur `apidoc.js` de Proxmox 9 : `allowtoken: 1` pour les deux routes. 
 
 ## Validation
 Faux Proxmox strict (`backend/tests/test_oci.py` : seuls `reference` et `filename` acceptés, motifs, registres locaux, étiquettes hostiles, erreurs sans fuite, 401), 48 tests, 9 mutations tuées (1 équivalente).
-**Essai réel** : voir `docs/REPRISE.md`. **Non couvert** : créer un conteneur « application » depuis l'image (l'assistant de création liste les modèles `vztmpl`, pas les images OCI).
+**Essai réel (2026-11-20, #509)** : étiquettes lues sur `enzo` et `enzo2`, `library/alpine:3.20` téléchargée sur `enzo2` puis supprimée, refus sans `confirm` (400) et registre local (422). **Piège trouvé** : les droits posés directement sur `/nodes` (rôles Kaji) REMPLACENT ceux hérités de `/` (même `Administrator`) : sans `Sys.AccessNetwork` sur `/nodes`, `oci/tags` répondait 502 « Droits insuffisants » ; rôle dédié `KajiAccessNetwork` posé sur `/nodes` par le propriétaire (voir `docs/api/acces.md`). **Non couvert** : créer un conteneur « application » depuis l'image (l'assistant de création liste les modèles `vztmpl`, pas les images OCI).
