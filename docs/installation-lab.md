@@ -346,7 +346,7 @@ Le premier démarrage construit les images (quelques minutes). Si `backend` red�
 Ouvre **http://127.0.0.1:8080** depuis la machine de Kaji (en HTTP, seul `localhost` est accepté tant que le HTTPS n'est pas en place ; depuis un autre poste, fais d'abord l'étape 5 ou un tunnel `ssh -L 8080:127.0.0.1:8080 <machine>`). L'écran de **première configuration** demande un nom, un mot de passe (**12 caractères au moins**) et le jeton `KAJI_SETUP_TOKEN`. Trop d'essais ratés (5 par 5 minutes) bloquent la page un moment.
 
 ## 4. Connecter Kaji à Proxmox
-Dans Kaji, page **« Connexions »** → ajouter :
+Dans Kaji, page **« Connexions »**, un **guide en 3 étapes** s'ouvre tout seul tant qu'aucun cluster n'est enregistré : il affiche les commandes du script de l'étape 2 avec un bouton « Copier » et un bouton qui pré-remplit `kaji@pve`, le jeton `kaji` et le port 8006. Ajouter :
 | Champ | Valeur |
 |---|---|
 | Nom | libre |
