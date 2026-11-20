@@ -110,5 +110,5 @@ def test_the_verification_regex_of_the_script_matches_the_one_of_the_workflow():
 
 def test_the_doc_is_honest_about_what_is_not_signed_or_not_run():
     doc = (ROOT / "docs" / "signature.md").read_text(encoding="utf-8")
-    for needle in ("L'étiquette Git n'est pas signée", "git tag -s", "ne sont pas signés", "Jamais exécuté sur une vraie étiquette", "pas d'image de Kaji à signer", "Run workflow"):
+    for needle in ("L'étiquette Git n'est pas signée", "git tag -s", "ne sont pas signés", "Jamais exécuté sur une vraie étiquette", "elles ne sont pas signées", "Run workflow"):
         assert needle in doc, needle

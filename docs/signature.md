@@ -28,7 +28,7 @@ cosign verify-blob --bundle kaji-v1.0.0.tar.gz.sigstore.json \
 ```
 
 ## Et les images ?
-**Kaji n'est pas publié sous forme d'images** : chaque installation les **construit** depuis les sources (`docker compose up -d --build`). Il n'y a donc pas d'image de Kaji à signer. La chaîne de confiance est : **sources signées** → **images de base épinglées par empreinte** (`docs/images-et-versions.md`) → **liste des composants** (`docs/sbom.md`). Publier des images signées sur un registre (par exemple `ghcr.io`) serait un **nouveau canal de distribution** : décision du propriétaire, non faite.
+**Par défaut, chaque installation construit les images** depuis les sources (`docker compose up -d --build`). Des images sont aussi publiées sur `ghcr.io` à chaque étiquette (`docs/images-et-versions.md` § 3), mais **elles ne sont pas signées**. La chaîne de confiance est : **sources signées** → **images de base épinglées par empreinte** (`docs/images-et-versions.md`) → **liste des composants** (`docs/sbom.md`). **Signer ces images** (cosign sans clé, par empreinte) reste à faire : non faite.
 
 ## Ce qui n'est PAS fait
 - **L'étiquette Git n'est pas signée** (`git tag -s`) : cela exige **la clé personnelle du propriétaire** (GPG ou SSH) ; `v1.0.0-rc1` est une étiquette légère. La signature de l'archive par le workflow n'en dépend pas, mais ne prouve pas qui a décidé de publier.

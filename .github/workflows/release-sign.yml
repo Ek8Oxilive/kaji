@@ -2,7 +2,7 @@
 # Signature SANS CLÉ (Sigstore) de l'archive des sources : l'identité qui signe est CE workflow, dans CE dépôt, sur une étiquette. Rien à garder ni à voler.
 #   - Étiquette `v*` : archive + somme SHA-256 + signature (paquet « bundle ») ; vérifiées tout de suite ; jointes à la release SI elle existe (jamais créée ici : geste du propriétaire).
 #   - Déclenchement manuel : même chaîne sur la branche choisie, **sans** étiquette ni release (artefact du workflow seulement) : c'est l'essai sans publier.
-# Kaji n'est pas publié en images : chaque installation les construit depuis ces sources (bases épinglées par empreinte, docs/images-et-versions.md).
+# Les images publiées (publish-images.yml) ne sont PAS signées ; la chaîne de confiance reste : sources signées, bases épinglées par empreinte (docs/images-et-versions.md).
 name: Signature des versions
 on:
   push:

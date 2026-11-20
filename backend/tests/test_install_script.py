@@ -23,7 +23,8 @@ case "$1" in
     case "$1" in
       version) [ -z "${SHIM_NO_COMPOSE:-}" ] && exit 0 || exit 1 ;;
       cp) cp /dev/null "$3"; echo CERT > "$3"; exit 0 ;;
-      up|pull|ps|logs) exit 0 ;;
+      pull) [ -z "${SHIM_NO_IMAGES:-}" ] && exit 0 || { echo denied >&2; exit 1; } ;;
+      up|ps|logs) exit 0 ;;
     esac ;;
 esac
 exit 0
@@ -181,3 +182,29 @@ def test_unknown_option_is_refused(lab):
 def test_the_script_never_pipes_the_network_into_a_shell():
     text = (ROOT / "install.sh").read_text(encoding="utf-8")
     assert "| sh" not in text and "| bash" not in text and "eval " not in text
+
+
+def test_image_mode_pulls_then_starts_without_building_and_uses_the_override_file(lab):
+    (lab.repo / "docker-compose.image.yml").write_text("services: {}\n")
+    lab.git("-c", "user.email=t@t", "-c", "user.name=t", "add", "-A")
+    lab.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "image")
+    r = lab.run("--local", "--yes", "--image")
+    assert r.returncode == 0, r.stderr
+    c = lab.calls()
+    assert "docker compose -f docker-compose.yml -f docker-compose.image.yml pull" in c
+    assert "docker compose -f docker-compose.yml -f docker-compose.image.yml up -d" in c
+    assert not any("--build" in x for x in c)
+
+
+def test_image_mode_explains_when_no_image_is_published_and_does_not_claim_success(lab):
+    (lab.repo / "docker-compose.image.yml").write_text("services: {}\n")
+    lab.git("-c", "user.email=t@t", "-c", "user.name=t", "add", "-A")
+    lab.git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "image")
+    r = lab.run("--local", "--yes", "--image", SHIM_NO_IMAGES="1")
+    assert r.returncode != 0 and "images introuvables" in r.stderr and "Kaji est installé" not in r.stdout
+    assert not any(" up " in x for x in lab.calls())
+
+
+def test_image_flag_without_the_override_file_is_refused_with_a_hint(lab):
+    r = lab.run("--local", "--yes", "--image")
+    assert r.returncode != 0 and "retire --image" in r.stderr

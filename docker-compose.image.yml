@@ -1,0 +1,9 @@
+# Utiliser les images PUBLIÉES au lieu de les construire : `docker compose -f docker-compose.yml -f docker-compose.image.yml pull`
+# puis `... up -d` (voir docs/images-et-versions.md § 3). `install.sh --image` le fait pour toi.
+# KAJI_VERSION (fichier .env) choisit la version : `latest` (défaut) ou une étiquette comme `v1.0.0-rc1` (recommandé : une version précise).
+# Les images sont construites par .github/workflows/publish-images.yml à chaque étiquette `v*` ; elles ne sont pas signées.
+services:
+  backend:
+    image: ghcr.io/ek8oxilive/kaji-backend:${KAJI_VERSION:-latest}
+  web:
+    image: ghcr.io/ek8oxilive/kaji-web:${KAJI_VERSION:-latest}
