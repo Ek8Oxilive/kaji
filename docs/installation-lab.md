@@ -6,6 +6,18 @@ Guide pour installer Kaji sur une machine neuve et le brancher sur un cluster Pr
 
 > **Honnêteté sur ce guide.** Il a été écrit à partir du code et de l'installation du propriétaire, **mais jamais rejoué de zéro par quelqu'un d'autre** : c'est le but du ticket #428. **Si une étape ne marche pas comme écrit, ouvre un ticket** avec la commande et le message obtenu : c'est exactement ce qu'on cherche.
 
+## Démarrage rapide : les 7 étapes en une page
+Si tu n'as jamais installé ce genre d'outil, **suis ces 7 étapes dans l'ordre** ; chacune renvoie à la section qui la détaille. Tu n'as besoin de **rien d'autre** pour un premier essai.
+1. **Une machine pour Kaji** : une VM Debian 12 sur ton Proxmox (§ 1.1), ou n'importe quel Linux.
+2. **Docker** sur cette machine (§ 1.2) : trois commandes à copier.
+3. **Un utilisateur et un jeton dans Proxmox**, en lecture seule (§ 2) : trois commandes ; **note le secret du jeton**.
+4. **Récupérer Kaji et régler `.env`** (§ 3 et 3.1) : tu ne modifies que **trois lignes** (`KAJI_SECRET_KEY`, `KAJI_SETUP_TOKEN`, éventuellement `KAJI_PROTECTED_VMIDS`). **Ne touche pas aux autres** : elles sont facultatives.
+5. **Démarrer** (§ 3.2) : `docker compose up -d --build`, puis ouvrir la page et créer le compte administrateur (§ 3.3).
+6. **Brancher Proxmox** (§ 4) : page « Connexions » de Kaji.
+7. **HTTPS** (§ 5), seulement si tu veux ouvrir Kaji depuis un autre poste que la machine de Kaji.
+
+Pour un **premier essai sans HTTPS**, depuis ton poste : `ssh -L 8080:127.0.0.1:8080 <utilisateur>@<adresse de la machine de Kaji>` puis ouvre `http://127.0.0.1:8080` dans ton navigateur (§ 3.3).
+
 ## 0. Ce que tu vas obtenir
 Trois conteneurs Docker sur **une** machine : `backend` (FastAPI, base SQLite), `web` (nginx : interface et relais de `/api`) et, si tu le demandes, `tls` (Caddy : HTTPS). Kaji parle à l'API de ton Proxmox avec **un jeton** (pas de mot de passe stocké).
 
@@ -18,6 +30,43 @@ Quelques fonctions restent réservées à `root@pam` par Proxmox lui-même (moni
 | Un cluster Proxmox VE | Joignable depuis cette machine en HTTPS sur le port **8006** (`curl -k https://<nœud>:8006/api2/json/version` répond). Développé et essayé sur Proxmox VE 8 et 9 (cluster de 2 nœuds : voir `docs/statut-fonctions.md` pour ce qui est « validé en réel »). |
 | Un accès administrateur à Proxmox | Pour créer l'utilisateur et le jeton de l'étape 2 (shell d'un nœud en `root`, ou l'interface web). |
 | Un navigateur | Sur un autre poste que Kaji ou le même. |
+
+### 1.1 Créer la machine de Kaji (si tu n'en as pas déjà une)
+Le plus simple : **une VM Debian 12** sur ton Proxmox. Préfère une VM à un conteneur LXC : Docker dans un LXC demande des options spéciales (`nesting`, `keyctl`) et casse plus facilement.
+1. Télécharge l'ISO « netinst » de Debian 12 (`debian.org`) et envoie-la dans un stockage de Proxmox (Stockage → ISO Images → Upload).
+2. « Create VM » : 2 vCPU, **2 Go de RAM**, disque de **20 Go**, réseau `vmbr0` (le même que ton cluster).
+3. Démarre la VM, ouvre sa console et installe Debian : choisis « SSH server » et « standard system utilities », laisse le reste par défaut. Retiens le nom d'utilisateur et le mot de passe que tu crées.
+4. Au premier démarrage, connecte-toi et note l'adresse IP : `ip -4 addr` (cherche une ligne `inet 192.168.x.y`).
+5. À partir de là, **tu peux travailler depuis ton poste** : `ssh <utilisateur>@<adresse IP>`. Toutes les commandes de ce guide se tapent dans ce terminal, **sur la machine de Kaji**, sauf celles de l'étape 2 (shell du nœud Proxmox).
+
+Note : `sudo` n'est pas toujours installé sur Debian. S'il manque : `su -` (mot de passe `root`), puis `apt-get install -y sudo` et `usermod -aG sudo <utilisateur>`, déconnecte-toi et reconnecte-toi.
+
+### 1.2 Installer Docker et Docker Compose (Debian 12 / Ubuntu)
+Docker fait tourner Kaji dans des « conteneurs » : des boîtes isolées, sans rien installer d'autre sur la machine. **Docker Compose** lit le fichier `docker-compose.yml` du dépôt et lance les trois boîtes d'un coup. On installe la version officielle, depuis le dépôt de Docker (celle de Debian est trop ancienne).
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git python3
+sudo install -m 0755 -d /etc/apt/keyrings
+# Debian. Sous Ubuntu, remplace « debian » par « ubuntu » dans les DEUX lignes qui suivent.
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+Vérifie que ça marche :
+```bash
+sudo docker run --rm hello-world       # affiche « Hello from Docker! »
+docker compose version                 # affiche « Docker Compose version v2.… »
+```
+Pour ne pas taper `sudo` devant chaque commande `docker` : `sudo usermod -aG docker $USER`, puis **déconnecte-toi et reconnecte-toi** (ou `newgrp docker`). Attention : faire partie du groupe `docker` revient à être `root` sur la machine ; fais-le seulement sur la machine dédiée à Kaji. Sans cela, ajoute `sudo` devant chaque `docker …` du guide.
+
+Autre distribution : suis la page officielle `docs.docker.com/engine/install/` pour la tienne (Arch : `sudo pacman -S docker docker-compose`, puis `sudo systemctl enable --now docker`).
+
+### 1.3 Se repérer dans le terminal
+- **Où taper** : chaque bloc de commandes se copie-colle dans le terminal SSH, une ligne à la fois ou le bloc entier.
+- **Éditer le fichier `.env`** : `nano .env`. Déplace-toi avec les flèches, **Ctrl+O** puis **Entrée** pour enregistrer, **Ctrl+X** pour quitter. Une valeur par ligne, **sans guillemets**, sans espace autour du `=`.
+- **Où suis-je ?** `pwd` affiche le dossier courant ; `cd ~/kaji` revient dans celui de Kaji. Les commandes `docker compose …` se tapent **toujours dans ce dossier**.
+- **Un message d'erreur** : copie-le tel quel dans un ticket du dépôt (jamais un secret).
 
 ## 2. Préparer Proxmox : un utilisateur et un jeton au moindre privilège
 Kaji se connecte avec **un jeton API à privilèges séparés**. Principe : **on lui donne seulement ce dont on a besoin, jamais `Administrator`**.
@@ -168,6 +217,14 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/api/health     # 
 ```
 Le premier démarrage construit les images (quelques minutes). Si `backend` redémarre en boucle : `docker compose logs backend` (cause la plus fréquente : `KAJI_SECRET_KEY` vide ou d'exemple).
 
+**Ce que font ces commandes, et comment lire le résultat**
+- `docker compose up -d --build` : **construit** les images (`--build`, quelques minutes la première fois) et **lance** les conteneurs en arrière-plan (`-d`). Elle ne bloque pas le terminal.
+- `docker compose ps` : la liste des conteneurs. `backend` doit afficher `healthy` (ou `Up`) et `web` `Up` ; **`Restarting` veut dire un problème** : `docker compose logs backend` donne la raison dans ses dernières lignes (le plus souvent `KAJI_SECRET_KEY` vide).
+- `docker compose logs -f backend` : suit le journal en direct (Ctrl+C pour arrêter de suivre, ça n'arrête pas Kaji).
+- `docker compose stop` / `docker compose start` : arrête / relance Kaji **sans rien perdre**. `docker compose down` supprime les conteneurs **mais garde les données** (volume `kaji-data`) ; **`docker compose down -v` EFFACE la base** (comptes, connexions, audit) : ne le tape jamais sans sauvegarde (§ 7).
+- Si tu as activé le HTTPS (§ 5), **ajoute `-f docker-compose.yml -f docker-compose.tls.yml` à chaque commande `docker compose`** (sinon Caddy s'arrête).
+- Après un redémarrage de la machine, Kaji repart tout seul (Docker relance les conteneurs).
+
 ### 3.3 Créer le compte administrateur
 Ouvre **http://127.0.0.1:8080** depuis la machine de Kaji (en HTTP, seul `localhost` est accepté tant que le HTTPS n'est pas en place ; depuis un autre poste, fais d'abord l'étape 5 ou un tunnel `ssh -L 8080:127.0.0.1:8080 <machine>`). L'écran de **première configuration** demande un nom, un mot de passe (**12 caractères au moins**) et le jeton `KAJI_SETUP_TOKEN`. Trop d'essais ratés (5 par 5 minutes) bloquent la page un moment.
 
@@ -202,6 +259,14 @@ docker compose -f docker-compose.yml -f docker-compose.tls.yml cp tls:/data/cadd
 Réglages facultatifs de Caddy : `KAJI_TLS_PORT` (443 par défaut), `KAJI_HTTP_PORT` (80, simple redirection vers HTTPS) et `KAJI_TLS_BIND` (`0.0.0.0` par défaut : Caddy écoute sur toutes les interfaces ; mets l'adresse de ta carte réseau interne pour le limiter).
 
 Installe `caddy-root.crt` comme **autorité de confiance** dans ton navigateur ou ton système, puis ouvre **`https://<adresse>`** (port 443 ; le port 80 renvoie vers HTTPS). **Même commande (les deux fichiers `-f`) à chaque redémarrage ou mise à jour**, sinon Caddy s'arrête.
+
+**Installer `caddy-root.crt` sur ton poste** (la machine qui ouvre Kaji, pas la machine de Kaji). Récupère d'abord le fichier : `scp <utilisateur>@<adresse de Kaji>:~/kaji/caddy-root.crt .` (ou copie son contenu dans un fichier du même nom). C'est un certificat **public** (pas un secret) ; **n'installe jamais** un certificat d'autorité reçu d'une source que tu ne connais pas.
+- **Windows** : double-clique le fichier → « Installer le certificat… » → « Ordinateur local » → « Placer tous les certificats dans le magasin suivant » → **« Autorités de certification racines de confiance »** → Terminer. Ou, dans un PowerShell **administrateur** : `certutil -addstore -f Root caddy-root.crt`. Redémarre le navigateur.
+- **macOS** : `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain caddy-root.crt`, puis redémarre le navigateur.
+- **Linux** (Debian / Ubuntu) : `sudo cp caddy-root.crt /usr/local/share/ca-certificates/caddy-root.crt && sudo update-ca-certificates`. Chrome et Chromium lisent leur propre magasin : Paramètres → Confidentialité et sécurité → Sécurité → Gérer les certificats → **Autorités** → Importer.
+- **Firefox** (tous systèmes, il a son propre magasin) : Paramètres → Vie privée et sécurité → Certificats → « Afficher les certificats… » → **Autorités** → Importer → coche « Confirmer cette AC pour identifier des sites web ».
+
+Vérification : ouvre `https://<adresse>` ; le cadenas doit être fermé, sans avertissement. Si le navigateur affiche encore « connexion non sécurisée », le certificat n'est pas dans le bon magasin, ou tu ouvres Kaji par un nom ou une adresse qui n'est ni `KAJI_TLS_SITE` ni `KAJI_TLS_NAME`.
 
 Garde l'ancien accès local tant que le HTTPS n'est pas vérifié. Sauvegarde aussi le volume `caddy-data` (clé de l'autorité interne : la perdre te fait réinstaller le certificat dans tous les navigateurs). Avec Tailscale, `tailscale serve` remplace Caddy.
 
