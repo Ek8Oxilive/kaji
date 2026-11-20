@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Logo } from "../components/Logo";
-import { ThemeSwitcher } from "../components/ThemeSwitcher";
+import { AppearanceMenu } from "../components/AppearanceMenu";
 import { Button, Field, Notice } from "../components/ui";
 import { api } from "../lib/api";
 import type { LoginStep } from "../lib/types/totp";
@@ -50,7 +50,7 @@ export function AuthScreen({ setup, tokenRequired = false, onDone }: { setup: bo
 
   return (
     <main className="grid min-h-full place-items-center p-4">
-      <div className="absolute right-4 top-4"><ThemeSwitcher /></div>
+      <div className="absolute right-4 top-4"><AppearanceMenu /></div>
       <form onSubmit={submit} className="panel w-full max-w-sm space-y-5 p-7">
         <Logo />
         <div>

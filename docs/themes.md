@@ -1,6 +1,6 @@
 # Thèmes de l'interface
 
-Frontend seul. Sélecteur en haut de chaque page (dans le tiroir du menu sur téléphone) et palette de commandes (Ctrl K, « Thème … »). Le choix est gardé dans le navigateur (`localStorage`, clé `kaji-theme`) ; sans choix : Sombre.
+Frontend seul. Menu **« Apparence »** en haut à droite de chaque page (dans la barre du haut sur téléphone, et sur l'écran de connexion), qui regroupe le thème et la langue et palette de commandes (Ctrl K, « Thème … »). Le choix est gardé dans le navigateur (`localStorage`, clé `kaji-theme`) ; sans choix : Sombre.
 
 | Thème | Rôle |
 |---|---|
