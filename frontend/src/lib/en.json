@@ -2845,5 +2845,7 @@
  "Pré-remplir : kaji@pve, jeton kaji, port 8006": "Pre-fill: kaji@pve, token kaji, port 8006",
  "Clique sur « Tester la connexion », puis « Enregistrer ». Ensuite, « Épingler le certificat… » : compare l'empreinte affichée avec celle du script avant de confirmer.": "Click “Test connection”, then “Save”. Then “Pin the certificate…”: compare the fingerprint shown with the script's before confirming.",
  "Le script n'affiche le secret du jeton qu'une seule fois. Colle-le toi-même dans le formulaire : Kaji ne le ré-affiche jamais et personne d'autre que toi ne doit le voir.": "The script shows the token secret only once. Paste it into the form yourself: Kaji never shows it again and nobody but you should see it.",
- "Sans le script, les trois commandes à la main sont dans docs/installation-lab.md, étape 2.": "Without the script, the three manual commands are in docs/installation-lab.md, step 2."
+ "Sans le script, les trois commandes à la main sont dans docs/installation-lab.md, étape 2.": "Without the script, the three manual commands are in docs/installation-lab.md, step 2.",
+ "Apparence": "Appearance",
+ "Apparence : thème et langue": "Appearance: theme and language"
 }
