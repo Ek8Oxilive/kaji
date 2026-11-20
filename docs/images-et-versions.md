@@ -69,4 +69,4 @@ docker compose -f docker-compose.yml -f docker-compose.image.yml up -d      # aj
 - **Qui publie** : la poussée de l'étiquette, geste du propriétaire (§ 2) ; **aucun agent** ne la fait. Le déclenchement manuel du workflow **construit sans publier** (essai), sauf si « publier » est coché.
 - **Première publication** : le paquet est créé **privé** par GitHub ; pour que les installations puissent le tirer sans compte, le propriétaire le passe en **public** (GitHub → profil → Packages → kaji-backend / kaji-web → Package settings → Change visibility).
 - **Pas signées** : seules les sources le sont (`docs/signature.md`). Les images de base restent épinglées par empreinte (§ 1).
-- **Pas essayé** : le workflow n'a jamais tourné (il ne le peut que sur une étiquette ou à la main) ; le premier essai à faire est le déclenchement manuel sans publier.
+- **Essayé le 2026-11-20** : déclenchement manuel **sans publier** : succès, amd64 et arm64 construits, rien publié. **Pas essayé** : la publication elle-même (étiquette `v*`), puis le `pull` des images.
