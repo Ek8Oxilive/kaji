@@ -71,6 +71,14 @@ Autre distribution : suis la page officielle `docs.docker.com/engine/install/` p
 ## 2. Préparer Proxmox : un utilisateur et un jeton au moindre privilège
 Kaji se connecte avec **un jeton API à privilèges séparés**. Principe : **on lui donne seulement ce dont on a besoin, jamais `Administrator`**.
 
+**Option express (recommandée)** : un script fait les trois commandes ci-dessous à ta place, sans erreur de recopie. Sur le shell d'un nœud Proxmox, en `root`, **télécharge-le, relis-le, puis lance-le** :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ek8Oxilive/kaji/main/tools/proxmox-setup.sh -o proxmox-setup.sh
+less proxmox-setup.sh      # relis-le (q pour quitter)
+sh proxmox-setup.sh        # demande confirmation, puis affiche les valeurs à saisir dans Kaji
+```
+Il crée `kaji@pve`, le jeton `kaji` (privilèges séparés, expiration dans 365 jours par défaut : `--days N`), donne le rôle `PVEAuditor` (lecture seule) à l'utilisateur **et** au jeton, puis **affiche le secret une seule fois**, avec l'empreinte du certificat à comparer plus tard. Il ne donne jamais `Administrator`, refuse `root@pam`, **n'écrase jamais un jeton existant** et retire ce qu'il vient de créer si une étape échoue. `sh proxmox-setup.sh --dry-run` affiche les commandes sans rien faire. Si tu l'utilises, saute aux étapes 2.2 et 3 ; sinon, les commandes à la main :
+
 Sur le shell d'un nœud Proxmox, en `root` :
 ```bash
 pveum user add kaji@pve --comment "Kaji (interface web)"
