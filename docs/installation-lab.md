@@ -6,6 +6,21 @@ Guide pour installer Kaji sur une machine neuve et le brancher sur un cluster Pr
 
 > **Honnêteté sur ce guide.** Il a été écrit à partir du code et de l'installation du propriétaire, **mais jamais rejoué de zéro par quelqu'un d'autre** : c'est le but du ticket #428. **Si une étape ne marche pas comme écrit, ouvre un ticket** avec la commande et le message obtenu : c'est exactement ce qu'on cherche.
 
+## Option tout-en-un : tout créer depuis le nœud Proxmox
+Tu n'as pas encore de machine pour Kaji ? Un script, lancé **en root sur un nœud Proxmox**, crée un conteneur Debian 12, y installe Docker et Kaji, et affiche l'adresse et le jeton de première configuration. **Télécharge-le, relis-le, puis lance-le** :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ek8Oxilive/kaji/main/tools/proxmox-create-ct.sh -o proxmox-create-ct.sh
+less proxmox-create-ct.sh                 # relis-le (q pour quitter)
+sh proxmox-create-ct.sh --dry-run         # affiche ce qu'il ferait, sans rien créer
+sh proxmox-create-ct.sh                   # demande confirmation, puis crée et installe
+```
+- Il prend le **prochain identifiant libre** et **refuse** un identifiant déjà pris (`--vmid N` pour choisir) : il ne touche à aucune VM ni aucun conteneur existant.
+- Réglages : `--name`, `--storage`, `--bridge` (défaut `vmbr0`), `--ip 192.168.1.50/24 --gw 192.168.1.1` (défaut : DHCP), `--cores 2`, `--memory 2048`, `--disk 16`, `--pool`, `--local` (accès depuis le conteneur seulement). `--help` donne la liste.
+- Le conteneur est **non privilégié**, avec les options `nesting` et `keyctl` dont Docker a besoin. Il n'a **pas de mot de passe** : on y entre depuis le nœud avec `pct enter <identifiant>`.
+- Si la création ou le démarrage échoue, il **supprime le conteneur qu'il vient de créer** (et lui seul). Si c'est l'installation de Kaji qui échoue, il **garde** le conteneur pour que tu lises les journaux, et affiche la commande pour le supprimer.
+- **Limite connue** : Docker dans un conteneur non privilégié marche en général sur Proxmox VE 8 et 9, mais peut échouer selon le noyau ou AppArmor. Dans ce cas, utilise une VM Debian (§ 1.1) et l'option express ci-dessous.
+- Ensuite : crée l'utilisateur et le jeton avec `tools/proxmox-setup.sh` (§ 2), puis ajoute le cluster dans Kaji (§ 4).
+
 ## Option express : un script fait les étapes 3 à 5 pour toi
 Sur la machine de Kaji (Debian ou Ubuntu : Docker est installé au besoin ; ailleurs, Docker doit déjà être là). **Télécharge le script, relis-le, puis lance-le** (ne l'exécute pas à l'aveugle) :
 ```bash
