@@ -18,7 +18,7 @@ jobs:
       id-token: write                      # jeton d'identité du workflow : c'est lui qui prouve QUI signe (Sigstore)
     steps:
       - uses: actions/checkout@v7
-      - uses: sigstore/cosign-installer@v3.7.0
+      - uses: sigstore/cosign-installer@v4.1.3
         with:
           cosign-release: "v2.4.1"
       - name: Archive des sources et somme SHA-256
