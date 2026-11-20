@@ -18,7 +18,7 @@ sh proxmox-create-ct.sh                   # demande confirmation, puis crée et 
 - Réglages : `--name`, `--storage`, `--bridge` (défaut `vmbr0`), `--ip 192.168.1.50/24 --gw 192.168.1.1` (défaut : DHCP), `--cores 2`, `--memory 2048`, `--disk 16`, `--pool`, `--local` (accès depuis le conteneur seulement). `--help` donne la liste.
 - Le conteneur est **non privilégié**, avec les options `nesting` et `keyctl` dont Docker a besoin. Il n'a **pas de mot de passe** : on y entre depuis le nœud avec `pct enter <identifiant>`.
 - Si la création ou le démarrage échoue, il **supprime le conteneur qu'il vient de créer** (et lui seul). Si c'est l'installation de Kaji qui échoue, il **garde** le conteneur pour que tu lises les journaux, et affiche la commande pour le supprimer.
-- **Limite connue** : Docker dans un conteneur non privilégié marche en général sur Proxmox VE 8 et 9, mais peut échouer selon le noyau ou AppArmor. Dans ce cas, utilise une VM Debian (§ 1.1) et l'option express ci-dessous.
+- **Limite connue** : Docker dans un conteneur non privilégié peut échouer selon le noyau ou AppArmor. *Essayé en réel le 2026-11-20 sur Proxmox VE 9.1 (noyau 7.0) : ça a marché, Docker installé par le script, Kaji en HTTPS.* Pas essayé sur Proxmox VE 8. Dans ce cas, utilise une VM Debian (§ 1.1) et l'option express ci-dessous.
 - Ensuite : crée l'utilisateur et le jeton avec `tools/proxmox-setup.sh` (§ 2), puis ajoute le cluster dans Kaji (§ 4).
 
 ## Option express : un script fait les étapes 3 à 5 pour toi
@@ -32,7 +32,7 @@ Il te demande **une seule chose** : l'adresse par laquelle tu ouvriras Kaji (ré
 
 Il reste ensuite à créer l'utilisateur et le jeton dans Proxmox (§ 2) et à brancher la connexion (§ 4).
 
-*Essayé en réel le 2026-11-20 (Docker 29 sur Arch Linux) : installation locale, relance (`.env` identique), installation HTTPS avec récupération du certificat et réponse en HTTPS avec ce certificat. **Pas essayé** : l'installation automatique de Docker sur Debian / Ubuntu (écrite d'après la documentation officielle), une machine autre que celle du développement.*
+*Essayé en réel le 2026-11-20 : sur Arch Linux avec Docker 29 (installation locale, relance avec `.env` identique, HTTPS avec récupération du certificat) ET dans un conteneur Debian 12 d'un vrai nœud Proxmox VE 9, où le script a **installé Docker lui-même** depuis le dépôt officiel, construit et démarré Kaji en HTTPS (réponse 200 depuis le poste). **Pas essayé** : Ubuntu, une machine autre que ces deux-là, `--image` (aucune image n'est encore publiée).*
 
 ## Démarrage rapide : les 7 étapes en une page
 Si tu n'as jamais installé ce genre d'outil, **suis ces 7 étapes dans l'ordre** ; chacune renvoie à la section qui la détaille. Tu n'as besoin de **rien d'autre** pour un premier essai.
