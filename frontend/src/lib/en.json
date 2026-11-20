@@ -2847,5 +2847,18 @@
  "Le script n'affiche le secret du jeton qu'une seule fois. Colle-le toi-même dans le formulaire : Kaji ne le ré-affiche jamais et personne d'autre que toi ne doit le voir.": "The script shows the token secret only once. Paste it into the form yourself: Kaji never shows it again and nobody but you should see it.",
  "Sans le script, les trois commandes à la main sont dans docs/installation-lab.md, étape 2.": "Without the script, the three manual commands are in docs/installation-lab.md, step 2.",
  "Apparence": "Appearance",
- "Apparence : thème et langue": "Appearance: theme and language"
+ "Apparence : thème, couleur et langue": "Appearance: theme, color and language",
+ "Couleur d'accentuation": "Accent color",
+ "Défaut": "Default",
+ "Par défaut du thème": "Theme default",
+ "Couleur personnalisée": "Custom color",
+ "Ajustée au thème pour rester lisible.": "Adjusted to the theme to stay readable.",
+ "Bleu ciel": "Sky blue",
+ "Violet": "Purple",
+ "Vert": "Green",
+ "Ambre": "Amber",
+ "Orange": "Orange",
+ "Rose": "Pink",
+ "Rouge": "Red",
+ "Turquoise": "Teal"
 }

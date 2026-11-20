@@ -34,6 +34,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+      - run: npm run check:accent        # contraste WCAG AA de la couleur d'accentuation, quel que soit le choix
   docker-essai:
     # Essai de bout en bout avec le vrai Docker (J1 #429, J3 #456) : sauvegarde / restauration, puis mise à jour depuis la version étiquetée et retour arrière.
     runs-on: ubuntu-latest

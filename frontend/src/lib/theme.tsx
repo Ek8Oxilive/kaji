@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+import { fitAccent, isHex } from "./accent";
 import { tr } from "./i18n";
 /** `auto` suit le réglage clair / sombre du système (`prefers-color-scheme`) et le suit s'il change ; les autres sont fixes. */
 export const THEMES = [
@@ -24,20 +25,37 @@ function initial(): ThemeId {
   return "dark";
 }
 
-const Ctx = createContext<{ theme: ThemeId; setTheme: (t: ThemeId) => void }>({ theme: "dark", setTheme: () => {} });
+const ACCENT_KEY = "kaji-accent";
+function initialAccent(): string | null {
+  try { const v = localStorage.getItem(ACCENT_KEY); if (isHex(v)) return v; } catch { /* stockage indisponible : couleur du thème */ }
+  return null;
+}
+/** Pose (ou retire) la couleur d'accentuation choisie ; elle est ajustée pour rester lisible sur le thème réellement appliqué. */
+function applyAccent(accent: string | null, applied: "dark" | "glass" | "light") {
+  const style = document.documentElement.style;
+  const fitted = accent ? fitAccent(accent, applied === "light" ? "light" : "dark") : null;
+  if (!fitted) { style.removeProperty("--accent"); style.removeProperty("--accentfg"); return; }
+  style.setProperty("--accent", fitted.accent);
+  style.setProperty("--accentfg", fitted.fg);
+}
+
+const Ctx = createContext<{ theme: ThemeId; setTheme: (t: ThemeId) => void; accent: string | null; setAccent: (c: string | null) => void }>(
+  { theme: "dark", setTheme: () => {}, accent: null, setAccent: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeId>(initial);
+  const [accent, setAccent] = useState<string | null>(initialAccent);
   useEffect(() => {
-    const apply = () => { document.documentElement.dataset.theme = resolveTheme(theme); };
+    const apply = () => { const applied = resolveTheme(theme); document.documentElement.dataset.theme = applied; applyAccent(accent, applied); };
     apply();
     try { localStorage.setItem(KEY, theme); } catch { /* ignoré */ }
+    try { if (accent) localStorage.setItem(ACCENT_KEY, accent); else localStorage.removeItem(ACCENT_KEY); } catch { /* ignoré */ }
     if (theme !== "auto") return;
     const q = query();                                   // `auto` : on suit le système tant qu'il est choisi
     q?.addEventListener("change", apply);
     return () => q?.removeEventListener("change", apply);
-  }, [theme]);
-  return <Ctx.Provider value={{ theme, setTheme }}>{children}</Ctx.Provider>;
+  }, [theme, accent]);
+  return <Ctx.Provider value={{ theme, setTheme, accent, setAccent }}>{children}</Ctx.Provider>;
 }
 
 export const useTheme = () => useContext(Ctx);
