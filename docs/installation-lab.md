@@ -6,6 +6,19 @@ Guide pour installer Kaji sur une machine neuve et le brancher sur un cluster Pr
 
 > **Honnêteté sur ce guide.** Il a été écrit à partir du code et de l'installation du propriétaire, **mais jamais rejoué de zéro par quelqu'un d'autre** : c'est le but du ticket #428. **Si une étape ne marche pas comme écrit, ouvre un ticket** avec la commande et le message obtenu : c'est exactement ce qu'on cherche.
 
+## Option express : un script fait les étapes 3 à 5 pour toi
+Sur la machine de Kaji (Debian ou Ubuntu : Docker est installé au besoin ; ailleurs, Docker doit déjà être là). **Télécharge le script, relis-le, puis lance-le** (ne l'exécute pas à l'aveugle) :
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ek8Oxilive/kaji/main/install.sh -o install.sh
+less install.sh        # relis-le (q pour quitter)
+sh install.sh
+```
+Il te demande **une seule chose** : l'adresse par laquelle tu ouvriras Kaji (réponds `local` pour un accès depuis cette machine seulement). Puis il vérifie ou installe Docker, récupère Kaji dans `~/kaji`, crée `.env` avec des secrets au hasard (droits 600), active HTTPS si tu as donné une adresse, construit et démarre Kaji, attend qu'il réponde, copie le certificat de Caddy, et **affiche l'adresse et le jeton de première configuration**. Relancé plus tard, il **met Kaji à jour** sans toucher à `.env` ni aux données. Options : `sh install.sh --help`.
+
+Il reste ensuite à créer l'utilisateur et le jeton dans Proxmox (§ 2) et à brancher la connexion (§ 4).
+
+*Essayé en réel le 2026-11-20 (Docker 29 sur Arch Linux) : installation locale, relance (`.env` identique), installation HTTPS avec récupération du certificat et réponse en HTTPS avec ce certificat. **Pas essayé** : l'installation automatique de Docker sur Debian / Ubuntu (écrite d'après la documentation officielle), une machine autre que celle du développement.*
+
 ## Démarrage rapide : les 7 étapes en une page
 Si tu n'as jamais installé ce genre d'outil, **suis ces 7 étapes dans l'ordre** ; chacune renvoie à la section qui la détaille. Tu n'as besoin de **rien d'autre** pour un premier essai.
 1. **Une machine pour Kaji** : une VM Debian 12 sur ton Proxmox (§ 1.1), ou n'importe quel Linux.
