@@ -42,10 +42,15 @@ Routes sous `/api/me/proxmox-tokens`, **ouvertes à tous les rôles** de Kaji (c
 | `KAJI_USER_TOKEN_MAX_DAYS` | durée maximale acceptée à l'enregistrement (défaut 90) |
 
 ## Validé en réel, et ce qui ne l'a pas été
-**Aucun essai réel à ce jour** : tout est vérifié avec un faux Proxmox strict qui authentifie chaque jeton et note qui appelle (`backend/tests/test_user_tokens.py`).
+**Essai réel du 2026-11-20** (PC B, Kaji déployé, bac à sable : VM 115 `kaji-sandbox`, compte `kajitest-perso@pve` et jeton `essai` jetables, tout supprimé ensuite ; le secret n'a été lu qu'en mémoire par l'agent, avec l'accord du propriétaire) :
+- **Journal nominatif : validé.** Démarrer puis arrêter la VM 115 par Kaji avec le jeton personnel crée des tâches Proxmox au nom de `kajitest-perso@pve` (`qmstart` / `qmstop`, identifiant de tâche `…:qmstart:115:kajitest-perso@pve!essai:`), alors que les anciennes tâches sont au nom de `kaji@pve`. Le journal d'accès (`/var/log/pveproxy/access.log`) nomme `kajitest-perso@pve!essai` pour chaque lecture. L'audit de Kaji reprend le même identifiant de tâche.
+- **Contrôle « vérifié » : validé, avec un droit de plus.** Avec un rôle sur la VM seulement, Proxmox ne laisse pas le jeton se décrire : l'enregistrement est accepté en `verified: false` (« déclaré, non contrôlé »). Avec `PVEUserAdmin` sur `/access` pour le compte ET le jeton, `GET /access/users/{u}/token/{t}` est lisible et l'entrée passe en `verified: true`.
+- **Intersection des droits : validée.** Compte `PVEVMUser` + jeton `PVEAuditor` : démarrage refusé ; compte `PVEAuditor` + jeton `PVEVMUser` : refusé ; les deux `PVEVMUser` : accepté. Le droit effectif est le plus faible des deux.
+- **Interface** : la fenêtre « Mon jeton Proxmox » a été utilisée dans un navigateur sur le Kaji déployé (enregistrement, état « Actif », retrait). Constat non investigué : dans une fenêtre de 739 px de large, le bouton « Compte » de l'en-tête n'était pas visible pour l'automate de test (il l'était à 1400 px).
 
-**Non validé en réel** (à faire avec un compte et un jeton de test créés par le propriétaire) :
-- qu'une action d'un utilisateur apparaisse **sous son nom dans le journal de Proxmox** (critère de sortie du ticket) ;
-- que `GET /access/users/{userid}/token/{tokenid}` soit **lisible avec le jeton lui-même** (sinon l'enregistrement reste « déclaré, non contrôlé ») et le format exact de sa réponse (`privsep`, `expire`) ;
-- que Proxmox traite comme prévu un jeton à privilèges séparés dont le compte a des droits plus larges (intersection) ;
-- l'interface (fenêtre « Mon jeton Proxmox ») dans un navigateur sur un Kaji déployé.
+**Non validé en réel** :
+- le montage de `KAJI_TOKEN_KEY_FILE` dans Docker (pas de Docker sur le poste de l'agent, et le CT 116 est interdit aux agents) ;
+- une écriture autre que démarrer / arrêter (par exemple une modification de configuration) avec un jeton personnel ;
+- le comportement sur plusieurs connexions Proxmox.
+
+Tout le reste est vérifié avec un faux Proxmox strict qui authentifie chaque jeton et note qui appelle (`backend/tests/test_user_tokens.py`).
